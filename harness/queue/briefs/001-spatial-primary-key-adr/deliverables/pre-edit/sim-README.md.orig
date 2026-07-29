@@ -4,8 +4,6 @@ The simulation engine — must be testable and runnable entirely without
 Unity (Unity is a thin render client, see `unity/README.md`; see
 `VISION.md`'s layered architecture). Empty stub for F0. Populated starting
 F1, after the spatial primary key ADR (`docs/rules/simulation-principles.md`
-failure mode #1) is decided. That decision is now recorded at
-`../docs/adr/0003-single-spatial-primary-key.md`, so the ADR-existence
-condition this stub named is satisfied. This does not by itself authorize
-writing simulation code here — that remains a separate, future brief's
-scope.
+failure mode #1) is decided — do not add simulation code here before that
+ADR exists, to avoid re-importing VictoriaProject's double-primary-key
+defect.

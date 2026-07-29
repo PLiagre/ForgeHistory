@@ -26,6 +26,27 @@ _FRONTMATTER_FIELD = re.compile(r'^\*\*{label}\*\*:\s*(\S+)', re.MULTILINE)
 _ISO_TS = re.compile(r'\d{4}-\d{2}-\d{2}T[\d:]+')
 _FRONTMATTER_LINE = re.compile(r'^\*\*(Author|Date|Verdict)\*\*:.*$', re.MULTILINE)
 _NUMBER = re.compile(r'\b\d{2,}\b')
+_CODE_SPAN = re.compile(r'`([^`\n]*)`')
+
+
+def _mask_code_spans(text: str, *, bare_word_only: str | None = None) -> str:
+    """Neutralize inline-code-span content before mechanical scanning.
+
+    Filenames/paths/identifiers are conventionally backtick-quoted in this
+    repo's docs (e.g. `docs/adr/0003-....md`), and a spec/rubric/verdict must
+    be free to *name* a forbidden word (e.g. "no bare `python`") without that
+    mention being read as an actual occurrence. When bare_word_only is set,
+    only spans whose content is exactly that word are masked -- a real
+    command like `python foo.py` (more than just the bare word) still counts.
+    """
+    def repl(match: re.Match) -> str:
+        content = match.group(1)
+        if bare_word_only is not None:
+            if re.fullmatch(rf'\s*{re.escape(bare_word_only)}\s*', content, re.IGNORECASE):
+                return '`(masked)`'
+            return match.group(0)
+        return '`' + re.sub(r'\d', '#', content) + '`'
+    return _CODE_SPAN.sub(repl, text)
 
 
 @dataclass
@@ -113,6 +134,7 @@ def check_verdict_numbers_traceable(bd: Path, m: dict) -> CheckResult:
     text = vf.read_text(encoding="utf-8")
     text = _ISO_TS.sub('', text)
     text = _FRONTMATTER_LINE.sub('', text)
+    text = _mask_code_spans(text)
     cited = set(_NUMBER.findall(text))
     known = {str(c.get("value")) for c in m.get("counters", [])} | \
             {str(c.get("sample_size")) for c in m.get("counters", [])}
@@ -130,6 +152,7 @@ def check_no_bare_python(bd: Path, m: dict) -> CheckResult:
     for pattern in ("**/*.log", "**/*.txt", "**/*.md"):
         for lf in bd.glob(pattern):
             t = lf.read_text(encoding="utf-8", errors="ignore")
+            t = _mask_code_spans(t, bare_word_only="python")
             if _BARE_PYTHON.search(t):
                 hits.append(str(lf.relative_to(bd)))
     return CheckResult("no_bare_python_alias", not hits,

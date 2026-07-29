@@ -206,3 +206,49 @@ def test_nonexistent_directory_is_internal_error_not_pass(tmp_path):
     result = run_audit(tmp_path / "does-not-exist")
     assert result.returncode == 2
     assert "VERDICT: ACCEPT" not in result.stdout
+
+
+# --- Regression coverage: a spec/verdict document naming a check by its
+# forbidden word is not the same as that word being actually invoked.
+# Found live on brief 001-spatial-primary-key-adr: eval-rubric.md's own row
+# describing `no_bare_python_alias` ("no bare `python` invocation") tripped
+# the check it was documenting, and verdict.md citing an ADR path containing
+# a leading-zero number (`docs/adr/0003-...md`) tripped
+# verdict_numbers_traceable. Both are backtick-quoted mentions, not real
+# invocations or measurements.
+
+def test_bare_python_documentation_mention_not_flagged(tmp_path):
+    bd = build_honest_brief(tmp_path)
+    (bd / "eval-rubric.md").write_text(
+        "# Rubric\n\n**Authored**: 2020-01-01T00:00:01\n\n"
+        "No bare `python` invocation anywhere in deliverables/logs.\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "[PASS] no_bare_python_alias" in result.stdout
+
+
+def test_bare_python_real_invocation_logged_in_prose_is_still_flagged(tmp_path):
+    bd = build_honest_brief(tmp_path)
+    (bd / "deliverables" / "generator-log.md").write_text(
+        "# Generator Log\n\n**Author**: forge-generateur\n\n"
+        "Ran `python province_count.py test-world-12.json` to measure the count.\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert result.returncode == 1
+    assert "[FAIL] no_bare_python_alias" in result.stdout
+
+
+def test_verdict_citation_of_a_path_number_not_flagged(tmp_path):
+    bd = build_honest_brief(tmp_path)
+    (bd / "verdict.md").write_text(
+        "# Verdict\n\n**Author**: forge-evaluateur\n\n"
+        "Measured province_count = 12 against sample_size 12, reproduced via "
+        "`docs/adr/0003-single-spatial-primary-key.md`. PASS.\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "[PASS] verdict_numbers_traceable" in result.stdout
