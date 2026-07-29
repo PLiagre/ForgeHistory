@@ -28,8 +28,19 @@ BRIEF_DIR="$(cd "$BRIEF_DIR" && pwd)"
 # --- Hard-won rule 9: an impossibility is tested before being invoked ---
 # (a command + an error message, never a silent skip)
 
-if ! command -v cursor-agent >/dev/null 2>&1; then
-  echo "ERROR: cursor-agent not found on PATH." >&2
+# On Windows, the installer places cursor-agent.cmd/.ps1 shims, not a bare
+# `cursor-agent` -- Git Bash's `command -v` (and direct exec) won't resolve
+# the bare name to a .cmd file, so try each real variant explicitly.
+CURSOR_AGENT_BIN=""
+for candidate in cursor-agent cursor-agent.cmd cursor-agent.exe; do
+  if command -v "$candidate" >/dev/null 2>&1; then
+    CURSOR_AGENT_BIN="$candidate"
+    break
+  fi
+done
+
+if [ -z "$CURSOR_AGENT_BIN" ]; then
+  echo "ERROR: cursor-agent not found on PATH (checked cursor-agent, cursor-agent.cmd, cursor-agent.exe)." >&2
   echo "Install it: curl https://cursor.com/install -fsSL | bash" >&2
   echo "(or, on Windows: irm 'https://cursor.com/install?win32=true' | iex)" >&2
   exit 2
@@ -73,11 +84,17 @@ STATUS_FILE="$BRIEF_DIR/deliverables/backend-status.md"
 mkdir -p "$BRIEF_DIR/deliverables"
 
 set +e
-cursor-agent -p "$(cat "$PROMPT_FILE")" \
+# Prompt is piped via stdin, not passed as a positional argument -- on
+# Windows, a prompt this size (brief + rubric + both rule docs) blows past
+# cmd.exe's command-line length limit ("La ligne de commande est trop
+# longue") when passed as argv, since the .cmd shim re-invokes through
+# cmd.exe. Confirmed working via stdin instead.
+"$CURSOR_AGENT_BIN" -p \
   --workspace "$BRIEF_DIR" \
   --force \
   --output-format json \
   --model "${CURSOR_MODEL:-auto}" \
+  < "$PROMPT_FILE" \
   > "$OUT_JSON" 2> "$ERR_LOG"
 CURSOR_EXIT=$?
 set -e
