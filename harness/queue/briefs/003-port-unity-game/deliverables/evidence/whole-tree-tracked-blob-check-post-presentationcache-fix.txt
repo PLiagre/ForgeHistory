@@ -1,0 +1,6 @@
+Whole-tree HEAD-tracked blob presence check, run after PresentationCache remediation (feedback-001.md item 1)
+Source: git -C C:\Users\liagr\VictoriaProject ls-tree -r HEAD --name-only -- game_unity (834 paths)
+Excludes only the 7 fully-excluded regenerable directories from Success Condition 1's fixed list (Library/Temp/Logs/obj/Builds/UserSettings/.vs) -- PresentationCache/ is now checked like any other directory.
+
+
+total_missing_outside_known_excluded_dirs=0

@@ -18,6 +18,19 @@
     },
     { "path": "../../../../unity/game_unity/Captures/v1_094/03_apres_conquete_VERT_ecs.png" },
     { "path": "../../../../unity/sandbox/geo/artifacts/coordinate_correction_proposal_v1_072.json" },
+    { "path": "../../../../unity/game_unity/PresentationCache/README.md" },
+    { "path": "../../../../unity/game_unity/PresentationCache/Sprites/unit_cog_1400.png" },
+    { "path": "../../../../unity/game_unity/PresentationCache/Sprites/unit_cog_1400.stamp" },
+    { "path": "../../../../unity/game_unity/PresentationCache/Sprites/unit_galley_1400.png" },
+    { "path": "../../../../unity/game_unity/PresentationCache/Sprites/unit_galley_1400.stamp" },
+    { "path": "../../../../unity/game_unity/PresentationCache/Sprites/unit_carrack_1450.png" },
+    { "path": "../../../../unity/game_unity/PresentationCache/Sprites/unit_carrack_1450.stamp" },
+    { "path": "../../../../unity/game_unity/PresentationCache/Sprites/unit_galleon_1550.png" },
+    { "path": "../../../../unity/game_unity/PresentationCache/Sprites/unit_galleon_1550.stamp" },
+    { "path": "deliverables/evidence/presentationcache-bridge-sha256-check.txt" },
+    { "path": "deliverables/evidence/whole-tree-tracked-blob-check-post-presentationcache-fix.txt" },
+    { "path": "deliverables/evidence/victoriaproject-testresults_full.xml" },
+    { "path": "deliverables/evidence/victoriaproject-testresults_orient.xml" },
     { "path": "deliverables/evidence/robocopy-verify.log" },
     { "path": "deliverables/evidence/sentinel-hashes-before.txt" },
     { "path": "deliverables/evidence/sentinel-hashes-after.txt" },
@@ -51,7 +64,7 @@
       "value": 0,
       "sample_size": 855,
       "command": "MSYS_NO_PATHCONV=1 robocopy \"C:\\Users\\liagr\\VictoriaProject\\game_unity\" \"D:\\ForgeHistory\\unity\\game_unity\" /L /E /XD Library Temp Logs obj Builds PresentationCache UserSettings .vs /NFL /NDL /NP",
-      "sample_size_note": "denominator = the same list-only pass's summary 'Files: Total' (855), run after the real copy (iteration 1; unaffected by later remediation, which only adds a narrow, additive bridge and never changes the game_unity/ copy scope itself). 'Files: Copied' in this pass was 0, evidence in deliverables/evidence/robocopy-verify.log"
+      "sample_size_note": "CORRECTED per feedback-001.md item 4a: this is an explicitly point-in-time iteration-1 measurement, taken immediately after the initial robocopy and before any remediation -- 'Files: Copied' was genuinely 0 at that moment (deliverables/evidence/robocopy-verify.log). It is NOT reproducible today, by design: amendment-001 deliberately made the port diverge from VictoriaProject's dirty working tree (77 files restored to HEAD content, 72 untracked strays removed), and the EditMode suite's own runs regenerated Captures/. Re-running the identical list-only pass now (2026-07-31, post-amendment-003) reports 'Files: Copied = 201' -- a real, expected divergence, not a regression or a broken copy. A later reader should not attempt to reproduce 0 from this command today and conclude the copy is broken; the copy's completeness for Success Condition 1 is independently verified by whole-tree blob comparison (git hash-object against every HEAD-tracked path), not by this counter's continued reproducibility."
     },
     {
       "name": "robocopy_files_total_count",
@@ -72,7 +85,7 @@
       "value": 28,
       "sample_size": 86,
       "command": "Grep (ripgrep) for literal substring 'Captures' across every .cs file under unity/game_unity/Assets/Tests/, run after the port",
-      "sample_size_note": "denominator = total .cs files present under unity/game_unity/Assets/Tests/ (86), of which 28 matched"
+      "sample_size_note": "CORRECTED per feedback-001.md item 5: denominator = 86 TOP-LEVEL .cs files present directly under unity/game_unity/Assets/Tests/ (non-recursive, `Get-ChildItem -Filter *.cs` without `-Recurse`), of which 28 matched. Counted recursively (including subdirectories), the denominator is 91 instead -- the numerator (28) is identical either way, and the brief's own floor for this counter is '>= 1', so nothing about the reported result changes; stated explicitly as top-level rather than left ambiguous."
     },
     {
       "name": "victoriaproject_dirty_tracked_file_count",
@@ -191,7 +204,7 @@
       "value": 7,
       "sample_size": 8,
       "command": "git -C C:\\Users\\liagr\\VictoriaProject log -1 --format=%ci -- game_unity/Assets/Tests/<TestFile>.cs, per file, compared against git show -s --format=%ci 46bd234 (v1_090's commit, 2026-07-28 10:11:49 +0200)",
-      "sample_size_note": "denominator = 8 minus cluster_c_in_reference_suite_count (1) = 7. All 7 individually attributed, each with its own git-log-derived date: V1MapSnapshotTests.cs (2026-07-23 15:08:03, v1_001), V1bMapMaskTests.cs (2026-07-23 15:32:37, v1_002), V1cMapReadableTests.cs (2026-07-23 16:07:40, v1_003), V1dChronicleTests.cs (2026-07-23 16:21:02, v1_004), V1eMapLayerTests.cs (2026-07-23 17:07:46, v1_006), V1008MeasurementTests.cs (2026-07-23 17:35:34, v1_008), V1014MeasurementTests.cs (2026-07-23 20:51:19, v1_014) -- all 7 last modified 2026-07-23 (VictoriaProject's very first 'Phase V' day), never touched since, all strictly predating v1_090 (2026-07-28 10:11:49) by 5 days. v1_090's own commit message (quoted in full, cited by commit hash/section per hard-won rule 12, not by inline hex fingerprint value -- deliverables/evidence/cluster-c-legacy-attribution-git-log.txt) states explicitly: CountryData.Population was frozen at 0 by CountryInitSystem.cs:47 and never fed by any system until v1_090 deliberately fixed it, and the commit message names this in its own words as certain and intentional to break any prior parity/anchor computed on the frozen field ('Alimenter ce champ CHANGERA l'empreinte, necessairement, et ce n'est pas une regression'). Since 6 of these 7 fixtures assert hardcoded anchor constants baked in 2026-07-23 against live-computed WorldMetrics (which include population and population-derived economic figures), and the 7th (V1014) derives its own comparison value from a rate-sweep over the same population-dependent trajectory, all 7 are attributed: 'legacy, hors suite maintenue, ancre anterieure au rebasage v1_090 (2026-07-28, CountryData.Population passe de gele-a-zero a alimente, casse de parite documentee et deliberee par VictoriaProject elle-meme).' Per amendment-003's mandate, none of the 7 is weakened, deleted, or rebased -- left exactly as ported, red assumed and documented, not hidden."
+      "sample_size_note": "denominator = 8 minus cluster_c_in_reference_suite_count (1) = 7. All 7 individually attributed, each with its own git-log-derived date: V1MapSnapshotTests.cs (2026-07-23 15:08:03, v1_001), V1bMapMaskTests.cs (2026-07-23 15:32:37, v1_002), V1cMapReadableTests.cs (2026-07-23 16:07:40, v1_003), V1dChronicleTests.cs (2026-07-23 16:21:02, v1_004), V1eMapLayerTests.cs (2026-07-23 17:07:46, v1_006), V1008MeasurementTests.cs (2026-07-23 17:35:34, v1_008), V1014MeasurementTests.cs (2026-07-23 20:51:19, v1_014) -- all 7 last modified 2026-07-23 (VictoriaProject's very first 'Phase V' day), never touched since, all strictly predating v1_090 (2026-07-28 10:11:49) by 5 days. v1_090's own commit message is captured verbatim (deliverables/evidence/cluster-c-legacy-attribution-git-log.txt) as raw output -- CORRECTED per feedback-001.md item 4b: that verbatim capture does contain the parity fingerprint (VictoriaProject's own commit message quotes it in full), which is exactly what hard-won rule 12 wants: raw captured output cited by pointer, not a value re-typed or newly asserted by this brief's own prose. This ADR/generator-log.md-facing manifest note itself, and generator-log.md's own analysis text, never re-type or newly cite that hex value directly -- the rubric's grep check covers those two files, both of which are clean; the archived raw evidence file is expected to contain it. States explicitly: CountryData.Population was frozen at 0 by CountryInitSystem.cs:47 and never fed by any system until v1_090 deliberately fixed it, and the commit message names this in its own words as certain and intentional to break any prior parity/anchor computed on the frozen field ('Alimenter ce champ CHANGERA l'empreinte, necessairement, et ce n'est pas une regression'). Since 6 of these 7 fixtures assert hardcoded anchor constants baked in 2026-07-23 against live-computed WorldMetrics (which include population and population-derived economic figures), and the 7th (V1014) derives its own comparison value from a rate-sweep over the same population-dependent trajectory, all 7 are attributed: 'legacy, hors suite maintenue, ancre anterieure au rebasage v1_090 (2026-07-28, CountryData.Population passe de gele-a-zero a alimente, casse de parite documentee et deliberee par VictoriaProject elle-meme).' Per amendment-003's mandate, none of the 7 is weakened, deleted, or rebased -- left exactly as ported, red assumed and documented, not hidden."
     },
     {
       "name": "v1095_diagnostic_without_nographics_pass_count",
@@ -276,11 +289,25 @@
       "sample_size_note": "denominator = 9 Unity invocations actually run across all 4 iterations (iteration 1: compile, runTests, executeMethod; iteration 2 per amendment-001: compile, runTests, executeMethod; iteration 3 per amendment-002: 1 fresh full runTests; iteration 4 per amendment-003: V1095 no-nographics diagnostic + 1 more fresh full runTests). Each preceded by exactly one documented combined check -- see generator-log.md's numbered check log for all 9."
     },
     {
+      "name": "presentationcache_bridge_files_identified_count",
+      "value": 9,
+      "sample_size": 9,
+      "command": "git -C C:\\Users\\liagr\\VictoriaProject ls-tree -r HEAD --name-only -- game_unity/PresentationCache (51 tracked paths) compared file-by-file against unity/game_unity/PresentationCache/ presence -- per feedback-001.md item 1",
+      "sample_size_note": "denominator = 51 (total HEAD-tracked files under game_unity/PresentationCache/); 9 were absent from the ported tree: PresentationCache/README.md and the 4 unit_* sprite pairs (.png + .stamp) MapSpriteOverlay.cs:138 names by key (unit_cog_1400, unit_galley_1400, unit_carrack_1450, unit_galleon_1550). This is a planning defect in Success Condition 1's original eight-directory exclusion list (PresentationCache/ was assumed purely regenerable; 9 of its 51 tracked files are not self-regenerated by a Unity compile/test run, the other 42 are), not a Generateur error -- the Generateur complied exactly with the fixed exclusion list as written."
+    },
+    {
+      "name": "presentationcache_bridge_files_restored_count",
+      "value": 9,
+      "sample_size": 9,
+      "command": "git -C C:\\Users\\liagr\\VictoriaProject show HEAD:game_unity/PresentationCache/<path> > D:\\ForgeHistory\\unity\\game_unity\\PresentationCache\\<path>, per file, then Get-FileHash -Algorithm SHA256 on both source and copy",
+      "sample_size_note": "denominator = presentationcache_bridge_files_identified_count (9). All 9 restored, all 9 SHA256-verified identical to VictoriaProject's HEAD content (deliverables/evidence/presentationcache-bridge-sha256-check.txt) -- README.md=7FACCD9C...9109, unit_cog_1400.png=2DB26BE2...A42D, unit_cog_1400.stamp=768AD5DA...B9CDB, unit_galley_1400.png=7433D20B...A4698, unit_galley_1400.stamp=8B6D17E0...214D3, unit_carrack_1450.png=A183A27E...EA905, unit_carrack_1450.stamp=A7CDD6C9...D965F, unit_galleon_1550.png=9592756B...02C40, unit_galleon_1550.stamp=8282FB03...A2656. Independently re-verified by reproducing the Evaluateur's own whole-tree method: `git ls-tree -r HEAD --name-only -- game_unity` (834 paths) checked file-by-file against the ported tree, excluding only the 7 remaining fully-excluded regenerable directories (Library/Temp/Logs/obj/Builds/UserSettings/.vs) -- 0 missing (deliverables/evidence/whole-tree-tracked-blob-check-post-presentationcache-fix.txt), confirming these 9 were the only gap and it is now fully closed. `.gitignore` updated with targeted `!`-negation exceptions (`/PresentationCache/*` + `!/PresentationCache/README.md` + `!/PresentationCache/Sprites/` + `/PresentationCache/Sprites/*` + 8 explicit `!` lines for the unit_* pairs) so these 9 specific tracked paths are versionable without re-including the 42 regenerated building_*/city_*/prop_* sprites -- verified with `git add -n` scoped to PresentationCache/: exactly these 9 paths would be staged, no more, no less."
+    },
+    {
       "name": "generator_git_commits_count",
-      "value": 1,
-      "sample_size": 1,
-      "command": "cd D:\\ForgeHistory; git log --oneline --since=2026-07-31T15:00:00 --until=2026-07-31T20:09:23 (--until = this manifest.json's own LastWriteTime, read via Get-Item at final hand-off)",
-      "sample_size_note": "unchanged across all 4 iterations: the literal query returns exactly 1 commit, fce1d82 (brief-002 session, before this Generateur's own work began, not created by this Generateur). No `git commit`/`git add`/`git push` invoked anywhere in this brief's work across all 4 iterations."
+      "value": 2,
+      "sample_size": 2,
+      "command": "cd D:\\ForgeHistory; git log --oneline --since=2026-07-31T15:00:00 --until=2026-07-31T20:44:10 (--until = this manifest.json's own LastWriteTime, read via Get-Item at final hand-off)",
+      "sample_size_note": "UPDATED in iteration 5: the literal query now returns 2 commits, up from 1 in iterations 1-4, because a second commit landed in the window between iteration 4's hand-off and iteration 5's start. Neither was created by this Generateur (no `git commit`/`git add`/`git push` was invoked anywhere in this brief's work, across all 5 iterations -- verified by this session's own command history containing zero git-write invocations). fce1d82 (2026-07-31 17:58:46, author liagre.pe@outlook.com) is brief-002's own prior session, already documented in iterations 1-4. 8fb4bef (2026-07-31 20:35:41, author liagre.pe@outlook.com -- the project owner's own email, matching userEmail context) is the project owner's own commit of iterations 1-4's already-ACCEPT-gated, PASS-verdicted brief-003 work (commit message: 'Run brief 003: bulk-port VictoriaProject Unity game (gate ACCEPT 9/9, Evaluateur PASS)'), made between this Generateur's iteration-4 hand-off and the coordinator's iteration-5 feedback message -- i.e. the owner committing already-accepted work, not a Generateur action. Reported honestly per the literal counter definition rather than narrowing the query to force a lower number, per hard-won rule 2 (a check derives, it is not renamed to force a convenient answer) -- consistent with how iterations 1-4 treated fce1d82."
     }
   ],
   "waivers": []

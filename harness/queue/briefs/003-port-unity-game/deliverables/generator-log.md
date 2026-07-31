@@ -937,6 +937,197 @@ checkpoint across all 4 iterations) after this iteration's additional
 read-only `git log --follow` (8 files), `git show -s` (v1_090's message),
 and the 2 Logs/ bridge file reads from VictoriaProject's local disk.
 
+## Iteration 5 — feedback-001.md: PresentationCache bridge, README correction, note corrections
+
+**Authored (this section)**: 2026-08-01T13:00:00
+
+Brief 003's mechanical gate is ACCEPT (`verdict.md`: PASS, 9/9) and this
+iteration does not change that fact. `harness/queue/briefs/003-port-unity-game/feedback/feedback-001.md`
+lists 5 real, independently-found defects the Évaluateur reconstructed
+during its own verification pass, none of which blocked the PASS verdict,
+all of which are worth closing rather than carrying forward silently. Read
+in full before acting. No Unity invocation was needed for any of the 5
+items; VictoriaProject remained read-only throughout (verified again below).
+
+### Item 1 — `PresentationCache/`'s 9 missing tracked files, bridged
+
+The feedback's own method (`git -C C:\Users\liagr\VictoriaProject ls-tree -r
+HEAD --format='%(objectname) %(path)' -- game_unity` compared against the
+ported tree) was reproduced independently before acting: VictoriaProject
+tracks 51 files at HEAD under `game_unity/PresentationCache/`; 9 were
+missing from the ported tree — `README.md` and the 4 `unit_*` sprite pairs
+(`.png` + `.stamp`) `Assets/Scripts/Presentation/MapSpriteOverlay.cs:138`
+names by key (`unit_cog_1400`, `unit_galley_1400`, `unit_carrack_1450`,
+`unit_galleon_1550`). Confirmed this is a planning defect, not a
+Générateur error, exactly as the feedback states: `brief.md`'s Success
+Condition 1 fixed the eight-directory exclusion list and forbade silently
+narrowing or extending it; `PresentationCache/` was in that fixed list, and
+the Générateur complied with it exactly across all 4 prior iterations.
+
+Bridged the 9 files, read-only, via the same `git show HEAD:` mechanic
+already proven twice this brief (Cluster A's `sandbox/geo/artifacts/`
+bridge, Cluster B's `Logs/` bridge):
+```
+git -C C:\Users\liagr\VictoriaProject show HEAD:game_unity/PresentationCache/<path> > D:\ForgeHistory\unity\game_unity\PresentationCache\<path>
+```
+run once per file (9 invocations, 9 successes, 0 failures). SHA256-verified
+each restored file against the source, independently, all 9 matching
+exactly (`deliverables/evidence/presentationcache-bridge-sha256-check.txt`):
+
+| File | SHA256 |
+|---|---|
+| `README.md` | `7FACCD9C963F82F2965AB3941CEC57BAADBFB058038B527ACA1B78AF6C9D9109` |
+| `unit_cog_1400.png` | `2DB26BE2832CB0D39D84F22C66B9A60CD3E8DFF3A667EC08F05B2F525289A42D` |
+| `unit_cog_1400.stamp` | `768AD5DAF7745B2DBFED4C3F13BB935F166BAC8C113D6412F222EE1D5D3B9CDB` |
+| `unit_galley_1400.png` | `7433D20B9D8292FD1E5DF04B71D2CD8C7FCAFD445D1150D1352BED44840A4698` |
+| `unit_galley_1400.stamp` | `8B6D17E0F7C228FC2038978277B8DC3A6386ED29FEB971B33BBB32F31F6214D3` |
+| `unit_carrack_1450.png` | `A183A27E1F0EE65C228717EF846A3A0582E9CC571239F0E3BDD5AC5FF85EA905` |
+| `unit_carrack_1450.stamp` | `A7CDD6C97678BE820A755C4439EF95ACD611E8C3884025EA189B68C5E7FD965F` |
+| `unit_galleon_1550.png` | `9592756B1C5F130D3B6019A8F48FE23E614924872E6EAD83571D6EDAC2902C40` |
+| `unit_galleon_1550.stamp` | `8282FB03B774A8F6DBA58DAC15CE483625F5D75C38F9E454B411B18C70CA2656` |
+
+**`.gitignore` exceptions.** `unity/game_unity/.gitignore` previously
+excluded `/PresentationCache/` wholesale. Since Git does not descend into
+an ignored directory to apply negation patterns on files inside it, a
+blanket `!` on individual file paths inside a fully-ignored directory does
+not work — the directory itself must be un-ignored down to each level.
+Replaced the single `/PresentationCache/` line with:
+```
+/PresentationCache/*
+!/PresentationCache/README.md
+!/PresentationCache/Sprites/
+/PresentationCache/Sprites/*
+!/PresentationCache/Sprites/unit_cog_1400.png
+!/PresentationCache/Sprites/unit_cog_1400.stamp
+!/PresentationCache/Sprites/unit_galley_1400.png
+!/PresentationCache/Sprites/unit_galley_1400.stamp
+!/PresentationCache/Sprites/unit_carrack_1450.png
+!/PresentationCache/Sprites/unit_carrack_1450.stamp
+!/PresentationCache/Sprites/unit_galleon_1550.png
+!/PresentationCache/Sprites/unit_galleon_1550.stamp
+```
+Verified three independent ways: (1) `git check-ignore -v` on each of the 9
+shows each matched by its own `!`-negation rule (i.e. not ignored); (2)
+`git check-ignore -v` on two of the 42 regenerated sprites
+(`building_farm_1400.png`, `prop_wool_1400.stamp`) shows both still matched
+by the blanket `/PresentationCache/Sprites/*` ignore rule; (3) `git add -n
+unity/game_unity/PresentationCache/` (dry run) lists **exactly the 9**
+intended paths and nothing else — the most direct proof available, since it
+is the literal operation the exceptions exist to enable.
+
+Reproduced the Évaluateur's own whole-tree method once more, broadened
+beyond just `PresentationCache/`, to confirm no other gap exists anywhere:
+`git ls-tree -r HEAD --name-only -- game_unity` (834 tracked paths) checked
+file-by-file against the ported tree, excluding only the 7 directories that
+remain fully excluded (`Library/Temp/Logs/obj/Builds/UserSettings/.vs` —
+`PresentationCache/` is now checked like any other directory since its own
+gap is closed): **0 missing**
+(`deliverables/evidence/whole-tree-tracked-blob-check-post-presentationcache-fix.txt`).
+This confirms the 9 `PresentationCache/` files were the only gap in the
+entire ported tree, not merely the only one this feedback happened to name.
+
+VictoriaProject's own `sandbox/geo/artifacts/coordinate_correction_proposal_v1_072.json`
+and `game_unity/PresentationCache/` were only read; re-verified untouched
+(sentinel hashes, unchanged from every prior checkpoint) before and after
+this remediation.
+
+### Item 2 — VictoriaProject's own unfiltered run, found and archived
+
+`C:\Users\liagr\VictoriaProject\game_unity\Logs\testresults_full.xml`
+(start-time `2026-07-28 18:17:32Z`) and its sibling `testresults_orient.xml`
+(the `25/25` orientation run `HANDOFF.md` cites) both exist and were
+confirmed by reading their own `<test-run>` root attributes: `testresults_full.xml`
+— `total="274" passed="266" failed="7" skipped="1"`;
+`testresults_orient.xml` — `total="25" passed="25" failed="0"`. Extracted
+`testresults_full.xml`'s 7 failing `fullname`s and its 1 skipped
+`fullname` via the same `py -c`/`xml.etree` method used throughout this
+brief: **byte-for-byte identical** to the 7 fixtures this port already
+attributes as legacy (`V1008`, `V1014`, `V1b`, `V1c`, `V1d`, `V1e`,
+`V1MapSnapshot`) and the same single skipped case
+(`V1015CollapseDiagnostic`) — and `V1095GpuMapTests` is **not** in
+VictoriaProject's own failing list, consistent with iteration 4's own
+diagnostic finding that its failure under this port's `-nographics`
+invocation is an invocation artifact, not present when VictoriaProject
+itself ran the same suite. Both files copied verbatim into
+`deliverables/evidence/victoriaproject-testresults_full.xml` and
+`victoriaproject-testresults_orient.xml` (read-only from VictoriaProject).
+This is strictly stronger evidence than iteration 4's `git log --follow`
+date-correlation method — it is VictoriaProject's own direct measurement of
+the same claim, not an inference from authoring dates — and is now cited
+alongside that method rather than replacing it in `manifest.json`'s
+`cluster_c_legacy_attributed_count` note (the git-log dates remain true and
+independently sufficient; this is corroborating first-party proof, not a
+substitute).
+
+### Item 3 — `unity/README.md`'s disproven hedge, corrected
+
+The clause "which VictoriaProject itself may never have run in one pass"
+(inherited verbatim from `amendment-003.md`'s own hedged "may") is disproven
+by item 2's evidence and has been removed. `unity/README.md` now cites
+`testresults_full.xml` by path and states plainly that this port reproduces
+VictoriaProject's own unfiltered result case for case — total, the 7
+failing fullnames, and the 1 skipped case, all identical.
+
+### Item 4 — two `manifest.json` notes corrected (values unchanged)
+
+**a. `robocopy_files_pending_copy_count`.** The prior note claimed this
+measurement was "unaffected by later remediation." Re-ran the identical
+list-only `robocopy` pass today (2026-07-31, post-amendment-003): `Files:
+Copied = 201`, not 0 — genuinely not reproducible, exactly as the feedback
+found (it independently measured 201 too). The value `0` was true when
+measured (iteration 1, before any remediation existed to diverge from) and
+remains a correct historical record; the note was wrong to imply ongoing
+reproducibility. Corrected to state this explicitly as a point-in-time
+iteration-1 measurement that `amendment-001`'s deliberate remediation (77
+files restored to HEAD, 72 untracked strays removed) and the suite's own
+`Captures/` regeneration intentionally superseded — a later reader
+re-running this command today should expect a nonzero "Files: Copied" count
+and not conclude the copy is broken; completeness is independently proven
+by whole-tree blob comparison (item 1's method), not by this counter's
+continued reproducibility.
+
+**b. `cluster_c_legacy_attributed_count`.** The prior note claimed
+`v1_090`'s commit message was cited "not by inline hex fingerprint value."
+That is backwards: the verbatim capture in
+`deliverables/evidence/cluster-c-legacy-attribution-git-log.txt` **does**
+contain the fingerprint, because it quotes VictoriaProject's own commit
+message in full — which is exactly what hard-won rule 12 wants (raw
+captured output cited by pointer, never a value re-typed or newly asserted
+in this brief's own prose). Corrected the note to say the message is
+captured verbatim, fingerprint included as raw output, rather than
+claiming it is not inlined. Re-confirmed the actual rubric-relevant scope
+still holds: `grep '0x[0-9A-Fa-f]{8,}'` against `docs/adr/0004-*.md` and
+`deliverables/generator-log.md` (the two files the rubric's own check
+covers) returns zero matches — both remain clean; only the archived raw
+evidence file, which is expected to hold verbatim source, contains the
+value.
+
+### Item 5 (minor) — `captures_dir_test_reference_count` denominator clarified
+
+`Get-ChildItem -Filter *.cs` under `Assets/Tests/` without `-Recurse`
+returns 86 (the denominator actually used); with `-Recurse` it returns 91.
+The numerator (28) is identical either way and the brief's own floor for
+this counter is `>= 1`, so the reported result does not change. Corrected
+the note to say "top-level `.cs` files," resolving the ambiguity rather
+than leaving it implicit.
+
+### Iteration-5 self-check
+
+`git status --porcelain` in `D:\ForgeHistory`: `unity/`,
+`docs/adr/0004-bulk-port-victoriaproject-unity-game.md`,
+`docs/adr/README.md`, this brief's `deliverables/`, and
+`harness/queue/cost-ledger.jsonl` changed — no `.cs` file, no `sim/` or
+`pipeline/geo/` file, nothing else; `unity/game_unity/PresentationCache/`
+is new/untracked in `D:\ForgeHistory`'s own git status (expected — nothing
+in this repository has been committed). VictoriaProject re-verified
+untouched a sixth time (sentinel hashes identical to every prior
+checkpoint across all 5 iterations) after this iteration's 9 read-only
+`git show HEAD:` extractions and 2 read-only file copies
+(`testresults_full.xml`, `testresults_orient.xml`) from VictoriaProject's
+local disk. No Unity invocation was made this iteration (none was needed).
+No `git commit`/`git add`/`git push` was run anywhere in this brief's work,
+across all 5 iterations.
+
 ## Summary of what is and is not proven by this run (final, after amendment-003)
 
 - Proven, mechanically, with fresh evidence: the copy is byte-exact and

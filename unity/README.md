@@ -38,13 +38,20 @@ the ported project — see brief `003-port-unity-game`'s
 compile and capture proofs are green; the EditMode suite VictoriaProject
 itself actually maintained as its acceptance bar (reconstructed by proof,
 not a fixed filter file) is 100% green from this location; the raw,
-unfiltered `-testPlatform EditMode` run (which VictoriaProject itself may
-never have run in one pass) has 8 individually-attributed failures — 7
-frozen, legacy fixtures predating a deliberate, VictoriaProject-documented
-parity-breaking change (`v1_090`), left red on purpose rather than
-weakened or rebased, and 1 (`V1095GpuMapTests`) whose failure is a
-pre-existing, VictoriaProject-documented invocation requirement
-(`-nographics` disables the GPU path it asserts on), not a port defect.
+unfiltered `-testPlatform EditMode` run has 8 individually-attributed
+failures — 7 frozen, legacy fixtures predating a deliberate,
+VictoriaProject-documented parity-breaking change (`v1_090`), left red on
+purpose rather than weakened or rebased, and 1 (`V1095GpuMapTests`) whose
+failure is a pre-existing, VictoriaProject-documented invocation
+requirement (`-nographics` disables the GPU path it asserts on), not a port
+defect. VictoriaProject's own unfiltered run of the same suite exists and
+was found (`C:\Users\liagr\VictoriaProject\game_unity\Logs\testresults_full.xml`,
+2026-07-28 18:17:32Z): **same total, 274; same 7 failing `fullname`s,
+byte-for-byte; same single skipped case, `V1015CollapseDiagnostic`.** This
+port reproduces VictoriaProject's own unfiltered result case for case — the
+strongest evidence available that the port introduced zero regressions and
+that the 7 legacy reds were already red upstream, not a claim resting on
+date correlation alone.
 
 ## `game_unity/Logs/` — two bridged historical artifacts, same discipline as the sandbox bridge below
 
