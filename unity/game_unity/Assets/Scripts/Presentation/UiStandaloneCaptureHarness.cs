@@ -22,6 +22,12 @@ namespace VictoriaGame.Presentation
         public const string ArgCaptureDir = "--ui-capture-dir";
         public const string ArgResponsiveDir = "--ui-responsive-dir";
         public const string ArgResponsiveRes = "--ui-responsive-res";
+        /// <summary>
+        /// Mode debug explicite (brief 004-polish-visuel) : présence seule suffit
+        /// à activer <see cref="InGameHud.ShowDebugIds"/> pour cette capture —
+        /// jamais activé par défaut (voir <see cref="HasFlag"/>).
+        /// </summary>
+        public const string ArgDebugIds = "--debug-ids";
         const int WarmupFrames = 90;
         const int SettleFrames = 20;
 
@@ -33,7 +39,9 @@ namespace VictoriaGame.Presentation
             "03_province_selected.png",
             "04_pause_active.png",
             "05_tax_min.png",
-            "06_tax_max.png"
+            "06_tax_max.png",
+            // brief 004-polish-visuel : preuve du bandeau en survol (jeton HOVER).
+            "07_hover_debug_leak.png"
         };
 
         static readonly Vector2Int[] ResponsiveResolutions =
@@ -118,6 +126,19 @@ namespace VictoriaGame.Presentation
             return false;
         }
 
+        /// <summary>Drapeau sans valeur (présence seule) — utilisé par <see cref="ArgDebugIds"/>.</summary>
+        public static bool HasFlag(string flag)
+        {
+            var args = Environment.GetCommandLineArgs();
+            for (var i = 0; i < args.Length; i++)
+            {
+                if (string.Equals(args[i], flag, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
         IEnumerator RunResponsiveSequence()
         {
             var log = new StringBuilder(32768);
@@ -133,6 +154,7 @@ namespace VictoriaGame.Presentation
                 log.AppendLine("composer=NONE");
                 log.AppendLine($"capture_dir={_captureDir}");
                 log.AppendLine("matrix=1280x720,1920x1080,2560x1440,3440x1440 × country,province");
+                log.AppendLine($"debug_ids={HasFlag(ArgDebugIds)}");
             }
 
             Application.runInBackground = true;
@@ -143,7 +165,9 @@ namespace VictoriaGame.Presentation
                 yield return null;
 
             InGameHud.ForceProgrammaticFallback = false;
-            InGameHud.ShowDebugIds = false;
+            // Mode debug explicite (brief 004-polish-visuel) : OFF par défaut,
+            // activable uniquement via --debug-ids en ligne de commande.
+            InGameHud.ShowDebugIds = HasFlag(ArgDebugIds);
             if (InGameHud.Instance == null)
             {
                 var go = new GameObject("InGameHud");
@@ -456,6 +480,7 @@ namespace VictoriaGame.Presentation
             log.AppendLine($"capture_target={GameViewCapture.Width}x{GameViewCapture.Height}");
             log.AppendLine("composer=NONE");
             log.AppendLine($"capture_dir={_captureDir}");
+            log.AppendLine($"debug_ids={HasFlag(ArgDebugIds)}");
 
             GameViewCapture.ResetExpectedResolution();
             Screen.SetResolution(
@@ -476,7 +501,9 @@ namespace VictoriaGame.Presentation
             }
 
             InGameHud.ForceProgrammaticFallback = false;
-            InGameHud.ShowDebugIds = false;
+            // Mode debug explicite (brief 004-polish-visuel) : OFF par défaut,
+            // activable uniquement via --debug-ids en ligne de commande.
+            InGameHud.ShowDebugIds = HasFlag(ArgDebugIds);
             if (InGameHud.Instance == null)
             {
                 var go = new GameObject("InGameHud");
@@ -605,6 +632,33 @@ namespace VictoriaGame.Presentation
                     provinceDetail = snap.DetailBlock;
                     break;
                 }
+            }
+
+            // --- 07 : survol d'une province (brief 004-polish-visuel) ---
+            // Scénario reproductible et fixe pour prouver/démentir la fuite de debug
+            // "HOVER <nom>" dans le bandeau — reste au niveau Pays (comme 02), simule
+            // MapViewport.SetHover directement (même état que UpdateHoverAtTexturePixel
+            // écrirait, sans dépendre d'un pointeur réel).
+            if (provinceId >= 0)
+            {
+                var hoverName = ProvinceCoordinates.NameOf(provinceId);
+                MapViewport.SetHover(
+                    provinceId, string.IsNullOrEmpty(hoverName) ? ("P" + provinceId) : hoverName);
+                MapDisplaySystem.RequestRefresh();
+                for (var i = 0; i < SettleFrames; i++)
+                    yield return null;
+                hud.RefreshInfoBar(MapDisplaySystem.LastMetricsLine);
+                yield return null;
+                yield return CaptureOne(
+                    Path.Combine(_captureDir, CaptureFiles[7]), results, log, hud, "07_hover_debug_leak");
+                MapViewport.ClearHover();
+                MapDisplaySystem.RequestRefresh();
+                for (var i = 0; i < 5; i++)
+                    yield return null;
+            }
+            else
+            {
+                log.AppendLine("WARN 07_hover_debug_leak skipped — provinceId invalide");
             }
 
             MapViewport.SelectProvince(

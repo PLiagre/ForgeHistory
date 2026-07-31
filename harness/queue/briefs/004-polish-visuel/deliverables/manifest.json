@@ -1,0 +1,171 @@
+{
+  "files": [
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/UiStandaloneCaptureHarness.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/Editor/V004AccentCaptureRunner.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/Editor/V004AccentCaptureRunner.cs.meta" },
+    { "path": "../../../../unity/game_unity/Logs/v004_baseline_compile.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_build_before.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_build_before2.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_build_after.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_capture_before.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_capture_after_default.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_capture_after_debug.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_accent_capture_run.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_accent_capture.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_tests.log" },
+    { "path": "../../../../unity/game_unity/Logs/v004_test-results.xml" },
+    { "path": "../../../../unity/game_unity/Logs/v004_v1095_diagnostic_no_nographics.log" },
+    { "path": "../../../../unity/game_unity/Logs/v1_095_gpu_map.log" },
+    {
+      "path": "../../../../unity/game_unity/Captures/v004_after_default/07_hover_debug_leak.png",
+      "must_differ_from": "../../../../unity/game_unity/Captures/v004_before/07_hover_debug_leak.png"
+    },
+    { "path": "../../../../unity/game_unity/Captures/v004_before/07_hover_debug_leak.png" },
+    {
+      "path": "../../../../unity/game_unity/Captures/v004_after_debug/07_hover_debug_leak.png",
+      "must_differ_from": "../../../../unity/game_unity/Captures/v004_after_default/07_hover_debug_leak.png"
+    },
+    { "path": "../../../../unity/game_unity/Captures/v004_before/01_world_neutral.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_before/04_pause_active.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_after_default/01_world_neutral.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_after_default/02_country_selected.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_after_default/03_province_selected.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_after_default/04_pause_active.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_after_default/05_tax_min.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_after_default/06_tax_max.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_accent/01_world_country_labels.png" },
+    { "path": "../../../../unity/game_unity/Captures/v004_accent/02_world_province_labels.png" },
+    { "path": "deliverables/evidence/legacy-attributed-sha256-after.txt" },
+    { "path": "deliverables/evidence/gallery-sha256.txt" },
+    { "path": "deliverables/evidence/failed-test-cases.txt" },
+    { "path": "deliverables/evidence/ui_003_visual-before.log" },
+    { "path": "deliverables/evidence/ui_003_visual-after_default.log" },
+    { "path": "deliverables/evidence/ui_003_visual-after_debug.log" },
+    { "path": "deliverables/evidence/v004_accent_capture.log" },
+    { "path": "deliverables/evidence/v1095-diagnostic-no-nographics-proof-brief004.log" },
+    { "path": "../../../../harness/queue/cost-ledger.jsonl" }
+  ],
+  "counters": [
+    {
+      "name": "compile_error_cs_count",
+      "value": 0,
+      "sample_size": 7,
+      "command": "Grep for pattern 'error CS' across all 7 Unity Editor batchmode invocation logs this brief actually ran (v004_baseline_compile.log, v004_build_before.log, v004_build_before2.log, v004_build_after.log, v004_accent_capture_run.log, v004_tests.log, v004_v1095_diagnostic_no_nographics.log)",
+      "sample_size_note": "0 errors in all 7 -- compile stayed green across every source edit made this brief"
+    },
+    {
+      "name": "unity_lockfile_checked_before_invocation_count",
+      "value": 7,
+      "sample_size": 7,
+      "command": "Test-Path unity/game_unity/Temp/UnityLockfile combined with Get-Process Unity -ErrorAction SilentlyContinue, run immediately before each Unity EDITOR batchmode invocation actually run this brief",
+      "sample_size_note": "denominator = 7 Editor invocations run this brief (baseline compile, build-before, build-before2 [rebuild after adding the hover capture step], build-after [fixed source], accent-fold capture, full EditMode reference-suite run, V1095 no-nographics diagnostic). Each preceded by exactly one documented combined check, all reporting the lockfile absent and no live Unity.exe -- never forced a second instance. The 3 standalone-player (VictoriaGame.exe) invocations are a separate process (not the Editor) and do not touch UnityLockfile, so are not counted here, matching brief 003's own practice."
+    },
+    {
+      "name": "accent_defect_present_before_count",
+      "value": 0,
+      "sample_size": 11,
+      "command": "V004AccentCaptureRunner.Run (-executeMethod VictoriaGame.Presentation.Editor.V004AccentCaptureRunner.Run) calling MapSnapshotExporter.SanitizeLabelText on every distinct accented city/province name actually present in this game's StreamingAssets data (ownership_1400.json's Île-de-France; cities.json's Châlons, Kutná Hora, Königsberg, Lübeck, Târgoviște, Besançon, Liège, Nimègue, Nîmes, Orléans), reading MapSnapshotExporter.LastSanitizeUnmapped.Count after each call",
+      "sample_size_note": "HONEST FINDING, not the expected result: 0 of 11 accented names produced any unmapped/dropped character (unity/game_unity/Logs/v004_accent_capture.log, copied to deliverables/evidence/v004_accent_capture.log) -- e.g. Île-de-France -> ILE-DE-FRANCE (fold, not drop). MapSnapshotExporter.FoldDiacriticsToAscii (added at v1_073, already present in this port's HEAD/v1_095b state, predating this brief) is called by SanitizeLabelText before every DrawBitmapText call site that draws a province/country/city name (ApplyProvinceNameLabels, ApplyCountryLabels, CityPresentation.cs:214) -- confirmed by reading every DrawBitmapText call site in MapSnapshotExporter.cs/MapLabelLayout.cs/CityPresentation.cs. The HUD panel's own province-name text (UI Toolkit Label, not bitmap) also preserves Unicode -- MapViewportSystem.cs's local Sanitize() docstring literally states 'Ne remplace plus Î -> vide (ex. Île-de-France)'. A fresh MapSnapshotExporter EditMode capture (Captures/v004_accent/02_world_province_labels.png, opened by eye) shows ILE-DE-FRANCE rendered complete and legible on the map. task_v1_056.json / REVUE-v1_054.md (both written 2026-07-26, before v1_073) assumed this defect was still open when v1_056 was held; it appears this port's later HEAD state (v1_095b) already closed it via a subsequent, unrelated change. Reported per hard-won rule 4 (prove, don't assume) rather than fabricated to force a non-zero count; see generator-log.md for the full trail."
+    },
+    {
+      "name": "accent_defect_present_after_count",
+      "value": 0,
+      "sample_size": 11,
+      "command": "same battery, same method, re-read from the same v004_accent_capture.log run (no source touching accent-fold logic was changed this brief, so there is no separate 'after' run to distinguish)",
+      "sample_size_note": "identical to accent_defect_present_before_count because no fix to this mechanism was needed or made -- see generator-log.md Success Condition 1"
+    },
+    {
+      "name": "debug_leak_default_mode_count",
+      "value": 0,
+      "sample_size": 3,
+      "command": "fresh standalone-player run (v004_after_default, --ui-capture-dir, no --debug-ids), read hud_state tag=07_hover_debug_leak's info= field from deliverables/evidence/ui_003_visual-after_default.log and the same-tag capture PNG (Captures/v004_after_default/07_hover_debug_leak.png)",
+      "sample_size_note": "denominator = 3 named debug-token categories checked in this scenario (HOVER, TICK, raw country/province numeric id e.g. C0/P1) -- info='AN 1400  Trésor 102.7  Dette 0.0  Armée 101815  Population 131603  Guerres 1  ZOOM Pays  VITESSE x1', none of the 3 present. Confirmed by eye on the PNG (top banner text)."
+    },
+    {
+      "name": "debug_leak_explicit_debug_mode_count",
+      "value": 3,
+      "sample_size": 3,
+      "command": "same standalone player exe re-run with --debug-ids (v004_after_debug), same hover scenario, read hud_state tag=07_hover_debug_leak's info= field from Captures/ui_003_visual.log (copied to deliverables/evidence/ui_003_visual-after_debug.log) and the capture PNG",
+      "sample_size_note": "all 3 named debug-token categories reappear: info='AN 1400  TICK 5  Trésor 209.1  Dette 0.0  Armée 99615  Population 131603  Guerres 1  ZOOM Pays C0  HOVER Île-de-France  VITESSE x1' -- proves the gate genuinely toggles both ways (InGameHud.ShowDebugIds), not a deletion. Confirmed by eye on the PNG."
+    },
+    {
+      "name": "scientific_notation_before_count",
+      "value": 0,
+      "sample_size": 2,
+      "command": "fresh standalone-player run (v004_before, unfixed source -- though HudValueFormatter itself was never touched by this brief's fix), read the fiscal panel's 'Taux' row at TaxPolicyLimits.MinProductionTaxRate (0.00002f = 2E-5, the exact value REVUE-v1_054.md's 'valeurs fiscales ... notation scientifique (2E-5)' cites) and MaxProductionTaxRate (0.0002f), captured in 05_tax_min.png/06_tax_max.png and their editorial_probe text blocks",
+      "sample_size_note": "HONEST FINDING: 0 of 2 (min and max tax rate) scenarios produced scientific notation -- 'Taux 0 % · plage 0 % – 0,02 %' at min, 'Taux 0,02 % · plage 0 % – 0,02 %' at max, both comma-decimal, no exponent. HudValueFormatter.FormatNumber (Assets/Scripts/Presentation/HudValueFormatter.cs) already detects and avoids scientific notation (LooksScientific check, comma substitution) for every player-facing tax/money value this port's HEAD state reaches through -- confirmed present, unmodified, in this port before this brief started."
+    },
+    {
+      "name": "scientific_notation_after_count",
+      "value": 0,
+      "sample_size": 2,
+      "command": "same 2 scenarios, same method, v004_after_default run",
+      "sample_size_note": "identical to before -- HudValueFormatter was not touched (no fix needed); confirms no regression from this brief's actual changes (MapDisplaySystem.cs, UiStandaloneCaptureHarness.cs)"
+    },
+    {
+      "name": "p1_pause_ambiguity_addressed_flag",
+      "value": 0,
+      "sample_size": 1,
+      "command": "inspection of Captures/v004_before/04_pause_active.png and Captures/v004_after_default/04_pause_active.png during an active pause (SetPace isPaused:true)",
+      "sample_size_note": "1 inspection outcome: already resolved, not touched. Both captures show a distinct red 'EN PAUSE' badge (InGameHud.PaceStatusBadge) separate in position, color and text from the action button labelled 'Lecture' (InGameHud.PauseButton) -- the two notions REVUE-v1_054.md's P1 asked to be separated already are, confirmed by eye on both PNGs, before this brief made any change."
+    },
+    {
+      "name": "p0_regression_check_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "inspection of Captures/v004_after_default/01_world_neutral.png, 02_country_selected.png, 03_province_selected.png plus their log lines (source=standalone framebuffer, composer=NONE)",
+      "sample_size_note": "both REVUE-v1_054.md P0s confirmed still closed, not re-fixed, not regressed: (1) 'la capture ne montre pas l'UI reelle' -- every capture's source is the real standalone framebuffer (GameViewCapture.SourceStandaloneFramebuffer), composer=NONE (no UiDaCaptureComposer synthetic bitmap fallback used); (2) 'deux panneaux se superposent' -- confirmed by eye: exactly one UI Toolkit panel visible per capture (ProvincePanel or CountryPanel, never both, never a duplicate bitmap diagnostic panel overlaid on the map)."
+    },
+    {
+      "name": "visual_proof_pairs_distinct_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "Get-FileHash -Algorithm SHA256 on each declared must_differ_from pair (deliverables/evidence/gallery-sha256.txt)",
+      "sample_size_note": "denominator = 2 -- the only 2 real before/after pairs this brief actually has evidence for (Success Condition 1 and 3 have no reproducible defect to pair, see accent_defect_present_before_count and scientific_notation_before_count; Success Condition 4's pause pair is not applicable since p1_pause_ambiguity_addressed_flag=0). Pair A (HOVER leak, before vs hidden-by-default-after): 329df25b...27728 != 78fe78eb...4f19. Pair B (hidden-by-default vs visible-in-explicit-debug-mode): 78fe78eb...4f19 != b3d6b30c...b3c18. Both genuinely differ."
+    },
+    {
+      "name": "reference_suite_total_count",
+      "value": 266,
+      "sample_size": 266,
+      "command": "274 (fresh XML total, unity/game_unity/Logs/v004_test-results.xml) minus 7 (legacy-attributed Cluster-C fixtures, per pointer to harness/queue/briefs/003-port-unity-game/deliverables/manifest.json's cluster_c_legacy_attributed_count -- method not re-derived) minus 1 (V1015CollapseDiagnostic, result=Skipped, same as brief 003) = 266",
+      "sample_size_note": "cited by pointer to brief 003's own reconstructed reference-suite definition (unity/README.md), re-run fresh after this brief's changes, not re-derived, per this brief's Session-Cost Note"
+    },
+    {
+      "name": "reference_suite_passed_count",
+      "value": 266,
+      "sample_size": 266,
+      "command": "265 (already passing directly in the fresh -nographics XML) + 1 (V1095GpuMapTests.V1095_Artifacts_And_Verdict, confirmed passing under its own documented correct invocation via V1095BatchRunner.Run WITHOUT -nographics)",
+      "sample_size_note": "100% green (266/266), same method as brief 003 (v1095_diagnostic_without_nographics_pass_count analogue). Fresh diagnostic: unity/game_unity/Logs/v004_v1095_diagnostic_no_nographics.log + unity/game_unity/Logs/v1_095_gpu_map.log (copied to deliverables/evidence/v1095-diagnostic-no-nographics-proof-brief004.log) -- all 6 named verdicts VERT, 99.6% CPU/GPU terre/mer agreement, matching brief 003's own historically-reproduced figure."
+    },
+    {
+      "name": "test_total_count",
+      "value": 274,
+      "sample_size": 274,
+      "command": "& Unity.exe -batchmode -runTests -nographics -silent-crashes -projectPath unity/game_unity -testPlatform EditMode -testResults <abs>\\Logs\\v004_test-results.xml -logFile <abs>\\Logs\\v004_tests.log, fresh run after this brief's own changes",
+      "sample_size_note": "<test-run ... total=\"274\" passed=\"265\" failed=\"8\" skipped=\"1\"> root attribute, start-time 2026-07-31 19:22:19Z, end-time 19:47:31Z -- byte-for-byte identical total/passed/failed/skipped counts to brief 003's own hand-off final run (test_total_count/test_passed_count/test_failed_count in harness/queue/briefs/003-port-unity-game/deliverables/manifest.json), confirming zero regressions"
+    },
+    {
+      "name": "test_failed_count",
+      "value": 8,
+      "sample_size": 274,
+      "command": "same fresh XML; fullnames extracted via py -c (stdlib xml.etree), saved to deliverables/evidence/failed-test-cases.txt",
+      "sample_size_note": "the 8 failing fullnames are byte-for-byte identical to brief 003's own attributed set (7 legacy + V1095GpuMapTests invocation-mismatch): V1008MeasurementTests, V1014MeasurementTests, V1MapSnapshotTests, V1bMapMaskTests, V1cMapReadableTests, V1dChronicleTests, V1eMapLayerTests, V1095GpuMapTests -- zero new or unexpected failures introduced by this brief's changes"
+    },
+    {
+      "name": "legacy_attributed_test_files_unchanged_count",
+      "value": 7,
+      "sample_size": 7,
+      "command": "git status --porcelain -- <each of the 7 files> (empty diff confirmed) plus Get-FileHash -Algorithm SHA256 on all 7, saved to deliverables/evidence/legacy-attributed-sha256-after.txt",
+      "sample_size_note": "denominator = 7, the exact files brief 003 individually attributed as legacy (cluster_c_legacy_attributed_count): V1MapSnapshotTests.cs, V1bMapMaskTests.cs, V1cMapReadableTests.cs, V1dChronicleTests.cs, V1eMapLayerTests.cs, V1008MeasurementTests.cs, V1014MeasurementTests.cs. `git status --porcelain` scoped to each returned empty (byte-identical to brief 003's hand-off HEAD state, since HEAD was never modified by this brief and these 7 files were never opened for editing)."
+    },
+    {
+      "name": "generator_git_commits_count",
+      "value": 3,
+      "sample_size": 3,
+      "command": "cd D:\\ForgeHistory; git log --oneline --since=2026-07-31T15:00:00 --until=2026-07-31T21:55:00",
+      "sample_size_note": "literal query returns 3 commits, none created by this Generateur (no `git commit`/`git add`/`git push` invoked anywhere in this brief's work -- verified by this session's own command history containing zero git-write invocations, only git status/show/log/diff read-only calls). All 3 (0f05936, 8fb4bef, fce1d82) are authored by liagre.pe@outlook.com (the project owner's own email, matching userEmail context) and timestamped 17:58-20:46, i.e. brief 002's and brief 003's own already-ACCEPT-gated work, landed by the owner before this Generateur's own file edits began (first source edit ~20:5x per file mtimes) -- reported honestly per the literal counter definition, same discipline as brief 003's own generator_git_commits_count."
+    }
+  ],
+  "waivers": []
+}

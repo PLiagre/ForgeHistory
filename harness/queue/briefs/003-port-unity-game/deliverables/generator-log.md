@@ -64,7 +64,7 @@ directories (`/Library/`, `/Temp/`, `/Logs/`, `/obj/`, `/Builds/`,
 Unity-adjacent regenerable file patterns as defense in depth (not relied on
 by any Required Counter).
 
-## Success Conditions 3/4/5 — Unity invocations, and the central finding of this brief
+## Success Condition 3/4/5 — Unity invocations, and the central finding of this brief
 
 **Single-instance discipline** was checked immediately before each of the 3
 invocations (`unity_lockfile_checked_before_invocation_count` = 3), combining
@@ -235,7 +235,7 @@ Cluster B bridge), 2 more checks.
 `unity_lockfile_checked_before_invocation_count` = 9, equal to the 9 Unity
 invocations actually run across all 4 iterations.
 
-## Non-Goals discipline
+## Conformite au perimetre exclu par brief.md
 
 - No file under `automation/`, `cursor_tasks/`, `RESULT_TEMPLATE.json`, or
   `runtime_bridge/` was ported (confirmed: none of these names appear

@@ -763,8 +763,17 @@ namespace VictoriaGame.Presentation
             return "";
         }
 
+        /// <summary>
+        /// Bandeau joueur : le survol est déjà présenté nommément via le Label
+        /// dédié <see cref="InGameHud.HoverLabel"/> (RefreshHoverLabel) — sans le
+        /// jeton technique "HOVER". Cet ajout au fil de métriques est un doublon
+        /// diagnostique ; masqué hors <see cref="InGameHud.ShowDebugIds"/> (v1_004
+        /// polish : fuite de debug fermée, brief 004-polish-visuel).
+        /// </summary>
         static string AppendHover(string metricsLine)
         {
+            if (!InGameHud.ShowDebugIds)
+                return metricsLine ?? "";
             var hover = MapViewport.HoverLabel;
             if (string.IsNullOrEmpty(hover))
                 return metricsLine ?? "";

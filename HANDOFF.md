@@ -1,190 +1,144 @@
 # HANDOFF.md
 
-State-of-play. Rewritten at the end of every session (via `/forge-checkpoint`
-going forward) — not a changelog, but "what a new agent needs to pick up
-exactly where the last session left off."
+State-of-play. Rewritten at the end of every session (via `/forge-checkpoint`)
+— not a changelog, but "what a new agent needs to pick up exactly where the
+last session left off."
 
 ## Current Milestone
 
-F0 — "le socle qui refuse de mentir" — **DONE**, plus an automation-tooling
-extension requested by the project owner mid-session (2026-07-29).
+F0 done (see git history for its proof trail). **F1 in progress, and the
+repository is no longer stubs**: the owner arbitrated the `FORGE-HISTORY-BRIEF.md`
+§9 question on 2026-07-31 — "récupérer le code existant fonctionnel de
+VictoriaProject ; les harnais et contrôles sont ceux de ForgeHistory" — and
+VictoriaProject's working Unity game now lives, compiles, tests and captures
+from `unity/game_unity/`. Recorded in
+[ADR-0004](docs/adr/0004-bulk-port-victoriaproject-unity-game.md) (which also
+names the imported double-primary-key debt; ADR-0003 remains the target).
 
-## Done-Criterion: Verified
+## Status (verified 2026-07-31, end of session, live command output)
 
-"Un brief bidon volontairement faux doit être refusé par la porte." Proven:
-`py harness/demo/fake_brief_001/run_demo.py` exits 0, writes
-`harness/demo/fake_brief_001/run_demo.log` showing `VERDICT: REJECT` with
-exactly 5 of 9 checks failing. Control case
-`py harness/verdict_audit.py harness/demo/honest_brief_001` exits 0,
-`VERDICT: ACCEPT`, all 9 pass.
+- `py -m pytest harness/tests/ -q` — **16 passed**.
+- `py harness/harness_audit.py` — **23/24**. The one FAIL
+  (`no_premature_stub_content`) is the audit tool being stale, not the repo
+  being wrong: it still assumes `pipeline/geo/`, `unity/` are empty stubs,
+  which briefs 002/003 legitimately un-stubbed through the gate. Fix the
+  audit's assumption next session (see Open TODOs) — do not "clean" the dirs.
+- `py harness/verdict_audit.py harness/queue/briefs/003-port-unity-game` —
+  **ACCEPT 9/9**, Évaluateur verdict **PASS**
+  (`harness/queue/briefs/003-port-unity-game/verdict.md`), its feedback-001
+  closed by Générateur iteration 5.
+- `py harness/verdict_audit.py harness/queue/briefs/004-polish-visuel` —
+  **REJECT**, for exactly two reasons, both understood and neither a
+  work defect: (1) `verdict.md` doesn't exist — the brief 004 Évaluateur
+  pass has NOT run yet (deliberately deferred at the owner's stop request);
+  (2) the Planificateur future-dated `brief.md`/`eval-rubric.md`
+  (`Authored: 2026-08-01T11:00:00` while the session clock was 2026-07-31),
+  so `mtime_after_brief`/`rubric_predates_deliverables` fail against every
+  deliverable. The Générateur refused to fabricate timestamps to route
+  around this — correct behavior. Fix path is in Open TODOs.
 
-`py -m pytest harness/tests/ -v` — **16 passed** (re-verified 2026-07-29,
-end of the session that ran the first real brief — 3 new tests added this
-session for the gate-defect fix below; re-run it yourself rather than
-trusting this line indefinitely).
+## What Exists (delta this session — 2026-07-31)
 
-`py harness/harness_audit.py` — **24/24** (re-verified same session; still
-only checks presence of pieces, not that they work correctly — see caveat
-under Open TODOs).
+Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
+`0f05936` (brief 003 iteration 5), plus this session's closing commit.
 
-## What Exists
-
-Everything from the original F0 pass (repo skeleton, 3-role agents, gate,
-tests, demo pair, Cursor backend wrapper, ADRs 0001/0002, VISION.md copied
-verbatim), **plus**, added this session after an explicit request to reuse
-more of ECC's automation patterns (multi-editor adapters excluded — not
-needed):
-
-- **`.claude/commands/forge-run.md`** — the orchestration loop
-  (Planificateur -> Générateur[claude|cursor] -> gate -> Évaluateur ->
-  feedback, with plateau detection and 3-strikes escalation). Adapted from
-  ECC's `commands/gan-build.md`. **Run for real this session** (2026-07-29)
-  against brief `001-spatial-primary-key-adr`, reaching a genuine
-  `VERDICT: ACCEPT`. Its stated phase order turned out not to match
-  `verdict_audit.py`'s actual checks — see Open TODOs — `forge-run.md` itself
-  not yet corrected for that.
-- **`.claude/hooks/guard_git_push.py`** — blocks `git push` if
-  `harness/tests/` is red. Explicitly required by the project charter
-  (§5.5). Smoke-tested both ways this session (red test -> exit 2 verified,
-  then reverted; green -> exit 0). **Not yet exercised via a real PreToolUse
-  firing inside a live session** — only invoked directly with a hand-built
-  JSON payload on stdin.
-- **`.claude/hooks/guard_vision_edit.py`** — blocks edits to `VISION.md`
-  unless `FORGE_ALLOW_VISION_EDIT=1`. Smoke-tested (blocked / allowed via
-  override / unrelated file passes). Same live-session caveat as above.
-- **`.claude/hooks/remind_handoff_stale.py`** (Stop hook, warn-only) — flags
-  when `.claude/`/`docs/`/`harness/*.py` etc. are newer than `HANDOFF.md`.
-  Verified it correctly warned earlier this session when `HANDOFF.md` was
-  stale relative to the new files; will re-verify silence once this rewrite
-  makes it current.
-- **`harness/backends/ledger.py`** — append/report usage ledger
-  (`harness/queue/cost-ledger.jsonl`), tracking Générateur invocation counts
-  by backend (Claude vs Cursor) as an honest proxy for spend distribution —
-  deliberately does NOT claim dollar costs it can't measure (see its
-  docstring for why ECC's own cost-tracking skill wasn't ported directly:
-  it's coupled to ECC's plugin-root resolution machinery and only tracks
-  Claude's own cost, never Cursor's). Wired into `run_cursor_generator.sh`
-  (tested — appends correctly) and instructed into `forge-generateur.md`
-  (not independently testable here, it's an agent instruction).
-- **`.claude/commands/forge-cost-report.md`** — wraps `ledger.py report`.
-- **`harness/harness_audit.py`** + **`.claude/commands/forge-harness-audit.md`**
-  — deterministic maturity checklist over the harness's own structure
-  (role/gate/test/hook/doc coverage), adapted from ECC's
-  `scripts/harness-audit.js`. One bug found and fixed during this session's
-  own verification (missing `re.MULTILINE` caused a false FAIL on
-  `gate_test_coverage`) — proof that "run it and look," not just "write it,"
-  matters even for a report tool.
-- **`.claude/commands/forge-checkpoint.md`** — rewrites this file's Status /
-  Last Session Summary from live command output; this very rewrite follows
-  its own instructions.
+- **`unity/game_unity/`** — the full VictoriaProject game at its HEAD
+  (v1_095b): 6 player verbs, GPU map, medieval-dark UI (v1_053–055),
+  855 files + 77 dirty-working-tree files restored to HEAD + 9
+  PresentationCache tracked files (4 unit sprites) restored after Évaluateur
+  feedback. Compile green from this location; conquest capture pair
+  regenerated fresh here. Whole tree verified blob-by-blob against
+  VictoriaProject HEAD: 0 missing. VictoriaProject itself proven untouched
+  (sentinel hashes, 3 checkpoints). Launcher: `unity/open-game.ps1`,
+  Unity 6000.0.43f1.
+- **Test truth for the ported game** (full detail:
+  `harness/queue/briefs/003-port-unity-game/deliverables/generator-log.md`):
+  reference suite green; full EditMode suite 274 cases with **7 legacy reds,
+  individually attributed** (hardcoded anchors predating the v1_090 rebase,
+  files untouched since 2026-07-23, same 7 red in VictoriaProject's own
+  `testresults_full.xml`) — left as-is, never weakened. `V1095GpuMapTests`
+  needs an invocation **without `-nographics`** (proven: 99.6% CPU/GPU
+  agreement with graphics, blind without).
+- **Two read-only bridges** from VictoriaProject local disk, SHA256-declared:
+  `unity/sandbox/geo/artifacts/coordinate_correction_proposal_v1_072.json`
+  and 2 XML baselines in `unity/game_unity/Logs/` — temporary until
+  `pipeline/geo/` catches up (geo port plan briefs 003–005).
+- **Brief 004 (polish visuel) — Générateur DONE, Évaluateur NOT run.**
+  Real fix delivered: debug-token leak (`HOVER Île-de-France` in the normal
+  banner) now hidden by default, reachable via `--debug-ids`, proof pairs
+  SHA256-distinct. Accents and French decimals investigated honestly:
+  already fixed upstream (v1_073 `FoldDiacriticsToAscii`), sample_size=11,
+  no fake fix applied. Reference suite still green after changes. Artistic
+  verdict recorded as `A_REVOIR_HUMAINEMENT` — the owner judges "beau".
+  Galleries: `unity/game_unity/Captures/v004_*/`.
+- **Brief 003 ran with 3 brief amendments + 1 feedback cycle** — including
+  amendment-003 explicitly correcting amendment-002's wrong diagnosis. The
+  drift found on the way: VictoriaProject's working tree was dirty
+  (uncommitted, non-compiling v1_096 work) while its HANDOFF claimed clean.
 
 ## Open TODOs
 
-- [ ] **VISION.md's internal links are dead** (links to VictoriaProject's
-      own `ADR-001`/`ADR-002`, different numbering than this repo's
-      `0001`/`0002`). Not fixed — decide explicitly in a future ADR, don't
-      silently edit VISION.md (now also mechanically blocked by
-      `guard_vision_edit.py` without `FORGE_ALLOW_VISION_EDIT=1`).
-- [x] ~~Cursor backend still not end-to-end tested~~ — **resolved
-      2026-07-29**: `cursor-agent` installed (`irm
-      'https://cursor.com/install?win32=true' | iex`) and authenticated
-      (`cursor-agent.cmd login`, logged in as `liagre.pe@outlook.com`). Two
-      real bugs found and fixed in `harness/backends/run_cursor_generator.sh`
-      while getting a genuine end-to-end run working on Windows: (1) the
-      preflight/invocation used bare `cursor-agent`, which Git Bash can't
-      resolve to the installed `cursor-agent.cmd` shim — now tries
-      `cursor-agent`, `cursor-agent.cmd`, `cursor-agent.exe` in order; (2) the
-      prompt was passed as a `-p` command-line argument, which blew past
-      Windows's command-line length limit for any real brief-sized prompt
-      (`La ligne de commande est trop longue`) — now piped via stdin instead.
-      Proven with a real, throwaway smoke-test brief run through the actual
-      `cursor-agent` API (not mocked): produced correct
-      `deliverables/{hello.txt,manifest.json,generator-log.md}`,
-      `**Author**: forge-generateur-cursor`, no `verdict.md` written (per
-      contract), real token usage
-      (`inputTokens:170126, outputTokens:4052`). Smoke-test artifacts and its
-      stray ledger entry were cleaned up afterward — not part of any real
-      brief. `CURSOR_API_KEY` is still not set as an env var (auth is stored
-      by `cursor-agent login` instead); on this machine, bash sessions
-      started before the Cursor install don't see it on PATH automatically —
-      prefix `export PATH="$PATH:/c/Users/liagr/AppData/Local/cursor-agent"`
-      when invoking the wrapper directly from a shell, or use `/forge-run
-      ... --backend cursor` which should inherit this once a fresh shell
-      picks up the updated PATH.
-- [x] ~~New hooks and `/forge-run` are untested inside a real Claude Code
-      session~~ — **partially resolved 2026-07-29**: the `/forge-run` loop
-      (Planificateur -> Générateur -> gate -> feedback -> Générateur
-      iteration 2 -> gate) was exercised for real this session on brief
-      `001-spatial-primary-key-adr` and reached a genuine `VERDICT: ACCEPT`
-      (9/9). The `no_bare_python.py` `PreToolUse` hook also fired for real
-      (blocked a live Bash command mid-session). Still not exercised live:
-      `guard_git_push.py`, `guard_vision_edit.py`, `remind_handoff_stale.py`.
-- [ ] **`forge-run.md`'s stated phase order doesn't match `verdict_audit.py`'s
-      actual checks** — discovered running the first real brief. The command
-      doc says the Évaluateur runs "only after mechanical ACCEPT," but the
-      gate itself checks `verdict.md`'s traceability/authorship, so it can
-      never ACCEPT before `verdict.md` exists — and only the Évaluateur
-      writes that file. What actually worked: gate after Générateur (catches
-      Générateur-side defects cheaply), Évaluateur regardless of that first
-      exit code, then a real final gate re-run once `verdict.md` exists. See
-      `harness/queue/briefs/001-spatial-primary-key-adr/run-report.md`'s
-      "Process Deviation" section. `forge-run.md` itself not yet corrected —
-      flagged, not silently fixed, since it's process documentation.
-- [ ] F1 not started: `pipeline/geo/`, `sim/` remain empty stubs, but the
-      blocking ADR now exists (see What Exists) — F1 code can begin under a
-      new brief whenever the project owner wants it.
-- [ ] Tier-3 gate (adversarial re-review) intentionally not built yet.
-- [ ] No README.md (human-facing) exists yet — only CLAUDE.md
-      (agent-facing). Flagged to the project owner, not yet resolved either
-      way.
-- [ ] **Brief 001's work is staged but not committed** — `git status --short`
-      shows it all as staged/untracked (ADR-0003, README unblocks, gate fix,
-      3 new tests, brief/deliverables/verdict/run-report). Awaiting the
-      project owner's explicit go-ahead to commit.
+- [ ] **Run the brief 004 Évaluateur pass** (first thing next session):
+      before it, the Planificateur must correct its own future-dated
+      `Authored:` fields in `004-polish-visuel/{brief.md,eval-rubric.md}`
+      to the true authoring time (real file mtimes were 2026-07-31 ~20:3x —
+      cite evidence, don't invent), via an explicit amendment note, then
+      gate + Évaluateur normally.
+- [ ] **Owner judges the visual polish**: look at
+      `unity/game_unity/Captures/v004_after_default/` and pronounce on
+      `A_REVOIR_HUMAINEMENT` (the harness never self-adopts "beau").
+- [ ] **Fix `harness_audit.py`'s stale stub assumption** (23/24) — it must
+      learn that `pipeline/geo/` and `unity/` are legitimately populated.
+- [ ] **Map label upside-down orientation bug** — found by the brief 004
+      Générateur, deliberately left untouched as out-of-scope; documented in
+      `004-polish-visuel/deliverables/generator-log.md`. Needs its own brief.
+- [ ] Geo pipeline port continues: briefs 003–005 of
+      `harness/queue/geo-pipeline-port-plan.md` (G3 cells onward); the two
+      read-only bridges above get retired when it lands.
+- [ ] `forge-run.md` phase-order doc mismatch (carried from previous
+      session, still true).
+- [ ] VISION.md dead internal links (carried, still true; ADR needed).
+- [ ] No human-facing README.md (carried, still true).
+- [ ] Tier-3 adversarial gate not built (carried, intentional).
 
 ## Known Risks
 
-- Never fabricate VictoriaProject content beyond what was actually cloned
-  and read.
-- `pytest` was installed via `py -m pip install --user pytest` on this
-  machine; not vendored/pinned in this repo.
-- The usage ledger (`cost-ledger.jsonl`) now has one real entry from brief
-  001's Générateur run (previously zero, smoke-tested-then-cleared).
-- **A Générateur subagent committed to git unprompted during brief 001's
-  iteration 2**, with no instruction telling it to. Caught and undone via
-  `git reset --soft HEAD~1` (files preserved) at the project owner's
-  request. Never let a Générateur (or any) subagent commit unless the brief
-  or the human running the loop explicitly says to — re-state this in
-  agent prompts if it recurs.
+- Never fabricate VictoriaProject content beyond what was actually read.
+  VictoriaProject is read-only for this repo — proven untouched this
+  session; keep it that way.
+- **VictoriaProject's own HANDOFF lies about its tree state** (says clean,
+  tree is dirty with non-compiling v1_096 work). Any future re-sync must
+  target HEAD, never the working tree.
+- The 7 attributed legacy reds must stay red-and-attributed until someone
+  deliberately retires or rebases them with the three-part proof
+  (understood / documented / proven-deliberate). Never "fix" them casually.
+- Générateur subagents must never git commit (rule held this session; one
+  Générateur even correctly reported the orchestrator's own mid-brief
+  commit rather than hiding it).
+- Sonnet subagents running long Unity batchmode jobs tend to end their turn
+  "to wait" — instruct them explicitly to poll the `-logFile` and never
+  stop mid-brief (had to be re-prompted twice this session).
+- `pytest` installed via `--user`, not vendored (carried).
 
-## Last Session Summary (2026-07-29)
+## Last Session Summary (2026-07-31)
 
-Two sessions rolled into this file. First: built F0 from scratch (repo
-skeleton, 3-role harness, 9-check mechanical gate, proven fake/honest demo
-pair, Cursor backend wrapper, 2 ADRs, VISION.md copied verbatim), then added
-the automation-tooling extension (`/forge-run`, 3 hooks, cost ledger,
-harness self-audit). That work was committed across 6 commits
-(`4bbf4ad`..`abb8004`) at some point between that session and this one —
-`git log` in this session found the working tree already at 6 commits, so
-the prior write-up's "not yet committed" note is now stale/resolved.
+The owner relaunched the project with one instruction: recover
+VictoriaProject's working code under ForgeHistory's harness, aiming for a
+beautiful, functional game by session end, autonomously. Delivered through
+the full three-role harness (2 Planificateur briefs, 3 amendments, 6
+Générateur iterations across 2 briefs, 1 Évaluateur pass):
 
-This session: ran the harness's **first real (non-demo) brief**,
-`001-spatial-primary-key-adr` — write ADR-0003 deciding the single spatial
-primary key (cell as the key, province as a derived aggregation) and unblock
-`sim/README.md`/`pipeline/geo/README.md`. Planificateur wrote brief+rubric;
-Générateur iteration 1 built the ADR and README edits; the gate REJECTed
-(3/9 fails, 2 expected because `verdict.md` didn't exist yet); Évaluateur
-independently verified all 11 rubric rows PASS on substance and found 4 real
-minor defects plus 2 gate false-positive bugs; Générateur iteration 2 fixed
-the 4 real defects; the gate then REJECTed on exactly one remaining check, a
-confirmed false positive. With the project owner's explicit go-ahead, both
-gate bugs were fixed in `harness/verdict_audit.py` (inline-code-span content
-is now masked before the bare-`python` and cited-number checks), red-first
-per hard-won rule 4 (3 new tests, 16 total, all passing) — the brief then
-gates **ACCEPT, 9/9**. Also found and corrected: a Générateur subagent made
-an unauthorized git commit mid-run (undone via `git reset --soft HEAD~1`,
-files kept); and `forge-run.md`'s stated Générateur/Évaluateur/gate ordering
-doesn't actually match how `verdict_audit.py` works (see Open TODOs). Full
-detail: `harness/queue/briefs/001-spatial-primary-key-adr/run-report.md`.
-Nothing from this session is committed yet — awaiting the project owner's
-go-ahead.
+1. Committed the pending verified baseline (briefs 001+002).
+2. **Brief 003 — the port — gate ACCEPT 9/9, Évaluateur PASS**: the whole
+   game now lives in `unity/game_unity/`, compiling, testing green on its
+   reference suite, and regenerating real conquest captures from
+   ForgeHistory. En route: caught VictoriaProject's dirty-tree lie,
+   restored to HEAD, attributed every one of 8 red tests instead of
+   hand-waving them (7 legacy anchors, 1 `-nographics` environment proof).
+3. **Brief 004 — polish — Générateur complete, Évaluateur pending**: debug
+   leak fixed with before/after proof; accent/decimal "defects" proven
+   already-fixed rather than fake-fixed; artistic verdict left to the human.
+4. Closed the session at the owner's request: single-source-of-instruction
+   test violation (generator logs restating brief headings) fixed
+   mechanically and transparently, 16/16 green, this file rewritten from
+   live output, everything committed locally. **Nothing pushed.**
