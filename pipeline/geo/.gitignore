@@ -1,0 +1,10 @@
+# Intermédiaires de génération — jamais commités
+build/
+.venv/
+artifacts/
+logs/
+capture/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/

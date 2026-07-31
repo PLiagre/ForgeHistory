@@ -1,2 +1,7 @@
 {"timestamp": "2026-07-29T15:42:38.180877", "backend": "claude", "brief": "harness/queue/briefs/001-spatial-primary-key-adr", "event": "generator-run"}
 {"timestamp": "2026-07-29T15:57:15.646376", "backend": "claude", "brief": "harness/queue/briefs/001-spatial-primary-key-adr", "event": "generator-run"}
+{"timestamp": "2026-07-29T16:50:10.912024", "backend": "cursor", "brief": "D:/ForgeHistory/harness/queue/briefs/002-geo-pipeline-coastline-1400", "event": "generator-run"}
+{"timestamp": "2026-07-29T17:21:06.810183", "backend": "cursor", "brief": "C:/Users/liagr/AppData/Local/Temp/claude/D--ForgeHistory/d4dc0076-ba58-4ee6-a251-01642fbe94cd/scratchpad/cursor-wrapper-smoketest2", "event": "generator-run"}
+{"timestamp": "2026-07-29T17:29:55.608403", "backend": "cursor", "brief": "harness/queue/briefs/002-geo-pipeline-coastline-1400", "event": "generator-run"}
+{"timestamp": "2026-07-29T17:31:28.659635", "backend": "cursor", "brief": "D:/ForgeHistory/harness/queue/briefs/002-geo-pipeline-coastline-1400", "event": "generator-run"}
+{"timestamp": "2026-07-29T17:56:34.558046", "backend": "claude", "brief": "harness/queue/briefs/002-geo-pipeline-coastline-1400", "event": "generator-run"}
