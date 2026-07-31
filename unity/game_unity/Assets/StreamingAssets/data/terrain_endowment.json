@@ -1,0 +1,28 @@
+{
+  "production_scale": 2000.0,
+  "min_intensity": 0.05,
+  "capacity_justification": "v1_025: BaseCapacity = relative_intensity × climate_mod × DevScore × production_scale. DevScore = max(1, (Tax+Production+Manpower)/3) — même score que transport v1_024. production_scale=2000 aligné LOD. PAS de typeYield Food (évite inondation stocks / dérive float). Table = RawMaterial UNIQUEMENT (wool/iron/coal/wood) : les Food/Luxury/Manufactured restent au LOD. Objectif: capacité MONDIALE des intrants ≥ demande transformée, concentration GÉOGRAPHIQUE (laine=Hills+Arid, charbon=Mountains+Hills, bois=Cold/Forest/Hills).",
+  "entries": [
+    { "terrain": "Hills",     "climate": "",          "good_tag": "wool", "relative_intensity": 1.00, "requires_coastal": false },
+    { "terrain": "Plains",    "climate": "Arid",      "good_tag": "wool", "relative_intensity": 0.85, "requires_coastal": false },
+    { "terrain": "Hills",     "climate": "",          "good_tag": "iron", "relative_intensity": 0.40, "requires_coastal": false },
+    { "terrain": "Mountains", "climate": "",          "good_tag": "iron", "relative_intensity": 1.00, "requires_coastal": false },
+    { "terrain": "Forest",    "climate": "",          "good_tag": "iron", "relative_intensity": 0.25, "requires_coastal": false },
+    { "terrain": "Hills",     "climate": "",          "good_tag": "coal", "relative_intensity": 0.30, "requires_coastal": false },
+    { "terrain": "Mountains", "climate": "",          "good_tag": "coal", "relative_intensity": 1.00, "requires_coastal": false },
+    { "terrain": "Hills",     "climate": "",          "good_tag": "wood", "relative_intensity": 0.35, "requires_coastal": false },
+    { "terrain": "Mountains", "climate": "",          "good_tag": "wood", "relative_intensity": 0.25, "requires_coastal": false },
+    { "terrain": "Forest",    "climate": "",          "good_tag": "wood", "relative_intensity": 1.00, "requires_coastal": false },
+    { "terrain": "Plains",    "climate": "Cold",      "good_tag": "wood", "relative_intensity": 0.50, "requires_coastal": false },
+    { "terrain": "Plains",    "climate": "Temperate", "good_tag": "wood", "relative_intensity": 0.05, "requires_coastal": false }
+  ],
+  "climate_mods": [
+    { "good_tag": "wool", "climate": "Arid",         "multiplier": 1.10 },
+    { "good_tag": "wool", "climate": "Cold",         "multiplier": 0.90 },
+    { "good_tag": "wool", "climate": "Mediterranean","multiplier": 0.85 },
+    { "good_tag": "wood", "climate": "Arid",         "multiplier": 0.30 },
+    { "good_tag": "wood", "climate": "Cold",         "multiplier": 1.15 },
+    { "good_tag": "iron", "climate": "Cold",         "multiplier": 1.05 },
+    { "good_tag": "coal", "climate": "Cold",         "multiplier": 1.05 }
+  ]
+}

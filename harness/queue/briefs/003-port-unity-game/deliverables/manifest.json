@@ -1,0 +1,287 @@
+{
+  "files": [
+    { "path": "../../../../unity/game_unity/.gitignore" },
+    { "path": "../../../../unity/README.md" },
+    { "path": "../../../../unity/open-game.ps1" },
+    { "path": "../../../../docs/adr/0004-bulk-port-victoriaproject-unity-game.md" },
+    { "path": "../../../../docs/adr/README.md" },
+    { "path": "../../../../unity/game_unity/Logs/v003_compile.log" },
+    { "path": "../../../../unity/game_unity/Logs/v003_tests.log" },
+    { "path": "../../../../unity/game_unity/Logs/v003_test-results.xml" },
+    { "path": "../../../../unity/game_unity/Logs/v003_capture.log" },
+    { "path": "../../../../unity/game_unity/Logs/v003_v1095_diagnostic_no_nographics.log" },
+    { "path": "../../../../unity/game_unity/Logs/v1_041_tests.xml" },
+    { "path": "../../../../unity/game_unity/Logs/v1_077_large.xml" },
+    {
+      "path": "../../../../unity/game_unity/Captures/v1_094/01_avant_conquete.png",
+      "must_differ_from": "../../../../unity/game_unity/Captures/v1_094/03_apres_conquete_VERT_ecs.png"
+    },
+    { "path": "../../../../unity/game_unity/Captures/v1_094/03_apres_conquete_VERT_ecs.png" },
+    { "path": "../../../../unity/sandbox/geo/artifacts/coordinate_correction_proposal_v1_072.json" },
+    { "path": "deliverables/evidence/robocopy-verify.log" },
+    { "path": "deliverables/evidence/sentinel-hashes-before.txt" },
+    { "path": "deliverables/evidence/sentinel-hashes-after.txt" },
+    { "path": "deliverables/evidence/victoriaproject-uncommitted-diffstat.txt" },
+    { "path": "deliverables/evidence/victoriaproject-diff-name-only-HEAD.txt" },
+    { "path": "deliverables/evidence/victoriaproject-status-porcelain-before-remediation.txt" },
+    { "path": "deliverables/evidence/victoriaproject-status-porcelain-final.txt" },
+    { "path": "deliverables/evidence/untracked-paths-raw.txt" },
+    { "path": "deliverables/evidence/untracked-copied-into-port.txt" },
+    { "path": "deliverables/evidence/head-restored-sha256-check.txt" },
+    { "path": "deliverables/evidence/failed-test-cases.txt" },
+    { "path": "deliverables/evidence/failed-test-cases-iteration3.txt" },
+    { "path": "deliverables/evidence/failed-test-cases-iteration4.txt" },
+    { "path": "deliverables/evidence/logs-tracked-at-head.txt" },
+    { "path": "deliverables/evidence/logs-gitignore-check.txt" },
+    { "path": "deliverables/evidence/logs-bridge-sha256-check.txt" },
+    { "path": "deliverables/evidence/reference-suite-v1_093_result.json" },
+    { "path": "deliverables/evidence/reference-suite-sources.txt" },
+    { "path": "deliverables/evidence/cluster-c-legacy-attribution-git-log.txt" },
+    { "path": "deliverables/evidence/v1095-diagnostic-no-nographics-proof.log" },
+    { "path": "deliverables/evidence/cluster-c-v1_008_measurements.log" },
+    { "path": "deliverables/evidence/cluster-c-v1_014_sweep.log" },
+    { "path": "deliverables/evidence/cluster-c-v1_095_gpu_map.log" },
+    { "path": "deliverables/evidence/cluster-c-v1_002_measurements.log" },
+    { "path": "deliverables/evidence/cluster-c-v1_006_measurements.log" },
+    { "path": "../../../../harness/queue/cost-ledger.jsonl" }
+  ],
+  "counters": [
+    {
+      "name": "robocopy_files_pending_copy_count",
+      "value": 0,
+      "sample_size": 855,
+      "command": "MSYS_NO_PATHCONV=1 robocopy \"C:\\Users\\liagr\\VictoriaProject\\game_unity\" \"D:\\ForgeHistory\\unity\\game_unity\" /L /E /XD Library Temp Logs obj Builds PresentationCache UserSettings .vs /NFL /NDL /NP",
+      "sample_size_note": "denominator = the same list-only pass's summary 'Files: Total' (855), run after the real copy (iteration 1; unaffected by later remediation, which only adds a narrow, additive bridge and never changes the game_unity/ copy scope itself). 'Files: Copied' in this pass was 0, evidence in deliverables/evidence/robocopy-verify.log"
+    },
+    {
+      "name": "robocopy_files_total_count",
+      "value": 855,
+      "sample_size": 855,
+      "command": "same list-only robocopy pass as robocopy_files_pending_copy_count; summary line 'Fichiers : 855 855 0 0 0 0' (Total/Copied/Skipped/Mismatch/Failed/Extras, French locale) in deliverables/evidence/robocopy-verify.log",
+      "sample_size_note": "value and sample_size are the same measurement (total files scanned by the verify pass) per brief.md's Required Counters table"
+    },
+    {
+      "name": "victoriaproject_source_unmodified_count",
+      "value": 3,
+      "sample_size": 3,
+      "command": "Get-FileHash -Algorithm SHA256 against ProjectSettings\\ProjectVersion.txt, Assets\\Scenes\\Main.unity, Assets\\Scripts\\Presentation\\MapSnapshotExporter.cs under C:\\Users\\liagr\\VictoriaProject\\game_unity\\, run at 5 checkpoints across all 4 iterations -- all 3 files, all identical every time",
+      "sample_size_note": "denominator = 3 named sentinel files sampled; all identical at every checkpoint. Also independently verified a second way at every checkpoint: `git -C C:\\Users\\liagr\\VictoriaProject status --porcelain -- game_unity` captured before amendment-001's remediation and again at this iteration's final hand-off are byte-identical (deliverables/evidence/victoriaproject-status-porcelain-before-remediation.txt == victoriaproject-status-porcelain-final.txt) across all 4 iterations' work, which this iteration added: read-only `git log --follow` (8 test files), one read-only `git show -s` (v1_090's commit message), and 2 more read-only file copies (the Logs/ bridge pair) from VictoriaProject's local disk (not git) into the ported tree."
+    },
+    {
+      "name": "captures_dir_test_reference_count",
+      "value": 28,
+      "sample_size": 86,
+      "command": "Grep (ripgrep) for literal substring 'Captures' across every .cs file under unity/game_unity/Assets/Tests/, run after the port",
+      "sample_size_note": "denominator = total .cs files present under unity/game_unity/Assets/Tests/ (86), of which 28 matched"
+    },
+    {
+      "name": "victoriaproject_dirty_tracked_file_count",
+      "value": 77,
+      "sample_size": 77,
+      "command": "git -C C:\\Users\\liagr\\VictoriaProject diff --name-only HEAD -- game_unity",
+      "sample_size_note": "unchanged from iteration 2; not reopened by amendments 002/003"
+    },
+    {
+      "name": "victoriaproject_untracked_copied_file_count",
+      "value": 72,
+      "sample_size": 72,
+      "command": "git -C C:\\Users\\liagr\\VictoriaProject status --porcelain -- game_unity, filtered to '??' entries",
+      "sample_size_note": "unchanged from iteration 2/3"
+    },
+    {
+      "name": "head_restored_file_count",
+      "value": 77,
+      "sample_size": 77,
+      "command": "git show HEAD:<path> per dirty file, SHA256-verified",
+      "sample_size_note": "unchanged from iteration 2"
+    },
+    {
+      "name": "untracked_removed_file_count",
+      "value": 72,
+      "sample_size": 72,
+      "command": "Test-Path per removed file",
+      "sample_size_note": "unchanged from iteration 2"
+    },
+    {
+      "name": "logs_tracked_at_head_count",
+      "value": 0,
+      "sample_size": 1,
+      "command": "git -C C:\\Users\\liagr\\VictoriaProject ls-tree -r HEAD --name-only -- game_unity/Logs",
+      "sample_size_note": "RETIRED per amendment-003, kept in the record with its proven value, not deleted. Amendment-002's Cluster B diagnosis assumed these were VictoriaProject's own committed proof archives; this measurement (0 tracked files) and the follow-up evidence (`git log --all --diff-filter=A` finds no commit ever adding v1_041_tests.xml/v1_077_large.xml; `git check-ignore -v` confirms `.gitignore:35:game_unity/Logs/` ignores the whole directory) disproved that -- recorded in deliverables/evidence/logs-tracked-at-head.txt and logs-gitignore-check.txt. Amendment-003 corrects the mechanism (see logs_bridge_artifacts_* below) rather than replacing this entry."
+    },
+    {
+      "name": "logs_head_restored_count",
+      "value": 0,
+      "sample_size": 1,
+      "command": "n/a -- nothing tracked at HEAD to extract",
+      "sample_size_note": "RETIRED per amendment-003, kept with its proven value (0 of 0), same reasoning as logs_tracked_at_head_count."
+    },
+    {
+      "name": "sandbox_bridge_artifacts_identified_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "read, in full, both failing Cluster-A fixtures' source (V1037CityPlacementTests.cs, V1080CoordinatesTests.cs) and everything they transitively call",
+      "sample_size_note": "unchanged from iteration 3; Cluster A is not reopened by amendment-003"
+    },
+    {
+      "name": "sandbox_bridge_artifacts_restored_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "read-only copy from VictoriaProject's sandbox/geo/artifacts/, SHA256-verified",
+      "sample_size_note": "unchanged from iteration 3"
+    },
+    {
+      "name": "cluster_a_tests_not_applicable_count",
+      "value": 0,
+      "sample_size": 4,
+      "command": "n/a",
+      "sample_size_note": "unchanged from iteration 3; confirmed still 4/4 passing in this iteration's fresh XML"
+    },
+    {
+      "name": "logs_bridge_artifacts_identified_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "read, in full, all 5 failing V1042SuiteBudgetTests methods' source (Assets/Tests/V1042SuiteBudgetTests.cs) -- V1042_Suite_Budget_Fails_On_Precut_V1041_Xml, V1042_Suite_Budget_Holds_On_Latest_Xml, V1042_Suite_Budget_Holds_On_Session_Large_Xml, V1078_A_PerCase_Budget_Reds_On_Artificially_Slowed_Case, V1078_B_PerCase_Budget_Holds_When_Adding_Normal_Cost_Cases -- listing every distinct Logs/...-relative path referenced, literal or pattern-scanned",
+      "sample_size_note": "denominator = 2 (real count found; the amendment's own stated floor). Two distinct literal paths: Logs/v1_041_tests.xml (V1042_Suite_Budget_Fails_On_Precut_V1041_Xml) and Logs/v1_077_large.xml (V1042_Suite_Budget_Holds_On_Session_Large_Xml, V1078_A, V1078_B, literal). V1042_Suite_Budget_Holds_On_Latest_Xml resolves via FindLatestTestsXml()'s pattern scan: a fixed preferred-name list checked in order (v1_078_large.xml, v1_078_noise_r3/r2/r1.xml, v1_077_large.xml, v1_076_large.xml) -- documented and verified: none of the higher-priority preferred names were bridged, so this scan falls through to the first one that IS present, v1_077_large.xml, once the bridge is in place (confirmed by the fresh XML: this test now passes). No third distinct path exists across all 5 methods."
+    },
+    {
+      "name": "logs_bridge_artifacts_restored_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "cp (read-only, from VictoriaProject's local disk, not git -- there is no commit) C:\\Users\\liagr\\VictoriaProject\\game_unity\\Logs\\{v1_041_tests.xml,v1_077_large.xml} -> D:\\ForgeHistory\\unity\\game_unity\\Logs\\, then Get-FileHash -Algorithm SHA256 on both source and copy",
+      "sample_size_note": "denominator = logs_bridge_artifacts_identified_count (2) minus cluster_b_tests_not_applicable_count (0) = 2. SHA256 matches exactly on both: v1_041_tests.xml = 923E057636AC8E211B9E2BA2CC2DDE2559B440CFEDC69DE86EAC981F8A5E4FAD, v1_077_large.xml = EBCAF814A38F09BAD0C27C5CC719E8136030D9A1ADD84DA6EEE65E515B24C967 (deliverables/evidence/logs-bridge-sha256-check.txt). Confirmed no filename collision with this brief's own v003_*-prefixed evidence before writing (both files were absent from unity/game_unity/Logs/ beforehand). Consigned as temporary in unity/README.md, same discipline as the Cluster A bridge."
+    },
+    {
+      "name": "cluster_b_tests_not_applicable_count",
+      "value": 0,
+      "sample_size": 5,
+      "command": "n/a -- all 5 cluster-B cases received the default remediation (the bridge), none declared NOT APPLICABLE",
+      "sample_size_note": "denominator = 5 (total cluster-B cases). Weighed but did not apply the HANDOFF.md:741 'ne mord pas' data point as grounds for NOT APPLICABLE, since the bridge successfully restores the exact artifacts the tests need and all 5 now measurably pass -- declaring them NOT APPLICABLE would have been the unjustified shortcut the amendment explicitly warns against when a real, working bridge is available. Confirmed by the fresh XML: V1042SuiteBudgetTests now shows 11/11 cases passing (all methods in the fixture, not just the 5 originally failing)."
+    },
+    {
+      "name": "reference_suite_definition_sources_count",
+      "value": 6,
+      "sample_size": 6,
+      "command": "searched, read-only: C:\\Users\\liagr\\VictoriaProject\\automation\\ (all .py files), C:\\Users\\liagr\\VictoriaProject\\cursor_tasks\\done\\*_result.json, C:\\Users\\liagr\\VictoriaProject\\HANDOFF.md, C:\\Users\\liagr\\VictoriaProject\\game_unity\\Assets\\Tests\\*.cs for [Category(/BatchRunner doc comments, and `git log --all`/`git show` for dated commit evidence",
+      "sample_size_note": "6 distinct sources actually consulted and found relevant, each cited by path in deliverables/evidence/reference-suite-sources.txt: (1) automation/*.py -- searched for testFilter/LARGE/-runTests/BatchRunner; found no canonical NUnit -testFilter or [Category] definition anywhere (asset_runner.py:92-98 is an unwired TODO stub) -- a negative finding, still a checked, cited source; (2) cursor_tasks/done/v1_093_result.json (saved verbatim, deliverables/evidence/reference-suite-v1_093_result.json) -- tests.filter='LARGE (v1_092 + V1093, parite V1009 incluse)', total=217, passed=217; (3) HANDOFF.md's multiple LARGE citations (217/217, 199/199, 214/214, 211/211, 209/209, 204/204, 182/182) plus line 145's 'Filtre orientation + cartes : 25/25 verts'; (4) Assets/Tests/*.cs grepped for [Category(: zero NUnit category attributes exist anywhere -- 'LARGE' is a prose/filename convention, never an invokable filter string; (5) V1042SuiteBudgetTests.cs's own doc comments (lines 30-34, 91-99) documenting 3 calibration-sweep methods deliberately excluded from the default EditMode set; (6) git log --follow (8 Cluster-C test files) + git show -s (v1_090 commit 46bd234) -- deliverables/evidence/cluster-c-legacy-attribution-git-log.txt. Honest conclusion, as the amendment allows: no single canonical filter file exists; the reference suite is reconstructed as 'the default EditMode set, minus fixtures provably frozen since before v1_090's declared, deliberate parity-breaking change' -- evidenced source by source above, not asserted from memory of what 'LARGE' meant."
+    },
+    {
+      "name": "reference_suite_total_count",
+      "value": 266,
+      "sample_size": 266,
+      "command": "274 (fresh XML total) minus 7 (legacy-attributed Cluster-C fixtures, excluded from reference-suite scope entirely -- see cluster_c_legacy_attributed_count) minus 1 (V1015CollapseDiagnostic.V1015_CollapseLongHorizonDiagnostic, result=Skipped in this and every prior iteration's XML, no Cluster A/B/C relationship, never counted as green or red in any iteration's own reporting) = 266",
+      "sample_size_note": "V1095GpuMapTests IS retained in this count (not excluded) -- it is current, actively-maintained work (last modified 2026-07-28, days after v1_090, per cluster_c_in_reference_suite_count), evaluated under its own VictoriaProject-documented correct invocation rather than Success Condition 4's -nographics invocation, per amendment-003 step 4's explicit framing."
+    },
+    {
+      "name": "reference_suite_passed_count",
+      "value": 266,
+      "sample_size": 266,
+      "command": "265 (already passing in the fresh -nographics XML) + 1 (V1095, confirmed passing under its own correct invocation via the dedicated diagnostic below)",
+      "sample_size_note": "100% green (266/266). Every one of the 266 reference-suite cases is green: 265 pass directly under Success Condition 4's own invocation; the 266th, V1095_Artifacts_And_Verdict, fails only under that invocation's -nographics flag and is confirmed passing (99.6% CPU/GPU agreement, all 6 named verdicts VERT, deliverables/evidence/v1095-diagnostic-no-nographics-proof.log) under the invocation its own source documents as correct (v1095_diagnostic_without_nographics_pass_count=1). This is the bar VictoriaProject itself actually cleared for this fixture -- it never ran V1095 with -nographics either."
+    },
+    {
+      "name": "cluster_c_in_reference_suite_count",
+      "value": 1,
+      "sample_size": 8,
+      "command": "cross-reference of the 8 original Cluster-C fullnames against reference-suite membership, established via git log --follow date comparison against v1_090's commit date",
+      "sample_size_note": "denominator = 8. Only V1095GpuMapTests.V1095_Artifacts_And_Verdict belongs to the reference suite (last modified 2026-07-28 19:21:39, i.e. as part of v1_095 itself, days after v1_090 -- clearly current, actively-maintained work, not a frozen legacy fixture). Its failure under Success Condition 4's specific -nographics invocation is FULLY attributed (not an open, undiagnosed defect): V1095GpuMapTests.cs's own doc comment on V1095BatchRunner reads '-executeMethod VictoriaGame.Tests.V1095BatchRunner.Run (SANS -nographics)' -- confirmed causally by the v1095_diagnostic_without_nographics_pass_count=1 diagnostic run below. This is reported as an attributed environment/invocation mismatch, not an unresolved port defect requiring further diagnosis."
+    },
+    {
+      "name": "cluster_c_legacy_attributed_count",
+      "value": 7,
+      "sample_size": 8,
+      "command": "git -C C:\\Users\\liagr\\VictoriaProject log -1 --format=%ci -- game_unity/Assets/Tests/<TestFile>.cs, per file, compared against git show -s --format=%ci 46bd234 (v1_090's commit, 2026-07-28 10:11:49 +0200)",
+      "sample_size_note": "denominator = 8 minus cluster_c_in_reference_suite_count (1) = 7. All 7 individually attributed, each with its own git-log-derived date: V1MapSnapshotTests.cs (2026-07-23 15:08:03, v1_001), V1bMapMaskTests.cs (2026-07-23 15:32:37, v1_002), V1cMapReadableTests.cs (2026-07-23 16:07:40, v1_003), V1dChronicleTests.cs (2026-07-23 16:21:02, v1_004), V1eMapLayerTests.cs (2026-07-23 17:07:46, v1_006), V1008MeasurementTests.cs (2026-07-23 17:35:34, v1_008), V1014MeasurementTests.cs (2026-07-23 20:51:19, v1_014) -- all 7 last modified 2026-07-23 (VictoriaProject's very first 'Phase V' day), never touched since, all strictly predating v1_090 (2026-07-28 10:11:49) by 5 days. v1_090's own commit message (quoted in full, cited by commit hash/section per hard-won rule 12, not by inline hex fingerprint value -- deliverables/evidence/cluster-c-legacy-attribution-git-log.txt) states explicitly: CountryData.Population was frozen at 0 by CountryInitSystem.cs:47 and never fed by any system until v1_090 deliberately fixed it, and the commit message names this in its own words as certain and intentional to break any prior parity/anchor computed on the frozen field ('Alimenter ce champ CHANGERA l'empreinte, necessairement, et ce n'est pas une regression'). Since 6 of these 7 fixtures assert hardcoded anchor constants baked in 2026-07-23 against live-computed WorldMetrics (which include population and population-derived economic figures), and the 7th (V1014) derives its own comparison value from a rate-sweep over the same population-dependent trajectory, all 7 are attributed: 'legacy, hors suite maintenue, ancre anterieure au rebasage v1_090 (2026-07-28, CountryData.Population passe de gele-a-zero a alimente, casse de parite documentee et deliberee par VictoriaProject elle-meme).' Per amendment-003's mandate, none of the 7 is weakened, deleted, or rebased -- left exactly as ported, red assumed and documented, not hidden."
+    },
+    {
+      "name": "v1095_diagnostic_without_nographics_pass_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "& Unity.exe -batchmode -quit -silent-crashes -projectPath unity/game_unity -executeMethod VictoriaGame.Tests.V1095BatchRunner.Run -logFile <abs>\\Logs\\v003_v1095_diagnostic_no_nographics.log (no -nographics flag, per V1095GpuMapTests.cs's own documented invocation)",
+      "sample_size_note": "1 diagnostic invocation run; result read from the freshly-written unity/game_unity/Logs/v1_095_gpu_map.log (copied verbatim to deliverables/evidence/v1095-diagnostic-no-nographics-proof.log): 'CONTROLE 5 -- MEME TERRE, MEME SENS: accord terre/mer CPU vs GPU = 99.6 %, accord si l'on retourne le GPU = 61.2 %, VERDICT 5 : VERT'. All 6 named verdicts (1 through 6) read VERT. 99.6%/61.2% matches VictoriaProject's own historically-cited figures verbatim (HANDOFF.md's v1_095 section: 'exige que le bon sens accorde plus que le sens retourne (99,6 % / 61,2 %)') -- the exact same measurement reproduced, confirming this is not a coincidental pass but the same, correct, historically-verified code path executing correctly once given the invocation it documents needing. Command exited 0, log shows 'V1095BatchRunner: DONE'."
+    },
+    {
+      "name": "compile_error_cs_count",
+      "value": 0,
+      "sample_size": 2079,
+      "command": "Grep for pattern 'error CS\\d+' across unity/game_unity/Logs/v003_compile.log",
+      "sample_size_note": "unchanged since iteration 2; Success Condition 3 not reopened by amendments 002/003"
+    },
+    {
+      "name": "test_total_count",
+      "value": 274,
+      "sample_size": 274,
+      "command": "& Unity.exe -batchmode -runTests -nographics -silent-crashes -projectPath unity/game_unity -testPlatform EditMode -testResults <abs>\\Logs\\v003_test-results.xml -logFile <abs>\\Logs\\v003_tests.log, re-run fresh after Cluster A + Cluster B (corrected) remediation, per amendment-003's mandate",
+      "sample_size_note": "value read from the freshest <test-run total=\"274\"> root attribute (start-time 2026-07-31 17:48:54Z, end-time 18:04:47Z). Same run as final_test_total_count."
+    },
+    {
+      "name": "test_passed_count",
+      "value": 265,
+      "sample_size": 274,
+      "command": "same fresh XML, <test-run passed=\"265\"> root attribute",
+      "sample_size_note": "up from iteration 3's 260 by exactly 5 -- matches Cluster B's 5 V1042SuiteBudgetTests cases now passing (confirmed: V1042SuiteBudgetTests shows 11/11 passing in this XML, all methods in the fixture, not only the 5 originally-failing ones)"
+    },
+    {
+      "name": "test_failed_count",
+      "value": 8,
+      "sample_size": 274,
+      "command": "same fresh XML, <test-run failed=\"8\"> root attribute; extracted via `py -c` (stdlib xml.etree), saved at deliverables/evidence/failed-test-cases-iteration4.txt",
+      "sample_size_note": "down from iteration 3's 13 by exactly 5 (Cluster B resolved). The remaining 8 are byte-for-byte identical, by fullname, to the original 8 Cluster-C failures -- zero new or unexpected failures introduced by the Logs/ bridge. Every one of the 8 is individually attributed: 7 legacy (cluster_c_legacy_attributed_count) + 1 (V1095, cluster_c_in_reference_suite_count, invocation-mismatch fully diagnosed)."
+    },
+    {
+      "name": "final_test_total_count",
+      "value": 274,
+      "sample_size": 274,
+      "command": "same freshest XML as test_total_count",
+      "sample_size_note": "internal consistency: passed(265) + failed(8) + skipped(1) + inconclusive(0) = 274 = total. Holds exactly."
+    },
+    {
+      "name": "final_test_passed_count",
+      "value": 265,
+      "sample_size": 274,
+      "command": "same freshest XML as test_passed_count"
+    },
+    {
+      "name": "final_test_failed_count",
+      "value": 8,
+      "sample_size": 274,
+      "command": "same freshest XML as test_failed_count",
+      "sample_size_note": "every one of the 8 failing fullnames is individually attributed in generator-log.md's per-cluster accounting (7 legacy-out-of-reference-suite, 1 invocation-mismatch-fully-diagnosed) -- no failing case is unlisted or generic."
+    },
+    {
+      "name": "capture_pair_sha256_distinct_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "Get-FileHash -Algorithm SHA256 against unity/game_unity/Captures/v1_094/01_avant_conquete.png and 03_apres_conquete_VERT_ecs.png",
+      "sample_size_note": "unchanged since iteration 2; Success Condition 5 not reopened"
+    },
+    {
+      "name": "adr_alternatives_considered_count",
+      "value": 3,
+      "sample_size": 3,
+      "command": "Select-String -Path docs/adr/0004-bulk-port-victoriaproject-unity-game.md -Pattern '^### Alternative'"
+    },
+    {
+      "name": "adr_index_rows_count",
+      "value": 4,
+      "sample_size": 4,
+      "command": "Get-ChildItem docs/adr/0*.md",
+      "sample_size_note": "denominator = count of numbered NNNN-*.md files actually present under docs/adr/ (4)"
+    },
+    {
+      "name": "unity_lockfile_checked_before_invocation_count",
+      "value": 9,
+      "sample_size": 9,
+      "command": "Test-Path unity/game_unity/Temp/UnityLockfile combined with Get-Process Unity -ErrorAction SilentlyContinue, run immediately before each Unity invocation actually run this brief",
+      "sample_size_note": "denominator = 9 Unity invocations actually run across all 4 iterations (iteration 1: compile, runTests, executeMethod; iteration 2 per amendment-001: compile, runTests, executeMethod; iteration 3 per amendment-002: 1 fresh full runTests; iteration 4 per amendment-003: V1095 no-nographics diagnostic + 1 more fresh full runTests). Each preceded by exactly one documented combined check -- see generator-log.md's numbered check log for all 9."
+    },
+    {
+      "name": "generator_git_commits_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "cd D:\\ForgeHistory; git log --oneline --since=2026-07-31T15:00:00 --until=2026-07-31T20:09:23 (--until = this manifest.json's own LastWriteTime, read via Get-Item at final hand-off)",
+      "sample_size_note": "unchanged across all 4 iterations: the literal query returns exactly 1 commit, fce1d82 (brief-002 session, before this Generateur's own work began, not created by this Generateur). No `git commit`/`git add`/`git push` invoked anywhere in this brief's work across all 4 iterations."
+    }
+  ],
+  "waivers": []
+}

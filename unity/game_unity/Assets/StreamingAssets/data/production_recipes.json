@@ -1,0 +1,35 @@
+{
+  "recipes": [
+    {
+      "output_good_id": 8,
+      "output_tag": "cloth",
+      "inputs": [
+        { "good_id": 6, "tag": "wool", "qty_per_unit": 1.0 }
+      ]
+    },
+    {
+      "output_good_id": 9,
+      "output_tag": "tools",
+      "inputs": [
+        { "good_id": 5, "tag": "iron", "qty_per_unit": 0.5 },
+        { "good_id": 4, "tag": "wood", "qty_per_unit": 0.5 }
+      ]
+    },
+    {
+      "output_good_id": 10,
+      "output_tag": "weapons",
+      "inputs": [
+        { "good_id": 5, "tag": "iron", "qty_per_unit": 0.8 },
+        { "good_id": 7, "tag": "coal", "qty_per_unit": 0.4 }
+      ]
+    },
+    {
+      "output_good_id": 11,
+      "output_tag": "paper",
+      "inputs": [
+        { "good_id": 4, "tag": "wood", "qty_per_unit": 1.2 }
+      ]
+    }
+  ],
+  "ratio_justification": "Ratios early-modern plausibles (affinables): cloth 1:1 wool (masse filée/tissée); tools 0.5 iron + 0.5 wood (tête + manche); weapons 0.8 iron + 0.4 coal (forge); paper 1.2 wood (perte pulpe). Primaires (grain/fish/livestock/wood/iron/wool/coal) et luxes sans recette = extraction sans intrant transformé."
+}

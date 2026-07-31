@@ -1,0 +1,5 @@
+ .../Scripts/Presentation/PilotMapProvider.cs       | 681 ++++++++++++++++++++-
+ 1 file changed, 675 insertions(+), 6 deletions(-)
+06c2e594d370ceea52037abd5628551582278ae4 2026-07-29 12:50:12 +0200 docs: brief de demarrage de Forge History — diagnostic mesure, inventaire de reprise, harnais a trois roles
+
+--- HANDOFF.md excerpt (line 5-6, 48) citing arbre propre and v1_096 ---

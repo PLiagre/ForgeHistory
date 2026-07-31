@@ -1,0 +1,27 @@
+{
+    "name": "VictoriaGame.PlayModeTests",
+    "rootNamespace": "VictoriaGame.PlayModeTests",
+    "references": [
+        "VictoriaGame",
+        "VictoriaGame.Presentation",
+        "Unity.Entities",
+        "Unity.Collections",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

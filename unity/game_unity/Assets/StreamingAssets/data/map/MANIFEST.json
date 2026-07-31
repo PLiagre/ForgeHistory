@@ -1,0 +1,285 @@
+{
+  "task_id": "v1_068",
+  "data_class": "pilot_map_import",
+  "copernicus_attribution": "© DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA",
+  "copernicus_note": "Obligation contractuelle DEM Copernicus — crédit dans ce MANIFEST et panneau d'aide HUD (PilotMapProvider).",
+  "pilot_window_lonlat": [
+    -6.5,
+    42.0,
+    8.5,
+    55.5
+  ],
+  "lod_by_observation": {
+    "World": "lod2",
+    "Country": "lod1",
+    "Province": "lod0"
+  },
+  "imported": [
+    {
+      "file": "cell_ids_lod0.png",
+      "sha256": "f5a1c30f3521a50de3bc44fd387a1cfc387a1836a5bfd968a91581d9f5d2ee24",
+      "bytes": 171657,
+      "manifest": "MANIFEST_g10.json",
+      "verified": true
+    },
+    {
+      "file": "cell_ids_lod1.png",
+      "sha256": "a06899372359b3864170162289dc5c589d445eb3e4e4644da56ed672381da3d8",
+      "bytes": 68591,
+      "manifest": "MANIFEST_g10.json",
+      "verified": true
+    },
+    {
+      "file": "cell_ids_lod2.png",
+      "sha256": "aae7c8f94656a9654583c33490201db8cbebb8c06dac154db2c61c59dec18984",
+      "bytes": 29734,
+      "manifest": "MANIFEST_g10.json",
+      "verified": true
+    },
+    {
+      "file": "mask_land_sea_lake_lod0.png",
+      "sha256": "ab27509e652e3f735e5760d6ebd40c477901f10594c37401c475ee5aa8971313",
+      "bytes": 97978,
+      "manifest": "MANIFEST_g10.json",
+      "verified": true
+    },
+    {
+      "file": "mask_land_sea_lake_lod1.png",
+      "sha256": "4083571fddcbea6f8d8657d3f4e29cd7117f6be3828c8aae5c1f1376039755b4",
+      "bytes": 32769,
+      "manifest": "MANIFEST_g10.json",
+      "verified": true
+    },
+    {
+      "file": "mask_land_sea_lake_lod2.png",
+      "sha256": "c3ab32b26f3b7eafa5c0cc1666811d31b39eda1bf8c945ae66426786c2faf354",
+      "bytes": 11869,
+      "manifest": "MANIFEST_g10.json",
+      "verified": true
+    },
+    {
+      "file": "id_color_table_g10.json",
+      "sha256": "8d4216f41d45a192579a59757e9e3750c472da86e9b3c7cd90cf3f4f9465f1d9",
+      "bytes": 16492,
+      "manifest": "MANIFEST_g10.json",
+      "verified": true
+    },
+    {
+      "file": "cells_lod0.json",
+      "sha256": "cefd9d0d52538077788fa910ed564ceb10f14e5b16a4f8f10d484e1a8cc832ef",
+      "bytes": 334246,
+      "manifest": "MANIFEST_g9.json",
+      "verified": true
+    },
+    {
+      "file": "cells_lod1.json",
+      "sha256": "9fd94258df05dcf5eae56d2b4c14cd452db5700bd2cd89ee2d4ec6c9733b4554",
+      "bytes": 329605,
+      "manifest": "MANIFEST_g9.json",
+      "verified": true
+    },
+    {
+      "file": "cells_lod2.json",
+      "sha256": "838a2c63ba50e3e1f1eebb213b461d5cc000697eb31fd7178683ef7567da84c6",
+      "bytes": 278754,
+      "manifest": "MANIFEST_g9.json",
+      "verified": true
+    },
+    {
+      "file": "cells_g3.json",
+      "sha256": "4f1d3bcfd6db13c46bb8ce409a1f2ee109e16385fb29c71e3357b1215ca29be9",
+      "bytes": 386253,
+      "manifest": "MANIFEST_g3.json",
+      "verified": true
+    },
+    {
+      "file": "cells_relief_g6.json",
+      "sha256": "a47192217cff3f0277ee2c931d81e231822401c8f1c068bce955d214ac19921c",
+      "bytes": 89307,
+      "manifest": "MANIFEST_g6.json",
+      "verified": true
+    },
+    {
+      "file": "adjacency_g6.json",
+      "sha256": "c8e960388768d9d0b7e12f91692006c49811579a134075589997f62069990d18",
+      "bytes": 172961,
+      "manifest": "MANIFEST_g6.json",
+      "verified": true
+    },
+    {
+      "file": "ownership_1400.json",
+      "sha256": "715a6a194a3a7036c2dc67949e540e361ff7ba8d33a07e0f3cc6263b729b9570",
+      "bytes": 108780,
+      "manifest": "MANIFEST_g8.json",
+      "verified": true
+    },
+    {
+      "file": "borders_derived_g8.json",
+      "sha256": "5b886d6c12c20fe31fe78db45777e4c3ee284f39346c2788455935a21012f55b",
+      "bytes": 4250,
+      "manifest": "MANIFEST_g8.json",
+      "verified": true
+    },
+    {
+      "file": "cells_biomes_a12.json",
+      "sha256": "a2043b80de208a86c0c7d41049e65681a92caea404c891c50021809ed9af50d3",
+      "bytes": 48834,
+      "manifest": "MANIFEST_a12.json",
+      "verified": true
+    },
+    {
+      "file": "biome_palette_a12.json",
+      "sha256": "97a9f2088b1e1ee98f6ff9b0c50dbc67b4488926f8e62ecdd994301b23f80d75",
+      "bytes": 501,
+      "manifest": "MANIFEST_a12.json",
+      "verified": true
+    },
+    {
+      "file": "appearance_political_lod2.png",
+      "sha256": "b1281688ee7510ddc52ca35f09dfa3ad789232f10bdfdb4f02b7872e6f786b2d",
+      "bytes": 495905,
+      "manifest": "MANIFEST_a12.json",
+      "verified": true
+    },
+    {
+      "file": "appearance_composite_lod2.png",
+      "sha256": "370b4b05b773d9fdcfd1cd732b0f929ef1a52ae594e10f58803177e05ae41bd1",
+      "bytes": 549032,
+      "manifest": "MANIFEST_a12.json",
+      "verified": true
+    },
+    {
+      "file": "appearance_political_lod1.png",
+      "sha256": "ec17ce7cbd4a755a36b20cba1f9133714a582a7d65d890c1b3946a0b3128f5f9",
+      "bytes": 2207247,
+      "manifest": "MANIFEST_a12.json",
+      "verified": true
+    },
+    {
+      "file": "appearance_composite_lod1.png",
+      "sha256": "ae3cfd9e4dc64a0f5ec9cf3d02d1e0cc135f4358b73ba66a2e6cfee7d49d1511",
+      "bytes": 2421852,
+      "manifest": "MANIFEST_a12.json",
+      "verified": true
+    },
+    {
+      "file": "MANIFEST_g9.json",
+      "sha256": "187bc92b9dea523b5fc9887c215d66e22857e268ab9f206bd2b6d97bdf25a765",
+      "bytes": 2381,
+      "manifest": "self",
+      "verified": false
+    },
+    {
+      "file": "MANIFEST_g6.json",
+      "sha256": "fde9e962d3f4ca718713af3293afe6269bb7a35fb169ad7d01270abaac7aed11",
+      "bytes": 1378,
+      "manifest": "self",
+      "verified": false
+    },
+    {
+      "file": "MANIFEST_g8.json",
+      "sha256": "c4335d61a31d438317a5946ecf2ab69cd8ba52cf3e9f9d97be433027d7d4d3f1",
+      "bytes": 1925,
+      "manifest": "self",
+      "verified": false
+    },
+    {
+      "file": "MANIFEST_g3.json",
+      "sha256": "144a768d8fd3364597bbaa523ea51817ef4eaa78ec1e6940e47a082660b12fb8",
+      "bytes": 1176,
+      "manifest": "self",
+      "verified": false
+    },
+    {
+      "file": "MANIFEST_a12.json",
+      "sha256": "bb8dd3bd521d4a5801b095ee96f051096fb01ad324589ae30b128e92e6173c63",
+      "bytes": 3305,
+      "manifest": "self",
+      "verified": false
+    }
+  ],
+  "total_bytes": 7866782,
+  "skipped_hash_mismatch": [
+    {
+      "file": "MANIFEST_g10.json",
+      "expected": "5d6440d6550d16261e422008ba2900b2ef893652eb0a84a0eba4a00243ef935f",
+      "actual": "cc1ee7ce6bfd8586f1a6ab261b23a975820f8c7aab6e95f81941a0eb9e8477e9",
+      "manifest": "MANIFEST_g10.json"
+    }
+  ],
+  "skipped_missing": [],
+  "deliberately_left_out_count": 70,
+  "deliberately_left_out": [
+    "MANIFEST.json",
+    "MANIFEST_g2.json",
+    "MANIFEST_g2b.json",
+    "MANIFEST_g4.json",
+    "MANIFEST_g5.json",
+    "MANIFEST_g5b.json",
+    "MANIFEST_g5c.json",
+    "MANIFEST_g7_cities.json",
+    "MANIFEST_p1_settlements.json",
+    "adjacency.json",
+    "adjacency_divergence_g4.json",
+    "adjacency_g3.json",
+    "adjacency_g4.json",
+    "adjacency_g5.json",
+    "adjacency_g5b.json",
+    "adjacency_g5c.json",
+    "aggregation_g7.json",
+    "appearance_composite_lod0.png",
+    "appearance_political_lod0.png",
+    "arcs_g9.json",
+    "biome_codes_lod0.png",
+    "biome_codes_lod1.png",
+    "biome_codes_lod2.png",
+    "biomes_lod0.png",
+    "biomes_lod1.png",
+    "biomes_lod2.png",
+    "cells.json",
+    "cities.json",
+    "cities_g7.json",
+    "coastline.json",
+    "coastline_1400.json",
+    "compare_legacy_g7.json",
+    "coverage_g7.json",
+    "divergences_1400.json",
+    "geography_cross_g7.json",
+    "hillshade_lod0.png",
+    "hillshade_lod1.png",
+    "hillshade_lod2.png",
+    "insufficiencies_g8.json",
+    "navigability_effect_g5b.json",
+    "passes_g6.json",
+    "plausibility_g8.json",
+    "river_mouths_g5.json",
+    "river_mouths_g5b.json",
+    "river_mouths_g5c.json",
+    "rivers_europe_effect_g5c.json",
+    "rivers_g5.json",
+    "rivers_g5b.json",
+    "rivers_g5c.json",
+    "sea_zones_g4.json",
+    "sea_zones_lod0.json",
+    "sea_zones_lod1.json",
+    "sea_zones_lod2.json",
+    "settlements_proposal_v1_066.json",
+    "settlements_proposal_v1_066.md",
+    "stats.json",
+    "stats_g10.json",
+    "stats_g3.json",
+    "stats_g4.json",
+    "stats_g5.json",
+    "stats_g5b.json",
+    "stats_g5c.json",
+    "stats_g6.json",
+    "stats_g7_cities.json",
+    "stats_g8.json",
+    "stats_g9.json",
+    "stats_p1_settlements.json",
+    "terrain_divergence_g6.json",
+    "topology_arcs_g9.json",
+    "topology_links_g4.json"
+  ],
+  "pipeline_artifact_count": 97
+}

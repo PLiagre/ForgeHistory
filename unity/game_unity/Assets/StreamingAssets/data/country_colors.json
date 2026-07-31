@@ -1,0 +1,27 @@
+{
+  "comment": "Palette de PRESENTATION uniquement (v1_019 polish). Mer ardoise lisible ; teintes pays distinguables entre voisins, contrastées sur la mer. Historique respecté quand possible (FRA bleu, ENG rouge).",
+  "unowned": "#3a4550",
+  "sea": "#1a4558",
+  "colors": [
+    { "tag": "FRA", "name": "France",         "color": "#3d6fd4" },
+    { "tag": "ENG", "name": "England",        "color": "#c0392b" },
+    { "tag": "SCO", "name": "Scotland",       "color": "#7fb3d5" },
+    { "tag": "BUR", "name": "Burgundy",       "color": "#6c3483" },
+    { "tag": "AUS", "name": "Austria",        "color": "#f4d03f" },
+    { "tag": "BOH", "name": "Bohemia",        "color": "#8e44ad" },
+    { "tag": "CAS", "name": "Castile",        "color": "#f39c12" },
+    { "tag": "ARA", "name": "Aragon",         "color": "#e74c3c" },
+    { "tag": "POR", "name": "Portugal",       "color": "#1e8449" },
+    { "tag": "OTT", "name": "Ottomans",       "color": "#117a65" },
+    { "tag": "BYZ", "name": "Byzantium",      "color": "#9b59b6" },
+    { "tag": "HUN", "name": "Hungary",        "color": "#e91e63" },
+    { "tag": "VEN", "name": "Venice",         "color": "#148f77" },
+    { "tag": "GEN", "name": "Genoa",          "color": "#85929e" },
+    { "tag": "MIL", "name": "Milan",          "color": "#a04000" },
+    { "tag": "FLO", "name": "Florence",       "color": "#d4ac0d" },
+    { "tag": "NAP", "name": "Naples",         "color": "#1a5276" },
+    { "tag": "POL", "name": "Poland",         "color": "#ec7063" },
+    { "tag": "DAN", "name": "Denmark",        "color": "#d35400" },
+    { "tag": "SWE", "name": "Sweden",         "color": "#f7dc6f" }
+  ]
+}

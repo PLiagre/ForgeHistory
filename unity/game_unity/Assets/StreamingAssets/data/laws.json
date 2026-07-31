@@ -1,0 +1,262 @@
+{
+  "laws": [
+    {
+      "id": "serfdom",
+      "name": "Serfdom",
+      "category": 0,
+      "min_government_type": 0,
+      "legitimacy_mod":  0.05,
+      "stability_mod":   0.02,
+      "tax_mod":        -0.05,
+      "manpower_mod":    0.10,
+      "available_from_tick": 0
+    },
+    {
+      "id": "tenant_farming",
+      "name": "Tenant Farming",
+      "category": 0,
+      "min_government_type": 0,
+      "legitimacy_mod":  0.00,
+      "stability_mod":   0.05,
+      "tax_mod":         0.05,
+      "manpower_mod":    0.00,
+      "available_from_tick": 600
+    },
+    {
+      "id": "freehold",
+      "name": "Freehold",
+      "category": 0,
+      "min_government_type": 2,
+      "legitimacy_mod": -0.05,
+      "stability_mod":   0.05,
+      "tax_mod":         0.15,
+      "manpower_mod":   -0.05,
+      "available_from_tick": 1200
+    },
+    {
+      "id": "state_land",
+      "name": "State Land",
+      "category": 0,
+      "min_government_type": 1,
+      "legitimacy_mod":  0.10,
+      "stability_mod":  -0.05,
+      "tax_mod":         0.10,
+      "manpower_mod":    0.05,
+      "available_from_tick": 1800
+    },
+
+    {
+      "id": "head_tax",
+      "name": "Head Tax",
+      "category": 1,
+      "min_government_type": 0,
+      "legitimacy_mod":  0.00,
+      "stability_mod":   0.00,
+      "tax_mod":         0.05,
+      "manpower_mod":    0.00,
+      "available_from_tick": 0
+    },
+    {
+      "id": "land_tax",
+      "name": "Land Tax",
+      "category": 1,
+      "min_government_type": 0,
+      "legitimacy_mod":  0.05,
+      "stability_mod":   0.02,
+      "tax_mod":         0.10,
+      "manpower_mod":   -0.02,
+      "available_from_tick": 0
+    },
+    {
+      "id": "income_tax",
+      "name": "Income Tax",
+      "category": 1,
+      "min_government_type": 2,
+      "legitimacy_mod": -0.05,
+      "stability_mod":   0.00,
+      "tax_mod":         0.20,
+      "manpower_mod":    0.00,
+      "available_from_tick": 3600
+    },
+    {
+      "id": "progressive_tax",
+      "name": "Progressive Tax",
+      "category": 1,
+      "min_government_type": 4,
+      "legitimacy_mod": -0.10,
+      "stability_mod":  -0.05,
+      "tax_mod":         0.30,
+      "manpower_mod":    0.00,
+      "available_from_tick": 4668
+    },
+
+    {
+      "id": "feudal_levy",
+      "name": "Feudal Levy",
+      "category": 2,
+      "min_government_type": 0,
+      "legitimacy_mod":  0.05,
+      "stability_mod":   0.00,
+      "tax_mod":         0.00,
+      "manpower_mod":    0.10,
+      "available_from_tick": 0
+    },
+    {
+      "id": "professional_army",
+      "name": "Professional Army",
+      "category": 2,
+      "min_government_type": 1,
+      "legitimacy_mod":  0.00,
+      "stability_mod":   0.05,
+      "tax_mod":        -0.10,
+      "manpower_mod":    0.15,
+      "available_from_tick": 1200
+    },
+    {
+      "id": "conscription",
+      "name": "Conscription",
+      "category": 2,
+      "min_government_type": 1,
+      "legitimacy_mod": -0.05,
+      "stability_mod":  -0.05,
+      "tax_mod":         0.00,
+      "manpower_mod":    0.25,
+      "available_from_tick": 3600
+    },
+    {
+      "id": "mass_conscription",
+      "name": "Mass Conscription",
+      "category": 2,
+      "min_government_type": 4,
+      "legitimacy_mod": -0.10,
+      "stability_mod":  -0.10,
+      "tax_mod":         0.00,
+      "manpower_mod":    0.40,
+      "available_from_tick": 4668
+    },
+
+    {
+      "id": "guild_monopoly",
+      "name": "Guild Monopoly",
+      "category": 3,
+      "min_government_type": 0,
+      "legitimacy_mod":  0.05,
+      "stability_mod":   0.05,
+      "tax_mod":         0.05,
+      "manpower_mod":    0.00,
+      "available_from_tick": 0
+    },
+    {
+      "id": "mercantilism",
+      "name": "Mercantilism",
+      "category": 3,
+      "min_government_type": 1,
+      "legitimacy_mod":  0.00,
+      "stability_mod":   0.00,
+      "tax_mod":         0.15,
+      "manpower_mod":    0.00,
+      "available_from_tick": 1200
+    },
+    {
+      "id": "free_trade",
+      "name": "Free Trade",
+      "category": 3,
+      "min_government_type": 2,
+      "legitimacy_mod": -0.05,
+      "stability_mod":   0.00,
+      "tax_mod":         0.10,
+      "manpower_mod":    0.00,
+      "available_from_tick": 3600
+    },
+    {
+      "id": "laissez_faire",
+      "name": "Laissez-Faire",
+      "category": 3,
+      "min_government_type": 4,
+      "legitimacy_mod": -0.10,
+      "stability_mod":  -0.05,
+      "tax_mod":         0.20,
+      "manpower_mod":    0.00,
+      "available_from_tick": 4668
+    },
+
+    {
+      "id": "state_church",
+      "name": "State Church",
+      "category": 4,
+      "min_government_type": 3,
+      "legitimacy_mod":  0.15,
+      "stability_mod":   0.10,
+      "tax_mod":         0.05,
+      "manpower_mod":    0.05,
+      "available_from_tick": 0
+    },
+    {
+      "id": "religious_tolerance",
+      "name": "Religious Tolerance",
+      "category": 4,
+      "min_government_type": 2,
+      "legitimacy_mod": -0.05,
+      "stability_mod":   0.05,
+      "tax_mod":         0.05,
+      "manpower_mod":    0.00,
+      "available_from_tick": 1404
+    },
+    {
+      "id": "secularism",
+      "name": "Secularism",
+      "category": 4,
+      "min_government_type": 4,
+      "legitimacy_mod": -0.15,
+      "stability_mod":  -0.05,
+      "tax_mod":         0.10,
+      "manpower_mod":    0.00,
+      "available_from_tick": 3600
+    },
+
+    {
+      "id": "agnatic_primogen",
+      "name": "Agnatic Primogeniture",
+      "category": 5,
+      "min_government_type": 0,
+      "legitimacy_mod":  0.10,
+      "stability_mod":   0.05,
+      "tax_mod":         0.00,
+      "manpower_mod":    0.00,
+      "available_from_tick": 0
+    },
+    {
+      "id": "absolute_cognatic",
+      "name": "Absolute Cognatic",
+      "category": 5,
+      "min_government_type": 2,
+      "legitimacy_mod":  0.00,
+      "stability_mod":   0.05,
+      "tax_mod":         0.00,
+      "manpower_mod":    0.00,
+      "available_from_tick": 1800
+    },
+    {
+      "id": "elective",
+      "name": "Elective Monarchy",
+      "category": 5,
+      "min_government_type": 2,
+      "legitimacy_mod": -0.05,
+      "stability_mod":  -0.05,
+      "tax_mod":         0.05,
+      "manpower_mod":    0.00,
+      "available_from_tick": 0
+    },
+    {
+      "id": "republican_election",
+      "name": "Republican Election",
+      "category": 5,
+      "min_government_type": 4,
+      "legitimacy_mod": -0.10,
+      "stability_mod":   0.00,
+      "tax_mod":         0.10,
+      "manpower_mod":    0.00,
+      "available_from_tick": 0
+    }
+  ]
+}

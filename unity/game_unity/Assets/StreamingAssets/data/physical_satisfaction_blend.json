@@ -1,0 +1,4 @@
+{
+  "physical_blend_weight": 0.25,
+  "weight_justification": "v1_026 redescente: w=0.5 et w=0.4 avec c=1 cassent V1016-18. Conservé w=0.25 (palier v1_022/v1_025) + ResponseContinuity=1. Grille: à c=1 w=0.25 popRatio=1.024 (sensibilité↑ sans rupture stabilité)."
+}

@@ -1,0 +1,747 @@
+{
+  "projection": {
+    "type": "equirectangular",
+    "mid_latitude": 47.5,
+    "comment": "x = lon * cos(mid_latitude), y = -lat. Coordonnees approximatives, corrigeables a vue."
+  },
+  "coordinates": [
+    {
+      "id": 1,
+      "name": "Paris",
+      "lon": 2.35,
+      "lat": 48.86
+    },
+    {
+      "id": 2,
+      "name": "Saint-Denis",
+      "lon": 2.36,
+      "lat": 48.94
+    },
+    {
+      "id": 3,
+      "name": "Melun",
+      "lon": 2.5852,
+      "lat": 48.6615
+    },
+    {
+      "id": 4,
+      "name": "Rouen",
+      "lon": 0.2,
+      "lat": 49.2
+    },
+    {
+      "id": 5,
+      "name": "Caen",
+      "lon": 0.0817,
+      "lat": 49.1959
+    },
+    {
+      "id": 6,
+      "name": "Dieppe",
+      "lon": 0.3414,
+      "lat": 49.3157
+    },
+    {
+      "id": 7,
+      "name": "Rennes",
+      "lon": -2.8,
+      "lat": 48.1
+    },
+    {
+      "id": 8,
+      "name": "Nantes",
+      "lon": -2.718,
+      "lat": 48.0423
+    },
+    {
+      "id": 9,
+      "name": "Quimper",
+      "lon": -3.0203,
+      "lat": 48.0814
+    },
+    {
+      "id": 10,
+      "name": "Bordeaux",
+      "lon": -0.5,
+      "lat": 44.3
+    },
+    {
+      "id": 11,
+      "name": "Bayonne",
+      "lon": -0.5745,
+      "lat": 44.2378
+    },
+    {
+      "id": 12,
+      "name": "Toulouse",
+      "lon": 3.2,
+      "lat": 43.7
+    },
+    {
+      "id": 13,
+      "name": "Montpellier",
+      "lon": 3.3162,
+      "lat": 43.6846
+    },
+    {
+      "id": 14,
+      "name": "Narbonne",
+      "lon": 3.1442,
+      "lat": 43.5548
+    },
+    {
+      "id": 15,
+      "name": "Dijon",
+      "lon": 5.04,
+      "lat": 47.32
+    },
+    {
+      "id": 16,
+      "name": "Beaune",
+      "lon": 4.883,
+      "lat": 47.2208
+    },
+    {
+      "id": 17,
+      "name": "Autun",
+      "lon": 4.7319,
+      "lat": 47.202
+    },
+    {
+      "id": 18,
+      "name": "Reims",
+      "lon": 4.4,
+      "lat": 48.9
+    },
+    {
+      "id": 19,
+      "name": "Troyes",
+      "lon": 4.3599,
+      "lat": 48.8247
+    },
+    {
+      "id": 20,
+      "name": "Châlons",
+      "lon": 4.36,
+      "lat": 48.96
+    },
+    {
+      "id": 21,
+      "name": "London",
+      "lon": -0.13,
+      "lat": 51.51
+    },
+    {
+      "id": 22,
+      "name": "Westminster",
+      "lon": -0.14,
+      "lat": 51.5
+    },
+    {
+      "id": 23,
+      "name": "Southwark",
+      "lon": -0.09,
+      "lat": 51.5
+    },
+    {
+      "id": 24,
+      "name": "York",
+      "lon": -1.5,
+      "lat": 54.0
+    },
+    {
+      "id": 25,
+      "name": "Hull",
+      "lon": -1.3876,
+      "lat": 53.9748
+    },
+    {
+      "id": 26,
+      "name": "Cardiff",
+      "lon": -3.8,
+      "lat": 52.3
+    },
+    {
+      "id": 27,
+      "name": "Caernarfon",
+      "lon": -3.8419,
+      "lat": 52.3748
+    },
+    {
+      "id": 28,
+      "name": "Dublin",
+      "lon": -8.0,
+      "lat": 53.3
+    },
+    {
+      "id": 29,
+      "name": "Cork",
+      "lon": -8.0267,
+      "lat": 53.2221
+    },
+    {
+      "id": 30,
+      "name": "Edinburgh",
+      "lon": -3.19,
+      "lat": 55.95
+    },
+    {
+      "id": 31,
+      "name": "Leith",
+      "lon": -3.17,
+      "lat": 55.98
+    },
+    {
+      "id": 32,
+      "name": "Dresden",
+      "lon": 12.9,
+      "lat": 51.1
+    },
+    {
+      "id": 33,
+      "name": "Leipzig",
+      "lon": 12.8016,
+      "lat": 51.1445
+    },
+    {
+      "id": 34,
+      "name": "Meissen",
+      "lon": 13.1194,
+      "lat": 51.1231
+    },
+    {
+      "id": 35,
+      "name": "Vienna",
+      "lon": 16.37,
+      "lat": 48.21
+    },
+    {
+      "id": 36,
+      "name": "Wiener Neustadt",
+      "lon": 16.3665,
+      "lat": 48.1233
+    },
+    {
+      "id": 37,
+      "name": "Prague",
+      "lon": 14.42,
+      "lat": 50.08
+    },
+    {
+      "id": 38,
+      "name": "Kutná Hora",
+      "lon": 14.5147,
+      "lat": 50.0802
+    },
+    {
+      "id": 39,
+      "name": "Munich",
+      "lon": 11.5,
+      "lat": 48.5
+    },
+    {
+      "id": 40,
+      "name": "Regensburg",
+      "lon": 11.5728,
+      "lat": 48.5631
+    },
+    {
+      "id": 41,
+      "name": "Augsburg",
+      "lon": 11.2886,
+      "lat": 48.4542
+    },
+    {
+      "id": 42,
+      "name": "Berlin",
+      "lon": 13.4,
+      "lat": 52.52
+    },
+    {
+      "id": 43,
+      "name": "Brandenburg",
+      "lon": 13.0841,
+      "lat": 52.4837
+    },
+    {
+      "id": 44,
+      "name": "Cologne",
+      "lon": 7.2,
+      "lat": 50.4
+    },
+    {
+      "id": 45,
+      "name": "Mainz",
+      "lon": 7.303,
+      "lat": 50.3605
+    },
+    {
+      "id": 46,
+      "name": "Aachen",
+      "lon": 7.0016,
+      "lat": 50.4673
+    },
+    {
+      "id": 47,
+      "name": "Trier",
+      "lon": 7.0362,
+      "lat": 50.2099
+    },
+    {
+      "id": 48,
+      "name": "Ulm",
+      "lon": 9.2,
+      "lat": 48.6
+    },
+    {
+      "id": 49,
+      "name": "Stuttgart",
+      "lon": 9.18,
+      "lat": 48.78
+    },
+    {
+      "id": 50,
+      "name": "Constance",
+      "lon": 9.1968,
+      "lat": 48.45
+    },
+    {
+      "id": 51,
+      "name": "Toledo",
+      "lon": -3.9,
+      "lat": 41.2
+    },
+    {
+      "id": 52,
+      "name": "Burgos",
+      "lon": -3.8861,
+      "lat": 41.2794
+    },
+    {
+      "id": 53,
+      "name": "Valladolid",
+      "lon": -4.0732,
+      "lat": 41.2939
+    },
+    {
+      "id": 54,
+      "name": "Seville",
+      "lon": -5.4,
+      "lat": 37.5
+    },
+    {
+      "id": 55,
+      "name": "Cordoba",
+      "lon": -5.3133,
+      "lat": 37.5545
+    },
+    {
+      "id": 56,
+      "name": "Cadiz",
+      "lon": -5.517,
+      "lat": 37.3725
+    },
+    {
+      "id": 57,
+      "name": "Zaragoza",
+      "lon": -0.88,
+      "lat": 41.65
+    },
+    {
+      "id": 58,
+      "name": "Barcelona",
+      "lon": -0.7822,
+      "lat": 41.5919
+    },
+    {
+      "id": 59,
+      "name": "Valencia",
+      "lon": -0.8639,
+      "lat": 41.452
+    },
+    {
+      "id": 60,
+      "name": "Granada",
+      "lon": -3.6,
+      "lat": 37.18
+    },
+    {
+      "id": 61,
+      "name": "Malaga",
+      "lon": -3.6895,
+      "lat": 37.1476
+    },
+    {
+      "id": 62,
+      "name": "Lisbon",
+      "lon": -9.14,
+      "lat": 38.72
+    },
+    {
+      "id": 63,
+      "name": "Setubal",
+      "lon": -8.89,
+      "lat": 38.52
+    },
+    {
+      "id": 64,
+      "name": "Pamplona",
+      "lon": -1.64,
+      "lat": 42.82
+    },
+    {
+      "id": 65,
+      "name": "Pisa",
+      "lon": 10.4,
+      "lat": 43.72
+    },
+    {
+      "id": 66,
+      "name": "Siena",
+      "lon": 10.5138,
+      "lat": 43.478
+    },
+    {
+      "id": 67,
+      "name": "Lucca",
+      "lon": 10.4433,
+      "lat": 43.6471
+    },
+    {
+      "id": 68,
+      "name": "Pavia",
+      "lon": 10.5,
+      "lat": 45.3
+    },
+    {
+      "id": 69,
+      "name": "Cremona",
+      "lon": 10.3951,
+      "lat": 45.2629
+    },
+    {
+      "id": 70,
+      "name": "Bergamo",
+      "lon": 10.32,
+      "lat": 45.3878
+    },
+    {
+      "id": 71,
+      "name": "Rome",
+      "lon": 12.5,
+      "lat": 41.9
+    },
+    {
+      "id": 72,
+      "name": "Ancona",
+      "lon": 12.5437,
+      "lat": 41.9744
+    },
+    {
+      "id": 73,
+      "name": "Perugia",
+      "lon": 12.4864,
+      "lat": 42.0497
+    },
+    {
+      "id": 74,
+      "name": "Naples",
+      "lon": 14.25,
+      "lat": 40.85
+    },
+    {
+      "id": 75,
+      "name": "Salerno",
+      "lon": 14.3973,
+      "lat": 40.8544
+    },
+    {
+      "id": 76,
+      "name": "Capua",
+      "lon": 14.21,
+      "lat": 41.11
+    },
+    {
+      "id": 77,
+      "name": "Bursa",
+      "lon": 29.06,
+      "lat": 40.19
+    },
+    {
+      "id": 78,
+      "name": "Iznik",
+      "lon": 29.2038,
+      "lat": 40.2385
+    },
+    {
+      "id": 79,
+      "name": "Constantinople",
+      "lon": 28.98,
+      "lat": 41.01
+    },
+    {
+      "id": 80,
+      "name": "Galata",
+      "lon": 28.97,
+      "lat": 41.03
+    },
+    {
+      "id": 81,
+      "name": "Adrianople",
+      "lon": 26.56,
+      "lat": 41.68
+    },
+    {
+      "id": 82,
+      "name": "Gallipoli",
+      "lon": 26.2283,
+      "lat": 41.6223
+    },
+    {
+      "id": 83,
+      "name": "Belgrade",
+      "lon": 20.8,
+      "lat": 44.2
+    },
+    {
+      "id": 84,
+      "name": "Skopje",
+      "lon": 20.8156,
+      "lat": 44.1207
+    },
+    {
+      "id": 85,
+      "name": "Jajce",
+      "lon": 17.9,
+      "lat": 43.8
+    },
+    {
+      "id": 86,
+      "name": "Mostar",
+      "lon": 17.8845,
+      "lat": 43.7207
+    },
+    {
+      "id": 87,
+      "name": "Venice",
+      "lon": 12.34,
+      "lat": 45.44
+    },
+    {
+      "id": 88,
+      "name": "Chioggia",
+      "lon": 12.28,
+      "lat": 45.22
+    },
+    {
+      "id": 89,
+      "name": "Genoa",
+      "lon": 8.95,
+      "lat": 44.41
+    },
+    {
+      "id": 90,
+      "name": "Savona",
+      "lon": 8.7871,
+      "lat": 44.3758
+    },
+    {
+      "id": 91,
+      "name": "Milan",
+      "lon": 9.19,
+      "lat": 45.46
+    },
+    {
+      "id": 92,
+      "name": "Monza",
+      "lon": 9.27,
+      "lat": 45.58
+    },
+    {
+      "id": 93,
+      "name": "Florence",
+      "lon": 11.26,
+      "lat": 43.77
+    },
+    {
+      "id": 94,
+      "name": "Prato",
+      "lon": 11.1,
+      "lat": 43.88
+    },
+    {
+      "id": 95,
+      "name": "Palermo",
+      "lon": 14.1,
+      "lat": 37.6
+    },
+    {
+      "id": 96,
+      "name": "Messina",
+      "lon": 14.2014,
+      "lat": 37.6413
+    },
+    {
+      "id": 97,
+      "name": "Syracuse",
+      "lon": 14.2864,
+      "lat": 37.5185
+    },
+    {
+      "id": 98,
+      "name": "Konya",
+      "lon": 32.6,
+      "lat": 39.2
+    },
+    {
+      "id": 99,
+      "name": "Ankara",
+      "lon": 32.6277,
+      "lat": 39.2778
+    },
+    {
+      "id": 100,
+      "name": "Antalya",
+      "lon": 32.4922,
+      "lat": 39.0689
+    },
+    {
+      "id": 101,
+      "name": "Alexandria",
+      "lon": 29.92,
+      "lat": 31.2
+    },
+    {
+      "id": 102,
+      "name": "Rosetta",
+      "lon": 30.0029,
+      "lat": 31.2396
+    },
+    {
+      "id": 103,
+      "name": "Krakow",
+      "lon": 19.94,
+      "lat": 50.06
+    },
+    {
+      "id": 104,
+      "name": "Lublin",
+      "lon": 19.9998,
+      "lat": 50.143
+    },
+    {
+      "id": 105,
+      "name": "Vilnius",
+      "lon": 25.28,
+      "lat": 54.69
+    },
+    {
+      "id": 106,
+      "name": "Kaunas",
+      "lon": 25.1841,
+      "lat": 54.7166
+    },
+    {
+      "id": 107,
+      "name": "Buda",
+      "lon": 19.04,
+      "lat": 47.5
+    },
+    {
+      "id": 108,
+      "name": "Pest",
+      "lon": 19.05,
+      "lat": 47.5
+    },
+    {
+      "id": 109,
+      "name": "Szeged",
+      "lon": 19.2096,
+      "lat": 47.3695
+    },
+    {
+      "id": 110,
+      "name": "Königsberg",
+      "lon": 20.4,
+      "lat": 54.4
+    },
+    {
+      "id": 111,
+      "name": "Danzig",
+      "lon": 20.2817,
+      "lat": 54.3966
+    },
+    {
+      "id": 112,
+      "name": "Copenhagen",
+      "lon": 12.57,
+      "lat": 55.68
+    },
+    {
+      "id": 113,
+      "name": "Roskilde",
+      "lon": 12.4833,
+      "lat": 55.6865
+    },
+    {
+      "id": 114,
+      "name": "Stockholm",
+      "lon": 18.07,
+      "lat": 59.33
+    },
+    {
+      "id": 115,
+      "name": "Uppsala",
+      "lon": 18.0425,
+      "lat": 59.37
+    },
+    {
+      "id": 116,
+      "name": "Bergen",
+      "lon": 10.7,
+      "lat": 60.0
+    },
+    {
+      "id": 117,
+      "name": "Oslo",
+      "lon": 10.75,
+      "lat": 59.91
+    },
+    {
+      "id": 118,
+      "name": "Trondheim",
+      "lon": 10.6869,
+      "lat": 60.1497
+    },
+    {
+      "id": 119,
+      "name": "Lübeck",
+      "lon": 10.69,
+      "lat": 53.87
+    },
+    {
+      "id": 120,
+      "name": "Hamburg",
+      "lon": 10.6043,
+      "lat": 53.8528
+    },
+    {
+      "id": 121,
+      "name": "Bremen",
+      "lon": 10.5129,
+      "lat": 53.8192
+    },
+    {
+      "id": 122,
+      "name": "Târgoviște",
+      "lon": 25.6,
+      "lat": 44.6
+    },
+    {
+      "id": 123,
+      "name": "Bucharest",
+      "lon": 25.7058,
+      "lat": 44.564
+    }
+  ]
+}

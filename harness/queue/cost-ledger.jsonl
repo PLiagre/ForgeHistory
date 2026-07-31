@@ -5,3 +5,7 @@
 {"timestamp": "2026-07-29T17:29:55.608403", "backend": "cursor", "brief": "harness/queue/briefs/002-geo-pipeline-coastline-1400", "event": "generator-run"}
 {"timestamp": "2026-07-29T17:31:28.659635", "backend": "cursor", "brief": "D:/ForgeHistory/harness/queue/briefs/002-geo-pipeline-coastline-1400", "event": "generator-run"}
 {"timestamp": "2026-07-29T17:56:34.558046", "backend": "claude", "brief": "harness/queue/briefs/002-geo-pipeline-coastline-1400", "event": "generator-run"}
+{"timestamp": "2026-07-31T18:23:06.183559", "backend": "claude", "brief": "harness/queue/briefs/003-port-unity-game", "event": "generator-run"}
+{"timestamp": "2026-07-31T19:00:22.591925", "backend": "claude", "brief": "harness/queue/briefs/003-port-unity-game", "event": "generator-run"}
+{"timestamp": "2026-07-31T19:36:20.922529", "backend": "claude", "brief": "harness/queue/briefs/003-port-unity-game", "event": "generator-run"}
+{"timestamp": "2026-07-31T20:12:17.964844", "backend": "claude", "brief": "harness/queue/briefs/003-port-unity-game", "event": "generator-run"}

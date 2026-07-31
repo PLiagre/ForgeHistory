@@ -1,0 +1,149 @@
+ M game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs
+ M game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs
+ M game_unity/Assets/StreamingAssets/data/map/MANIFEST.json
+ M game_unity/Assets/StreamingAssets/data/map/MANIFEST_g3.json
+ M game_unity/Assets/StreamingAssets/data/map/MANIFEST_g6.json
+ M game_unity/Assets/StreamingAssets/data/map/MANIFEST_g8.json
+ M game_unity/Assets/StreamingAssets/data/map/MANIFEST_g9.json
+ M game_unity/Assets/StreamingAssets/data/map/adjacency_g6.json
+ M game_unity/Assets/StreamingAssets/data/map/borders_derived_g8.json
+ M game_unity/Assets/StreamingAssets/data/map/cell_ids_lod0.png
+ M game_unity/Assets/StreamingAssets/data/map/cell_ids_lod1.png
+ M game_unity/Assets/StreamingAssets/data/map/cell_ids_lod2.png
+ M game_unity/Assets/StreamingAssets/data/map/cell_to_view_index.json
+ M game_unity/Assets/StreamingAssets/data/map/cells_g3.json
+ M game_unity/Assets/StreamingAssets/data/map/cells_lod0.json
+ M game_unity/Assets/StreamingAssets/data/map/cells_lod1.json
+ M game_unity/Assets/StreamingAssets/data/map/cells_lod2.json
+ M game_unity/Assets/StreamingAssets/data/map/cells_relief_g6.json
+ M game_unity/Assets/StreamingAssets/data/map/id_color_table_g10.json
+ M game_unity/Assets/StreamingAssets/data/map/mask_land_sea_lake_lod0.png
+ M game_unity/Assets/StreamingAssets/data/map/mask_land_sea_lake_lod1.png
+ M game_unity/Assets/StreamingAssets/data/map/mask_land_sea_lake_lod2.png
+ M game_unity/Assets/StreamingAssets/data/map/ownership_1400.json
+ M game_unity/Assets/StreamingAssets/data/map/political_tag_colors_v1_070.json
+ M game_unity/Assets/StreamingAssets/data/map/river_mouths_g5c.json
+ M game_unity/Assets/StreamingAssets/data/map/rivers_g5c.json
+ M game_unity/Assets/Tests/V1068PilotMapTests.cs
+ M game_unity/Assets/Tests/V1070PoliticalMapTests.cs
+ M game_unity/Assets/Tests/V1071PilotMapVisibilityTests.cs
+ M game_unity/Assets/Tests/V1094PilotLiveOwnershipTests.cs
+ M game_unity/Captures/v1_070/after_pilot_country_political_lod1.png
+ M game_unity/Captures/v1_070/pilot_country_physical_lod1.png
+ M game_unity/Captures/v1_070/pilot_country_political_lod1.png
+ M game_unity/Captures/v1_070/pilot_province_political_lod0.png
+ M game_unity/Captures/v1_070/pilot_world_political_lod2.png
+ M game_unity/Captures/v1_073/neutral_world.png
+ M game_unity/Captures/v1_074/rivers_off_country.png
+ M game_unity/Captures/v1_074/rivers_off_province.png
+ M game_unity/Captures/v1_074/rivers_off_world.png
+ M game_unity/Captures/v1_074/rivers_on_country.png
+ M game_unity/Captures/v1_074/rivers_on_province.png
+ M game_unity/Captures/v1_074/rivers_on_world.png
+ M game_unity/Captures/v1_076/after_neutral_province.png
+ M game_unity/Captures/v1_076/before_world.png
+ M game_unity/Captures/v1_077_probe/map_buffer_flip.png
+ M game_unity/Captures/v1_077_probe/raw_no_flip.png
+ M game_unity/Captures/v1_079_probe/map_buffer_flip_map.png
+ M game_unity/Captures/v1_079_probe/path_1600_WriteMapBufferPng.png
+ M game_unity/Captures/v1_079_probe/path_960_WriteMapBufferPng.png
+ M game_unity/Captures/v1_079_probe/path_screen_MapTexture_encode.png
+ M game_unity/Captures/v1_079_probe/path_screen_equivalent_WriteMapBufferPng.png
+ M game_unity/Captures/v1_079_probe/raw_no_flip_map.png
+ M game_unity/Captures/v1_079_text_red/after_neutral_country.png
+ M game_unity/Captures/v1_079_text_red/after_neutral_province.png
+ M game_unity/Captures/v1_079_text_red/after_neutral_world.png
+ M game_unity/Captures/v1_079_text_red/after_zoom_country.png
+ M game_unity/Captures/v1_079_text_red/after_zoom_province.png
+ M game_unity/Captures/v1_079_text_red/after_zoom_world.png
+ M game_unity/Captures/v1_080/after_country.png
+ M game_unity/Captures/v1_080/after_province.png
+ M game_unity/Captures/v1_080/before_country.png
+ M game_unity/Captures/v1_080/before_province.png
+ M game_unity/Captures/v1_082/after/pilot_country_FRA.png
+ M game_unity/Captures/v1_082/after/pilot_province_1.png
+ M game_unity/Captures/v1_082/after/pilot_world.png
+ M game_unity/Captures/v1_083/after_country_FRA.png
+ M game_unity/Captures/v1_083/after_province_1.png
+ M game_unity/Captures/v1_083/after_world.png
+ M game_unity/Captures/v1_083/before_country_FRA.png
+ M game_unity/Captures/v1_083/before_province_1.png
+ M game_unity/Captures/v1_083/before_world.png
+ M game_unity/Captures/v1_085/after_country_FRA.png
+ M game_unity/Captures/v1_085/after_province_1.png
+ M game_unity/Captures/v1_085/after_world.png
+ M game_unity/Captures/v1_085/before_country_FRA.png
+ M game_unity/Captures/v1_085/before_province_1.png
+ M game_unity/Captures/v1_085/before_world.png
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_g10.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_g2.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_g2b.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_g4.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_g5.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_g5b.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_g5c.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_g7_cities.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_p1_settlements.json
+?? game_unity/Assets/StreamingAssets/data/map/MANIFEST_p2_geonames.json
+?? game_unity/Assets/StreamingAssets/data/map/_rivers_g5c_slim_preview.json
+?? game_unity/Assets/StreamingAssets/data/map/adjacency.json
+?? game_unity/Assets/StreamingAssets/data/map/adjacency_divergence_g4.json
+?? game_unity/Assets/StreamingAssets/data/map/adjacency_g3.json
+?? game_unity/Assets/StreamingAssets/data/map/adjacency_g4.json
+?? game_unity/Assets/StreamingAssets/data/map/adjacency_g5.json
+?? game_unity/Assets/StreamingAssets/data/map/adjacency_g5b.json
+?? game_unity/Assets/StreamingAssets/data/map/adjacency_g5c.json
+?? game_unity/Assets/StreamingAssets/data/map/aggregation_g7.json
+?? game_unity/Assets/StreamingAssets/data/map/appearance_composite_lod0.png
+?? game_unity/Assets/StreamingAssets/data/map/appearance_political_lod0.png
+?? game_unity/Assets/StreamingAssets/data/map/arcs_g9.json
+?? game_unity/Assets/StreamingAssets/data/map/biome_codes_lod0.png
+?? game_unity/Assets/StreamingAssets/data/map/biome_codes_lod1.png
+?? game_unity/Assets/StreamingAssets/data/map/biome_codes_lod2.png
+?? game_unity/Assets/StreamingAssets/data/map/biomes_lod0.png
+?? game_unity/Assets/StreamingAssets/data/map/biomes_lod1.png
+?? game_unity/Assets/StreamingAssets/data/map/biomes_lod2.png
+?? game_unity/Assets/StreamingAssets/data/map/cells.json
+?? game_unity/Assets/StreamingAssets/data/map/cities.json
+?? game_unity/Assets/StreamingAssets/data/map/cities_g7.json
+?? game_unity/Assets/StreamingAssets/data/map/coastline.json
+?? game_unity/Assets/StreamingAssets/data/map/coastline_1400.json
+?? game_unity/Assets/StreamingAssets/data/map/compare_legacy_g7.json
+?? game_unity/Assets/StreamingAssets/data/map/coordinate_correction_proposal_v1_072.json
+?? game_unity/Assets/StreamingAssets/data/map/coordinate_correction_proposal_v1_072.md
+?? game_unity/Assets/StreamingAssets/data/map/coverage_g7.json
+?? game_unity/Assets/StreamingAssets/data/map/divergences_1400.json
+?? game_unity/Assets/StreamingAssets/data/map/geography_cross_g7.json
+?? game_unity/Assets/StreamingAssets/data/map/insufficiencies_g8.json
+?? game_unity/Assets/StreamingAssets/data/map/navigability_effect_g5b.json
+?? game_unity/Assets/StreamingAssets/data/map/passes_g6.json
+?? game_unity/Assets/StreamingAssets/data/map/plausibility_g8.json
+?? game_unity/Assets/StreamingAssets/data/map/river_mouths_g5.json
+?? game_unity/Assets/StreamingAssets/data/map/river_mouths_g5b.json
+?? game_unity/Assets/StreamingAssets/data/map/rivers_europe_effect_g5c.json
+?? game_unity/Assets/StreamingAssets/data/map/rivers_g5.json
+?? game_unity/Assets/StreamingAssets/data/map/rivers_g5b.json
+?? game_unity/Assets/StreamingAssets/data/map/sea_zones_g4.json
+?? game_unity/Assets/StreamingAssets/data/map/sea_zones_lod0.json
+?? game_unity/Assets/StreamingAssets/data/map/sea_zones_lod1.json
+?? game_unity/Assets/StreamingAssets/data/map/sea_zones_lod2.json
+?? game_unity/Assets/StreamingAssets/data/map/settlements_proposal_v1_066.json
+?? game_unity/Assets/StreamingAssets/data/map/settlements_proposal_v1_066.md
+?? game_unity/Assets/StreamingAssets/data/map/settlements_proposal_v1_072.json
+?? game_unity/Assets/StreamingAssets/data/map/settlements_proposal_v1_072.md
+?? game_unity/Assets/StreamingAssets/data/map/stats.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g10.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g3.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g4.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g5.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g5b.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g5c.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g6.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g7_cities.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g8.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_g9.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_p1_settlements.json
+?? game_unity/Assets/StreamingAssets/data/map/stats_p2_geonames.json
+?? game_unity/Assets/StreamingAssets/data/map/terrain_divergence_g6.json
+?? game_unity/Assets/StreamingAssets/data/map/topology_arcs_g9.json
+?? game_unity/Assets/StreamingAssets/data/map/topology_links_g4.json

@@ -1,0 +1,38 @@
+{
+  "buildings": [
+    {
+      "type": "Farm",
+      "money_cost": 80.0,
+      "duration_ticks": 12,
+      "capacity": 2000.0,
+      "default_output_tag": "grain",
+      "materials": [
+        { "tag": "wood", "quantity": 40.0 },
+        { "tag": "iron", "quantity": 10.0 }
+      ]
+    },
+    {
+      "type": "Sawmill",
+      "money_cost": 100.0,
+      "duration_ticks": 12,
+      "capacity": 2000.0,
+      "default_output_tag": "wood",
+      "materials": [
+        { "tag": "wood", "quantity": 50.0 },
+        { "tag": "iron", "quantity": 15.0 }
+      ]
+    },
+    {
+      "type": "Workshop",
+      "money_cost": 120.0,
+      "duration_ticks": 16,
+      "capacity": 2000.0,
+      "default_output_tag": "cloth",
+      "materials": [
+        { "tag": "wood", "quantity": 30.0 },
+        { "tag": "iron", "quantity": 25.0 }
+      ]
+    }
+  ],
+  "deferred": "Routes=investissement d'infra sur arêtes; destruction=endommager BuildingData.Capacity; obsolescence=tech gate sur Type; Factory+Serf→Artisan=ProductionMethod; 8 autres BuildingType=catalogue; IA=BuildingAiPolicy.Active."
+}

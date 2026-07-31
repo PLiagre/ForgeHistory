@@ -1,0 +1,19 @@
+{
+  "goods": [
+    { "id": 1,  "tag": "grain",    "name": "Grain",    "type": "Food",         "base_price": 2.0  },
+    { "id": 2,  "tag": "fish",     "name": "Fish",     "type": "Food",         "base_price": 2.5  },
+    { "id": 3,  "tag": "livestock","name": "Livestock", "type": "Food",         "base_price": 3.5  },
+    { "id": 4,  "tag": "wood",     "name": "Wood",     "type": "RawMaterial",   "base_price": 1.5  },
+    { "id": 5,  "tag": "iron",     "name": "Iron",     "type": "RawMaterial",   "base_price": 3.0  },
+    { "id": 6,  "tag": "wool",     "name": "Wool",     "type": "RawMaterial",   "base_price": 2.5  },
+    { "id": 7,  "tag": "coal",     "name": "Coal",     "type": "RawMaterial",   "base_price": 2.0  },
+    { "id": 8,  "tag": "cloth",    "name": "Cloth",    "type": "Manufactured",  "base_price": 5.0  },
+    { "id": 9,  "tag": "tools",    "name": "Tools",    "type": "Manufactured",  "base_price": 4.5  },
+    { "id": 10, "tag": "weapons",  "name": "Weapons",  "type": "Manufactured",  "base_price": 6.0  },
+    { "id": 11, "tag": "paper",    "name": "Paper",    "type": "Manufactured",  "base_price": 4.0  },
+    { "id": 12, "tag": "spices",   "name": "Spices",   "type": "Luxury",        "base_price": 15.0 },
+    { "id": 13, "tag": "silk",     "name": "Silk",     "type": "Luxury",        "base_price": 12.0 },
+    { "id": 14, "tag": "wine",     "name": "Wine",     "type": "Luxury",        "base_price": 7.0  },
+    { "id": 15, "tag": "dyes",     "name": "Dyes",     "type": "Luxury",        "base_price": 9.0  }
+  ]
+}

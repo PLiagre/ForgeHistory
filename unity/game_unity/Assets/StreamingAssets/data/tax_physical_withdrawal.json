@@ -1,0 +1,5 @@
+﻿{
+  "withdrawal_coefficient": 0,
+  "abstract_withdrawal_coefficient": 0.5,
+  "coefficient_justification": "v1_086 ADOPTÉ : cPhys=0.00 (mono=False Δsat=0.0042 fraction_extra=-0.0091 — inutile) ; cAbs=0.50 (mono=True Δsat=-0.1204). Mesure CE brief Logs/v1_086_tax.log. PhysicalBlendWeight=0.25 inchangé. Réversibilité c=0/0 → 0x4ED26CB61DE7B2B2. cPhys NON adopté : mono=False Δsat=0.0042 ; fraction additionnelle=-0.0091 — le JSON le déclare inutile plutôt que réglable. cAbs=0.5 ADOPTÉ : sat [0.630→0.628→0.624→0.582→0.510] mono=True Δsat=-0.1204."
+}

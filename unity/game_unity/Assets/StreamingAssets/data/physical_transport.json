@@ -1,0 +1,7 @@
+{
+  "edge_capacity_per_tick": 500.0,
+  "capacity_per_dev_point": 2400.643,
+  "transit_ticks_per_edge": 1,
+  "quantity_epsilon": 0.0001,
+  "capacity_justification": "v1_024 MESURÉ: hopNeed=752842 / 144 arêtes / meanDev=3.267 × marge 1.5 → CapacityPerDevPoint=2400.643. Forme émergente: edgeCap=perDev×avg(DevScore). hop/cap@500=10.456 prouve l'étranglement. MultiHop GARDÉ: à cap desserrée clothServedShare 0.038→0.142 (intrants) malgré physMean +0.025 < 0.03."
+}
