@@ -1,6 +1,6 @@
 # Brief 004: Bounded visual polish of the ported game — accents, debug leakage, localization
 
-**Authored**: 2026-08-01T11:00:00
+**Authored**: 2026-07-31T20:18:44
 **Author**: forge-planificateur
 
 ## Precondition — Unity availability (read before the Générateur starts anything)

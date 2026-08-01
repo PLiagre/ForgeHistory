@@ -828,30 +828,49 @@ namespace VictoriaGame.Presentation
         {
             var ok = true;
             var bundle = new StringBuilder(2048);
+            // Scope actually collected below, named explicitly in the log line (feedback-002.md
+            // Issue 2): CountryPanel/ProvincePanel + TaxStatus/TaxButtons only. The "Lois"
+            // (_lawBar) and "Investir" (_investBar) blocks are siblings of CountryPanel/
+            // ProvincePanel in the visual tree, not descendants, and are NOT collected here —
+            // editorial_forbidden=PASS below covers exactly the named scope, never the whole
+            // screen.
+            var scopeParts = new List<string>(4);
             if (expectCountry && hud.CountryPanel != null)
+            {
                 bundle.AppendLine(HudDetailPresenter.CollectVisibleText(hud.CountryPanel));
+                scopeParts.Add("CountryPanel");
+            }
             if (expectProvince && hud.ProvincePanel != null)
+            {
                 bundle.AppendLine(HudDetailPresenter.CollectVisibleText(hud.ProvincePanel));
+                scopeParts.Add("ProvincePanel");
+            }
             if (hud.TaxStatusLabel != null && !string.IsNullOrEmpty(hud.TaxStatusLabel.text))
+            {
                 bundle.AppendLine(hud.TaxStatusLabel.text);
+                scopeParts.Add("TaxStatus");
+            }
             if (hud.TaxDownButton != null)
                 bundle.AppendLine(hud.TaxDownButton.text);
             if (hud.TaxUpButton != null)
                 bundle.AppendLine(hud.TaxUpButton.text);
+            if (hud.TaxDownButton != null || hud.TaxUpButton != null)
+                scopeParts.Add("TaxButtons");
+            var scope = scopeParts.Count > 0 ? string.Join("+", scopeParts) : "none";
 
             var text = bundle.ToString();
-            log.AppendLine($"editorial_probe tag={tag} chars={text.Length}");
+            log.AppendLine($"editorial_probe tag={tag} chars={text.Length} scope={scope}");
             log.AppendLine("--- editorial_text_begin ---");
             log.AppendLine(text.Trim());
             log.AppendLine("--- editorial_text_end ---");
 
             if (HudDetailPresenter.ContainsForbiddenUserToken(text, out var hit))
             {
-                log.AppendLine($"FAIL editorial forbidden token='{hit}' tag={tag}");
+                log.AppendLine($"FAIL editorial forbidden token='{hit}' tag={tag} scope={scope}");
                 ok = false;
             }
             else
-                log.AppendLine($"editorial_forbidden=PASS tag={tag}");
+                log.AppendLine($"editorial_forbidden=PASS tag={tag} scope={scope}");
 
             if (expectCountry)
             {

@@ -1112,8 +1112,14 @@ namespace VictoriaGame.Presentation
             if (InGameHud.ShowDebugIds)
                 sb.Append("  TICK ").Append(tick.ToString(CultureInfo.InvariantCulture));
 
-            sb.Append("  Trésor ").Append(WorldMetrics.Fmt1(s.TotalTreasury));
-            sb.Append("  Dette ").Append(WorldMetrics.Fmt1(s.TotalDebt));
+            // Bandeau JOUEUR uniquement : décimale FR via HudValueFormatter (déjà éprouvé par
+            // les panneaux UI Toolkit, cf. HudDetailPresenter). WorldMetrics.Fmt1/Fmt0 restent
+            // InvariantCulture pour les lignes de log de parité/déterminisme (WorldMetrics.cs,
+            // Assets/Tests/*) qui ne doivent pas changer dans ce brief — voir feedback-002.md
+            // Issue 1. "0.0" conserve exactement la précision d'affichage préexistante
+            // (1 décimale, jamais tronquée), seul le séparateur change.
+            sb.Append("  Trésor ").Append(HudValueFormatter.FormatNumber(s.TotalTreasury, "0.0"));
+            sb.Append("  Dette ").Append(HudValueFormatter.FormatNumber(s.TotalDebt, "0.0"));
             sb.Append("  Armée ").Append(WorldMetrics.Fmt0(s.WorldArmyStr));
             sb.Append("  Population ").Append(s.Population.ToString(CultureInfo.InvariantCulture));
             sb.Append("  Guerres ").Append(s.ActiveWars.ToString(CultureInfo.InvariantCulture));

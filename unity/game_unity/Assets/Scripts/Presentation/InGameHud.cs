@@ -1530,9 +1530,17 @@ namespace VictoriaGame.Presentation
 
             if (_lawStatusLabel != null)
             {
-                _lawStatusLabel.text =
-                    "En vigueur : " + lawList +
-                    "  ·  lawmod=" + lawMod.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+                // "lawmod=" : identifiant technique brut — hors UI joueur par défaut
+                // (REVUE-v1_054.md P1 « dump technique »), même gate que HOVER/LAWMOD
+                // du panneau pays (HudDetailPresenter.CollectRows).
+                var text = "En vigueur : " + lawList;
+                if (ShowDebugIds)
+                {
+                    text += "  ·  lawmod=" +
+                            lawMod.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                _lawStatusLabel.text = text;
             }
 
             SetButtonEnabled(_enactLawButton, true);

@@ -22,7 +22,8 @@ namespace VictoriaGame.Presentation
             "CONTROL PLAYER", "CONTROL AI", "tax income last tick",
             "RATE", "EXP", "INDUS", "OWNER", "PEASANT", "ARTISAN", "NOBLE",
             "PHY", "LOD", "MIX", "ACT ", "STOCK ", "FARM id", "Tax-", "Tax+",
-            "LOCKED", "not your country", "PLAYER —", "PLAYER -"
+            "LOCKED", "not your country", "PLAYER —", "PLAYER -",
+            "LAWMOD", "STAB", "LEG", "EFF"
         };
 
         const string ClassTitle = "panel__title";
@@ -49,7 +50,8 @@ namespace VictoriaGame.Presentation
         {
             "GOLD", "DEBT", "RATE", "INC", "EXP", "LAST", "ARMY", "WARS",
             "PRESTIGE", "INDUS", "POP", "PROVINCES", "CAPITAL", "DEV",
-            "PHY", "LOD", "MIX", "W", "ACT", "STOCK", "OK", "NEED"
+            "PHY", "LOD", "MIX", "W", "ACT", "STOCK", "OK", "NEED",
+            "STAB", "LEG", "LAWMOD", "EFF"
         };
 
         public static void Populate(VisualElement panel, string detail, string titleSuffix)
@@ -329,7 +331,16 @@ namespace VictoriaGame.Presentation
                 }
 
                 for (var i = 0; i < sec.Lines.Count; i++)
-                    EmitExpandedLine(sec.Lines[i], secName, preferPriority, alertsRoot, priorityRows, secondary);
+                {
+                    var line = sec.Lines[i];
+                    // LAWMOD/EFF : modificateur de loi brut — identifiant technique, hors UI joueur
+                    // par défaut (REVUE-v1_054.md P1 « dump technique »). Reste lisible en mode
+                    // debug explicite (--debug-ids), même gate que HOVER (MapDisplaySystem.AppendHover).
+                    if (!InGameHud.ShowDebugIds &&
+                        line.TrimStart().StartsWith("LAWMOD", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    EmitExpandedLine(line, secName, preferPriority, alertsRoot, priorityRows, secondary);
+                }
             }
 
             if (priorityRows.Count < MinPriorityRows && secondary.Count > 0)

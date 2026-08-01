@@ -160,6 +160,10 @@ namespace VictoriaGame.Presentation
                 case "LOD": return "Niveau de vie";
                 case "MIX": return "Mixte";
                 case "W": return "Pondération";
+                case "STAB": return "Stabilité";
+                case "LEG": return "Légitimité";
+                case "LAWMOD": return "Modificateur des lois";
+                case "EFF": return "Taux effectif";
                 default: return RestorePresentationName(label);
             }
         }
