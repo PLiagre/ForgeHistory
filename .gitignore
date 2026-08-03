@@ -13,3 +13,14 @@ Thumbs.db
 # noise was eating the proof.
 !harness/queue/briefs/**/deliverables/evidence/
 !harness/queue/briefs/**/deliverables/evidence/**
+
+# Per-machine permission overrides. Until now this file was untracked AND
+# unignored, so the effective permission set was neither auditable nor
+# reviewable -- it pre-approved `Bash(py -c ' *)`, i.e. arbitrary code
+# execution, on one machine only and in no one's diff.
+.claude/settings.local.json
+
+# A Cursor run killed before its trap fires leaves the parked settings here,
+# and the repository running with no hooks at all. Never commit that state:
+# harness/tests/test_hooks_armed.py fails for as long as this file exists.
+.claude/settings.json.cursor-hook-bug-disabled

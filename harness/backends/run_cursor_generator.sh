@@ -14,6 +14,38 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Startup guard -- deliberately the first thing after REPO_ROOT, before this
+# script writes anything. Hard-won rule 5: a guard placed after the effect it
+# should prevent protects nothing. Placed further down (after cursor-prompt.md
+# is written) it still refused to run, but only after leaving a stray file
+# behind that broke test_single_source_of_instruction -- found by testing it.
+#
+# What it guards: the block below moves .claude/settings.json aside for the
+# duration of a Cursor run and restores it via `trap`. The trap covers a
+# normal exit, an error exit, and INT/TERM/HUP/QUIT -- it cannot cover
+# SIGKILL, `taskkill /F`, a power cut or a host crash. Any of those leaves
+# the repository with NO hooks: the bare-`python` block, the git-push-when-red
+# guard and the VISION.md guard vanish together, silently. That window is
+# unavoidable while the file has to move. What is avoidable is starting a
+# second run on top of an already-disarmed repository and never noticing the
+# first one died.
+#
+# A loud stop rather than an automatic restore, on purpose: repairing it
+# silently would hide how often the window is actually being hit.
+if [ -f "$REPO_ROOT/.claude/settings.json.cursor-hook-bug-disabled" ]; then
+  echo "REFUSING TO RUN: .claude/settings.json.cursor-hook-bug-disabled exists." >&2
+  echo "" >&2
+  echo "A previous Cursor run did not restore .claude/settings.json, so this" >&2
+  echo "repository is currently running with NO hooks (no bare-python block," >&2
+  echo "no git-push-when-red guard, no VISION.md guard)." >&2
+  echo "" >&2
+  echo "Recover with:" >&2
+  echo "  mv '$REPO_ROOT/.claude/settings.json.cursor-hook-bug-disabled' \\" >&2
+  echo "     '$REPO_ROOT/.claude/settings.json'" >&2
+  echo "then verify with: py -m pytest harness/tests/ -q" >&2
+  exit 2
+fi
+
 # On Windows, the cursor-agent installer updates the user's PATH via the
 # registry, which an already-running shell (like this one) never sees --
 # append its known install directory here if present, so callers don't need
@@ -144,6 +176,7 @@ mkdir -p "$BRIEF_DIR/deliverables"
 # safety net for this run instead of the hooks.
 SETTINGS_JSON="$REPO_ROOT/.claude/settings.json"
 SETTINGS_JSON_PARKED="$REPO_ROOT/.claude/settings.json.cursor-hook-bug-disabled"
+
 _settings_restored=0
 restore_settings_json() {
   if [ "$_settings_restored" -eq 0 ] && [ -f "$SETTINGS_JSON_PARKED" ]; then
@@ -152,7 +185,8 @@ restore_settings_json() {
     echo "Restored .claude/settings.json (hooks re-enabled)." >&2
   fi
 }
-trap restore_settings_json EXIT INT TERM
+# HUP and QUIT added: a closed terminal or a Ctrl-\ used to skip restoration.
+trap restore_settings_json EXIT INT TERM HUP QUIT
 if [ -f "$SETTINGS_JSON" ]; then
   mv "$SETTINGS_JSON" "$SETTINGS_JSON_PARKED"
   echo "Parked .claude/settings.json for this Cursor invocation (hooks break under cursor-agent -- see comment above); will restore on exit." >&2
