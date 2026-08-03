@@ -53,6 +53,40 @@ strongest evidence available that the port introduced zero regressions and
 that the 7 legacy reds were already red upstream, not a claim resting on
 date correlation alone.
 
+## `run-unity.ps1` — batchmode jobs, one tool call, no polling
+
+For **batchmode** work (compile proofs, `-runTests`, capture runs), use
+`unity/run-unity.ps1` rather than launching Unity directly. It waits inside
+a single PowerShell process and returns exactly once, with a bounded
+summary on stdout and the full log left on disk.
+
+```powershell
+unity\run-unity.ps1 -LogFile "D:\ForgeHistory\unity\game_unity\Logs\vNNN_tests.log" `
+  -TestResults "D:\ForgeHistory\unity\game_unity\Logs\vNNN_test-results.xml" `
+  -TimeoutSec 540 `
+  -UnityArgLine '-batchmode -runTests -nographics -silent-crashes -projectPath "D:\ForgeHistory\unity\game_unity" -testPlatform EditMode -testResults "D:\...\vNNN_test-results.xml" -logFile "D:\...\vNNN_tests.log"'
+```
+
+Why it exists: briefs 003-005 told the Générateur to start Unity detached
+and re-check the `-logFile` every 30-60 s, because a first `Library/`
+rebuild outlasts any tool's call timeout. Each re-check is a separate API
+request carrying the agent's whole accumulated context — one measured
+Générateur spent 586 tool calls on `wc -l` of a single log file. The wait
+belongs inside one process.
+
+- **Short jobs** (tests, captures): foreground call, `-TimeoutSec` under
+  the 600 s tool ceiling.
+- **Long jobs** (first `Library/` rebuild): same command through the Bash
+  tool's `run_in_background`, which re-invokes the agent when the process
+  exits. That is a notification, not a poll.
+
+Contract: exit 0 on success, Unity's own code when it fails, `124` on
+timeout (process tree killed via `taskkill /T /F` — no orphans), `125` on a
+precondition failure. `-logFile` must be absolute; a relative one has
+produced empty logs on this machine. Never re-read a Unity log across tool
+calls. Covered by `harness/tests/test_run_unity.py`, which uses a stand-in
+executable and so needs no Unity install.
+
 ## `game_unity/Logs/` — two bridged historical artifacts, same discipline as the sandbox bridge below
 
 `unity/game_unity/Logs/v1_041_tests.xml` and `v1_077_large.xml` are bridged,

@@ -65,6 +65,7 @@ bash harness/backends/run_cursor_generator.sh <brief_dir>   # delegate Générat
 py harness/backends/ledger.py report              # backend usage (Claude vs Cursor invocation counts)
 py harness/backends/ledger.py tokens              # real Claude token cost per role / per brief (reads session transcripts)
 py harness/harness_audit.py                       # harness maturity self-audit
+unity/run-unity.ps1 -LogFile <abs> -UnityArgLine '<unity args>'  # Unity batchmode: one call, waits, no polling
 ```
 
 Slash commands: `/forge-run <brief>` (full loop), `/forge-cost-report`,

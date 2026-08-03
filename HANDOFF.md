@@ -116,8 +116,16 @@ Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
   Générateur even correctly reported the orchestrator's own mid-brief
   commit rather than hiding it).
 - Sonnet subagents running long Unity batchmode jobs tend to end their turn
-  "to wait" — instruct them explicitly to poll the `-logFile` and never
-  stop mid-brief (had to be re-prompted twice this session).
+  "to wait" (had to be re-prompted twice on 2026-07-31). The old fix —
+  telling them to re-check the `-logFile` every 30-60 s — cured the symptom
+  and created the bill: each re-check is a separate API request carrying the
+  agent's whole accumulated context, and one measured Générateur spent 586
+  tool calls on `wc -l` of a single log file. **Use `unity/run-unity.ps1`
+  instead**: it waits inside one PowerShell process and returns exactly once
+  (see `unity/README.md`). Short jobs go in the foreground with
+  `-TimeoutSec`; long ones (a first `Library/` rebuild) go through the Bash
+  tool's `run_in_background`, which re-invokes the agent on exit — a
+  notification, not a poll. Never re-read a Unity log across tool calls.
 - `pytest` installed via `--user`, not vendored (carried).
 
 ## Last Session Summary (2026-07-31)

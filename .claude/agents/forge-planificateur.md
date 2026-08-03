@@ -77,6 +77,19 @@ Also write `harness/queue/briefs/NNN-<slug>/eval-rubric.md`, in a format the
 mapped to how it will be checked (mechanical gate check name, or manual
 verification step).
 
+## Unity batchmode steps: prescribe the wrapper, never polling
+
+When a success condition requires a Unity batchmode run (compile proof,
+`-runTests`, capture), specify it through `unity/run-unity.ps1` — one tool
+call that waits inside a single process and returns once.
+Never write "launch in the background and poll the log every 30-60 s" into
+a brief. That instruction is what briefs 003-005 carried, and it is the
+expensive one: each re-check is a separate API request re-sending the
+agent's whole accumulated context, and one Générateur spent 586 tool calls
+re-reading a single log file. See `unity/README.md` for the invocation and
+the exit-code contract; long first-`Library/` rebuilds go through the Bash
+tool's `run_in_background`, which notifies on exit.
+
 ## Process
 
 1. Read the user's brief request and `docs/rules/simulation-principles.md`.
