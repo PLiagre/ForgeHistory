@@ -50,12 +50,23 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import transcripts as transcripts_mod
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Tool-call thresholds. Chosen against the measured distribution: brief 001
-# (an ADR) ran 108 calls; brief 003 (the whole Unity port) ran 1,015. The
-# band below keeps a run inside the region where context growth is still
-# roughly linear in cost.
+# Tool-call thresholds, re-verified against the CORRECTED counter (an
+# external audit caught the original counting 186 where the transcript held
+# 1,015 -- see harness/transcripts.py). Largest single Générateur agent per
+# brief, in real tool calls:
+#
+#   001    51      002    31      003  1,015      004   465      005   350
+#
+# So the band leaves the two cheap briefs untouched (51 and 31 are well under
+# the 100 warning) and cuts the three expensive ones into 3-7 steps. The
+# audit expected these to become ~5.5x too strict after the fix; they do not,
+# because they were stated against real tool counts rather than tuned to the
+# broken counter.
 WARN_CALLS = 100
 CHECKPOINT_CALLS = 130
 HARD_STOP_CALLS = 160
@@ -90,14 +101,14 @@ SUBSYSTEM_ROOTS = ("sim/", "pipeline/", "unity/", "harness/", "docs/", ".claude/
 # Measured against every brief in the repo whose real cost is known:
 #
 #   brief   subsystems in Success Conditions   conditions   tool calls
-#   001                     3                      10            108
-#   002                     2                       9             58
-#   003                     2                       9          1,119
-#   004                     3                       7            917
-#   005                     1                      10            766
+#   001                     3                      10             93
+#   002                     2                       9             31
+#   003                     2                       9          1,015
+#   004                     3                       7            763
+#   005                     1                      10            737
 #
 # Subsystem breadth is *anti*-correlated here (001 spans three subsystems for
-# 108 calls; 005 spans one for 766). Condition count is flat across a 20x
+# 93 calls; 005 spans one for 737). Condition count is flat across a 20x
 # cost range. A phrase-match on "whole"/"entire" fires on all five, because
 # briefs use those words in ordinary prose. Every textual rule tried either
 # flagged all five or pointed the wrong way -- and a check that always says
@@ -147,8 +158,7 @@ GLOBAL_GOAL_RE = re.compile(
 
 
 def default_transcripts_dir() -> Path:
-    slug = re.sub(r"[^A-Za-z0-9]", "-", str(REPO_ROOT))
-    return Path.home() / ".claude" / "projects" / slug
+    return transcripts_mod.default_transcripts_dir()
 
 
 def brief_slug(brief_dir: Path) -> str:
@@ -156,72 +166,22 @@ def brief_slug(brief_dir: Path) -> str:
 
 
 def find_agent_transcript(slug: str, transcripts: Path) -> Path | None:
-    """The live transcript of the agent working this brief.
-
-    Heuristic, and stated as one: the most recently modified subagent
-    transcript whose opening prompt names this brief. It holds because
-    `/forge-run` is sequential -- one Générateur per brief at a time. If that
-    ever stops being true, this returns the wrong agent rather than none, so
-    `status` prints which file it counted.
-    """
-    if not transcripts.is_dir():
-        return None
-    candidates = []
-    for path in transcripts.glob("*/subagents/agent-*.jsonl"):
-        try:
-            with path.open(encoding="utf-8", errors="replace") as handle:
-                for index, line in enumerate(handle):
-                    if index >= BRIEF_SCAN_LINES:
-                        break
-                    match = BRIEF_RE.search(line)
-                    if match and match.group(1) == slug:
-                        candidates.append(path)
-                        break
-        except OSError:
-            continue
-    if not candidates:
-        return None
-    return max(candidates, key=lambda p: p.stat().st_mtime)
+    """Kept for callers that only need "is there exactly one?"; ambiguity is
+    resolved by cmd_status, which must never silently pick the smallest."""
+    found = transcripts_mod.agent_transcripts_for(slug, transcripts)
+    return found[0] if len(found) == 1 else None
 
 
 def count_calls(path: Path) -> tuple[int, int]:
     """(api_requests, tool_calls) for one transcript.
 
-    Both are reported because they differ and each answers a different
-    question: API requests are what the bill is made of, tool calls are what
-    the budget is expressed in. A single request can carry several tool
-    calls, so tool_calls >= api_requests is normal.
+    Both are reported because they answer different questions: API requests
+    are what the bill is made of, tool calls are what the budget is
+    expressed in. See harness/transcripts.py for why they need two different
+    counting rules -- getting this wrong is what made this budget inert.
     """
-    requests = 0
-    tools = 0
-    seen: set[tuple] = set()
-    try:
-        handle = path.open(encoding="utf-8", errors="replace")
-    except OSError:
-        return (0, 0)
-    with handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if record.get("type") != "assistant":
-                continue
-            message = record.get("message") or {}
-            if not (message.get("usage") or {}):
-                continue
-            key = (message.get("id"), record.get("requestId"))
-            if key[0] is not None and key in seen:
-                continue
-            seen.add(key)
-            requests += 1
-            for block in message.get("content") or []:
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    tools += 1
-    return (requests, tools)
+    tool_use, _tool_result = transcripts_mod.count_tool_calls(path)
+    return (len(transcripts_mod.usage_by_request(path)), tool_use)
 
 
 def progress_path(brief_dir: Path) -> Path:
@@ -279,19 +239,40 @@ STATUS_EXIT = {
 }
 
 
-def cmd_status(brief_dir: Path, transcripts: Path, as_json: bool) -> int:
+def cmd_status(brief_dir: Path, transcripts: Path, as_json: bool,
+               agent: str = "") -> int:
     slug = brief_slug(brief_dir)
-    transcript = find_agent_transcript(slug, transcripts)
+    candidates = transcripts_mod.agent_transcripts_for(slug, transcripts)
+
+    if agent:
+        candidates = [p for p in candidates if agent in p.name]
+
+    transcript = None
+    reason = ""
+    if len(candidates) == 1:
+        transcript = candidates[0]
+    elif not candidates:
+        reason = f"no agent transcript naming {slug} under {transcripts}"
+    else:
+        # Never resolve this by mtime. Doing so is what reported OK with
+        # tool_calls: 0 for brief 003 -- the newest transcript naming it was
+        # a 4-request agent, while the real run was 1,015 tool calls. A
+        # budget that answers OK on the most expensive brief in the repo
+        # protects nothing, and a false OK is worse than no answer.
+        listing = ", ".join(
+            f"{p.name} ({transcripts_mod.count_tool_calls(p)[0]} tool calls)"
+            for p in candidates)
+        reason = (f"{len(candidates)} transcripts name {slug}: {listing}. "
+                  f"Disambiguate with --agent <substring>.")
+
     if transcript is None:
-        payload = {
-            "status": "UNMEASURABLE",
-            "brief": slug,
-            "reason": f"no agent transcript naming {slug} under {transcripts}",
-        }
+        status = "UNMEASURABLE" if not candidates else "AMBIGUOUS"
+        payload = {"status": status, "brief": slug, "reason": reason}
         if as_json:
             print(json.dumps(payload, indent=2))
         else:
-            print(f"status     : UNMEASURABLE  ({payload['reason']})")
+            print(f"status     : {status}")
+            print(f"reason     : {reason}")
             print("Nothing is being enforced. This is not OK -- it is unmeasured.")
         return EXIT_UNMEASURABLE
 
@@ -544,6 +525,9 @@ def main() -> int:
     p_status = add_brief(sub.add_parser("status"))
     p_status.add_argument("--transcripts", type=Path, default=None)
     p_status.add_argument("--json", action="store_true", dest="as_json")
+    p_status.add_argument("--agent", default="",
+                          help="substring of the agent transcript name, to "
+                               "disambiguate when several name this brief")
 
     p_progress = add_brief(sub.add_parser("progress"))
     p_progress.add_argument("--kind", required=True)
@@ -560,7 +544,7 @@ def main() -> int:
     transcripts = getattr(args, "transcripts", None) or default_transcripts_dir()
 
     if args.command == "status":
-        return cmd_status(args.brief, transcripts, args.as_json)
+        return cmd_status(args.brief, transcripts, args.as_json, args.agent)
     if args.command == "progress":
         return cmd_progress(args.brief, args.kind, args.evidence, transcripts)
     if args.command == "checkpoint":

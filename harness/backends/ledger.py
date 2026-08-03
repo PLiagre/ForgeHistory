@@ -40,6 +40,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import transcripts as transcripts_mod
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 LEDGER_PATH = REPO_ROOT / "harness" / "queue" / "cost-ledger.jsonl"
 
@@ -144,61 +147,22 @@ def _add(dst: dict[str, int], src: dict[str, int]) -> None:
 
 
 def scan_transcript(path: Path) -> dict[str, dict[str, int]]:
-    """Per-model token counters for one transcript file.
+    """Per-model token counters for one transcript.
 
-    One API request == one assistant message. Deduplicated on
-    (message id, requestId) because a transcript can replay the same
-    assistant message across resumed sessions; counting it twice would
-    inflate the total.
+    Delegates to harness/transcripts.py. That module documents why: the
+    transcript writes one record per content block, all sharing
+    (message.id, requestId), and `output_tokens` is cumulative across the
+    group. This function used to keep the FIRST record of each group and so
+    undercounted output ~3x (56,524 vs 177,494 on one measured agent). Input
+    figures repeat identically within a group, so cache_read totals -- which
+    dominate this workload -- were unaffected.
     """
-    per_model: dict[str, dict[str, int]] = {}
-    seen: set[tuple] = set()
-    try:
-        handle = path.open(encoding="utf-8", errors="replace")
-    except OSError:
-        return per_model
-    with handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if record.get("type") != "assistant":
-                continue
-            message = record.get("message") or {}
-            usage = message.get("usage") or {}
-            if not usage:
-                continue
-            key = (message.get("id"), record.get("requestId"))
-            if key[0] is not None and key in seen:
-                continue
-            seen.add(key)
-            counts = per_model.setdefault(message.get("model", "(unknown)"), _empty_counts())
-            counts["calls"] += 1
-            counts["in"] += usage.get("input_tokens", 0)
-            counts["cache_write"] += usage.get("cache_creation_input_tokens", 0)
-            counts["cache_read"] += usage.get("cache_read_input_tokens", 0)
-            counts["out"] += usage.get("output_tokens", 0)
-    return per_model
+    return transcripts_mod.per_model_usage(path)
 
 
 def brief_of(path: Path) -> str | None:
     """The brief slug named in an agent transcript's own spawning prompt."""
-    try:
-        handle = path.open(encoding="utf-8", errors="replace")
-    except OSError:
-        return None
-    with handle:
-        for index, line in enumerate(handle):
-            if index >= BRIEF_SCAN_LINES:
-                break
-            match = BRIEF_RE.search(line)
-            if match:
-                return match.group(1)
-    return None
+    return transcripts_mod.brief_of(path)
 
 
 def collect_units(root: Path) -> list[dict]:
