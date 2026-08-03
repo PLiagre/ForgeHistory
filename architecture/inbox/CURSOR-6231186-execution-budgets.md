@@ -783,17 +783,17 @@ Pilote en aveugle sur au moins un lot réaliste; seuils humains décidés avant 
 
 # 9. Pipeline recommandé
 
-Claude local  
-→ `LOCAL_FAST` ciblé avec commande compatible OS  
-→ commit/push  
-→ `pr-scope-and-docs` + `harness-pr` + sécurité  
-→ `windows-contract` selon chemins  
-→ artifacts JUnit/gate et résumé Actions  
-→ audit Cursor documentaire indépendant  
-→ décision humaine  
-→ brief atomique éventuel  
-→ nightly résilience  
-→ Unity en file dédiée si licence/runner validés  
+Claude local
+→ `LOCAL_FAST` ciblé avec commande compatible OS
+→ commit/push
+→ `pr-scope-and-docs` + `harness-pr` + sécurité
+→ `windows-contract` selon chemins
+→ artifacts JUnit/gate et résumé Actions
+→ audit Cursor documentaire indépendant
+→ décision humaine
+→ brief atomique éventuel
+→ nightly résilience
+→ Unity en file dédiée si licence/runner validés
 → release assurance.
 
 Le gate mécanique reste avant l'Évaluateur. GitHub Actions reproduit les garanties déterministes; aucun LLM n'est utilisé pour remplacer un test. L'audit Cursor reste informatif et humainement autorisé.
