@@ -20,9 +20,11 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bare_python
+
 SENTINEL_NOT_COMPUTED = -1
 
-_BARE_PYTHON = re.compile(r'(?<![\w./])python(?!3)\b')
 _FRONTMATTER_FIELD = re.compile(r'^\*\*{label}\*\*:\s*(\S+)', re.MULTILINE)
 _ISO_TS = re.compile(r'\d{4}-\d{2}-\d{2}T[\d:]+')
 _FRONTMATTER_LINE = re.compile(r'^\*\*(Author|Date|Verdict)\*\*:.*$', re.MULTILINE)
@@ -216,16 +218,32 @@ def check_verdict_numbers_traceable(bd: Path, m: dict) -> CheckResult:
 
 
 def check_no_bare_python(bd: Path, m: dict) -> CheckResult:
+    """Catch a Générateur that ran, or reports having run, the Store stub.
+
+    Uses the same positional matcher as the live PreToolUse hook (see
+    harness/bare_python.py): the word counts only where a shell would
+    execute it. The previous substring scan flagged any deliverable that
+    merely *mentioned* python in prose -- "we rejected python in favour of
+    py" would fail the gate -- and any captured log line containing the word,
+    which is most logs produced by Python tooling.
+
+    Code-span masking still runs first, and still matters: markdown uses
+    backticks for code spans while a shell uses them for command
+    substitution, so an unmasked `python` in prose would look like a
+    backquoted command. Masking spans whose content is exactly the bare word
+    lets a document write "no bare `python`" while `python foo.py` in a span
+    is still read as the invocation it is.
+    """
     hits = []
     for c in m.get("counters", []) + m.get("waivers", []):
         cmd = c.get("command") or ""
-        if _BARE_PYTHON.search(cmd):
+        if bare_python.find_invocation(cmd):
             hits.append(cmd)
     for pattern in ("**/*.log", "**/*.txt", "**/*.md"):
         for lf in bd.glob(pattern):
             t = lf.read_text(encoding="utf-8", errors="ignore")
             t = _mask_code_spans(t, bare_word_only="python")
-            if _BARE_PYTHON.search(t):
+            if bare_python.find_invocation(t):
                 hits.append(str(lf.relative_to(bd)))
     return CheckResult("no_bare_python_alias", not hits,
                         f"bare `python` found in: {hits}" if hits else "no bare `python` invocations found")

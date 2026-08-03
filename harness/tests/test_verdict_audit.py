@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parent.parent / "verdict_audit.py"
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def run_audit(brief_dir: Path) -> subprocess.CompletedProcess:
@@ -327,3 +328,74 @@ def test_paths_outside_the_brief_dir_are_named_not_silently_skipped(tmp_path):
     result = run_audit(bd)
     assert "declared outside the brief dir, not checked" in result.stdout
     assert "elsewhere.txt" in result.stdout
+
+
+# --- no_bare_python_alias, after the positional rewrite ------------------
+#
+# The gate used the same substring scan as the live hook, so a deliverable
+# that merely *mentioned* python in prose failed the gate, as did any
+# captured log line containing the word -- which is most logs produced by
+# Python tooling. Both directions asserted: the check still has to catch a
+# Générateur that actually ran the Store stub.
+
+
+def test_prose_mentioning_python_does_not_fail_the_gate(tmp_path):
+    """RED under the old substring scan: naming the thing you avoided is
+    not the same as having run it."""
+    bd = build_honest_brief(tmp_path)
+    log = bd / "deliverables" / "generator-log.md"
+    log.write_text(
+        log.read_text(encoding="utf-8")
+        + "\n\nWe rejected python in favour of py, per hard-won rule 1.\n"
+          "The interpreter reported itself as Python 3.13 at C:/Python313/python.exe.\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert "[PASS] no_bare_python_alias" in result.stdout, result.stdout
+
+
+def test_a_real_invocation_in_a_deliverable_still_fails(tmp_path):
+    """The check must keep its teeth: a reported command in command position
+    is exactly what it exists to catch."""
+    bd = build_honest_brief(tmp_path)
+    log = bd / "deliverables" / "generator-log.md"
+    log.write_text(
+        log.read_text(encoding="utf-8") + "\n\nMeasured with:\n\n    python count.py\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert "[FAIL] no_bare_python_alias" in result.stdout, result.stdout
+    assert result.returncode == 1
+
+
+def test_a_bare_python_command_in_a_counter_still_fails(tmp_path):
+    """counters[].command is a real shell command, not prose."""
+    bd = build_honest_brief(tmp_path)
+    manifest_path = bd / "deliverables" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["counters"][0]["command"] = "python province_count.py test-world-12.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    result = run_audit(bd)
+    assert "[FAIL] no_bare_python_alias" in result.stdout, result.stdout
+
+
+def test_grep_for_the_word_in_a_counter_command_is_allowed(tmp_path):
+    """The false positive that motivated the rewrite, at gate level."""
+    bd = build_honest_brief(tmp_path)
+    manifest_path = bd / "deliverables" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["counters"][0]["command"] = "grep -c python harness/backends/ledger.py"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    result = run_audit(bd)
+    assert "[PASS] no_bare_python_alias" in result.stdout, result.stdout
+
+
+def test_gate_and_hook_share_one_matcher():
+    """Two copies of this rule is how the transcript counter stayed wrong.
+    RED if either caller grows its own regex again."""
+    hook_src = (REPO_ROOT / ".claude" / "hooks" / "no_bare_python.py").read_text(encoding="utf-8")
+    gate_src = (REPO_ROOT / "harness" / "verdict_audit.py").read_text(encoding="utf-8")
+    for name, src in (("hook", hook_src), ("gate", gate_src)):
+        assert "bare_python" in src, f"{name} no longer uses the shared matcher"
+        assert r"re.compile(r'(?<![\w./])python" not in src, \
+            f"{name} grew its own bare-python regex again"
