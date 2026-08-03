@@ -309,22 +309,23 @@ def _normalize(text: str) -> str:
     return text.lower().replace("*", "").replace("`", "").replace("_", "")
 
 
-def test_no_instruction_file_still_prescribes_polling():
-    """The wrapper is only half the fix: the instructions that told agents
-    to poll must stop saying so, or the next Générateur polls anyway.
+# Closed briefs are historical record, not live instruction. Brief 003 is
+# gated ACCEPT 9/9 and its verdict cites its own text; rewriting it would
+# falsify the record the gate checks. Each entry names the file and why, and
+# a companion test fails once an entry stops being load-bearing -- so this
+# list can only shrink, never quietly absorb a new brief.
+GRANDFATHERED_POLLING = {
+    "harness/queue/briefs/003-port-unity-game/brief.md":
+        "closed at ACCEPT 9/9 on 2026-07-31; its verdict cites this text verbatim",
+}
 
-    Deliberately not a bare substring ban -- HANDOFF, unity/README.md and
-    the Planificateur all have to *name* the pattern in order to forbid it.
-    The mechanical rule is therefore: a line that mentions polling must also
-    carry a negation on that same line."""
+
+def _polling_offenders(paths) -> list[str]:
     offenders = []
-    targets = [REPO_ROOT / "HANDOFF.md", REPO_ROOT / "CLAUDE.md",
-               REPO_ROOT / "unity" / "README.md"]
-    targets += sorted((REPO_ROOT / ".claude" / "agents").glob("*.md"))
-    targets += sorted((REPO_ROOT / ".claude" / "commands").glob("*.md"))
-    targets += sorted((REPO_ROOT / ".claude" / "skills").rglob("*.md"))
-
-    for path in targets:
+    for path in paths:
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if rel in GRANDFATHERED_POLLING:
+            continue
         for lineno, raw in enumerate(
             path.read_text(encoding="utf-8", errors="replace").splitlines(), 1
         ):
@@ -333,5 +334,51 @@ def test_no_instruction_file_still_prescribes_polling():
                 continue
             if any(neg in line for neg in NEGATIONS):
                 continue
-            offenders.append(f"{path.relative_to(REPO_ROOT)}:{lineno}: {raw.strip()[:90]}")
+            offenders.append(f"{rel}:{lineno}: {raw.strip()[:90]}")
+    return offenders
+
+
+def test_no_brief_prescribes_polling():
+    """The gap an external audit found: `brief.md` is the single source of
+    instruction, and briefs 003-005 are exactly where the polling was
+    prescribed -- but the original check never looked at them."""
+    briefs = sorted((REPO_ROOT / "harness" / "queue" / "briefs").rglob("*.md"))
+    assert briefs, "no briefs found -- the check would pass vacuously"
+    offenders = _polling_offenders(briefs)
+    assert not offenders, "polling prescribed in a brief:\n  " + "\n  ".join(offenders)
+
+
+def test_every_grandfathered_brief_still_needs_its_exemption():
+    """An exemption that is no longer load-bearing is a hole left open. If a
+    grandfathered file stops tripping the rule, delete its entry."""
+    stale = []
+    for rel, reason in list(GRANDFATHERED_POLLING.items()):
+        path = REPO_ROOT / rel
+        if not path.exists():
+            stale.append(f"{rel} (file gone; drop the exemption)")
+            continue
+        # Temporarily un-exempt it and confirm it would still trip.
+        saved = GRANDFATHERED_POLLING.pop(rel)
+        try:
+            if not _polling_offenders([path]):
+                stale.append(f"{rel} (no longer trips; drop it -- {reason})")
+        finally:
+            GRANDFATHERED_POLLING[rel] = saved
+    assert not stale, "stale polling exemptions: " + "; ".join(stale)
+
+
+def test_no_instruction_file_still_prescribes_polling():
+    """The wrapper is only half the fix: the instructions that told agents
+    to poll must stop saying so, or the next Générateur polls anyway.
+
+    Deliberately not a bare substring ban -- HANDOFF, unity/README.md and
+    the Planificateur all have to *name* the pattern in order to forbid it.
+    The mechanical rule is therefore: a line that mentions polling must also
+    carry a negation on that same line."""
+    targets = [REPO_ROOT / "HANDOFF.md", REPO_ROOT / "CLAUDE.md",
+               REPO_ROOT / "unity" / "README.md"]
+    targets += sorted((REPO_ROOT / ".claude" / "agents").glob("*.md"))
+    targets += sorted((REPO_ROOT / ".claude" / "commands").glob("*.md"))
+    targets += sorted((REPO_ROOT / ".claude" / "skills").rglob("*.md"))
+    offenders = _polling_offenders(targets)
     assert not offenders, "polling prescribed (not forbidden) at:\n  " + "\n  ".join(offenders)

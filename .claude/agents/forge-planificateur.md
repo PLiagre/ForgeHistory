@@ -70,6 +70,17 @@ unloaded world as a real measurement"]
 ## Acceptable Waivers (if any claim of infeasibility arises)
 | claim | required command | required error |
 |---|---|---|
+
+## Execution Contract
+- Unity batchmode steps run through `unity/run-unity.ps1` (one call, waits,
+  returns once). Never instruct the Générateur to re-read a log across tool
+  calls — see `unity/README.md`.
+- Estimated tool calls for this brief: <N>  (budget stops at 160; above 150
+  the brief must be split into lots — `py harness/budget.py split-check`)
+- Every file named in `deliverables/manifest.json` must be under version
+  control. `.gitignore` currently excludes `*.log` and
+  `unity/game_unity/Logs/`, so a proof left there cannot be re-verified from
+  a clone — declare a committed copy instead.
 ```
 
 Also write `harness/queue/briefs/NNN-<slug>/eval-rubric.md`, in a format the
