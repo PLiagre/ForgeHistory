@@ -63,6 +63,7 @@ py harness/demo/fake_brief_001/run_demo.py        # F0 proof: fake brief is reje
 py harness/verdict_audit.py harness/demo/honest_brief_001   # control: honest brief accepted
 bash harness/backends/run_cursor_generator.sh <brief_dir>   # delegate Générateur to Cursor CLI
 py harness/backends/ledger.py report              # backend usage (Claude vs Cursor invocation counts)
+py harness/backends/ledger.py tokens              # real Claude token cost per role / per brief (reads session transcripts)
 py harness/harness_audit.py                       # harness maturity self-audit
 ```
 
