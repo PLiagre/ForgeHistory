@@ -5,3 +5,11 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+# ...except a brief's own proof artifacts. A gate verdict is only worth what
+# someone else can re-check, and `*.log` was silently swallowing 32 evidence
+# files across briefs 003-005: brief 003 is ACCEPT 9/9 in the working tree
+# and REJECT on a fresh clone of the same commit, because 14 of the 54 files
+# its manifest declares are not in version control. A rule written for build
+# noise was eating the proof.
+!harness/queue/briefs/**/deliverables/evidence/
+!harness/queue/briefs/**/deliverables/evidence/**

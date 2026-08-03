@@ -8,7 +8,7 @@ allowed-tools: Task, Read, Write, Bash, Grep, Glob
 
 Adapted from ECC's `commands/gan-build.md` loop-with-plateau-detection
 pattern, re-scoped for ForgeHistory's binary mechanical gate (ACCEPT/REJECT
-over 9 checks) instead of a 1-10 weighted score, and for a
+over 10 checks) instead of a 1-10 weighted score, and for a
 backend-pluggable Générateur (see `docs/adr/0002-pluggable-generator-backend.md`).
 
 ## Arguments
@@ -58,7 +58,7 @@ itself; the orchestrator's job is only to read the outcome and stop cleanly.
 
 ```
 iteration = 0
-scores = []   # count of PASS checks out of 9, per iteration
+scores = []   # count of PASS checks out of 10, per iteration
 
 while iteration < max_iterations:
     iteration += 1
@@ -121,7 +121,7 @@ Write `<BRIEF_DIR>/run-report.md`:
 
 **Backend**: claude | cursor
 **Iterations**: N
-**Score history**: [6, 7, 7, 9]  (out of 9 mechanical checks)
+**Score history**: [6, 7, 7, 9]  (out of 10 mechanical checks)
 **Outcome**: PASS | PLATEAU | ESCALATED | MAX_ITERATIONS
 
 ## Per-Iteration Summary

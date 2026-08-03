@@ -1,0 +1,60 @@
+﻿=== v1_095 — FOND DE CARTE SUR GPU ===
+rendu 960x720  seed=42195
+SystemInfo.graphicsDeviceType = Direct3D11
+supportsComputeShaders=True
+
+=== CONTRÔLE 1 — LE SHADER SE CHARGE ET REND ===
+MapGpuRenderer.IsAvailable = True
+vues pilote = 237
+palette construite : largeur = 237
+couleurs distinctes dans l'image GPU = 787
+part de mer = 40.3 %
+attendu : plus de 8 couleurs, et pas une image de mer
+VERDICT 1 : VERT
+
+=== CONTRÔLE 4 — LE RENDU GPU N'ÉCRIT PAS LE MONDE ===
+empreinte avant = 0x71EA57F4D066C80C
+empreinte après = 0x71EA57F4D066C80C
+VERDICT 4 : VERT
+
+=== CONTRÔLE 3 — COÛT D'UN DÉPLACEMENT ===
+protocole : 24 fenêtres successives, translation de 2 % de la largeur.
+GPU : 0.85 ms au total, soit 0.035 ms par image
+CPU : 2293.84 ms au total, soit 95.577 ms par image
+rapport CPU/GPU = 2705.3x
+budget 60 images/s = 16,7 ms par image.
+  GPU tient le budget : True
+  CPU tient le budget : False
+VERDICT 3 : VERT
+
+conquête de mesure : province 1 (27 cellules) FRA → ENG
+=== CONTRÔLE 2 — LA PALETTE EST LA SEULE ENTRÉE ===
+pixels repeints après conquête = 25378
+part de l'image = 3.67 %
+VERDICT 2 : VERT
+
+=== CONTRÔLE 5 — MÊME TERRE, MÊME SENS ===
+accord terre/mer CPU vs GPU        = 99.6 %
+accord si l'on retourne le GPU     = 61.2 %
+le bon sens est celui qui accorde le PLUS.
+VERDICT 5 : VERT
+
+=== CONTRÔLE 6 — LE CHEMIN CÂBLÉ DANS LE JEU ===
+images produites par l'entrée du jeu = 24 / 24
+compteur interne GpuBackgroundFrames : 0 → 24
+coût par image, sans relecture CPU = 0.202 ms
+à comparer au CPU mesuré plus haut : 95.58 ms
+budget 60 images/s = 16,7 ms  → tenu : True
+VERDICT 6 : VERT
+
+=== VERDICTS ===
+  6_chemin_du_jeu=VERT
+  5_orientation_accordee=VERT
+  1_shader_rend=VERT
+  2_conquete_visible_gpu=VERT
+  3_deplacement_moins_cher=VERT
+  4_gpu_necrit_pas=VERT
+
+CE QUE CE BRIEF NE PRÉTEND PAS : étiquettes, villes et
+liserés de front restent dessinés par le CPU et ne sont
+PAS dans ces images. Le fond est GPU, la surcouche non.

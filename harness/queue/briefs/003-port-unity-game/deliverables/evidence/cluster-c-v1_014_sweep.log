@@ -1,0 +1,59 @@
+=== v1_014 SWEEP OccupationScoreRate seed=42195 ===
+WorldMetrics.Capture / FormatStandardLine uniquement (règle test_001).
+Décisivité @800 ; santé économique + stabilité politique @1000.
+tried: 0 (témoin), 0.5 (baseline v1_010), 0.8, 1.1, 1.4, 1.7, 2.0
+Critère genou : max ratioV@800 parmi rates avec bankrupt≤baseline et debt≤baseline×1.10.
+
+rate | ratioV@800 | V | WP | annexed | stuck | debt@1000 | bankrupt | army | zombie | land | maxProv | nonCore | sat | pop
+------------------------------------------------------------------------------------------------------------------------
+ 0.0 |   15.2% |  7 | 39 |   2 |  0 |     0.0 |   0 |  70331 |    0 | 20 |  6 | 0/50 | 0.629 | 142317
+ 0.5 |   55.8% | 24 | 19 |  13 |  0 |     0.0 |   0 |  38865 |    0 | 16 | 10 | 7/50 | 0.629 | 142317 (baseline)
+ 0.8 |   66.7% | 32 | 16 |   8 |  0 |   150.0 |   1 |  53739 |    0 | 15 | 11 | 12/50 | 0.629 | 142317
+ 1.1 |   79.6% | 39 | 10 |  21 |  0 |   150.0 |   1 |  44070 |    0 | 15 | 12 | 18/50 | 0.629 | 142317
+ 1.4 |   75.0% | 39 | 13 |  16 |  0 |   150.0 |   1 |  35410 |    0 | 14 | 10 | 17/50 | 0.629 | 142317
+ 1.7 |   75.0% | 39 | 13 |  13 |  0 |   150.0 |   1 |  63357 | 6316 | 14 | 12 | 9/50 | 0.629 | 142317
+ 2.0 |   80.0% | 44 | 11 |   9 |  0 |     0.0 |   0 |  42398 |    0 | 14 | 12 | 14/50 | 0.629 | 142317 ← GENOU
+
+=== DÉTAIL FormatStandardLine (par rate) ===
+--- rate=0.0 ---
+tick800: countriesWithLand=20 maxProvinces=6 nonCore=2/50 victories=7 whitePeaces=39 warsDeclared=54 ratioV=15.2% annexedProvinces=2 stuckWars=0 totalDebt=0.0 bankruptCount=0 worldArmyStr=71945 totalRegiments=142 avgStrPerRegiment=506.7 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.630 population=140173 insolventGatedGrowth=8/20(withLand) 8/20(allCountries) insolventGatedRecruit=9/20(withLand) 9/20(allCountries)
+tick1000: countriesWithLand=20 maxProvinces=6 nonCore=0/50 victories=7 whitePeaces=53 warsDeclared=68 ratioV=11.7% annexedProvinces=0 stuckWars=0 totalDebt=0.0 bankruptCount=0 worldArmyStr=70331 totalRegiments=146 avgStrPerRegiment=481.7 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.629 population=142317 insolventGatedGrowth=8/20(withLand) 8/20(allCountries) insolventGatedRecruit=8/20(withLand) 8/20(allCountries)
+
+--- rate=0.5 ---
+tick800: countriesWithLand=16 maxProvinces=9 nonCore=13/50 victories=24 whitePeaces=19 warsDeclared=49 ratioV=55.8% annexedProvinces=13 stuckWars=0 totalDebt=0.0 bankruptCount=0 worldArmyStr=39534 totalRegiments=96 avgStrPerRegiment=411.8 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.630 population=140173 insolventGatedGrowth=8/16(withLand) 12/20(allCountries) insolventGatedRecruit=9/16(withLand) 13/20(allCountries)
+tick1000: countriesWithLand=16 maxProvinces=10 nonCore=7/50 victories=26 whitePeaces=23 warsDeclared=56 ratioV=53.1% annexedProvinces=7 stuckWars=0 totalDebt=0.0 bankruptCount=0 worldArmyStr=38865 totalRegiments=84 avgStrPerRegiment=462.7 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.629 population=142317 insolventGatedGrowth=9/16(withLand) 13/20(allCountries) insolventGatedRecruit=10/16(withLand) 14/20(allCountries)
+
+--- rate=0.8 ---
+tick800: countriesWithLand=15 maxProvinces=11 nonCore=8/50 victories=32 whitePeaces=16 warsDeclared=52 ratioV=66.7% annexedProvinces=8 stuckWars=0 totalDebt=150.0 bankruptCount=1 worldArmyStr=54646 totalRegiments=106 avgStrPerRegiment=515.5 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.630 population=140173 insolventGatedGrowth=7/15(withLand) 12/20(allCountries) insolventGatedRecruit=8/15(withLand) 13/20(allCountries)
+tick1000: countriesWithLand=15 maxProvinces=11 nonCore=12/50 victories=38 whitePeaces=18 warsDeclared=57 ratioV=67.9% annexedProvinces=12 stuckWars=0 totalDebt=150.0 bankruptCount=1 worldArmyStr=53739 totalRegiments=105 avgStrPerRegiment=511.8 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.629 population=142317 insolventGatedGrowth=7/15(withLand) 12/20(allCountries) insolventGatedRecruit=8/15(withLand) 13/20(allCountries)
+
+--- rate=1.1 ---
+tick800: countriesWithLand=15 maxProvinces=10 nonCore=21/50 victories=39 whitePeaces=10 warsDeclared=53 ratioV=79.6% annexedProvinces=21 stuckWars=0 totalDebt=150.0 bankruptCount=1 worldArmyStr=38545 totalRegiments=79 avgStrPerRegiment=487.9 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.630 population=140173 insolventGatedGrowth=9/15(withLand) 14/20(allCountries) insolventGatedRecruit=10/15(withLand) 15/20(allCountries)
+tick1000: countriesWithLand=15 maxProvinces=12 nonCore=18/50 victories=48 whitePeaces=12 warsDeclared=64 ratioV=80.0% annexedProvinces=18 stuckWars=0 totalDebt=150.0 bankruptCount=1 worldArmyStr=44070 totalRegiments=89 avgStrPerRegiment=495.2 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.629 population=142317 insolventGatedGrowth=8/15(withLand) 13/20(allCountries) insolventGatedRecruit=10/15(withLand) 15/20(allCountries)
+
+--- rate=1.4 ---
+tick800: countriesWithLand=14 maxProvinces=9 nonCore=16/50 victories=39 whitePeaces=13 warsDeclared=55 ratioV=75.0% annexedProvinces=16 stuckWars=0 totalDebt=150.0 bankruptCount=1 worldArmyStr=43627 totalRegiments=85 avgStrPerRegiment=513.3 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.630 population=140173 insolventGatedGrowth=7/14(withLand) 13/20(allCountries) insolventGatedRecruit=9/14(withLand) 15/20(allCountries)
+tick1000: countriesWithLand=14 maxProvinces=10 nonCore=17/50 victories=47 whitePeaces=14 warsDeclared=64 ratioV=77.0% annexedProvinces=17 stuckWars=0 totalDebt=150.0 bankruptCount=1 worldArmyStr=35410 totalRegiments=89 avgStrPerRegiment=397.9 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.629 population=142317 insolventGatedGrowth=5/14(withLand) 11/20(allCountries) insolventGatedRecruit=6/14(withLand) 12/20(allCountries)
+
+--- rate=1.7 ---
+tick800: countriesWithLand=15 maxProvinces=12 nonCore=13/50 victories=39 whitePeaces=13 warsDeclared=57 ratioV=75.0% annexedProvinces=13 stuckWars=0 totalDebt=0.0 bankruptCount=0 worldArmyStr=55485 totalRegiments=96 avgStrPerRegiment=578.0 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.630 population=140173 insolventGatedGrowth=7/15(withLand) 12/20(allCountries) insolventGatedRecruit=9/15(withLand) 14/20(allCountries)
+tick1000: countriesWithLand=14 maxProvinces=12 nonCore=9/50 victories=48 whitePeaces=15 warsDeclared=66 ratioV=76.2% annexedProvinces=9 stuckWars=0 totalDebt=150.0 bankruptCount=1 worldArmyStr=63357 totalRegiments=104 avgStrPerRegiment=609.2 zombieArmyStrLandless=6316 livingArmies=20 needsSatAvg=0.629 population=142317 insolventGatedGrowth=6/14(withLand) 12/20(allCountries) insolventGatedRecruit=8/14(withLand) 14/20(allCountries)
+
+--- rate=2.0 ---
+tick800: countriesWithLand=14 maxProvinces=12 nonCore=9/50 victories=44 whitePeaces=11 warsDeclared=59 ratioV=80.0% annexedProvinces=9 stuckWars=0 totalDebt=0.0 bankruptCount=0 worldArmyStr=43175 totalRegiments=103 avgStrPerRegiment=419.2 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.630 population=140173 insolventGatedGrowth=4/14(withLand) 10/20(allCountries) insolventGatedRecruit=6/14(withLand) 12/20(allCountries)
+tick1000: countriesWithLand=14 maxProvinces=12 nonCore=14/50 victories=55 whitePeaces=11 warsDeclared=70 ratioV=83.3% annexedProvinces=14 stuckWars=0 totalDebt=0.0 bankruptCount=0 worldArmyStr=42398 totalRegiments=100 avgStrPerRegiment=424.0 zombieArmyStrLandless=0 livingArmies=20 needsSatAvg=0.629 population=142317 insolventGatedGrowth=7/14(withLand) 13/20(allCountries) insolventGatedRecruit=7/14(withLand) 13/20(allCountries)
+
+=== CONTRÔLE PÉRIMÈTRE (pop / needsSatAvg) ===
+rate=0.0: pop=142317 (Δ0) sat=0.629 (Δ0.000) OK
+rate=0.5: pop=142317 (Δ0) sat=0.629 (Δ0.000) OK
+rate=0.8: pop=142317 (Δ0) sat=0.629 (Δ0.000) OK
+rate=1.1: pop=142317 (Δ0) sat=0.629 (Δ0.000) OK
+rate=1.4: pop=142317 (Δ0) sat=0.629 (Δ0.000) OK
+rate=1.7: pop=142317 (Δ0) sat=0.629 (Δ0.000) OK
+rate=2.0: pop=142317 (Δ0) sat=0.629 (Δ0.000) OK
+OK: pop/sat ~inchangés d'un rate à l'autre (levier isolé).
+
+=== VERDICT GENOU ===
+retenu rate=2.0: ratioV=80.0% pour debt=0.0 / bankrupt=0 (baseline 0.5: ratioV=55.8% debt=0.0 bankrupt=0)
+compromis (rates > genou vs critère debt≤baseline×1.10 / bankrupt≤baseline):
+CONCLUSION: retenir rate=2.0 comme nouveau DefaultOccupationScoreRate.

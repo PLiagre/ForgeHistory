@@ -252,3 +252,78 @@ def test_verdict_citation_of_a_path_number_not_flagged(tmp_path):
     result = run_audit(bd)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "[PASS] verdict_numbers_traceable" in result.stdout
+
+
+# --- declared_files_are_tracked -----------------------------------------
+#
+# Added after running the gate on a fresh clone: brief 003 was ACCEPT in the
+# working tree and REJECT on a clone of the same commit, because 14 of its 54
+# declared files were gitignored. A verdict nobody else can reproduce is not
+# a verdict, and the failure surfaced four days late, on a clone, instead of
+# at the moment the manifest was written.
+
+
+def _git(bd: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=bd, capture_output=True, text=True)
+
+
+def _init_repo(bd: Path) -> None:
+    _git(bd, "init", "-q")
+    _git(bd, "config", "user.email", "t@t")
+    _git(bd, "config", "user.name", "t")
+
+
+def test_tracked_declared_files_pass(tmp_path):
+    bd = build_honest_brief(tmp_path)
+    _init_repo(bd)
+    _git(bd, "add", "-A")
+    _git(bd, "commit", "-qm", "x")
+    result = run_audit(bd)
+    assert "[PASS] declared_files_are_tracked" in result.stdout, result.stdout
+    assert result.returncode == 0
+
+
+def test_gitignored_declared_file_is_rejected(tmp_path):
+    """THE regression: a declared proof that git ignores must fail here, in
+    the tree that produced it -- not silently pass and fail on a clone."""
+    bd = build_honest_brief(tmp_path)
+    _init_repo(bd)
+    (bd / ".gitignore").write_text("*.log\n", encoding="utf-8")
+    (bd / "deliverables" / "proof.log").write_text("measured", encoding="utf-8")
+    manifest = json.loads((bd / "deliverables" / "manifest.json").read_text(encoding="utf-8"))
+    manifest["files"].append({"path": "deliverables/proof.log"})
+    (bd / "deliverables" / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    _git(bd, "add", "-A")
+    _git(bd, "commit", "-qm", "x")
+
+    result = run_audit(bd)
+    assert "[FAIL] declared_files_are_tracked" in result.stdout, result.stdout
+    assert "proof.log" in result.stdout
+    assert result.returncode == 1
+
+
+def test_outside_a_git_repo_the_check_is_na_not_pass(tmp_path):
+    """N/A says nothing was checked. A PASS would assert something was, and
+    that is the shape of the original defect."""
+    bd = build_honest_brief(tmp_path)  # no git init
+    result = run_audit(bd)
+    assert "[N/A] declared_files_are_tracked" in result.stdout, result.stdout
+    assert result.returncode == 0
+
+
+def test_paths_outside_the_brief_dir_are_named_not_silently_skipped(tmp_path):
+    """External references cannot be tracking-checked from here, but the gap
+    must stay visible in the evidence rather than vanish."""
+    bd = build_honest_brief(tmp_path)
+    _init_repo(bd)
+    outside = tmp_path / "elsewhere.txt"
+    outside.write_text("x", encoding="utf-8")
+    manifest = json.loads((bd / "deliverables" / "manifest.json").read_text(encoding="utf-8"))
+    manifest["files"].append({"path": "../elsewhere.txt"})
+    (bd / "deliverables" / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    _git(bd, "add", "-A")
+    _git(bd, "commit", "-qm", "x")
+
+    result = run_audit(bd)
+    assert "declared outside the brief dir, not checked" in result.stdout
+    assert "elsewhere.txt" in result.stdout

@@ -15,6 +15,7 @@ import datetime
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -86,6 +87,77 @@ def check_files_declared_exist(bd: Path, m: dict) -> CheckResult:
     missing = [f["path"] for f in m.get("files", []) if not (bd / f["path"]).exists()]
     return CheckResult("files_declared_exist", not missing,
                         f"missing: {missing}" if missing else "all declared files present")
+
+
+def check_declared_files_are_tracked(bd: Path, m: dict) -> CheckResult:
+    """Declared proof that git ignores is proof nobody else can re-check.
+
+    Found by running the gate on a fresh clone: brief 003 is ACCEPT in the
+    working tree and REJECT on a clone of the same commit, because 14 of its
+    54 declared files are gitignored (`*.log`, and unity/game_unity/Logs/).
+    The verdict existed in exactly one working tree and could never be
+    reproduced -- not on another machine, not on this one after a clean
+    checkout.
+
+    Scoped to files inside the brief directory. A path that escapes it (a
+    regenerable Unity log under unity/game_unity/Logs/, say) is an external
+    reference, not the brief's own evidence; those are named in the evidence
+    string so the gap stays visible rather than silently exempted. Briefs
+    should declare a committed copy or a hash for those -- now stated in the
+    Planificateur's Execution Contract.
+    """
+    declared = [f["path"] for f in m.get("files", [])]
+    if not declared:
+        return CheckResult("declared_files_are_tracked", True, "no files declared")
+
+    # Outside a git work tree there is no tracking to verify, so the check is
+    # N/A and drops out of the verdict entirely. Deliberately not a PASS: a
+    # pass would assert something was checked. N/A says nothing was.
+    try:
+        inside_repo = subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=bd, capture_output=True, text=True,
+        )
+    except OSError as exc:
+        return CheckResult("declared_files_are_tracked", True,
+                           f"git unavailable ({exc}); not checked", applicable=False)
+    if inside_repo.returncode != 0 or inside_repo.stdout.strip() != "true":
+        return CheckResult("declared_files_are_tracked", True,
+                           "brief is not inside a git work tree; not checked",
+                           applicable=False)
+
+    inside, outside = [], []
+    for rel in declared:
+        resolved = (bd / rel).resolve()
+        try:
+            resolved.relative_to(bd.resolve())
+            inside.append(rel)
+        except ValueError:
+            outside.append(rel)
+
+    untracked = []
+    if inside:
+        try:
+            proc = subprocess.run(
+                ["git", "ls-files", "--error-unmatch", "--", *inside],
+                cwd=bd, capture_output=True, text=True,
+            )
+            if proc.returncode != 0:
+                # git names each unmatched path on stderr; surface them as-is
+                # rather than re-deriving, so the evidence is git's own.
+                untracked = [line.split("'")[1] for line in proc.stderr.splitlines()
+                             if "did not match" in line and "'" in line]
+                if not untracked:
+                    untracked = ["(git ls-files failed: " + proc.stderr.strip()[:120] + ")"]
+        except (OSError, IndexError) as exc:
+            return CheckResult("declared_files_are_tracked", False,
+                               f"could not consult git: {exc}")
+
+    note = f"; {len(outside)} declared outside the brief dir, not checked: {outside}" if outside else ""
+    return CheckResult(
+        "declared_files_are_tracked", not untracked,
+        (f"untracked/ignored: {untracked}{note}" if untracked
+         else f"all {len(inside)} in-brief declared files are tracked{note}"))
 
 
 def check_mtime_after_brief(bd: Path, m: dict) -> CheckResult:
@@ -194,6 +266,7 @@ def run_all_checks(bd: Path) -> list[CheckResult]:
         check_no_bare_python(bd, m),
         check_verdict_not_self_authored(bd),
         check_rubric_predates(bd, m),
+        check_declared_files_are_tracked(bd, m),
     ]
 
 
