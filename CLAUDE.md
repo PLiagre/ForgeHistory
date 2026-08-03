@@ -65,6 +65,8 @@ bash harness/backends/run_cursor_generator.sh <brief_dir>   # delegate Générat
 py harness/backends/ledger.py report              # backend usage (Claude vs Cursor invocation counts)
 py harness/backends/ledger.py tokens              # real Claude token cost per role / per brief (reads session transcripts)
 py harness/harness_audit.py                       # harness maturity self-audit
+py harness/budget.py status --brief <brief_dir>   # execution budget (100 warn / 130 checkpoint / 160 stop)
+py harness/budget.py split-check --brief <brief_dir>  # advisory NEEDS_SPLIT pre-flight, before generation
 unity/run-unity.ps1 -LogFile <abs> -UnityArgLine '<unity args>'  # Unity batchmode: one call, waits, no polling
 ```
 

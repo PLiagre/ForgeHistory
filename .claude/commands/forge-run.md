@@ -20,6 +20,30 @@ backend-pluggable Générateur (see `docs/adr/0002-pluggable-generator-backend.m
   runs this brief's iterations.
 - `--max-iterations N` (default `5`).
 
+## Execution Budgets (`BUDGET_EXHAUSTED`, `NEEDS_SPLIT`)
+
+Two loop outcomes exist alongside PASS / PLATEAU / ESCALATED /
+MAX_ITERATIONS, and neither is a REJECT:
+
+| outcome | meaning | what to do |
+|---|---|---|
+| `NEEDS_SPLIT` | The Planificateur judged the brief too large before generation. | Do not run the Générateur. Report the lots it produced; each is its own `/forge-run` in a fresh session. |
+| `BUDGET_EXHAUSTED` | A Générateur hit its tool-call budget (160, or 35 calls without measurable progress). | The iteration ends. Its `deliverables/checkpoint-NNN.md` is the handoff. Do not spend the remaining iterations re-running the same oversized brief. |
+
+`REJECT` means the work is wrong; these mean the container was too small and
+the work is unfinished. Recording a budget stop as a REJECT would teach the
+loop that a well-executed oversized brief is defective, and would burn the
+remaining iterations on the same overflow.
+
+Before Phase 1, run the advisory size check and honour a `NEEDS_SPLIT`:
+
+```bash
+py harness/budget.py split-check --brief <BRIEF_DIR>
+```
+
+The Générateur checks `py harness/budget.py status --brief <BRIEF_DIR>`
+itself; the orchestrator's job is only to read the outcome and stop cleanly.
+
 ## Phase 0: Resolve the Brief Directory
 
 1. Resolve `BRIEF_DIR` from the argument (prefix with

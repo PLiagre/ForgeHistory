@@ -77,6 +77,67 @@ Also write `harness/queue/briefs/NNN-<slug>/eval-rubric.md`, in a format the
 mapped to how it will be checked (mechanical gate check name, or manual
 verification step).
 
+## Size the brief before writing it: `NEEDS_SPLIT`
+
+A brief's size decides its cost, and the relationship is quadratic, not
+linear: every tool call re-sends the agent's accumulated context, so brief
+001 (an ADR) cost 108 tool calls and 5 USD while brief 003 ("port the whole
+Unity game") cost 1,015 and 130. The Générateur's budget stops a run at 160
+tool calls — so a brief that cannot fit in 160 must be split **here**,
+before generation, not discovered mid-run.
+
+Mark a brief `NEEDS_SPLIT` when any of these holds. The first is mechanical;
+the other three are yours to judge:
+
+- **you estimate it above 150 tool calls** (checked mechanically);
+- it covers more than one *independent* subsystem (`sim/`, `pipeline/`,
+  `unity/`, `harness/`, `docs/`) — independence is the operative word, and
+  no script can evaluate it;
+- it has several deliverables that could each be validated on their own;
+- it reads as a global goal — "port the whole game", "migrate everything".
+
+An advisory pre-flight puts the numbers in front of you:
+
+```bash
+py harness/budget.py split-check --brief <brief_dir> --estimated-calls N
+```
+
+**Only the estimate triggers**, and you must supply it — without
+`--estimated-calls` the check returns `NO_ESTIMATE` rather than guessing.
+The other three criteria are printed as signals for you to judge, not
+counted for you. That is a measured decision, not modesty: across the five
+briefs whose real cost is known, subsystem breadth pointed the *wrong* way
+(001 spanned three subsystems for 108 tool calls; 005 spanned one for 766),
+condition count was flat across a 20× cost range, and a phrase-match on
+"whole"/"entire" fired on all five. A check that flags everything gets
+ignored, so those stayed signals. The reasoning and the table are in
+`harness/budget.py`.
+
+Which means the estimate is doing the real work — make it seriously. The
+anchors you have: an ADR-shaped brief ran 108 calls; a "port the whole game"
+brief ran 1,119.
+
+On `NEEDS_SPLIT`, do not write one large `brief.md`. Produce **atomic lots**,
+each carrying:
+
+| field | meaning |
+|---|---|
+| id | `NNN-<slug>-lot-M` |
+| objectif | the one outcome this lot reaches |
+| dépendances | the lots that must land first, if any |
+| fichiers / sous-systèmes | what it is allowed to touch |
+| critères d'acceptation | how the Évaluateur will judge it |
+| commande de validation | the exact command that proves it |
+| définition de terminé | what "done" means, unambiguously |
+
+Each lot is planned for a **fresh session**. Its resume context comes from
+the previous lot's checkpoint and the repository files — never from a prior
+transcript. If a lot only makes sense to someone who watched the previous
+one run, it is not yet atomic.
+
+`NEEDS_SPLIT` is a planning outcome, not a `REJECT`: it says the work was
+scoped too large, not that anything is wrong with it.
+
 ## Unity batchmode steps: prescribe the wrapper, never polling
 
 When a success condition requires a Unity batchmode run (compile proof,

@@ -50,6 +50,60 @@ checklist)
 8. A zero can be real — use sentinel `-1` for "not computed," never a bare
    `0` that could be mistaken for a real measurement.
 
+## Execution Budget
+
+Your run has a budget, measured in tool calls — **100** warn, **130** write
+the checkpoint, **160** hard stop, and **35 tool calls without measurable
+progress** is also a stop. Brief 003 ran 1,015 tool calls in one agent; its
+context grew 111k → 696k tokens and never compacted, so its last 20% of
+calls cost 33% of the run. The budget exists because that cost is quadratic
+in run length, not linear.
+
+The count is measured from your own transcript, so checking it is cheap and
+you never have to keep a tally yourself:
+
+```bash
+py harness/budget.py status --brief <brief_dir>
+```
+
+Check it when you finish a step, not on a timer — a status check every few
+calls is itself the waste it is meant to prevent. Roughly: after each
+Success Condition, and any time you are about to start something large.
+
+**Record progress as it happens**, or the no-progress clock runs from call
+zero and will stop you at 35:
+
+```bash
+py harness/budget.py progress --brief <brief_dir> --kind KIND --evidence "..."
+```
+
+`KIND` is one of five mechanical events, and nothing else — `red_to_green`,
+`failures_decreased`, `gate_check_gained`, `deliverable_created`,
+`plan_step_done`. `--evidence` must name the command or file that proves it;
+"made progress" is a claim, not an event.
+
+**At `CHECKPOINT_DUE`, `BUDGET_EXHAUSTED` or `NO_PROGRESS_STOP`:**
+
+```bash
+py harness/budget.py checkpoint --brief <brief_dir>
+```
+
+That writes `deliverables/checkpoint-NNN.md` with the measured numbers
+already filled in. Fill sections 1-9 — objective, work done, files changed,
+tests run with their real output, decisions, open problems, the exact next
+action, the resume command, and the minimum context a fresh session needs.
+Then stop and report the status.
+
+**`BUDGET_EXHAUSTED` is not a `REJECT`.** A REJECT says the work is wrong.
+This says the work is unfinished and the brief was too big for one run —
+what you built may be entirely correct. Never describe a budget stop as a
+failure of the work, and never pad the deliverables to look finished because
+you ran out of budget. Write the checkpoint honestly and hand over.
+
+The next session resumes from **the checkpoint and the repository files**,
+never from your transcript. Anything a successor needs that lives only in
+your context must be written into the checkpoint, or it is lost.
+
 ## Deliverables Contract
 
 Write to `harness/queue/briefs/NNN-<slug>/deliverables/`:
