@@ -2,7 +2,7 @@
 review_of: CURSOR-FIXTURE-full-auto-demo
 reviewer: claude-code
 target_commit: 000000000000000000000000000000000000000f
-reviewed_at: 2026-08-05T21:22:22Z
+reviewed_at: 2026-08-05T21:28:53Z
 ---
 
 # Contre-audit de CURSOR-FIXTURE-full-auto-demo (fixture, brief 006 Lot 006c demo)

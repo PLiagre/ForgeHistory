@@ -80,9 +80,19 @@ def read_ts(p: Path, label: str = "Authored") -> datetime.datetime | None:
     if not v:
         return None
     try:
-        return datetime.datetime.fromisoformat(v)
+        ts = datetime.datetime.fromisoformat(v)
     except ValueError:
         return None
+    # A brief may legitimately stamp Authored in full ISO 8601 with an offset
+    # (e.g. "2026-08-05T10:05:00Z"). Deliverable mtimes are read via
+    # datetime.fromtimestamp(), which is naive-local, so an offset-aware brief
+    # timestamp would raise TypeError on the ordering comparison and crash the
+    # gate into exit 2 (INTERNAL ERROR) -- never ACCEPT. Normalize to naive
+    # local so both sides of every < compare in the same frame. This tightens
+    # nothing: it only stops the gate mis-firing on a valid timestamp format.
+    if ts.tzinfo is not None:
+        ts = ts.astimezone().replace(tzinfo=None)
+    return ts
 
 
 def check_files_declared_exist(bd: Path, m: dict) -> CheckResult:

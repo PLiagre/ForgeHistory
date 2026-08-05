@@ -1,4 +1,4 @@
-=== run_full_auto_demo.sh -- 2026-08-05T21:22:22Z ===
+=== run_full_auto_demo.sh -- 2026-08-05T21:28:52Z ===
 audit_id: CURSOR-FIXTURE-full-auto-demo
 STEP OK: 0 idempotent cleanup (stale ledger/review/decision/demo-brief/cost-ledger lines for CURSOR-FIXTURE-full-auto-demo removed)
 STEP OK: 1 fixture audit present (architecture/inbox/CURSOR-FIXTURE-full-auto-demo.md) with 3 dated web sources (>= 3)

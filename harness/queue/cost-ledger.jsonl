@@ -16,5 +16,5 @@
 {"timestamp": "2026-08-02T20:25:31.036518", "backend": "claude", "brief": "harness/queue/briefs/005-refonte-visuelle-carte", "event": "generator-run"}
 {"timestamp": "2026-08-05T16:54:38.327713", "backend": "claude", "brief": "harness/queue/briefs/006-full-auto-agent-pipeline", "event": "generator-run"}
 {"timestamp": "2026-08-05T22:01:11.974940", "backend": "claude", "brief": "harness/queue/briefs/006-full-auto-agent-pipeline", "event": "generator-run"}
-{"timestamp": "2026-08-05T23:22:23.428950", "backend": "claude", "brief": "harness/pipeline/demo/output/briefs/001-cursor-fixture-full-auto-demo", "event": "demo-full-auto-fixture", "audit_id": "CURSOR-FIXTURE-full-auto-demo"}
 {"timestamp": "2026-08-05T23:24:50.639025", "backend": "claude", "brief": "harness/queue/briefs/006-full-auto-agent-pipeline", "event": "generator-run-006c"}
+{"timestamp": "2026-08-05T23:28:53.809906", "backend": "claude", "brief": "harness/pipeline/demo/output/briefs/001-cursor-fixture-full-auto-demo", "event": "demo-full-auto-fixture", "audit_id": "CURSOR-FIXTURE-full-auto-demo"}
