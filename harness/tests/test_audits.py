@@ -134,3 +134,54 @@ def test_cli_empty_inbox_reports_none(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     assert "No audits" in result.stdout
+
+
+# --- status -------------------------------------------------------------
+
+
+def test_status_gathers_timeline_and_links(tmp_path):
+    inbox = _make_inbox(tmp_path)
+    ledger = tmp_path / "audit-ledger.jsonl"
+    audit_ledger.append_event("CURSOR-abc-topic", "AUDIT_PROPOSED", ledger_path=ledger)
+    audit_ledger.append_event("CURSOR-abc-topic", "AUDIT_CHALLENGED", ledger_path=ledger,
+                              review="architecture/reviews/CLAUDE-CURSOR-abc-topic.md")
+    audit_ledger.append_event("CURSOR-abc-topic", "AUDIT_APPROVED", ledger_path=ledger,
+                              decision="architecture/decisions/DECISION-CURSOR-abc-topic.md")
+    audit_ledger.append_event("CURSOR-abc-topic", "AUDIT_CONVERTED", ledger_path=ledger,
+                              briefs=["harness/queue/briefs/006-x"])
+    info = audits.audit_status("CURSOR-abc-topic", inbox, ledger)
+    assert info["state"] == "AUDIT_CONVERTED"
+    assert len(info["timeline"]) == 4
+    assert info["review"].endswith("CLAUDE-CURSOR-abc-topic.md")
+    assert info["decision"].endswith("DECISION-CURSOR-abc-topic.md")
+    assert info["briefs"] == ["harness/queue/briefs/006-x"]
+
+
+def test_status_unknown_audit_is_none(tmp_path):
+    inbox = _make_inbox(tmp_path)
+    assert audits.audit_status("CURSOR-nope", inbox, tmp_path / "l.jsonl") is None
+
+
+def test_cli_status_text(tmp_path):
+    inbox = _make_inbox(tmp_path)
+    ledger = tmp_path / "audit-ledger.jsonl"
+    audit_ledger.append_event("CURSOR-abc-topic", "AUDIT_PROPOSED", ledger_path=ledger)
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "status", "--audit-id", "CURSOR-abc-topic",
+         "--inbox", str(inbox), "--ledger", str(ledger)],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "AUDIT_PROPOSED" in result.stdout
+    assert "timeline" in result.stdout
+
+
+def test_cli_status_unknown_exits_one(tmp_path):
+    inbox = _make_inbox(tmp_path)
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "status", "--audit-id", "CURSOR-nope",
+         "--inbox", str(inbox), "--ledger", str(tmp_path / "l.jsonl")],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 1
+    assert "No audit" in result.stdout

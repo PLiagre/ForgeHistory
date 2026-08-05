@@ -110,6 +110,40 @@ def build_listing(inbox: Path = INBOX, ledger_path: Path | None = None) -> list[
     return rows
 
 
+def audit_status(audit_id: str, inbox: Path = INBOX, ledger_path: Path | None = None) -> dict | None:
+    """Full view of one audit: frontmatter, current state, the whole ledger
+    timeline for it, and the linked artifacts (review, decision, briefs).
+
+    Returns None if the audit is not in inbox -- nothing to report on.
+    """
+    ledger_path = ledger_path or audit_ledger.LEDGER_PATH
+    audit = None
+    for candidate in load_audits(inbox):
+        if candidate.get("audit_id") == audit_id:
+            audit = candidate
+            break
+    if audit is None:
+        return None
+
+    timeline = [e for e in audit_ledger.read_events(ledger_path) if e.get("audit_id") == audit_id]
+    review = next((e.get("review") for e in reversed(timeline) if e.get("review")), None)
+    decision = next((e.get("decision") for e in reversed(timeline) if e.get("decision")), None)
+    briefs: list[str] = []
+    for e in timeline:
+        for b in e.get("briefs", []) or []:
+            if b not in briefs:
+                briefs.append(b)
+
+    return {
+        "audit": audit,
+        "state": current_state(audit_id, timeline),
+        "timeline": timeline,
+        "review": review,
+        "decision": decision,
+        "briefs": briefs,
+    }
+
+
 # --- CLI ----------------------------------------------------------------
 
 
@@ -124,7 +158,17 @@ def main(argv: list[str] | None = None) -> int:
     lp.add_argument("--inbox", default=str(INBOX))
     lp.add_argument("--ledger", default=str(audit_ledger.LEDGER_PATH))
     lp.add_argument("--json", action="store_true")
+
+    sp = sub.add_parser("status", help="full status of one audit")
+    sp.add_argument("--audit-id", required=True)
+    sp.add_argument("--inbox", default=str(INBOX))
+    sp.add_argument("--ledger", default=str(audit_ledger.LEDGER_PATH))
+    sp.add_argument("--json", action="store_true")
+
     args = parser.parse_args(argv)
+
+    if args.cmd == "status":
+        return _cmd_status(args)
 
     rows = build_listing(Path(args.inbox), Path(args.ledger))
 
@@ -155,6 +199,29 @@ def main(argv: list[str] | None = None) -> int:
                 f"  |  {row.get('auditor', '?')}"
             )
         print()
+    return 0
+
+
+def _cmd_status(args) -> int:
+    info = audit_status(args.audit_id, Path(args.inbox), Path(args.ledger))
+    if info is None:
+        print(f"No audit {args.audit_id!r} in inbox.")
+        return 1
+    if args.json:
+        print(json.dumps(info, ensure_ascii=False, indent=2))
+        return 0
+    audit = info["audit"]
+    print(f"{args.audit_id}")
+    print(f"  state       : {info['state']}")
+    print(f"  target      : {_short(audit.get('target_commit', ''))}  ({audit.get('target_branch', '?')})")
+    print(f"  auditor     : {audit.get('auditor', '?')}  @ {audit.get('created_at', '?')}")
+    print(f"  inbox       : {audit.get('path', '?')}")
+    print(f"  review      : {info['review'] or '(none yet)'}")
+    print(f"  decision    : {info['decision'] or '(none yet)'}")
+    print(f"  briefs      : {', '.join(info['briefs']) if info['briefs'] else '(none yet)'}")
+    print("  timeline    :")
+    for e in info["timeline"]:
+        print(f"    {e.get('timestamp', '?')}  {e.get('event', '?')}  ({e.get('actor', e.get('auditor', '-'))})")
     return 0
 
 
