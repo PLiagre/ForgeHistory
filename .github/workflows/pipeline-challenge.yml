@@ -1,0 +1,115 @@
+name: pipeline-challenge
+
+# Brief 006, Lot 006b, Success Condition 10. Fires claude-challenger
+# (architecture/agents/claude-challenger.md, /forge-audit-review) whenever a
+# merge/push adds or changes an audit under architecture/inbox/.
+#
+# Two jobs:
+#   * invoke-claude-challenger -- the real headless-LLM step; skipped with a
+#     documented waiver when no credential is configured (same shape as
+#     pipeline-audit.yml's Cursor check).
+#   * mechanical-scaffold-smoke -- runs unconditionally, no secret needed.
+#     Proves the NON-LLM half of this role -- audit_review.py's
+#     scaffold/record gate and the ledger transition it writes -- actually
+#     works in CI today, against a disposable fixture audit. This is real,
+#     not a stub: it is the same code path claude-challenger's own /forge-
+#     audit-review command runs after the LLM fills the review.
+#
+# Waiver (manifest.json, claim "Claude headless non installable sur runner
+# GH"): `gh secret list` on this repo returns an empty list -- no
+# ANTHROPIC_API_KEY configured (real command, real output; see
+# generator-log.md). Per the brief's Acceptable Waivers table, the
+# ANTHROPIC_API_KEY fallback is only authorized once a mock test PASSes --
+# `mechanical-scaffold-smoke` below is exactly that mock test, and it is
+# wired to run on every trigger of this workflow, not just once.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'architecture/inbox/*.md'
+  workflow_dispatch:
+    inputs:
+      audit_id:
+        description: "audit_id to challenge (e.g. CURSOR-<sha>-<slug>)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  invoke-claude-challenger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Check Claude headless availability
+        id: check
+        run: |
+          set -euo pipefail
+          if which claude >/dev/null 2>&1; then
+            echo "cli_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cli_available=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "api_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Invoke claude-challenger (CLI or API fallback)
+        if: steps.check.outputs.cli_available == 'true' || steps.check.outputs.api_available == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          echo "TODO(operator, once claude CLI or ANTHROPIC_API_KEY is provisioned):"
+          echo "run /forge-audit-review \$AUDIT_ID headless here, following"
+          echo "architecture/agents/claude-challenger.md exactly. Deliberately left"
+          echo "as a documented stub -- see pipeline-audit.yml for why."
+
+      - name: No credential available -- documented waiver
+        if: steps.check.outputs.cli_available != 'true' && steps.check.outputs.api_available != 'true'
+        run: |
+          echo "::warning::Neither the claude CLI nor ANTHROPIC_API_KEY is available on this runner -- waiver documented in harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/manifest.json. Run /forge-audit-review manually, or provision ANTHROPIC_API_KEY (see docs/rules/full-auto-pipeline.md)."
+
+  mechanical-scaffold-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - name: Mock a filled review and prove scaffold -> record -> ledger works
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          mkdir -p "$tmp/inbox"
+          cat > "$tmp/inbox/CURSOR-ciSmoke-topic.md" <<'EOF'
+          ---
+          audit_id: CURSOR-ciSmoke-topic
+          auditor: cursor-cloud
+          target_branch: master
+          target_commit: 623118671dd98543a197b06415a240b9912999af
+          created_at: 2026-08-05T10:00:00Z
+          status: PROPOSED
+          ---
+          # corps
+          EOF
+          python harness/audit_review.py scaffold --audit-id CURSOR-ciSmoke-topic \
+            --inbox "$tmp/inbox" --reviews "$tmp/reviews"
+          python - "$tmp/reviews/CLAUDE-CURSOR-ciSmoke-topic.md" <<'PY'
+          import re, sys
+          path = sys.argv[1]
+          text = open(path, encoding="utf-8").read()
+          text = re.sub(r"<<[^>]*>>", "ci smoke mock", text)
+          text += "\n| 1 | mock point | CONFIRMED | ci smoke, no placeholder left |\n"
+          open(path, "w", encoding="utf-8").write(text)
+          PY
+          python harness/audit_review.py record --audit-id CURSOR-ciSmoke-topic \
+            --inbox "$tmp/inbox" --reviews "$tmp/reviews" --ledger "$tmp/ledger.jsonl"
+          python harness/audit_ledger.py show --ledger "$tmp/ledger.jsonl" --audit-id CURSOR-ciSmoke-topic | grep -q AUDIT_CHALLENGED
+          echo "STEP OK: mechanical-scaffold-smoke recorded AUDIT_CHALLENGED without an LLM"

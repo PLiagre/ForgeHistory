@@ -25,6 +25,7 @@ SCRIPT = HARNESS / "audit_decision.py"
 sys.path.insert(0, str(HARNESS))
 import audit_decision  # noqa: E402
 import audit_ledger  # noqa: E402
+import audit_review  # noqa: E402
 import audits as audits_mod  # noqa: E402
 
 
@@ -170,3 +171,132 @@ def test_cli_accept_not_challenged_exits_two(tmp_path):
     r = _run("accept", tmp_path, ledger, decisions, inbox, "--reason", "ok")
     assert r.returncode == 2
     assert "not AUDIT_CHALLENGED" in r.stderr
+
+
+# --- --policy auto (Lot 006a, ADR-0006) ----------------------------------
+#
+# Unlike _env() above (which writes the ledger events directly), these
+# tests go through audit_review.record_challenge so the AUDIT_CHALLENGED
+# event carries a real `review` path -- decide_auto() reads verdicts from
+# that file, not from the ledger's own verdict *counts*.
+
+
+def _auto_env(tmp_path, review_body: str):
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    (inbox / "CURSOR-abc-topic.md").write_text(AUDIT_DOC, encoding="utf-8")
+    reviews = tmp_path / "reviews"
+    decisions = tmp_path / "decisions"
+    ledger = tmp_path / "audit-ledger.jsonl"
+    audit_review.review_path("CURSOR-abc-topic", reviews).parent.mkdir(parents=True, exist_ok=True)
+    audit_review.review_path("CURSOR-abc-topic", reviews).write_text(review_body, encoding="utf-8")
+    audit_review.record_challenge("CURSOR-abc-topic", inbox=inbox, reviews_dir=reviews, ledger_path=ledger)
+    return inbox, reviews, decisions, ledger
+
+
+REVIEW_CONFIRMED_AND_PARTIAL = """---
+review_of: CURSOR-abc-topic
+reviewer: claude-code
+target_commit: x
+reviewed_at: 2026-08-05T10:00:00Z
+---
+| # | Point | Verdict | Preuve |
+|---|---|---|---|
+| 1 | budget non impose | CONFIRMED | budget.py status exit 2 |
+| 2 | split-check | PARTIAL | portee surestimee |
+| 3 | style nit | REFUTED | non reproductible |
+"""
+
+REVIEW_ALL_REFUTED = """---
+review_of: CURSOR-abc-topic
+reviewer: claude-code
+target_commit: x
+reviewed_at: 2026-08-05T10:00:00Z
+---
+| # | Point | Verdict | Preuve |
+|---|---|---|---|
+| 1 | style nit | REFUTED | non reproductible |
+| 2 | perf claim | REFUTED | benchmark manquant |
+"""
+
+REVIEW_NEEDS_OWNER_ONLY = """---
+review_of: CURSOR-abc-topic
+reviewer: claude-code
+target_commit: x
+reviewed_at: 2026-08-05T10:00:00Z
+---
+| # | Point | Verdict | Preuve |
+|---|---|---|---|
+| 1 | choix produit | NEEDS_OWNER | arbitrage metier, hors technique |
+"""
+
+
+def test_decide_auto_approves_on_confirmed_or_partial(tmp_path):
+    inbox, reviews, decisions, ledger = _auto_env(tmp_path, REVIEW_CONFIRMED_AND_PARTIAL)
+    rec = audit_decision.decide_auto(
+        "CURSOR-abc-topic", inbox=inbox, decisions_dir=decisions, ledger_path=ledger
+    )
+    assert rec["event"] == "AUDIT_APPROVED"
+    assert rec["actor"] == "policy:auto"
+    assert rec["retained_points"] == [1, 2]  # CONFIRMED union PARTIAL, REFUTED point 3 excluded
+    assert rec["reason"].startswith("policy:")
+    assert rec["reason"].strip()  # never blank
+
+
+def test_decide_auto_rejects_when_all_refuted(tmp_path):
+    inbox, reviews, decisions, ledger = _auto_env(tmp_path, REVIEW_ALL_REFUTED)
+    rec = audit_decision.decide_auto(
+        "CURSOR-abc-topic", inbox=inbox, decisions_dir=decisions, ledger_path=ledger
+    )
+    assert rec["event"] == "AUDIT_REJECTED"
+    assert rec["actor"] == "policy:auto"
+    assert "retained_points" not in rec
+    assert rec["reason"].strip()
+
+
+def test_decide_auto_rejects_needs_owner_without_confirmed_or_partial(tmp_path):
+    inbox, reviews, decisions, ledger = _auto_env(tmp_path, REVIEW_NEEDS_OWNER_ONLY)
+    rec = audit_decision.decide_auto(
+        "CURSOR-abc-topic", inbox=inbox, decisions_dir=decisions, ledger_path=ledger
+    )
+    assert rec["event"] == "AUDIT_REJECTED"
+    # brief 006 gives this exact phrase verbatim -- must be literally present
+    assert "policy: no owner in full_auto" in rec["reason"]
+
+
+def test_decide_auto_refuses_when_not_challenged(tmp_path):
+    inbox, decisions, ledger = _env(tmp_path, challenged=False)  # only PROPOSED, no review
+    with pytest.raises(audit_decision.DecisionError):
+        audit_decision.decide_auto("CURSOR-abc-topic", inbox=inbox, decisions_dir=decisions, ledger_path=ledger)
+
+
+def test_decide_auto_refuses_without_review_file(tmp_path, monkeypatch):
+    """A CHALLENGED event whose `review` field points nowhere (or is
+    missing) must refuse rather than guess -- an auto decision is only
+    ever as good as the verdicts it can actually read."""
+    inbox, decisions, ledger = _env(tmp_path, challenged=False)
+    inbox.mkdir(exist_ok=True)
+    audit_ledger.append_event("CURSOR-abc-topic", "AUDIT_CHALLENGED", ledger_path=ledger)
+    with pytest.raises(audit_decision.DecisionError):
+        audit_decision.decide_auto("CURSOR-abc-topic", inbox=inbox, decisions_dir=decisions, ledger_path=ledger)
+
+
+def test_cli_auto_shows_policy_flag_in_help():
+    r = subprocess.run(
+        [sys.executable, str(SCRIPT), "auto", "--help"], capture_output=True, text=True
+    )
+    assert r.returncode == 0, r.stderr
+    assert "--policy" in r.stdout
+    assert "auto" in r.stdout
+
+
+def test_cli_auto_approves_exits_zero(tmp_path):
+    inbox, reviews, decisions, ledger = _auto_env(tmp_path, REVIEW_CONFIRMED_AND_PARTIAL)
+    r = subprocess.run(
+        [sys.executable, str(SCRIPT), "auto", "--audit-id", "CURSOR-abc-topic",
+         "--inbox", str(inbox), "--decisions", str(decisions), "--ledger", str(ledger)],
+        capture_output=True, text=True,
+    )
+    assert r.returncode == 0, r.stderr
+    assert audit_ledger.read_events(ledger)[-1]["event"] == "AUDIT_APPROVED"
+    assert audit_ledger.read_events(ledger)[-1]["actor"] == "policy:auto"

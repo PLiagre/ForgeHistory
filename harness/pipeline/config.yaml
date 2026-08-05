@@ -1,0 +1,47 @@
+# harness/pipeline/config.yaml
+#
+# Live switches for the full-auto pipeline (ADR-0006,
+# harness/pipeline/auto_policy.yaml). Parsed by
+# harness/pipeline/policy_loader.py (`load_flat_yaml`) -- no PyYAML
+# dependency in this repo, see generator-log.md.
+#
+# Emergency kill-switch: set `mode: manual` (below) to fall back to the
+# ADR-0005 human loop (/forge-audit-accept, /forge-audit-reject), or apply
+# the `pipeline/pause` label to a PR/issue once Lot 006b's workflows read
+# it. Full activation/deactivation steps: docs/rules/full-auto-pipeline.md
+# (Lot 006b -- not written yet in this lot).
+#
+# `mode` stays `manual` here in Lot 006a on purpose: the brief's own "Lots
+# atomiques" ordering says to flip this to `full_auto` only after Lot 006c's
+# end-to-end demo has proven the loop closes without a human. Flipping it
+# earlier would be exactly the "erroneous automatic decision" / "runaway
+# cost" risk ADR-0006 names, with no supervisor (006c) yet built to catch it.
+mode: manual
+
+# Ceiling on how many times the orchestrator (Lot 006b) may re-invoke
+# claude-developer on the SAME brief after a REJECT/plateau before it must
+# escalate instead of retrying (see auto_policy.yaml rule
+# three_consecutive_mechanical_rejects).
+max_forge_run_iterations: 3
+
+auto_merge_audit_prs: true
+auto_merge_review_prs: true
+claude_challenge_on_inbox_merge: true
+cursor_audit_on_master_push: true
+
+# Auto-merge is restricted to these path prefixes (bot branches only:
+# cursor/*, forge-bot/*). Any PR touching a path outside this list is never
+# auto-merged, full_auto or not.
+auto_merge_allowlist:
+  - architecture/inbox/**
+  - architecture/reviews/**
+  - harness/queue/briefs/**/feedback/**
+
+# Non-Goals (brief 006) made literal and enforced here, not just prose:
+# these paths are NEVER auto-merged without an explicit owner-listed
+# exception recorded in ADR-0006. Restated (not paraphrased as an
+# instruction) from ADR-0006's Risks/Mitigations section.
+auto_merge_denylist:
+  - .github/workflows/**
+  - harness/verdict_audit.py
+  - VISION.md

@@ -1,0 +1,75 @@
+{
+  "files": [
+    { "path": "../../../../docs/adr/0006-full-auto-agent-pipeline.md" },
+    { "path": "../../../../harness/pipeline/auto_policy.yaml" },
+    { "path": "../../../../harness/pipeline/config.yaml" },
+    { "path": "../../../../harness/pipeline/policy_loader.py" },
+    { "path": "../../../../harness/pipeline/__init__.py" },
+    { "path": "../../../../harness/audit_ledger.py" },
+    { "path": "../../../../harness/audit_decision.py" },
+    { "path": "../../../../harness/tests/test_audit_fsm.py" },
+    { "path": "../../../../harness/tests/test_audit_ledger.py" },
+    { "path": "../../../../harness/tests/test_audit_decision.py" },
+    { "path": "deliverables/006a-validation.log" },
+    { "path": "../../../../architecture/agents/cursor-auditor.md" },
+    { "path": "../../../../architecture/agents/cursor-qa-scout.md" },
+    { "path": "../../../../architecture/agents/claude-challenger.md" },
+    { "path": "../../../../architecture/agents/claude-developer.md" },
+    { "path": "../../../../architecture/agents/claude-evaluator.md" },
+    { "path": "../../../../architecture/agents/pipeline-orchestrator.md" },
+    { "path": "../../../../architecture/agents/README.md" },
+    { "path": "../../../../harness/pipeline/orchestrator.py" },
+    { "path": "../../../../harness/tests/test_orchestrator.py" },
+    { "path": "../../../../.github/workflows/pipeline-audit.yml" },
+    { "path": "../../../../.github/workflows/pipeline-challenge.yml" },
+    { "path": "../../../../.github/workflows/pipeline-orchestrate.yml" },
+    { "path": "../../../../.github/workflows/pipeline-forge-run.yml" },
+    { "path": "../../../../.github/merge-bot.yaml" },
+    { "path": "../../../../.github/workflows/merge-bot.yml" },
+    { "path": "../../../../docs/rules/full-auto-pipeline.md" },
+    { "path": "deliverables/006b-validation.log" }
+  ],
+  "counters": [
+    {
+      "name": "auto_policy_rules_count",
+      "value": 10,
+      "sample_size": 10,
+      "command": "py -c \"from harness.pipeline.policy_loader import load_auto_policy; from pathlib import Path; p = load_auto_policy(Path('harness/pipeline/auto_policy.yaml')); print(len(p['rules']))\""
+    },
+    {
+      "name": "fsm_invalid_transition_tests_count",
+      "value": 9,
+      "sample_size": 9,
+      "command": "grep -c \"pytest.raises\" harness/tests/test_audit_fsm.py"
+    },
+    {
+      "name": "agent_role_files_count",
+      "value": 6,
+      "sample_size": 6,
+      "command": "py -c \"from pathlib import Path; files = sorted(p for p in Path('architecture/agents').glob('*.md') if p.name != 'README.md'); print(len(files))\""
+    },
+    {
+      "name": "pipeline_workflows_count",
+      "value": 4,
+      "sample_size": 4,
+      "command": "py -c \"from pathlib import Path; print(len(sorted(Path('.github/workflows').glob('pipeline-*.yml'))))\""
+    }
+  ],
+  "waivers": [
+    {
+      "claim": "Cursor Cloud Agent API indisponible en CI (aucun secret CURSOR_API_KEY configuré sur ce repo)",
+      "command": "gh secret list --repo PLiagre/ForgeHistory",
+      "error": "empty output, exit 0 -- no secrets configured at all (documented env check, per brief 006 Acceptable Waivers row 1's explicit alternative to the curl check); .github/workflows/pipeline-audit.yml therefore checks secrets.CURSOR_API_KEY at runtime and no-ops with a logged ::warning:: instead of failing when it is absent"
+    },
+    {
+      "claim": "Claude headless non installable/autorise sur runner GH ubuntu-latest (aucun secret ANTHROPIC_API_KEY configure sur ce repo)",
+      "command": "gh secret list --repo PLiagre/ForgeHistory",
+      "error": "empty output, exit 0 -- no ANTHROPIC_API_KEY secret configured; .github/workflows/pipeline-challenge.yml and pipeline-forge-run.yml both check `which claude` and secrets.ANTHROPIC_API_KEY at runtime and no-op with a logged ::warning:: instead of failing; the fallback's required mock test (brief 006 Acceptable Waivers row 2) is the mechanical-scaffold-smoke job in pipeline-challenge.yml, which runs unconditionally with no secret and was verified locally (py harness/audit_review.py scaffold/record end-to-end, see generator-log.md)"
+    },
+    {
+      "claim": "Branch protection empeche/limite l'auto-merge bot (feature indisponible sur ce plan de repo, pas seulement non configuree)",
+      "command": "gh api repos/PLiagre/ForgeHistory/branches/master/protection",
+      "error": "HTTP 403, exit 1: {\"message\":\"Upgrade to GitHub Pro or make this repository public to enable this feature.\",\"status\":\"403\"} -- reproduced twice, real gh api calls (see generator-log.md); per brief 006 Acceptable Waivers row 3 this is a PARTIAL waiver: .github/workflows/merge-bot.yml's own git-diff allow/deny path check runs and can refuse BEFORE `gh pr merge --auto` is attempted, and that step itself treats a merge refusal as a soft failure (PR stays open) rather than relying on GitHub-side branch protection, which is unavailable here"
+    }
+  ]
+}

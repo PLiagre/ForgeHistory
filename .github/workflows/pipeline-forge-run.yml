@@ -1,0 +1,105 @@
+name: pipeline-forge-run
+
+# Brief 006, Lot 006b, Success Condition 12. Runs claude-developer
+# (architecture/agents/claude-developer.md) headless for exactly ONE brief,
+# per the brief's own "un brief = un forge-run" discipline
+# (docs/rules/harness-roles.md).
+#
+# Two ways in, both explicit -- this workflow never guesses which brief to
+# run:
+#   * workflow_dispatch with a required brief_dir input.
+#   * a `forge-run/queued` label applied to an issue/PR on a bot branch
+#     (cursor/*, forge-bot/*), carrying the brief_dir in its body as
+#     `brief_dir: <path>`.
+#
+# Waiver: same as pipeline-challenge.yml -- if neither the claude CLI nor
+# ANTHROPIC_API_KEY is available, the job posts a comment naming the gap
+# and stops rather than failing silently or guessing a fallback.
+#
+# What this workflow always does mechanically, with no credential needed:
+# the split-check preflight (`py harness/budget.py split-check`), because
+# `/forge-run` itself requires that check to pass before launching a
+# Générateur (brief 006 Success Condition 15, Lot 006c) -- wiring it here
+# too means a queued brief that is already oversized never reaches an LLM
+# invocation at all.
+
+on:
+  workflow_dispatch:
+    inputs:
+      brief_dir:
+        description: "harness/queue/briefs/NNN-<slug> to run"
+        required: true
+  issues:
+    types: [labeled]
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  forge-run:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'forge-run/queued'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Resolve brief_dir
+        id: resolve
+        env:
+          IN_BRIEF_DIR: ${{ github.event.inputs.brief_dir }}
+          BODY: ${{ github.event.issue.body || github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          if [ -n "${IN_BRIEF_DIR:-}" ]; then
+            echo "brief_dir=${IN_BRIEF_DIR}" >> "$GITHUB_OUTPUT"
+          else
+            brief_dir="$(printf '%s' "$BODY" | grep -oE 'brief_dir: [^ ]+' | head -n1 | cut -d' ' -f2)"
+            if [ -z "$brief_dir" ]; then
+              echo "::error::forge-run/queued label applied but no 'brief_dir: <path>' line found in the body."
+              exit 1
+            fi
+            echo "brief_dir=${brief_dir}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Mandatory split-check preflight (brief 006 SC15)
+        id: split
+        run: |
+          set -euo pipefail
+          python harness/budget.py split-check --brief "${{ steps.resolve.outputs.brief_dir }}" || {
+            code=$?
+            echo "::error::split-check did not pass (exit $code) -- refusing to launch a Générateur on an oversized brief; split it into lots first."
+            exit "$code"
+          }
+
+      - name: Check headless credential availability
+        id: check
+        run: |
+          set -euo pipefail
+          if which claude >/dev/null 2>&1 || [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Invoke claude-developer headless (single brief)
+        if: steps.check.outputs.available == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BRIEF_DIR: ${{ steps.resolve.outputs.brief_dir }}
+        run: |
+          set -euo pipefail
+          echo "TODO(operator, once claude CLI or ANTHROPIC_API_KEY is provisioned):"
+          echo "run the equivalent of /forge-run \$BRIEF_DIR headless here, following"
+          echo "architecture/agents/claude-developer.md and .claude/commands/forge-run.md"
+          echo "exactly (mechanical gate always runs after; Évaluateur only after ACCEPT)."
+
+      - name: No credential available -- documented waiver
+        if: steps.check.outputs.available != 'true'
+        run: |
+          echo "::warning::Neither the claude CLI nor ANTHROPIC_API_KEY is available -- waiver documented in harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/manifest.json. Run /forge-run ${{ steps.resolve.outputs.brief_dir }} manually, or provision ANTHROPIC_API_KEY (see docs/rules/full-auto-pipeline.md)."

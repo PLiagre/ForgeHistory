@@ -1,0 +1,117 @@
+name: pipeline-orchestrate
+
+# Brief 006, Lot 006b, Success Condition 11. Runs
+# harness/pipeline/orchestrator.py: auto-approve/reject a challenged audit,
+# convert an approved one, or record an evaluateur_pass -- always by
+# dispatching to the one existing module that owns the transition (see
+# orchestrator.py's own docstring). No LLM decides in this workflow.
+#
+# Two ways in:
+#   * workflow_dispatch -- the reliable path. Explicit --event and either
+#     --audit-id or a full --payload. Always available, needs no guessing.
+#   * push to master touching architecture/reviews/*.md -- best-effort
+#     auto-dispatch. Only fires when the push's own before/after diff
+#     names EXACTLY one changed review file (unambiguous audit_id); any
+#     other shape (0 or >1 files) is left to a manual workflow_dispatch
+#     rather than guessed.
+#
+# Safety net before committing: the ledger/decision/brief-seed write this
+# job produces is diffed against a hard allowlist before `git push` --
+# if the diff touches anything outside architecture/audit-ledger.jsonl,
+# architecture/decisions/**, or harness/queue/briefs/**, the job fails
+# instead of pushing (brief 006 Non-Goals: never auto-merge a change
+# touching .github/workflows/**, harness/verdict_audit.py, or VISION.md).
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'architecture/reviews/*.md'
+  workflow_dispatch:
+    inputs:
+      event:
+        description: "orchestrator event kind"
+        required: true
+        default: review_recorded
+      audit_id:
+        description: "audit_id (used when --payload is not given)"
+        required: false
+      payload:
+        description: "full JSON payload (overrides audit_id if given)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  orchestrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Resolve event + payload
+        id: resolve
+        env:
+          IN_EVENT: ${{ github.event.inputs.event }}
+          IN_AUDIT_ID: ${{ github.event.inputs.audit_id }}
+          IN_PAYLOAD: ${{ github.event.inputs.payload }}
+        run: |
+          set -euo pipefail
+          if [ -n "${IN_PAYLOAD:-}" ]; then
+            echo "event=${IN_EVENT}" >> "$GITHUB_OUTPUT"
+            echo "payload=${IN_PAYLOAD}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${IN_AUDIT_ID:-}" ]; then
+            echo "event=${IN_EVENT}" >> "$GITHUB_OUTPUT"
+            printf 'payload={"audit_id": "%s"}\n' "${IN_AUDIT_ID}" >> "$GITHUB_OUTPUT"
+          else
+            changed="$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" -- 'architecture/reviews/*.md' || true)"
+            count="$(printf '%s\n' "$changed" | grep -c . || true)"
+            if [ "$count" = "1" ]; then
+              fname="$(basename "$changed")"
+              audit_id="${fname#CLAUDE-}"; audit_id="${audit_id%.md}"
+              echo "event=review_recorded" >> "$GITHUB_OUTPUT"
+              printf 'payload={"audit_id": "%s"}\n' "$audit_id" >> "$GITHUB_OUTPUT"
+            else
+              echo "event=" >> "$GITHUB_OUTPUT"
+              echo "::notice::$count reviews/*.md changed by this push (need exactly 1 to auto-dispatch); skipping. Use workflow_dispatch with an explicit audit_id."
+            fi
+          fi
+
+      - name: Run orchestrator
+        if: steps.resolve.outputs.event != ''
+        run: |
+          set -euo pipefail
+          python harness/pipeline/orchestrator.py run \
+            --event "${{ steps.resolve.outputs.event }}" \
+            --payload '${{ steps.resolve.outputs.payload }}'
+
+      - name: Refuse to push outside the ledger/decision/brief allowlist
+        if: steps.resolve.outputs.event != ''
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only || true)"
+          offending="$(printf '%s\n' "$changed" | grep -vE '^(architecture/audit-ledger\.jsonl|architecture/decisions/|harness/queue/briefs/)' || true)"
+          if [ -n "$offending" ]; then
+            echo "::error::orchestrator produced changes outside the allowlist -- refusing to commit:"
+            printf '%s\n' "$offending"
+            exit 1
+          fi
+
+      - name: Commit ledger/decision/brief-seed update
+        if: steps.resolve.outputs.event != ''
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No changes to commit."
+          else
+            git config user.name "forge-bot"
+            git config user.email "forge-bot@users.noreply.github.com"
+            git add architecture/audit-ledger.jsonl architecture/decisions harness/queue/briefs
+            git commit -m "pipeline-orchestrate: ${{ steps.resolve.outputs.event }}"
+            git push
+          fi

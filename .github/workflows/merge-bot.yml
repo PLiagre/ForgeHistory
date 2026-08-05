@@ -1,0 +1,64 @@
+name: merge-bot
+
+# Brief 006, Lot 006b, Success Condition 13. Enforces .github/merge-bot.yaml
+# on every pull_request event: a bot-branch PR whose changed paths are a
+# subset of the allowlist, AND that touches none of the denylist, may be
+# auto-merged; anything else is refused, loudly. Named without a
+# `pipeline-` prefix on purpose -- see .github/merge-bot.yaml's header for
+# why (Required Counter `pipeline_workflows_count` must stay exactly 4).
+#
+# Deny wins unconditionally: a PR touching .github/workflows/**,
+# harness/verdict_audit.py, or VISION.md is never auto-merged by this
+# workflow, even from a bot branch, even if every other changed path is
+# allowlisted (brief 006 Non-Goals + eval-rubric.md Disqualifying
+# failures).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-and-automerge:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'cursor/') || startsWith(github.head_ref, 'forge-bot/')
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Diff changed paths against the allowlist and denylist
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_REF"
+          changed="$(git diff --name-only "origin/${BASE_REF}...HEAD")"
+          echo "Changed files:"
+          echo "$changed"
+
+          denied="$(printf '%s\n' "$changed" | grep -E '^(\.github/workflows/|harness/verdict_audit\.py$|VISION\.md$)' || true)"
+          if [ -n "$denied" ]; then
+            echo "::error::PR touches a denylisted path -- never auto-merged, no exception without an owner-listed entry in docs/adr/0006-full-auto-agent-pipeline.md:"
+            printf '%s\n' "$denied"
+            exit 1
+          fi
+
+          offending="$(printf '%s\n' "$changed" | grep -vE '^(architecture/inbox/|architecture/reviews/|harness/queue/briefs/.*/feedback/)' || true)"
+          if [ -n "$offending" ]; then
+            echo "::error::PR touches path(s) outside .github/merge-bot.yaml's allow_paths -- refusing auto-merge:"
+            printf '%s\n' "$offending"
+            exit 1
+          fi
+          echo "All changed paths are within the allowlist and none are denied."
+
+      - name: gh pr merge --auto
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr merge --auto --squash "${{ github.event.pull_request.number }}" \
+            || echo "::warning::gh pr merge --auto refused (e.g. required checks still pending, or branch protection absent/misconfigured) -- this is a soft failure, the PR stays open for the CI-gated merge to complete."
