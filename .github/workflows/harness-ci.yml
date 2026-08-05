@@ -1,0 +1,45 @@
+name: harness-ci
+
+# Migration step 9: run the deterministic checks that used to depend on an
+# agent remembering to run them. Two jobs:
+#   * tests     -- the full harness pytest suite (PowerShell tests self-skip
+#                  on Linux); test_verdict_audit.py covers the gate's ACCEPT
+#                  and REJECT paths with fresh fixtures.
+#   * f0-demo   -- the fake brief must be rejected by the mechanical gate,
+#                  proven by a real subprocess (F0's done-criterion).
+#
+# Why the honest-brief control is NOT run here: its ACCEPT depends on file
+# mtime invariants (rubric predates deliverables) that a git checkout
+# destroys -- checkout stamps every file with the same clock time. That
+# check is meaningful only in its authoring context; the ACCEPT path is
+# instead covered robustly by test_verdict_audit.py's fixtures.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip pytest
+      - name: Run the harness test suite
+        run: python -m pytest harness/tests/ -v
+
+  f0-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: The fake brief must be rejected by the mechanical gate
+        run: python harness/demo/fake_brief_001/run_demo.py
