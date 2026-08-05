@@ -6,3 +6,4 @@
 | [0002](0002-pluggable-generator-backend.md) | Pluggable Générateur backend (Claude Code default, Cursor CLI as second backend) | accepted | 2026-07-29 |
 | [0003](0003-single-spatial-primary-key.md) | The geographic cell as the single spatial primary key (Province as derived aggregation) | accepted | 2026-07-29 |
 | [0004](0004-bulk-port-victoriaproject-unity-game.md) | Bulk-port VictoriaProject's Unity game into `unity/game_unity/`, automation layer excluded | accepted | 2026-07-31 |
+| [0005](0005-cursor-as-independent-auditor.md) | Cursor Cloud as independent auditor (repositioned from Générateur backend) | accepted | 2026-08-05 |

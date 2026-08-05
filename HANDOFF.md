@@ -78,6 +78,12 @@ Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
 
 ## Open TODOs
 
+- [ ] **Cursor audit loop (ADR-0005) — review & merge PR #4**: branch
+      `forge/cursor-audit-loop` carries the multi-agent audit loop under
+      `architecture/` (steps 1–11: skeleton, ledger, the seven
+      `/forge-audit-*` commands, and three CI workflows). Local commits only
+      until reviewed; CI is green on the PR. Contract in
+      `architecture/README.md`.
 - [ ] **Run the brief 004 Évaluateur pass** (first thing next session):
       before it, the Planificateur must correct its own future-dated
       `Authored:` fields in `004-polish-visuel/{brief.md,eval-rubric.md}`

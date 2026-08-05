@@ -43,6 +43,10 @@ pass. See [docs/rules/harness-roles.md](docs/rules/harness-roles.md) and
   mechanical gate (`verdict_audit.py`), pluggable Générateur backends, and
   the fake-brief rejection demo.
 - **unity/** — thin render client, zero simulation logic. Empty stub.
+- **architecture/** — the multi-agent audit loop: Cursor Cloud audits, Claude
+  challenges, the owner decides, accepted audits become briefs. Contract +
+  lifecycle in `architecture/README.md`; decision in ADR-0005. Additive and
+  inert unless Cursor is used.
 - **docs/adr/** — one structural decision = one ADR, dated.
 - **docs/rules/** — modular, auto-referenced rules (never paraphrased
   elsewhere).
@@ -94,3 +98,4 @@ See [HANDOFF.md](HANDOFF.md) — rewritten at the end of every session.
 | `sim/**` | not yet populated — see `sim/README.md` (F1+) |
 | `pipeline/geo/**` | not yet populated — see `pipeline/geo/README.md` (F1) |
 | `harness/backends/**` | `harness/backends/README.md` (pluggable-Générateur contract) |
+| `architecture/**` | `architecture/README.md` (Cursor audit loop) + ADR-0005 |

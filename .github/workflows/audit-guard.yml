@@ -1,0 +1,50 @@
+name: audit-guard
+
+# Migration step 8: mechanically enforce the audit contract on every PR.
+# Two guards, both deterministic:
+#   * schema  -- every audit's frontmatter is valid (flags false, full SHA,
+#                id matches filename). Logic lives in harness/audit_schema.py.
+#   * scope   -- a PR from a Cursor branch may touch only architecture/inbox/.
+# A non-Cursor PR (like this migration) is exempt from the scope guard.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - name: Validate audit frontmatter schema
+        run: python harness/audit_schema.py
+
+  cursor-scope:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'cursor/')
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: A Cursor PR may only touch architecture/inbox/
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_REF"
+          changed="$(git diff --name-only "origin/${BASE_REF}...HEAD")"
+          echo "Changed files:"
+          echo "$changed"
+          offending="$(printf '%s\n' "$changed" | grep -v '^architecture/inbox/' || true)"
+          if [ -n "$offending" ]; then
+            echo "::error::Cursor PRs may only modify architecture/inbox/. Offending paths:"
+            printf '%s\n' "$offending"
+            exit 1
+          fi
+          echo "Scope OK: Cursor PR touches only architecture/inbox/."
