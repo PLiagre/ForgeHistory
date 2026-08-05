@@ -78,6 +78,12 @@ Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
 
 ## Open TODOs
 
+- [ ] **Full-auto agent pipeline (brief 006)**: lots 006a/006b PASSED
+      (`harness/queue/briefs/006-full-auto-agent-pipeline/verdict-006a.md`,
+      `verdict-006b.md`); Lot 006c in progress. See
+      `docs/adr/0006-full-auto-agent-pipeline.md` and
+      `docs/rules/full-auto-pipeline.md` for the derogation, the roles, and
+      how to activate/emergency-disable `mode: full_auto`.
 - [ ] **Cursor audit loop (ADR-0005) — review & merge PR #4**: branch
       `forge/cursor-audit-loop` carries the multi-agent audit loop under
       `architecture/` (steps 1–11: skeleton, ledger, the seven

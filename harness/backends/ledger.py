@@ -27,7 +27,8 @@ then be a lie. Same principle as above: report what is measurable, name
 what is not.
 
 Usage:
-  py harness/backends/ledger.py append --backend claude|cursor --brief <dir> [--event NAME]
+  py harness/backends/ledger.py append --backend claude|cursor --brief <dir> \
+      [--event NAME] [--audit-id ID]
   py harness/backends/ledger.py report
   py harness/backends/ledger.py tokens [--transcripts DIR] [--top N] [--json]
 """
@@ -72,13 +73,28 @@ BRIEF_RE = re.compile(r"harness/queue/briefs/([0-9]{3}-[a-z0-9-]+)")
 BRIEF_SCAN_LINES = 4
 
 
-def append_entry(backend: str, brief: str, event: str) -> None:
+def append_entry(backend: str, brief: str, event: str, audit_id: str | None = None) -> None:
+    """Append one Générateur-invocation record.
+
+    `audit_id` is OPTIONAL (SC16, brief 006 Lot 006c) -- set only when the
+    brief being run was itself produced by `audit_convert.convert()` from an
+    accepted audit. This is what closes the loop audit -> brief -> real cost:
+    `harness/audit_ledger.py`'s own AUDIT_CONVERTED event already records
+    which brief(s) an audit became (`briefs: [...]`); this field lets a
+    reader go the other direction, from a brief's real invocation cost back
+    to the audit that caused it, without a second lookup table -- the caller
+    (the orchestrator / forge-run wrapper) already has the audit_id in hand
+    at invocation time, so it is passed through here rather than reconciled
+    later by fuzzy matching brief paths.
+    """
     entry = {
         "timestamp": datetime.datetime.now().isoformat(),
         "backend": backend,
         "brief": brief,
         "event": event,
     }
+    if audit_id:
+        entry["audit_id"] = audit_id
     LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
     with LEDGER_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry) + "\n")
@@ -364,6 +380,12 @@ def main() -> int:
     p_append.add_argument("--backend", required=True, choices=["claude", "cursor"])
     p_append.add_argument("--brief", required=True)
     p_append.add_argument("--event", default="generator-run")
+    p_append.add_argument(
+        "--audit-id", default=None,
+        help="optional (SC16, brief 006 Lot 006c): set when this brief run "
+        "came from audit_convert.convert() of this audit_id, so cost can be "
+        "traced audit -> brief -> real spend",
+    )
 
     sub.add_parser("report")
 
@@ -380,7 +402,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "append":
-        append_entry(args.backend, args.brief, args.event)
+        append_entry(args.backend, args.brief, args.event, audit_id=args.audit_id)
     elif args.command == "report":
         report()
     elif args.command == "tokens":

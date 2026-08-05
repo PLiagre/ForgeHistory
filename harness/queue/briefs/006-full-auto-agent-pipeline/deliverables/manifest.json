@@ -27,7 +27,21 @@
     { "path": "../../../../.github/merge-bot.yaml" },
     { "path": "../../../../.github/workflows/merge-bot.yml" },
     { "path": "../../../../docs/rules/full-auto-pipeline.md" },
-    { "path": "deliverables/006b-validation.log" }
+    { "path": "deliverables/006b-validation.log" },
+    { "path": "../../../../harness/pipeline/supervisor.py" },
+    { "path": "../../../../harness/tests/test_supervisor.py" },
+    { "path": "../../../../harness/pipeline/forge_run_preflight.py" },
+    { "path": "../../../../harness/tests/test_forge_run_preflight.py" },
+    { "path": "../../../../.claude/commands/forge-run.md" },
+    { "path": "../../../../harness/backends/ledger.py" },
+    { "path": "../../../../harness/tests/test_ledger_audit_link.py" },
+    { "path": "../../../../harness/tests/test_full_auto_pipeline.py" },
+    { "path": "../../../../harness/pipeline/demo/run_full_auto_demo.sh" },
+    { "path": "../../../../architecture/inbox/CURSOR-FIXTURE-full-auto-demo.md" },
+    { "path": "deliverables/full-auto-demo.log" },
+    { "path": "../../../../CLAUDE.md" },
+    { "path": "../../../../HANDOFF.md" },
+    { "path": "deliverables/006c-validation.log" }
   ],
   "counters": [
     {
@@ -53,6 +67,30 @@
       "value": 4,
       "sample_size": 4,
       "command": "py -c \"from pathlib import Path; print(len(sorted(Path('.github/workflows').glob('pipeline-*.yml'))))\""
+    },
+    {
+      "name": "full_auto_demo_steps_count",
+      "value": 9,
+      "sample_size": 9,
+      "command": "grep -c \"STEP OK:\" harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/full-auto-demo.log"
+    },
+    {
+      "name": "web_sources_cited_count",
+      "value": 3,
+      "sample_size": 3,
+      "command": "py -c \"import re, pathlib; t = pathlib.Path('architecture/inbox/CURSOR-FIXTURE-full-auto-demo.md').read_text(encoding='utf-8'); print(len(re.findall(r'https?://\\S+.*?consult\\w+ le \\d{4}-\\d{2}-\\d{2}', t)))\""
+    },
+    {
+      "name": "audit_to_brief_trace_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py -c \"import json, pathlib; recs=[json.loads(l) for l in pathlib.Path('architecture/audit-ledger.jsonl').read_text(encoding='utf-8').splitlines() if l.strip()]; print(sum(1 for r in recs if r.get('event')=='AUDIT_CONVERTED' and r.get('briefs')))\""
+    },
+    {
+      "name": "cost_ledger_audit_link_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py -c \"import json, pathlib; recs=[json.loads(l) for l in pathlib.Path('harness/queue/cost-ledger.jsonl').read_text(encoding='utf-8').splitlines() if l.strip()]; print(sum(1 for r in recs if 'audit_id' in r))\""
     }
   ],
   "waivers": [

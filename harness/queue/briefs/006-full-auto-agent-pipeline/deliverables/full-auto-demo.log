@@ -1,0 +1,12 @@
+=== run_full_auto_demo.sh -- 2026-08-05T21:22:22Z ===
+audit_id: CURSOR-FIXTURE-full-auto-demo
+STEP OK: 0 idempotent cleanup (stale ledger/review/decision/demo-brief/cost-ledger lines for CURSOR-FIXTURE-full-auto-demo removed)
+STEP OK: 1 fixture audit present (architecture/inbox/CURSOR-FIXTURE-full-auto-demo.md) with 3 dated web sources (>= 3)
+STEP OK: 2 review scaffolded, filled, and recorded -> AUDIT_CHALLENGED
+STEP OK: 3 policy auto decided -> AUDIT_APPROVED (auto_policy.yaml rule review_has_confirmed_or_partial, no owner call)
+STEP OK: 4 audit converted -> AUDIT_CONVERTED (brief seed at harness/pipeline/demo/output/briefs/001-cursor-fixture-full-auto-demo, demo-local, never the real queue)
+STEP OK: 5 forge-run mock (Generateur+gate ACCEPT+Evaluateur PASS simulated) -> AUDIT_IMPLEMENTED, AUDIT_VERIFIED
+STEP OK: 6 cost ledger entry recorded with audit_id=CURSOR-FIXTURE-full-auto-demo (harness/queue/cost-ledger.jsonl)
+STEP OK: 7 audit archived -> AUDIT_ARCHIVED
+STEP OK: 8 ledger chain complete for CURSOR-FIXTURE-full-auto-demo -- final state AUDIT_ARCHIVED
+=== demo complete -- exit 0 ===

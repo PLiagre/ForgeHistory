@@ -46,7 +46,10 @@ pass. See [docs/rules/harness-roles.md](docs/rules/harness-roles.md) and
 - **architecture/** — the multi-agent audit loop: Cursor Cloud audits, Claude
   challenges, the owner decides, accepted audits become briefs. Contract +
   lifecycle in `architecture/README.md`; decision in ADR-0005. Additive and
-  inert unless Cursor is used.
+  inert unless Cursor is used. A machine-driven, no-human-in-the-loop
+  variant of this same loop (`mode: full_auto`) is a documented derogation
+  to ADR-0005 — see [docs/adr/0006-full-auto-agent-pipeline.md](docs/adr/0006-full-auto-agent-pipeline.md)
+  and [docs/rules/full-auto-pipeline.md](docs/rules/full-auto-pipeline.md).
 - **docs/adr/** — one structural decision = one ADR, dated.
 - **docs/rules/** — modular, auto-referenced rules (never paraphrased
   elsewhere).
@@ -99,3 +102,4 @@ See [HANDOFF.md](HANDOFF.md) — rewritten at the end of every session.
 | `pipeline/geo/**` | not yet populated — see `pipeline/geo/README.md` (F1) |
 | `harness/backends/**` | `harness/backends/README.md` (pluggable-Générateur contract) |
 | `architecture/**` | `architecture/README.md` (Cursor audit loop) + ADR-0005 |
+| `harness/pipeline/**` | `docs/rules/full-auto-pipeline.md` + ADR-0006 (full-auto derogation to ADR-0005) |

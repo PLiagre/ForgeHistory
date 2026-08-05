@@ -1,0 +1,6 @@
+{"timestamp": "2026-08-05T21:22:22Z", "audit_id": "CURSOR-FIXTURE-full-auto-demo", "event": "AUDIT_CHALLENGED", "actor": "claude", "review": "architecture/reviews/CLAUDE-CURSOR-FIXTURE-full-auto-demo.md", "verdicts": {"CONFIRMED": 1}}
+{"timestamp": "2026-08-05T21:22:23Z", "audit_id": "CURSOR-FIXTURE-full-auto-demo", "event": "AUDIT_APPROVED", "actor": "policy:auto", "reason": "policy: ledger_AUDIT_APPROVED_retained_points_confirmed_union_partial (auto_policy.yaml rule review_has_confirmed_or_partial)", "decision": "architecture/decisions/DECISION-CURSOR-FIXTURE-full-auto-demo.md", "retained_points": [1]}
+{"timestamp": "2026-08-05T21:22:23Z", "audit_id": "CURSOR-FIXTURE-full-auto-demo", "event": "AUDIT_CONVERTED", "actor": "owner", "briefs": ["harness/pipeline/demo/output/briefs/001-cursor-fixture-full-auto-demo"]}
+{"timestamp": "2026-08-05T21:22:23Z", "audit_id": "CURSOR-FIXTURE-full-auto-demo", "event": "AUDIT_IMPLEMENTED", "actor": "policy:auto"}
+{"timestamp": "2026-08-05T21:22:23Z", "audit_id": "CURSOR-FIXTURE-full-auto-demo", "event": "AUDIT_VERIFIED", "actor": "policy:auto"}
+{"timestamp": "2026-08-05T21:22:23Z", "audit_id": "CURSOR-FIXTURE-full-auto-demo", "event": "AUDIT_ARCHIVED", "actor": "policy:auto"}
