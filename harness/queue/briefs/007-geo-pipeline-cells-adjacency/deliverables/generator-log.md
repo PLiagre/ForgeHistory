@@ -615,3 +615,195 @@ sweep (`G3_R_CEIL_M` at three values, all hit the frozen seed cap without
 relieving the shortage). Escalated to the Planificateur per Amendment
 007a-R's required path, not self-granted as a pass, not silently forced
 green, not recorded as a plain carry-forward FAIL.
+
+## Lot 007a-R3 (Amendment 007a-R3: relax G3_AREA_CEIL_KM2, owner Option 2)
+
+**Author**: forge-generateur
+
+### R3.0 Split-check
+
+```
+py harness/budget.py split-check --brief harness/queue/briefs/007-geo-pipeline-cells-adjacency --estimated-calls 60
+```
+Result: `advisory: SIZE_OK`. Run before touching any file, as the amendment requires.
+
+### R3.1 The single authorized bound change
+
+`pipeline/geo/constants.py` line 409: `G3_AREA_CEIL_KM2 = 15_000.0` to
+`40_000.0`, marked `# FORGEHISTORY-G3-REPAIR (re-derived, Amendment
+007a-R3: 15000 -> 40000)`. `git diff pipeline/geo/constants.py` shows
+exactly this one changed value-line, nothing else — confirmed both at the
+start and end of this session.
+
+### R3.2 First re-run — confirms the amendment's own structural prediction
+
+`cd pipeline/geo && .venv/Scripts/python.exe tests/run_proof_g3.py` (single
+blocking call, `run_in_background` + wait for completion per the Execution
+Contract, roughly 4-8 minutes per run given the doubled `build_cells` cost
+from the existing "1.6" preview pass):
+
+- `EXIT=1`. `cell_count=596` (within `[150,600]`).
+- `G3-E` newly `passed: true` — `max=37217.8` km², comfortably under
+  the new 40,000 km² ceiling. This is exactly the "structural, no seeding
+  change required" outcome the amendment's own derivation predicted.
+- `G3-F` remains `passed: true` — `ratio=3.838`, well under 8.0.
+- `G3-G` still `passed: false` — the check's own truncated 8-entry detail
+  string; true count (via `artifacts/cells_g3.json` plus singleton
+  exemption, same method as checkpoint-002) is 21 of 393 non-island cells
+  below the 0.18 floor — unchanged from the pre-amendment measurement
+  (same 21, since the ceiling change alone does not touch the seeding
+  logic that produces compactness).
+- Determinism: 6/6 SHA pairs matched, non-empty.
+- 13/14 — up from 12/14 pre-amendment. Only `G3-G` remains.
+
+### R3.3 Extensive seeding-repair experimentation (all reverted — documented honestly)
+
+Per the amendment's explicit instruction (close the remaining sub-floor
+slivers via seeding; do not relax `G3_COMPACTNESS_MIN`), this session
+attempted 7 distinct, measured seeding-only repair strategies before
+concluding none improves on the 21-violation baseline without a worse
+trade-off. Every one of these was implemented, run, measured, and then
+reverted — the final `steps/03_cells.py` on disk has zero net behavior
+change versus the pre-session committed `HEAD` (confirmed: re-running the
+proof after reverting reproduces R3.2's exact `cell_count=596` and
+byte-identical determinism SHAs).
+
+1. Widened the post-Lloyd "1.6" repair pass's seed reserve from 8 to 60
+   (`effective_seed_cap = seed_count_max - 60`, giving the compactness-fix
+   pass far more headroom). Measured result: `cell_count` 596 to 544,
+   `G3-G` violations 21 to 23, violation rate 5.3% to 6.7%. Worse, not
+   better — fewer cells everywhere (Bridson's own density-adaptive step
+   starved of budget) means larger, less compact cells on average along
+   the fractal coasts, more than offsetting the extra targeted fixes.
+2. Reduced `G3_R_CEIL_M` (95,000 to 60,000 m), a genuine non-bound
+   seeding parameter, to densify low-urban-density peripheral zones
+   globally. Measured result: `G3-E` broke (max cell 48,884 km², over
+   40,000) — network-wide tighter spacing competed for the same shared
+   600-seed budget via Bridson's active list, starving a different,
+   previously-adequately-served mass. Reverted; `G3_R_CEIL_M` stays 95,000
+   (untouched, matches VictoriaProject).
+3. Reserve 35 plus iterative multi-round repair (rebuild preview, find
+   worst offenders, add seeds, repeat up to 8 rounds instead of one static
+   pass) — discovered and fixed a real bug in the process: the round-level
+   "did this round regress G3-E" guard only checked at the start of the
+   next round, so a regression introduced by the very last round (the one
+   that hit the seed cap) went unverified. Fixed by checking immediately
+   after each round's own additions. Even after the fix, measured result:
+   `G3-E` protected (0 area violations, confirmed), but `G3-G` reached 29
+   violations — worse than baseline.
+4. "Farthest point from existing seeds" candidate placement (9x9 grid
+   search inside the offending cell's own geometry, maximizing distance to
+   all current seeds) replacing plain centroid placement, hypothesizing
+   this would out-perform centroid for compactness fixes. Measured: closed
+   `G3-E` fully at reserve 15 and 35 (0 area violations, robust), but
+   `G3-G` raw violation counts (46-49, before singleton exemption) were
+   worse than the centroid-only baseline (about 24 raw) — the farthest
+   point is not always the best split point for an irregular coastal
+   shape.
+5. Hybrid: try centroid first, fall back to farthest-point only if
+   centroid is too close to an existing seed, plus area-priority severity
+   ordering (area-ceiling offenders always processed before compactness
+   ones within a round), plus reduced minimum spacing specifically for
+   area offenders (0.15 times `r_floor` instead of 0.5 times `r_floor`,
+   since a genuinely oversized cell must reach 0 violations, unlike a
+   compactness sliver). This combination did successfully close `G3-E` to
+   0 violations at reserve 35 (`max=37,662.6` km², confirmed via a direct
+   `build_cells` check on the returned seeds, independent of the full
+   proof script) — the best-performing area-fix strategy found this
+   session. But `G3-G` still measured 29 true (singleton-exempt)
+   violations at that configuration — again worse than the reserve 8
+   baseline's 21.
+6. Root-cause analysis of why more seeding does not help `G3-G`:
+   `seed_lon`/`seed_lat` of every one of the 21 baseline offenders (and
+   every variant's offender set) clusters in genuinely fractal coastal
+   geography — Norwegian fjords (lon roughly 6-9, lat roughly 59-61),
+   Scottish west-coast Highlands (lon roughly -9 to -5, lat roughly
+   52-58), Aegean islands (lon roughly 22-28, lat roughly 37-38).
+   Splitting an offending cell in these zones with one more seed
+   frequently produces a new small sliver-shaped neighbor with comparably
+   poor compactness — a real property of this specific coastline's
+   fractal detail at this seed density, not a placement-algorithm gap.
+   This is consistent with `constants.py`'s own pre-existing comment
+   (coastal cells naturally sink toward the floor near the fractal NE
+   coastline).
+7. Given (1) through (6), reverted `steps/03_cells.py` to the exact
+   pre-session committed `HEAD` content (copied from `git show HEAD:...`,
+   not `git checkout` — destructive git operations are gated in this
+   session) rather than land any of the experimentally-worse
+   configurations. Re-ran the proof to confirm this reproduces R3.2's
+   exact 13/14 result (identical `cell_count=596`, identical determinism
+   SHAs) — it does.
+
+This is recorded as an open finding for the Planificateur, not a formal
+pigeonhole proof and not self-granted as a pass — see
+`deliverables/manifest.json`'s `brief_scope_conflicts` entry for the
+precise, evidence-cited claim.
+
+### R3.4 `G3_SEED_COUNT_MAX` re-verified sufficient at the new ceiling
+
+Not re-derived this session — the amendment's own brief.md section already
+re-derives this (371 minimum at the new 40,000 km² ceiling versus 600
+available, 1.62x headroom) and explicitly states no fresh re-derivation is
+required. Cross-checked directly against this session's own measured
+`cell_count=596` (well under 600, consistent with the amendment's
+prediction that the raised ceiling would not push the count above what was
+already measured at the old, tighter ceiling).
+
+### R3.5 Frozen-scope verification (Disqualifying Failures, all clear)
+
+All six now-frozen G3 bound constants (`G3_SEED_COUNT_MIN`,
+`G3_AREA_FLOOR_KM2`, `G3_AREA_MAX_MEDIAN_RATIO`, `G3_COMPACTNESS_MIN`,
+`G3_AREA_EPS_M2`, `G3_OVERLAP_EPS_M2`) verified byte-value-identical to
+VictoriaProject's `constants.py` (6/6). `G3_SEED_COUNT_MAX=600` unchanged,
+matches Amendment 007a-R2's derivation. `G3_AREA_CEIL_KM2=40000.0`, the one
+authorized change. `run_proof_g3.py` / `test_qa_red_g3.py` / `qa/checks.py`
+verified 3/3 byte-identical to VictoriaProject. Neither
+`G3_COMPACTNESS_MIN` nor `G3_AREA_MAX_MEDIAN_RATIO` was touched at any
+point this session, including during the reverted experiments in R3.3 —
+every experiment operated exclusively on `steps/03_cells.py` seeding logic
+(never on a threshold), consistent with Amendment 007a-R3's explicit
+prohibition.
+
+### R3.6 A real, pre-existing disqualifying-failure risk found and fixed
+
+Re-running the unmarked-diff-line check against the freshly-restored
+`HEAD` content (R3.3 step 7) gave 2, not 0 — the same 2 unmarked blank
+spacer lines checkpoint-002 had previously found and fixed in an
+uncommitted session that was never actually landed in the `175f2ac`
+commit. Re-applied the identical fix this session (deleted both blank
+lines between marked comment blocks, zero behavior change — confirmed by
+re-running the full proof: identical `cell_count=596` and byte-identical
+determinism SHAs before and after the deletion).
+`g3_unmarked_nonrepair_diff_line_count` re-confirmed 0 after the fix.
+
+### R3.7 Evidence re-tracked
+
+`git add -f` re-run on all 12 evidence files plus `constants.py` plus
+`steps/03_cells.py`, reflecting the final post-Amendment-007a-R3 state
+(`G3-E`/`G3-F` green, `G3-G` red, `cell_count=596`, determinism 6/6).
+`deliverables/007a-r3-validation.log` holds the full final proof-run
+output.
+
+### Summary for the Évaluateur (Amendment 007a-R3)
+
+- `G3_AREA_CEIL_KM2` = 40,000.0 exactly, the one authorized change,
+  marked, single-line diff. Confirmed structurally: `G3-E` is now
+  genuinely `passed: true` with real margin (`max=37,217.8` km², 6.9%
+  under ceiling) — exactly the outcome the amendment's own derivation
+  predicted.
+- `G3-F` remains green (`ratio=3.838` versus `ceil=8.0`).
+- `G3-G` remains red — 21 of 393 non-island cells below the 0.18
+  compactness floor. Extensive, honestly-documented seeding-only repair
+  experimentation (7 distinct configurations, real before/after numbers)
+  found no configuration that improves on this baseline without either
+  worsening `G3-G` itself or risking `G3-E` — a genuinely new finding
+  beyond Amendment 007a-R2's own area-only pigeonhole proof, recorded as
+  an open finding for the Planificateur, not self-granted as a pass.
+- 13/14, not 14/14. Determinism preserved (6/6). `cell_count=596` within
+  `[150,600]`. All 6 remaining frozen bounds byte-identical (6/6). Check
+  definitions byte-identical (3/3).
+  `g3_unmarked_nonrepair_diff_line_count=0`.
+- Session's net change to the repository: `constants.py`'s one authorized
+  line, plus a 2-line cosmetic (zero-behavior) fix to `steps/03_cells.py`
+  that re-applies a prior session's own already-described fix that had
+  not actually been committed.

@@ -406,7 +406,7 @@ G3_LLOYD_ITERATIONS = 30  # FORGEHISTORY-G3-REPAIR (seeding param, Amendment 007
 # Bornes de forme (contrôles G3-E/F/G) — dérivées de r(x).
 # Plancher assoupli pour îles singleton (masse entière = 1 cellule).
 G3_AREA_FLOOR_KM2 = 200.0
-G3_AREA_CEIL_KM2 = 15_000.0
+G3_AREA_CEIL_KM2 = 40_000.0  # FORGEHISTORY-G3-REPAIR (re-derived, Amendment 007a-R3: 15000 -> 40000)
 G3_AREA_MAX_MEDIAN_RATIO = 8.0
 # Plancher PP : les cellules côtières (trait NE fractal) descendent naturellement ;
 # 0.18 interdit les lanières/échardes (v1_048 min 0.105) sans exiger un disque.

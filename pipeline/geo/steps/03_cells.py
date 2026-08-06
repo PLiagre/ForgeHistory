@@ -780,7 +780,6 @@ def build_seeds(
                 }  # FORGEHISTORY-G3-REPAIR
             )  # FORGEHISTORY-G3-REPAIR
         return recs  # FORGEHISTORY-G3-REPAIR
-
     # 1.6) Passe ciblee POST-LLOYD (Amendment 007a-R2, tentative de finition) :  # FORGEHISTORY-G3-REPAIR
     # construit une preview Voronoi (build_cells, meme fonction que l'export  # FORGEHISTORY-G3-REPAIR
     # final) sur le semis actuel pour lire area_km2/compactness_polsby_popper  # FORGEHISTORY-G3-REPAIR
@@ -820,7 +819,6 @@ def build_seeds(
             continue  # FORGEHISTORY-G3-REPAIR
         seeds_xy.append(cand)  # FORGEHISTORY-G3-REPAIR
     seeds_xy = sorted(set(seeds_xy), key=lambda p: (p[0], p[1]))  # FORGEHISTORY-G3-REPAIR
-
     seed_records = _records_for(seeds_xy)  # FORGEHISTORY-G3-REPAIR
 
     n = len(seeds_xy)

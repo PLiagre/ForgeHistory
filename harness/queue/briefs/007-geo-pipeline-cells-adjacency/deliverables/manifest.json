@@ -1,5 +1,6 @@
 {
   "lot": "007a",
+  "amendment": "007a-R3",
   "files": [
     {
       "path": "deliverables/pre-port/03_cells.py.orig"
@@ -10,6 +11,7 @@
     },
     { "path": "../../../../pipeline/geo/pipeline.py" },
     { "path": "../../../../pipeline/geo/steps/03_cells.py" },
+    { "path": "../../../../pipeline/geo/constants.py" },
     { "path": "../../../../pipeline/geo/tests/run_proof_g3.py" },
     { "path": "../../../../pipeline/geo/tests/test_qa_red_g3.py" },
     { "path": "../../../../pipeline/geo/legacy_game_data/cities.json" },
@@ -27,21 +29,23 @@
     { "path": "../../../../pipeline/geo/capture/v1_049_cells_coast_zoom.png" },
     { "path": "../../../../pipeline/geo/capture/v1_049_cells_paris_basin.png" },
     { "path": "../../../../pipeline/geo/capture/v1_049_paris_basin_before_after.png" },
-    { "path": "deliverables/007a-repair-validation.log" }
+    { "path": "deliverables/007a-repair-validation.log" },
+    { "path": "deliverables/007a-r3-validation.log" },
+    { "path": "deliverables/checkpoint-003.md" }
   ],
   "counters": [
     {
       "name": "byte_identical_new_files_count",
       "value": 5,
       "sample_size": 5,
-      "sample_size_note": "LOT 007a SUBSET of the Required Counter's full denominator of 8. This lot copies 5 of the 8 files named in the brief's byte-identical set (pipeline.py, run_proof_g3.py, test_qa_red_g3.py, cities.json, city_coordinates.json). The remaining 3 (run_proof_g4.py, test_qa_red_g4.py, sea_zones.json) are lot 007b's scope and do not exist yet. All 5 in scope for this lot are byte-identical.",
+      "sample_size_note": "Unchanged this amendment (Lot 007a subset of 8; sea_zones.json/run_proof_g4.py/test_qa_red_g4.py are Lot 007b scope).",
       "command": "py -c \"import hashlib; from pathlib import Path; VP=Path('C:/Users/liagr/VictoriaProject'); S=VP/'sandbox/geo'; D=Path('pipeline/geo'); pairs=[(S/'pipeline.py',D/'pipeline.py'),(S/'tests/run_proof_g3.py',D/'tests/run_proof_g3.py'),(S/'tests/test_qa_red_g3.py',D/'tests/test_qa_red_g3.py'),(VP/'game_unity/Assets/StreamingAssets/data/cities.json',D/'legacy_game_data/cities.json'),(VP/'game_unity/Assets/StreamingAssets/data/city_coordinates.json',D/'legacy_game_data/city_coordinates.json')]; sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest(); print(sum(1 for a,b in pairs if sha(a)==sha(b)))\""
     },
     {
       "name": "legacy_data_sha_target_match_count",
       "value": 2,
       "sample_size": 2,
-      "sample_size_note": "LOT 007a SUBSET of the Required Counter's full denominator of 3 (sea_zones.json is lot 007b). Both cities.json and city_coordinates.json match the exact target hashes cited in brief.md Success Condition 2, themselves cited from VictoriaProject's own artifacts/MANIFEST_g3.json inputs block.",
+      "sample_size_note": "Unchanged this amendment.",
       "command": "py -c \"import hashlib; from pathlib import Path; targets={'cities.json':'e2052ac855692316fbda19c9ae4a8d76bb9d7e196ccdf5702b43f672fbbcebfb','city_coordinates.json':'052f7f4bfcf0bf16caff2ee9ea6048bd89c9b4200430749918ea48a6e69e00aa'}; D=Path('pipeline/geo/legacy_game_data'); print(sum(1 for f,t in targets.items() if hashlib.sha256((D/f).read_bytes()).hexdigest()==t))\""
     },
     {
@@ -49,98 +53,112 @@
       "value": 2,
       "sample_size": 2,
       "command": "py -c \"import hashlib; from pathlib import Path; VP=Path('C:/Users/liagr/VictoriaProject'); D=Path('pipeline/geo/legacy_game_data'); pairs=[(VP/'game_unity/Assets/StreamingAssets/data/province_adjacency.json',D/'province_adjacency.json'),(VP/'game_unity/Assets/StreamingAssets/data/province_coordinates.json',D/'province_coordinates.json')]; sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest(); print(sum(1 for a,b in pairs if sha(a)==sha(b)))\"",
-      "sample_size_note": "Re-verified this session, not re-copied. province_adjacency.json SHA (37e8b5f3da0d632cce89c8a9bb0108bea3c59ad885babdbfeac053cd5d0ef89e) also matches brief.md Success Condition 2's cited target exactly. No drift since brief 002."
+      "sample_size_note": "Unchanged since brief 002, re-verifiable, not re-copied."
     },
     {
       "name": "path_adjustment_marker_count",
       "value": 2,
       "sample_size": 1,
-      "sample_size_note": "LOT 007a: only steps/03_cells.py is adjusted this lot (steps/04_adjacency.py is lot 007b). Denominator = 1 file, which must carry >=1 marker; it carries 2 (CITIES_JSON and CITY_COORDS_JSON, each on its own line).",
+      "sample_size_note": "Unchanged this amendment (only steps/03_cells.py in Lot 007a scope).",
       "command": "rg -c '# FORGEHISTORY-PATH-ADJUSTMENT' pipeline/geo/steps/03_cells.py"
     },
     {
       "name": "g3_unmarked_nonrepair_diff_line_count",
       "value": 0,
-      "sample_size": 23,
-      "command": "git diff --no-index harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/pre-port/03_cells.py.orig pipeline/geo/steps/03_cells.py | grep '^+' | grep -v '^+++' | grep -vc -e 'FORGEHISTORY-PATH-ADJUSTMENT' -e 'FORGEHISTORY-G3-REPAIR'",
-      "sample_size_note": "AMENDMENT 007a-R: supersedes path_adjustment_unmarked_diff_line_count for steps/03_cells.py this lot. Diffed with git diff --no-index (real Myers-algorithm diff, not just Python difflib) against the SAME deliverables/pre-port/03_cells.py.orig snapshot reused from the original port run. Every added/changed line (2 path-adjustment + 21 repair-marked, including lines whose own text is unchanged but were relocated by the Bridson/urban-anchor reorder -- explicitly marked too, to be safe against either diff algorithm) ends in one of the two markers. Unmarked count = 0."
+      "sample_size": 25,
+      "command": "cd pipeline/geo && git diff --no-index ../../harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/pre-port/03_cells.py.orig steps/03_cells.py | grep '^+' | grep -v '^+++' | grep -vc -e FORGEHISTORY-PATH-ADJUSTMENT -e FORGEHISTORY-G3-REPAIR",
+      "sample_size_note": "Re-verified fresh this session against the SAME frozen deliverables/pre-port/03_cells.py.orig snapshot. Found and fixed 2 unmarked blank spacer lines that had regressed from checkpoint-002's own (uncommitted) fix back to the committed HEAD state (a blank line cannot carry a trailing # marker by construction) -- deleted both, re-verified 0 after the fix, byte-identical determinism confirmed unaffected (see generator-log.md Lot 007a-R3 section)."
     },
     {
       "name": "g3_repair_marker_count",
-      "value": 21,
-      "sample_size": 21,
+      "value": 196,
+      "sample_size": 196,
       "command": "rg -c '# FORGEHISTORY-G3-REPAIR' pipeline/geo/steps/03_cells.py ; rg -c '# FORGEHISTORY-G3-REPAIR' pipeline/geo/constants.py",
-      "sample_size_note": "21 occurrences in steps/03_cells.py (change 1: 2 lines in _iter_parts filtering sub-area_eps slivers; change 2: 19 lines in _poisson_variable_radius reordering Bridson before urban anchors, incl. relocated-but-textually-unchanged lines marked for diff-safety). 0 occurrences in constants.py -- no seeding-parameter constant was changed; the repair is seeding/construction logic only. Justified against verdict-007a.md's established cell_count=401 finding, not a silent zero: the repair is real and non-trivial (2 marked changes), not claimed-zero."
+      "sample_size_note": "196 occurrences in steps/03_cells.py (unchanged this amendment -- the 03_cells.py seeding/construction logic itself was NOT further modified this amendment beyond the 2-blank-line cosmetic fix above; extensive iterative-repair experiments were tried this session -- see generator-log.md's honest before/after table -- but all were reverted, since none improved on the already-committed Amendment-007a-R2 seeding logic once measured against the true, singleton-exempt violation count). 3 occurrences in constants.py (G3_SEED_COUNT_MAX line, G3_LLOYD_ITERATIONS line [both pre-existing, Amendment 007a-R2], plus the NEW G3_AREA_CEIL_KM2 line, Amendment 007a-R3)."
     },
     {
       "name": "g3_check_definitions_byte_identical",
       "value": 3,
       "sample_size": 3,
       "command": "py -c \"import hashlib; sha=lambda p: hashlib.sha256(open(p,'rb').read()).hexdigest(); pairs=[('pipeline/geo/tests/run_proof_g3.py','C:/Users/liagr/VictoriaProject/sandbox/geo/tests/run_proof_g3.py'),('pipeline/geo/tests/test_qa_red_g3.py','C:/Users/liagr/VictoriaProject/sandbox/geo/tests/test_qa_red_g3.py'),('pipeline/geo/qa/checks.py','C:/Users/liagr/VictoriaProject/sandbox/geo/qa/checks.py')]; print(sum(1 for a,b in pairs if sha(a)==sha(b)))\"",
-      "sample_size_note": "run_proof_g3.py, test_qa_red_g3.py, qa/checks.py all remain byte-identical to VictoriaProject's originals -- the quality bar (check definitions, thresholds, red-cases) was not weakened by the repair. 3/3."
+      "sample_size_note": "run_proof_g3.py, test_qa_red_g3.py, qa/checks.py all remain byte-identical to VictoriaProject -- unchanged this amendment. 3/3."
     },
     {
       "name": "g3_bound_constants_unchanged",
-      "value": 8,
-      "sample_size": 8,
-      "command": "py -c \"import re; names=['G3_SEED_COUNT_MIN','G3_SEED_COUNT_MAX','G3_AREA_FLOOR_KM2','G3_AREA_CEIL_KM2','G3_AREA_MAX_MEDIAN_RATIO','G3_COMPACTNESS_MIN','G3_AREA_EPS_M2','G3_OVERLAP_EPS_M2']; extract=lambda p: {n: re.search(rf'^{n}\\s*=\\s*(.+?)\\s*(#.*)?$', open(p,encoding='utf-8').read(), re.M).group(1).strip() for n in names}; a=extract('pipeline/geo/constants.py'); b=extract('C:/Users/liagr/VictoriaProject/sandbox/geo/constants.py'); print(sum(1 for n in names if a[n]==b[n]))\"",
-      "sample_size_note": "All 8 named G3 acceptance-bound constants have identical values in this repo's constants.py vs VictoriaProject's -- confirms the repair did not touch a frozen bound. 8/8."
+      "value": 6,
+      "sample_size": 6,
+      "command": "py -c \"import re; names=['G3_SEED_COUNT_MIN','G3_AREA_FLOOR_KM2','G3_AREA_MAX_MEDIAN_RATIO','G3_COMPACTNESS_MIN','G3_AREA_EPS_M2','G3_OVERLAP_EPS_M2']; extract=lambda p: {n: re.search(rf'^{n}\\s*=\\s*(.+?)\\s*(#.*)?$', open(p,encoding='utf-8').read(), re.M).group(1).strip() for n in names}; a=extract('pipeline/geo/constants.py'); b=extract('C:/Users/liagr/VictoriaProject/sandbox/geo/constants.py'); print(sum(1 for n in names if a[n]==b[n]))\"",
+      "sample_size_note": "AMENDMENT 007a-R3: redefined to the SIX now-frozen constants (G3_AREA_CEIL_KM2 carved out into its own counter below, matching exactly how G3_SEED_COUNT_MAX was carved out by Amendment 007a-R2). All 6 identical to VictoriaProject. 6/6."
+    },
+    {
+      "name": "g3_seed_count_max_matches_derivation",
+      "value": 600,
+      "sample_size": 1,
+      "command": "py -c \"import re; t=open('pipeline/geo/constants.py',encoding='utf-8').read(); print(re.search(r'^G3_SEED_COUNT_MAX\\s*=\\s*(.+?)\\s*(#.*)?$', t, re.M).group(1))\"",
+      "sample_size_note": "Unchanged by Amendment 007a-R3 (left untouched per the amendment's own text). Must equal 600 exactly -- does."
+    },
+    {
+      "name": "g3_area_ceil_matches_derivation",
+      "value": 40000.0,
+      "sample_size": 1,
+      "command": "py -c \"import re; t=open('pipeline/geo/constants.py',encoding='utf-8').read(); print(re.search(r'^G3_AREA_CEIL_KM2\\s*=\\s*(.+?)\\s*(#.*)?$', t, re.M).group(1))\"",
+      "sample_size_note": "NEW counter, Amendment 007a-R3. constants.py line 409 now reads G3_AREA_CEIL_KM2 = 40_000.0, marked # FORGEHISTORY-G3-REPAIR (re-derived, Amendment 007a-R3: 15000 -> 40000). Matches the derived value (real-world Netherlands-scale anchor, +15.7% margin over the measured 34,559 km2 max at the time of derivation) cited in brief.md's Amendment 007a-R3 section exactly. This is the ONLY changed line in constants.py's value set this amendment -- git diff of constants.py shows exactly one changed line."
     },
     {
       "name": "game_unity_reference_remaining_count",
       "value": 0,
       "sample_size": 5,
       "command": "py -c \"import os,re; pat=re.compile(r'game_unity|StreamingAssets'); hits=[]\nfor dp,dns,fns in os.walk('pipeline/geo'):\n dns[:] = [d for d in dns if d not in ('.venv','__pycache__')]\n for fn in fns:\n  if not fn.endswith('.py'): continue\n  fp=os.path.join(dp,fn)\n  for i,line in enumerate(open(fp,encoding='utf-8',errors='ignore'),1):\n   if pat.search(line): hits.append((fp,i))\nprint(len(hits))\nfor h in hits: print(h)\"",
-      "sample_size_note": "AMENDMENT 007a-R (Amended Success Condition 6): the 3 pre-existing steps/03_cells.py literals (:108, :109, :179 -- RADIUS_FIELD['sources'] metadata + a docstring, both untouched by the repair, confirmed by diff) plus constants.py's 2 existing FORBIDDEN_GAME_PATH_MARKERS literals (:561-562, brief-002 scope, untouched) are now a permanent, unconditional exception (5 named lines total), independent of whether the repair happens to touch them (it does not -- diffed those 3 lines specifically against .orig: unchanged). Whole-tree .py-only walk finds exactly 5 raw hits, all 5 excluded under the exception -> 0. This supersedes the original port run's 'unsatisfiable at 5' brief-scope-conflict finding -- resolved by the amendment, not by this session's edits."
+      "sample_size_note": "Unchanged this amendment -- the same 5-literal permanent exception from Amendment 007a-R (3 in steps/03_cells.py's RADIUS_FIELD/docstring, 2 in constants.py's FORBIDDEN_GAME_PATH_MARKERS) still applies, still 0 after exclusion."
     },
     {
       "name": "g3_determinism_sha_pairs_matched_count",
       "value": 6,
       "sample_size": 6,
       "command": "py -c \"import json; d=json.load(open('pipeline/geo/logs/v1_049_qa.json',encoding='utf-8'))['determinism']['sha256']; print(sum(1 for a,b in d.values() if a and b and a==b), len(d))\"",
-      "sample_size_note": "Re-measured post-repair. All 6 compared artifacts (MANIFEST_g3.json, adjacency_g3.json, cells_g3.json, stats_g3.json, registry/cell_registry.json, registry/g6_density_refinement.json) have matching, non-empty SHA256 across the two runs run_proof_g3.py performs internally. Determinism is PRESERVED by the repair (Amended SC7's absolute requirement)."
+      "sample_size_note": "Re-measured fresh this session, post-40,000km2-ceiling re-run. All 6 compared artifacts have matching, non-empty SHA256 across the two runs run_proof_g3.py performs internally. Determinism PRESERVED under the new bound. Also independently re-confirmed byte-identical after the 2-blank-line cosmetic fix (same SHAs both times, proving the fix was truly behavior-neutral)."
     },
     {
       "name": "g3_qa_checks_passed_count",
-      "value": 11,
+      "value": 13,
       "sample_size": 14,
       "command": "py -c \"import json; cs=json.load(open('pipeline/geo/logs/v1_049_qa.json',encoding='utf-8'))['checks']; print(sum(1 for c in cs if c.get('passed') is True), len(cs))\"",
-      "sample_size_note": "REAL MEASURED RESULT, post-repair. 11 of 14 checks now passed:true (Q1,Q2,Q3,Q4,Q10,G3-A,G3-B,G3-C,G3-D,G3-H,G2b-B) -- G3-B and G3-D newly green vs the original port (was 9/14). 3 still fail: G3-E, G3-F, G3-G -- proven mathematically unsatisfiable by any seeding-parameter-only change given the frozen G3_SEED_COUNT_MAX=400 x G3_AREA_CEIL_KM2=15000 < actual land area 6,667,146.53 km2 (pigeonhole; see generator-log.md Lot 007a-R SS R4). Escalated to the Planificateur per Amendment 007a-R's required path, NOT self-granted as a pass. Required denominator target = 14 (all pass) -- NOT MET, but no longer an admissible carry-forward FAIL either; this is the escalation the amendment anticipates."
+      "sample_size_note": "REAL MEASURED RESULT, post-Amendment-007a-R3 (fresh re-run against the new 40,000 km2 ceiling). 13 of 14 now passed:true -- G3-E is NEWLY GREEN (was red pre-amendment; the raised ceiling structurally resolves it exactly as the amendment predicted: measured max cell area 37,217.8 km2, comfortably under 40,000). G3-F remains green (ratio 3.838, well under 8.0). ONLY G3-G (compactness) remains red: 21 of 393 non-island cells below the 0.18 floor (singleton-exempt applied, matching the check's own exemption logic -- true count, not the check's own 8-entry truncated detail string). Does NOT reach 14/14 -- see generator-log.md's extensive documented seeding-repair experimentation (7+ distinct configurations tried and measured this session) for why: every attempt to seed MORE compactness fixes into the budget either failed to improve on the 21-violation baseline or made it WORSE (up to 29-49 violations), because the underlying land geometry in the affected region (Norwegian fjords, Scottish Highlands, Aegean islands -- genuinely fractal coastlines) responds to additional seeding by creating new small sliver cells at roughly the same rate it fixes old ones, and any seeding-budget reallocation large enough to matter risks reintroducing G3-E violations (also empirically demonstrated, see generator-log.md)."
     },
     {
       "name": "g3_qa_checks_red_proof_count",
       "value": 14,
       "sample_size": 14,
       "command": "py -c \"import json; cs=json.load(open('pipeline/geo/logs/v1_049_qa.json',encoding='utf-8'))['checks']; print(sum(1 for c in cs if isinstance(c.get('red_proof'),str) and c.get('red_proof')), len(cs))\"",
-      "sample_size_note": "All 14 checks (including the 3 that still fail on 'passed') carry a non-empty red_proof -- every check's red-case mutation genuinely fired, independent of whether the green case itself passed. The repair did not weaken or disable any red-case (test_qa_red_g3.py is byte-identical and untouched)."
+      "sample_size_note": "All 14 checks (including the 1 that still fails on 'passed') carry a non-empty red_proof -- every check's red-case mutation genuinely fired this session, post-40,000km2-ceiling re-run."
     },
     {
       "name": "g3_cell_count_in_range",
       "value": true,
       "sample_size": 1,
-      "command": "py -c \"import json; s=json.load(open('pipeline/geo/artifacts/stats_g3.json',encoding='utf-8')); c=s['cell_count']; print(c, 150<=c<=400)\"",
-      "sample_size_note": "cell_count=399, within [150,400]. REAL MEASURED RESULT, post-repair (was 401/false pre-repair). Per Amendment 007a-R, this must be genuinely true, not a carry-forward FAIL -- it is."
+      "command": "py -c \"import json; s=json.load(open('pipeline/geo/artifacts/stats_g3.json',encoding='utf-8')); c=s['cell_count']; print(c, 150<=c<=600)\"",
+      "sample_size_note": "cell_count=596, within [150,600]. REAL MEASURED RESULT, post-Amendment-007a-R3 re-run."
     },
     {
       "name": "evidence_files_git_tracked_count",
       "value": 12,
       "sample_size": 12,
       "command": "git add -f pipeline/geo/logs/v1_049_qa.json pipeline/geo/logs/v1_049_cells.log pipeline/geo/artifacts/MANIFEST_g3.json pipeline/geo/artifacts/adjacency_g3.json pipeline/geo/artifacts/cells_g3.json pipeline/geo/artifacts/stats_g3.json pipeline/geo/registry/cell_registry.json pipeline/geo/registry/g6_density_refinement.json pipeline/geo/capture/v1_049_cells_window.png pipeline/geo/capture/v1_049_cells_coast_zoom.png pipeline/geo/capture/v1_049_cells_paris_basin.png pipeline/geo/capture/v1_049_paris_basin_before_after.png && git ls-files pipeline/geo/logs pipeline/geo/artifacts pipeline/geo/registry pipeline/geo/capture | grep -c .",
-      "sample_size_note": "Re-force-added this session (repair regenerated all 12 files in place, same paths as the original 007a run). Same mechanism as the original 007a run (git add -f), consistent, not a new mechanism. All 12 confirmed tracked via git ls-files after the add."
+      "sample_size_note": "Re-force-added this session (re-run regenerated all 12 files in place, same paths). All 12 confirmed tracked via git ls-files/git status after the add, reflecting the FINAL post-Amendment-007a-R3 state (G3-E green, G3-G red, 596 cells)."
     },
     {
       "name": "proof_script_exit_code_zero_count",
       "value": 0,
       "sample_size": 1,
       "command": "cd pipeline/geo && .venv/Scripts/python.exe tests/run_proof_g3.py; echo G3_EXIT:$?",
-      "sample_size_note": "REAL MEASURED RESULT, post-repair: run_proof_g3.py still exits 1, not 0 -- G3-E/F/G remain red (see g3_qa_checks_passed_count note). This is NOT an unresolved defect: it is the mathematically-proven-unsatisfiable state escalated in generator-log.md SS R4, with a closed-form pigeonhole proof and an empirical parameter sweep as evidence, per Amendment 007a-R's required escalation path. No pip/venv waiver applies -- the venv is fully functional (shapely 2.1.2, pyproj 3.7.2, numpy 2.5.1); the script ran to completion twice, wrote all artifacts, and printed a full report both times."
+      "sample_size_note": "REAL MEASURED RESULT, post-Amendment-007a-R3: run_proof_g3.py still exits 1, not 0 -- only G3-G remains red (13/14, up from 12/14 pre-amendment). G3-E's structural fix (the amendment's primary, explicitly-predicted goal) is confirmed; G3-G's residual 21 violations are not closable via seeding within this session's extensive, reproducible experimentation (documented in generator-log.md) without either worsening G3-G itself or risking G3-E -- recorded as an open finding for the Planificateur, not self-granted as a pass."
     }
   ],
   "waivers": [],
   "brief_scope_conflicts": [
     {
-      "claim": "G3-E/G3-F/G3-G cannot be satisfied by any seeding-parameter-only change to steps/03_cells.py without touching a frozen bound constant (G3_SEED_COUNT_MAX or G3_AREA_CEIL_KM2) or the land geometry itself (out of this lot's scope)",
-      "detail": "ESCALATED per Amendment 007a-R's required path -- not self-granted as a pass, not a plain carry-forward FAIL. Proof (generator-log.md Lot 007a-R SS R4): this repo's own land_xy.area (the current pilot-window land geometry) = 6,667,146.530456 km2, directly measured. G3_SEED_COUNT_MAX(400, frozen) x G3_AREA_CEIL_KM2(15000, frozen) = 6,000,000 km2, which is 667,146.53 km2 short of the actual land area. Q2 (no-holes, frozen, currently passed:true) requires the cells to tile ~all of the land (global tolerance ~1 hectare against 6.67 million km2), so the sum of cell areas must equal ~6,667,146.53 km2; by the pigeonhole principle at least one cell must exceed G3_AREA_CEIL_KM2 regardless of algorithm, as long as G3_SEED_COUNT_MAX/G3_AREA_CEIL_KM2 stay frozen and the land geometry is unchanged (both true; neither is in this lot's permitted scope to alter). PILOT_WINDOW_LONLAT=(-11.32,29.7,34.82,61.5) genuinely spans Western/Central/Northern Europe plus the Maghreb Mediterranean coast at real-world scale (part-level land areas cross-checked against known national areas) -- this is a real land-area/budget mismatch from brief 002's coastline refinement widening the pilot window without G3_SEED_COUNT_MAX/G3_AREA_CEIL_KM2 being recalibrated, not a coastline bug or an algorithm defect. Empirical sweep (G3_R_CEIL_M, a confirmed non-bound seeding parameter, at 95000/60000/40000): all three hit the frozen 400-seed cap without relieving the shortage, since tightening minimum spacing everywhere increases demand network-wide, not just in the under-served masses. This claim is recorded as a brief-premise/constants-calibration conflict for the Planificateur, exactly as Amendment 007a-R's escalation clause names -- not resolved by editing a frozen check or threshold, not silently forced green."
+      "claim": "G3-G (compactness floor 0.18) cannot be closed to 0 violations via any seeding-budget-only change within G3_SEED_COUNT_MAX=600, at the now-corrected G3_AREA_CEIL_KM2=40,000, without either (a) failing to improve on the 21-violation baseline, or (b) making G3-G measurably WORSE, or (c) risking reintroducing G3-E violations -- a genuinely new, materially-different finding from Amendment 007a-R2's own area-budget-only pigeonhole proof (which concerned total AREA capacity, not SHAPE/compactness dynamics).",
+      "detail": "NOT a formal pigeonhole proof (unlike the 645-vs-600 area argument) -- this is REPRODUCIBLE EMPIRICAL EVIDENCE across 7 distinct, measured seeding-repair configurations attempted this session (all documented with real before/after numbers in generator-log.md's Lot 007a-R3 section): (1) widened seed reserve to 60 -> WORSE (596->544 cells, 21->23 violations, RATE increased 5.3%->6.7%); (2) reduced G3_R_CEIL_M 95000->60000 -> WORSE, also broke G3-E (max cell grew to 48,884km2>40000); (3) reserve=35 with iterative multi-round static-severity repair -> hit a rollback-guard bug that let a late round silently reintroduce a G3-E violation (45,807.7km2), fixed, but even after the fix G3-G worsened to 29 violations; (4) reserve=15/35 with a 'farthest-point-from-existing-seeds' candidate placement -> also worse (46-49 raw violations); (5) area-priority severity ordering + reduced spacing for area offenders -> successfully protects G3-E (0 area violations, confirmed structurally safe with margin) but G3-G still worsens to 29 with any reserve above 8. Root cause identified: the 21 residual violations concentrate in genuinely fractal coastal geography (Norwegian fjords, Scottish west-coast Highlands, Aegean islands -- verified via seed_lon/seed_lat of every offending cell) where a single additional seed splitting an offending cell creates a new small sliver-shaped neighbor with comparably poor compactness about as often as it fixes the original -- a real geometric property of this specific coastline at this seed density, not a tuning-parameter gap. This claim is recorded as an OPEN FINDING for the Planificateur -- not self-granted as a pass, not a restatement of Amendment 007a-R2's own area-only argument. The Générateur reverted every experimental seeding change back to the last known-good, already-committed Amendment-007a-R2 seeding logic (03_cells.py has ZERO net behavior change vs the pre-session committed HEAD, apart from a 2-line cosmetic blank-line fix) rather than land a worse or unproven state."
     }
   ]
 }
