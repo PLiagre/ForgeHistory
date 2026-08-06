@@ -209,6 +209,31 @@ def test_nonexistent_directory_is_internal_error_not_pass(tmp_path):
     assert "VERDICT: ACCEPT" not in result.stdout
 
 
+# --- Regression: an offset-aware ISO-8601 Authored timestamp (trailing Z or
+# +hh:mm) must not crash the gate. Found live on brief 006: its Authored field
+# "2026-08-05T10:05:00Z" made read_ts return a tz-aware datetime, which
+# check_mtime_after_brief / check_rubric_predates then compared against
+# naive-local file mtimes, raising TypeError -> exit 2 (INTERNAL ERROR) on an
+# otherwise-honest brief. The gate must accept the valid timestamp, not choke.
+
+def test_offset_aware_authored_timestamp_does_not_crash_gate(tmp_path):
+    bd = build_honest_brief(tmp_path)
+    # Same instant as the honest fixture's 2020-01-01T00:00:00, but stamped in
+    # UTC with an explicit Z. Predates every (just-created) deliverable, so the
+    # brief is still honest -- it must ACCEPT, not error out.
+    (bd / "brief.md").write_text(
+        "# Brief\n\n**Authored**: 2020-01-01T00:00:00Z\n**Author**: forge-planificateur\n",
+        encoding="utf-8",
+    )
+    (bd / "eval-rubric.md").write_text(
+        "# Rubric\n\n**Authored**: 2020-01-01T00:00:01+00:00\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "VERDICT: ACCEPT" in result.stdout
+
+
 # --- Regression coverage: a spec/verdict document naming a check by its
 # forbidden word is not the same as that word being actually invoked.
 # Found live on brief 001-spatial-primary-key-adr: eval-rubric.md's own row

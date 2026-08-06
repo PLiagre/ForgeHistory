@@ -1,0 +1,62 @@
+name: pipeline-audit
+
+# Brief 006, Lot 006b, Success Condition 9. Fires cursor-auditor
+# (architecture/agents/cursor-auditor.md) after every merge to master, per
+# the full-auto vision (brief 006 "Vision cible"). cursor-qa-scout
+# (architecture/agents/cursor-qa-scout.md) rides along as a companion role
+# in the same Cloud Agent session, per its own role file.
+#
+# Waiver (harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/
+# manifest.json, claim "Cursor Cloud Agent API indisponible en CI"): this
+# repo has no CURSOR_API_KEY (or equivalent) secret configured yet --
+# `gh secret list` returns an empty list (see generator-log.md, real
+# command + real output, not narrated). Until a secret is provisioned, the
+# "invoke" step below is skipped and the job still succeeds: an absent
+# optional credential is not a broken pipeline. `workflow_dispatch` is the
+# reliable manual-activation path documented in
+# docs/rules/full-auto-pipeline.md.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      target_commit:
+        description: "SHA to audit (defaults to the triggering push's SHA)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  invoke-cursor-auditor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Check Cursor Cloud Agent credentials
+        id: check
+        run: |
+          set -euo pipefail
+          if [ -n "${{ secrets.CURSOR_API_KEY }}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CURSOR_API_KEY not configured -- waiver documented in harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/manifest.json. Trigger this audit manually: open a Cursor Cloud Agent session with architecture/agents/cursor-auditor.md as the role template and target_commit=${{ github.event.inputs.target_commit || github.sha }}."
+          fi
+
+      - name: Invoke cursor-auditor (Cloud Agent)
+        if: steps.check.outputs.available == 'true'
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          TARGET_COMMIT: ${{ github.event.inputs.target_commit || github.sha }}
+        run: |
+          set -euo pipefail
+          echo "TODO(operator, once CURSOR_API_KEY is provisioned): call the"
+          echo "Cursor Cloud Agent API here with architecture/agents/cursor-auditor.md"
+          echo "as the role/template and TARGET_COMMIT=$TARGET_COMMIT. Wire the real"
+          echo "endpoint here -- deliberately left as a documented stub rather than a"
+          echo "guessed, untested API call against a credential this repo does not"
+          echo "have (hard-won rule: every measurement is a real log, never narration)."

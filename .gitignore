@@ -24,3 +24,8 @@ Thumbs.db
 # and the repository running with no hooks at all. Never commit that state:
 # harness/tests/test_hooks_armed.py fails for as long as this file exists.
 .claude/settings.json.cursor-hook-bug-disabled
+
+# Demo-local scratch output for harness/pipeline/demo/run_full_auto_demo.sh
+# (brief 006 Lot 006c, SC18) -- a disposable brief seed the demo writes on
+# every run, deliberately never the real harness/queue/briefs/ queue.
+harness/pipeline/demo/output/

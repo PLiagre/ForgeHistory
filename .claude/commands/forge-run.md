@@ -35,11 +35,18 @@ the work is unfinished. Recording a budget stop as a REJECT would teach the
 loop that a well-executed oversized brief is defective, and would burn the
 remaining iterations on the same overflow.
 
-Before Phase 1, run the advisory size check and honour a `NEEDS_SPLIT`:
+Before Phase 1, the size check is **obligatory, not advisory**, for this
+command specifically (brief `006-full-auto-agent-pipeline` SC15). Run:
 
 ```bash
-py harness/budget.py split-check --brief <BRIEF_DIR>
+py harness/pipeline/forge_run_preflight.py --brief <BRIEF_DIR> --estimated-calls N
 ```
+
+This wraps `budget.py split-check` (still advisory on its own, unchanged)
+and turns its NEEDS_SPLIT verdict into a **blocking, non-zero exit** for
+this one caller. A non-zero exit here means: **do not proceed to Phase 1**.
+Do not launch the Générateur; report the split verdict and stop, exactly as
+the `NEEDS_SPLIT` row above already says.
 
 The Générateur checks `py harness/budget.py status --brief <BRIEF_DIR>`
 itself; the orchestrator's job is only to read the outcome and stop cleanly.
