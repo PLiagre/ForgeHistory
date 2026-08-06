@@ -7,16 +7,15 @@
 #
 # Emergency kill-switch: set `mode: manual` (below) to fall back to the
 # ADR-0005 human loop (/forge-audit-accept, /forge-audit-reject), or apply
-# the `pipeline/pause` label to a PR/issue once Lot 006b's workflows read
-# it. Full activation/deactivation steps: docs/rules/full-auto-pipeline.md
-# (Lot 006b -- not written yet in this lot).
+# the `pipeline/pause` label to a PR/issue that the workflows read. Full
+# activation/deactivation steps: docs/rules/full-auto-pipeline.md
 #
-# `mode` stays `manual` here in Lot 006a on purpose: the brief's own "Lots
-# atomiques" ordering says to flip this to `full_auto` only after Lot 006c's
-# end-to-end demo has proven the loop closes without a human. Flipping it
-# earlier would be exactly the "erroneous automatic decision" / "runaway
-# cost" risk ADR-0006 names, with no supervisor (006c) yet built to catch it.
-mode: manual
+# `mode: full_auto` activated after Lot 006c: the brief's "Lots atomiques"
+# ordering gates this flip on 006c's end-to-end demo proving the loop closes
+# without a human (idempotent demo, exit 0, IMPLEMENTED->VERIFIED->ARCHIVED)
+# and the budget supervisor (006c) being in place to catch runaway cost. To
+# deactivate, revert this to `manual` -- the ADR-0005 human loop is unchanged.
+mode: full_auto
 
 # Ceiling on how many times the orchestrator (Lot 006b) may re-invoke
 # claude-developer on the SAME brief after a REJECT/plateau before it must
