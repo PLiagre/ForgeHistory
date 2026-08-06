@@ -107,3 +107,73 @@ parts_count: 212
 captures: {'window': 'D:\\ForgeHistory\\pipeline\\geo\\capture\\v1_049_cells_window.png', 'coast_zoom': 'D:\\ForgeHistory\\pipeline\\geo\\capture\\v1_049_cells_coast_zoom.png', 'paris_basin': 'D:\\ForgeHistory\\pipeline\\geo\\capture\\v1_049_cells_paris_basin.png', 'paris_before_after': 'D:\\ForgeHistory\\pipeline\\geo\\capture\\v1_049_paris_basin_before_after.png'}
 g6_refinement_registered: registry/g6_density_refinement.json (densite montagne/foret — non simulee)
 FAIL — VERDICT MESURÉ: r(x) de 18 à 95 km (ratio 5.28), Lloyd 10 itérations, 399 cellules, identifiants 1175 à 1761, 1000-1163 retirés (0) avec supersedes ; surfaces 1 / 3689 / 215449 km² (min/médiane/max), rapport max/médiane 58.4 contre 728 avant ; compacité min 0.05 médiane 0.46 contre 0.105 et 0.541 ; 1 cellules dans le bassin parisien de surface médiane 29472 km² ; 212/212 masses couvertes ; 11/14 contrôles verts et rouges constatés ; deux exécutions identiques en SHA256=OK ; captures avant/après publiées
+
+================================================================================
+Above: full, unedited stdout of
+  cd pipeline/geo && .venv/Scripts/python.exe tests/run_proof_g3.py
+run as a single blocking call, this session, post-repair. Exit code: 1.
+================================================================================
+
+Counter-verification commands (each run this session, output shown):
+
+--- g3_check_definitions_byte_identical (target 3/3) ---
+$ .venv/Scripts/python.exe -c "import hashlib; sha=lambda p: hashlib.sha256(open(p,'rb').read()).hexdigest(); pairs=[('tests/run_proof_g3.py','C:/Users/liagr/VictoriaProject/sandbox/geo/tests/run_proof_g3.py'),('tests/test_qa_red_g3.py','C:/Users/liagr/VictoriaProject/sandbox/geo/tests/test_qa_red_g3.py'),('qa/checks.py','C:/Users/liagr/VictoriaProject/sandbox/geo/qa/checks.py')]; print(sum(1 for a,b in pairs if sha(a)==sha(b)))"
+3
+
+--- g3_bound_constants_unchanged (target 8/8) ---
+$ .venv/Scripts/python.exe -c "<value-comparison of the 8 named constants, this repo vs VictoriaProject constants.py>"
+G3_SEED_COUNT_MIN 150 150 True
+G3_SEED_COUNT_MAX 400 400 True
+G3_AREA_FLOOR_KM2 200.0 200.0 True
+G3_AREA_CEIL_KM2 15_000.0 15_000.0 True
+G3_AREA_MAX_MEDIAN_RATIO 8.0 8.0 True
+G3_COMPACTNESS_MIN 0.18 0.18 True
+G3_AREA_EPS_M2 10_000.0 10_000.0 True
+G3_OVERLAP_EPS_M2 10_000.0 10_000.0 True
+8 / 8
+
+--- g3_repair_marker_count / constants.py marker count / g3_unmarked_nonrepair_diff_line_count ---
+$ rg -c '# FORGEHISTORY-G3-REPAIR' pipeline/geo/steps/03_cells.py
+21
+$ rg -c '# FORGEHISTORY-G3-REPAIR' pipeline/geo/constants.py
+0   (no seeding-parameter constant changed)
+$ rg -c '# FORGEHISTORY-PATH-ADJUSTMENT' pipeline/geo/steps/03_cells.py
+2
+$ git diff --no-index harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/pre-port/03_cells.py.orig pipeline/geo/steps/03_cells.py | grep '^+' | grep -v '^+++' | grep -vc -e 'FORGEHISTORY-PATH-ADJUSTMENT' -e 'FORGEHISTORY-G3-REPAIR'
+0
+
+--- g3_determinism_sha_pairs_matched_count (target: total, total > 0) ---
+$ .venv/Scripts/python.exe -c "import json; d=json.load(open('logs/v1_049_qa.json'))['determinism']['sha256']; print(sum(1 for a,b in d.values() if a and b and a==b), len(d))"
+6 6
+
+--- g3_qa_checks_passed_count / g3_qa_checks_red_proof_count ---
+$ .venv/Scripts/python.exe -c "import json; cs=json.load(open('logs/v1_049_qa.json'))['checks']; print(sum(1 for c in cs if c['passed']), 'passed of', len(cs)); print(sum(1 for c in cs if c.get('red_proof')), 'red_proof of', len(cs))"
+11 passed of 14        (Q1,Q2,Q3,Q4,Q10,G3-A,G3-B,G3-C,G3-D,G3-H,G2b-B; G3-E/F/G false -- see generator-log.md R4 escalation)
+14 red_proof of 14      (every check's red-case fired, including the 3 still-failing ones)
+
+--- g3_cell_count_in_range (target: true) ---
+$ .venv/Scripts/python.exe -c "import json; c=json.load(open('artifacts/stats_g3.json'))['cell_count']; print(c, 150<=c<=400)"
+399 True
+
+--- Pigeonhole proof numbers (G3-E/F/G escalation, R4) ---
+$ .venv/Scripts/python.exe -c "
+import sys, importlib.util
+from pathlib import Path
+ROOT = Path('.').resolve(); sys.path.insert(0, str(ROOT))
+spec = importlib.util.spec_from_file_location('cells_g3', ROOT/'steps'/'03_cells.py')
+mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+from projection import Projector, detect_projection
+projector = Projector(detect_projection())
+land_pack = mod.load_corrected_land(rebuild=False, projector=projector)
+print('land_xy.area_km2', land_pack['land_xy'].area/1e6)
+print('400*15000', 400*15000)
+"
+land_xy.area_km2 6667146.530455904
+400*15000 6000000
+(6,000,000 < 6,667,146.53 -- pigeonhole shortfall 667,146.53 km2)
+
+================================================================================
+proof_script_exit_code_zero_count for this lot's own G3 proof: exit=1
+(non-zero -- see generator-log.md R4 for why this is an escalated,
+mathematically-proven-unsatisfiable state on G3-E/F/G, not a withheld fix)
+================================================================================

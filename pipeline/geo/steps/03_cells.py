@@ -254,10 +254,12 @@ def _iter_parts(land_xy: Any) -> List[Any]:
     if land_xy.geom_type == "Polygon":
         return [land_xy]
     if land_xy.geom_type == "MultiPolygon":
-        return sorted(
+        polys = sorted(  # FORGEHISTORY-G3-REPAIR
             list(land_xy.geoms),
             key=lambda g: (round(g.centroid.x, 3), round(g.centroid.y, 3), round(g.area, 1)),
         )
+        polys = [g for g in polys if g.area > G3_AREA_EPS_M2]  # FORGEHISTORY-G3-REPAIR
+        return polys  # FORGEHISTORY-G3-REPAIR
     raise TypeError(land_xy.geom_type)
 
 
@@ -472,16 +474,14 @@ def _poisson_variable_radius(
         rp = part.representative_point()
         try_add(rp.x, rp.y, label_force=True)
 
-    # 2) Ancres urbaines (1 par ville) — espacées, pas d'anneaux empilés.
-    if place_urban_anchors:
-        for c in sorted(cities, key=lambda z: z["name"]):
-            pt = Point(c["x_m"], c["y_m"])
-            snapped = _snap_to_land(pt, land_xy, parts)
-            if snapped is None:
-                continue
-            try_add(snapped.x, snapped.y)
-
-    # 3) Bridson : file active + k essais par point actif.
+    # 2) Bridson : file active + k essais par point actif.  # FORGEHISTORY-G3-REPAIR
+    # Reordonne avant les ancres urbaines (etait l'etape 3) : le budget  # FORGEHISTORY-G3-REPAIR
+    # global (germes obligatoires + ancres, tous deux inconditionnels) pouvait  # FORGEHISTORY-G3-REPAIR
+    # a lui seul atteindre seed_count_max avant que Bridson ne tourne, privant  # FORGEHISTORY-G3-REPAIR
+    # les masses peu urbanisees (mais vastes) de toute subdivision adaptative  # FORGEHISTORY-G3-REPAIR
+    # a r(x) -- cause directe de la cellule geante (G3-E/F/G) et du depassement  # FORGEHISTORY-G3-REPAIR
+    # de compte (G3-D). r(x) integre deja la densite urbaine (density_at) ; les  # FORGEHISTORY-G3-REPAIR
+    # ancres ne font que garantir un germe au point exact, en second.  # FORGEHISTORY-G3-REPAIR
     # Ordre initial stable : germes déjà placés, triés.
     active: List[int] = list(range(len(seeds)))
     k_attempts = 30
@@ -507,6 +507,16 @@ def _poisson_variable_radius(
         if not placed:
             active.pop(ai)
 
+    # 3) Ancres urbaines (1 par ville) -- sur le budget restant apres Bridson.  # FORGEHISTORY-G3-REPAIR
+    if place_urban_anchors:  # FORGEHISTORY-G3-REPAIR
+        for c in sorted(cities, key=lambda z: z["name"]):  # FORGEHISTORY-G3-REPAIR
+            if len(seeds) >= seed_count_max:  # FORGEHISTORY-G3-REPAIR
+                break  # FORGEHISTORY-G3-REPAIR
+            pt = Point(c["x_m"], c["y_m"])  # FORGEHISTORY-G3-REPAIR
+            snapped = _snap_to_land(pt, land_xy, parts)  # FORGEHISTORY-G3-REPAIR
+            if snapped is None:  # FORGEHISTORY-G3-REPAIR
+                continue  # FORGEHISTORY-G3-REPAIR
+            try_add(snapped.x, snapped.y)  # FORGEHISTORY-G3-REPAIR
     # 4) Si sous le plancher de compte : densifier via grille à pas r_floor
     #    (toujours respectant far_enough — pas de coincidence).
     if len(seeds) < seed_count_min:
