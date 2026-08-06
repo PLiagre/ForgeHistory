@@ -446,13 +446,27 @@ def _poisson_variable_radius(
                     return False
         return True
 
-    def try_add(x: float, y: float, label_force: bool = False) -> bool:
+    def try_add(  # FORGEHISTORY-G3-REPAIR
+        x: float, y: float, label_force: bool = False, r_override: Optional[float] = None  # FORGEHISTORY-G3-REPAIR
+    ) -> bool:  # FORGEHISTORY-G3-REPAIR
         pt = Point(x, y)
         if not (land_xy.contains(pt) or land_xy.covers(pt)):
             return False
-        r = radius_at(
-            x, y, cities, rho_lo=rho_lo, rho_hi=rho_hi, r_floor=r_floor, r_ceil=r_ceil
-        )
+        # r_override (etape 1.5 uniquement, ci-dessous) : le r(x) derive de la  # FORGEHISTORY-G3-REPAIR
+        # densite reste pres de r_ceil (95 km) sur une masse peu urbanisee ;  # FORGEHISTORY-G3-REPAIR
+        # une masse < ~28000 km^2 ne peut alors geometriquement jamais loger  # FORGEHISTORY-G3-REPAIR
+        # un second germe (dmin >= r_ceil), quel que soit le raffinement de  # FORGEHISTORY-G3-REPAIR
+        # la grille -- constate empiriquement (masse 66, 23861 km^2, jamais  # FORGEHISTORY-G3-REPAIR
+        # subdivisee malgre le filet de securite de raffinement du pas).  # FORGEHISTORY-G3-REPAIR
+        # r_floor (parametre de semis deja declare, inchange) sert alors  # FORGEHISTORY-G3-REPAIR
+        # d'espacement minimal pour ces germes de couverture forcee only.  # FORGEHISTORY-G3-REPAIR
+        r = (  # FORGEHISTORY-G3-REPAIR
+            r_override  # FORGEHISTORY-G3-REPAIR
+            if r_override is not None  # FORGEHISTORY-G3-REPAIR
+            else radius_at(  # FORGEHISTORY-G3-REPAIR
+                x, y, cities, rho_lo=rho_lo, rho_hi=rho_hi, r_floor=r_floor, r_ceil=r_ceil  # FORGEHISTORY-G3-REPAIR
+            )  # FORGEHISTORY-G3-REPAIR
+        )  # FORGEHISTORY-G3-REPAIR
         if not far_enough(x, y, r):
             if not label_force:
                 return False
@@ -470,9 +484,97 @@ def _poisson_variable_radius(
         return True
 
     # 1) Germes obligatoires : 1 par masse (couverture îles / bassins).
+    # Masses > plafond de surface : rayon d'exclusion force a r_floor plutot  # FORGEHISTORY-G3-REPAIR
+    # que le r(x) derive de la densite (~r_ceil=95 km en zone peu urbanisee) --  # FORGEHISTORY-G3-REPAIR
+    # constate empiriquement : le germe obligatoire d'une masse voisine avec  # FORGEHISTORY-G3-REPAIR
+    # un grand r(x) peut a lui seul bloquer TOUTE densification (etape 1.5)  # FORGEHISTORY-G3-REPAIR
+    # d'une autre masse surdimensionnee proche (littoral fragmente), meme si  # FORGEHISTORY-G3-REPAIR
+    # cette derniere germe utilise elle-meme un rayon reduit -- son exclusion  # FORGEHISTORY-G3-REPAIR
+    # depend du MAX des deux rayons. Sait deja qu'elle devra etre subdivisee ;  # FORGEHISTORY-G3-REPAIR
+    # ne pas lui reserver un territoire de la taille du plafond de densite.  # FORGEHISTORY-G3-REPAIR
     for i, part in enumerate(parts):
         rp = part.representative_point()
-        try_add(rp.x, rp.y, label_force=True)
+        needs_split = (part.area / 1e6) > G3_AREA_CEIL_KM2  # FORGEHISTORY-G3-REPAIR
+        try_add(  # FORGEHISTORY-G3-REPAIR
+            rp.x, rp.y, label_force=True,  # FORGEHISTORY-G3-REPAIR
+            r_override=(r_floor if needs_split else None),  # FORGEHISTORY-G3-REPAIR
+        )  # FORGEHISTORY-G3-REPAIR
+
+    # 1.5) Densification obligatoire des masses > plafond de surface :  # FORGEHISTORY-G3-REPAIR
+    # garantit G3-E sans dependre du hasard de la file active de Bridson.  # FORGEHISTORY-G3-REPAIR
+    # Diagnostic Amendment 007a-R2 : la file active (etape 2) est dominee  # FORGEHISTORY-G3-REPAIR
+    # numeriquement par les zones urbaines (rayon local faible => beaucoup de  # FORGEHISTORY-G3-REPAIR
+    # points actifs => forte probabilite de tirage), ce qui affame les masses  # FORGEHISTORY-G3-REPAIR
+    # vastes et peu urbanisees (ex. Maghreb) avant qu'elles ne soient  # FORGEHISTORY-G3-REPAIR
+    # subdivisees -- confirme empiriquement : abaisser G3_R_CEIL_M seul  # FORGEHISTORY-G3-REPAIR
+    # aggrave la cellule geante (126398 -> 170436 km2 a r_ceil=60000) car cela  # FORGEHISTORY-G3-REPAIR
+    # augmente le nombre de points requis pour ces masses sans changer leur  # FORGEHISTORY-G3-REPAIR
+    # part du budget dans la file active. Grille deterministe interne a la  # FORGEHISTORY-G3-REPAIR
+    # masse (pas de rng : ordre trie, meme resultat a chaque execution),  # FORGEHISTORY-G3-REPAIR
+    # cible une aire par germe de la moitie du plafond declare (marge de  # FORGEHISTORY-G3-REPAIR
+    # securite : les cellules de Voronoi issues d'une grille reguliere ne  # FORGEHISTORY-G3-REPAIR
+    # pavent jamais exactement au plafond). far_enough() reste l'arbitre :  # FORGEHISTORY-G3-REPAIR
+    # aucun germe n'est jamais place plus pres qu'autorise par r(x) local.  # FORGEHISTORY-G3-REPAIR
+    # Ordre par COUT CROISSANT (germes cibles), pas par surface decroissante :  # FORGEHISTORY-G3-REPAIR
+    # une masse tout juste au-dessus du plafond (ex. masse 66, 23861 km^2,  # FORGEHISTORY-G3-REPAIR
+    # target=4) ne coute que 2-4 germes a corriger completement, alors qu'une  # FORGEHISTORY-G3-REPAIR
+    # masse continentale (ex. masse 99, 4.47M km^2, target=596) ne peut de  # FORGEHISTORY-G3-REPAIR
+    # toute facon jamais etre entierement satisfaite par le budget disponible.  # FORGEHISTORY-G3-REPAIR
+    # Trier par surface DECROISSANTE plaçait systematiquement les petites  # FORGEHISTORY-G3-REPAIR
+    # masses en dernier -- constate empiriquement (masse 66 jamais servie, le  # FORGEHISTORY-G3-REPAIR
+    # budget etant deja epuise par les masses plus grandes traitees avant  # FORGEHISTORY-G3-REPAIR
+    # elle). Servir les masses les MOINS couteuses en premier maximise le  # FORGEHISTORY-G3-REPAIR
+    # nombre de masses effectivement ramenees sous le plafond ; les masses  # FORGEHISTORY-G3-REPAIR
+    # continentales, de toute facon insatisfiables entierement ici, recoivent  # FORGEHISTORY-G3-REPAIR
+    # le reste du budget et une subdivision supplementaire via Bridson  # FORGEHISTORY-G3-REPAIR
+    # (etape 2, qui integre deja la densite urbaine). Tri stable  # FORGEHISTORY-G3-REPAIR
+    # (target_cells, index) -> deterministe, reproductible.  # FORGEHISTORY-G3-REPAIR
+    oversized = [  # FORGEHISTORY-G3-REPAIR
+        (i, part, part.area / 1e6)  # FORGEHISTORY-G3-REPAIR
+        for i, part in enumerate(parts)  # FORGEHISTORY-G3-REPAIR
+        if part.area / 1e6 > G3_AREA_CEIL_KM2  # FORGEHISTORY-G3-REPAIR
+    ]  # FORGEHISTORY-G3-REPAIR
+    oversized.sort(  # FORGEHISTORY-G3-REPAIR
+        key=lambda t: (  # FORGEHISTORY-G3-REPAIR
+            math.ceil(t[2] / (G3_AREA_CEIL_KM2 * 0.5)),  # FORGEHISTORY-G3-REPAIR
+            t[0],  # FORGEHISTORY-G3-REPAIR
+        )  # FORGEHISTORY-G3-REPAIR
+    )  # FORGEHISTORY-G3-REPAIR
+    for i, part, area_km2 in oversized:  # FORGEHISTORY-G3-REPAIR
+        target_cells = max(1, math.ceil(area_km2 / (G3_AREA_CEIL_KM2 * 0.5)))  # FORGEHISTORY-G3-REPAIR
+        pminx, pminy, pmaxx, pmaxy = part.bounds  # FORGEHISTORY-G3-REPAIR
+        bbox_area = max(1.0, (pmaxx - pminx) * (pmaxy - pminy))  # FORGEHISTORY-G3-REPAIR
+        step = math.sqrt(bbox_area / target_cells)  # FORGEHISTORY-G3-REPAIR
+        candidates: List[Tuple[float, float]] = []  # FORGEHISTORY-G3-REPAIR
+        refine_tries = 0  # FORGEHISTORY-G3-REPAIR
+        while len(candidates) < min(target_cells, 2) and refine_tries < 6:  # FORGEHISTORY-G3-REPAIR
+            # Filet de securite : une masse etroite/allongee juste au-dessus  # FORGEHISTORY-G3-REPAIR
+            # du plafond (ex. masse 66, 23861 km^2) peut recevoir un pas trop  # FORGEHISTORY-G3-REPAIR
+            # grossier pour la grille bbox et n'obtenir AUCUN candidat sur  # FORGEHISTORY-G3-REPAIR
+            # terre -- constate empiriquement (cette masse restait toujours  # FORGEHISTORY-G3-REPAIR
+            # une cellule geante unique). Reduire le pas par 2 jusqu'a au  # FORGEHISTORY-G3-REPAIR
+            # moins 2 candidats ou 6 tentatives (borne deterministe).  # FORGEHISTORY-G3-REPAIR
+            candidates = []  # FORGEHISTORY-G3-REPAIR
+            gx = pminx + step * 0.5  # FORGEHISTORY-G3-REPAIR
+            while gx <= pmaxx + 1e-6:  # FORGEHISTORY-G3-REPAIR
+                gy = pminy + step * 0.5  # FORGEHISTORY-G3-REPAIR
+                while gy <= pmaxy + 1e-6:  # FORGEHISTORY-G3-REPAIR
+                    pt = Point(gx, gy)  # FORGEHISTORY-G3-REPAIR
+                    if part.contains(pt) or part.covers(pt):  # FORGEHISTORY-G3-REPAIR
+                        candidates.append((gx, gy))  # FORGEHISTORY-G3-REPAIR
+                    gy += step  # FORGEHISTORY-G3-REPAIR
+                gx += step  # FORGEHISTORY-G3-REPAIR
+            if len(candidates) < min(target_cells, 2):  # FORGEHISTORY-G3-REPAIR
+                step *= 0.5  # FORGEHISTORY-G3-REPAIR
+            refine_tries += 1  # FORGEHISTORY-G3-REPAIR
+        # Marge (5) : Lloyd + re-dedup peuvent deplacer un germe hors de sa  # FORGEHISTORY-G3-REPAIR
+        # masse d'origine, declenchant la reinjection obligatoire plus bas  # FORGEHISTORY-G3-REPAIR
+        # (logique preexistante, non modifiee) qui ajoute jusqu'a 1 germe/  # FORGEHISTORY-G3-REPAIR
+        # masse sans verifier le plafond -- constate empiriquement (601/600).  # FORGEHISTORY-G3-REPAIR
+        for cx, cy in sorted(candidates, key=lambda t: (t[0], t[1])):  # FORGEHISTORY-G3-REPAIR
+            if len(seeds) >= seed_count_max - 5:  # FORGEHISTORY-G3-REPAIR
+                break  # FORGEHISTORY-G3-REPAIR
+            try_add(cx, cy, r_override=r_floor)  # FORGEHISTORY-G3-REPAIR
 
     # 2) Bridson : file active + k essais par point actif.  # FORGEHISTORY-G3-REPAIR
     # Reordonne avant les ancres urbaines (etait l'etape 3) : le budget  # FORGEHISTORY-G3-REPAIR
@@ -485,8 +587,15 @@ def _poisson_variable_radius(
     # Ordre initial stable : germes déjà placés, triés.
     active: List[int] = list(range(len(seeds)))
     k_attempts = 30
+    # Reserve (8) : la reinjection de masses manquantes plus bas (logique  # FORGEHISTORY-G3-REPAIR
+    # preexistante, non modifiee) ajoute jusqu'a 1 germe/masse perdue par  # FORGEHISTORY-G3-REPAIR
+    # Lloyd/dedup SANS verifier le plafond -- si Bridson/ancres consomment  # FORGEHISTORY-G3-REPAIR
+    # tout le budget jusqu'a seed_count_max pile, la reinjection le depasse  # FORGEHISTORY-G3-REPAIR
+    # (constate empiriquement : 601/600). Reserver quelques places ici laisse  # FORGEHISTORY-G3-REPAIR
+    # la marge necessaire sans jamais toucher G3_SEED_COUNT_MAX lui-meme.  # FORGEHISTORY-G3-REPAIR
+    effective_seed_cap = seed_count_max - 8  # FORGEHISTORY-G3-REPAIR
     # Limite de sécurité : ne pas dépasser le plafond déclaré.
-    while active and len(seeds) < seed_count_max:
+    while active and len(seeds) < effective_seed_cap:
         # Tirage déterministe dans la file active.
         ai = rng.randrange(len(active))
         si = active[ai]
@@ -510,7 +619,7 @@ def _poisson_variable_radius(
     # 3) Ancres urbaines (1 par ville) -- sur le budget restant apres Bridson.  # FORGEHISTORY-G3-REPAIR
     if place_urban_anchors:  # FORGEHISTORY-G3-REPAIR
         for c in sorted(cities, key=lambda z: z["name"]):  # FORGEHISTORY-G3-REPAIR
-            if len(seeds) >= seed_count_max:  # FORGEHISTORY-G3-REPAIR
+            if len(seeds) >= effective_seed_cap:  # FORGEHISTORY-G3-REPAIR
                 break  # FORGEHISTORY-G3-REPAIR
             pt = Point(c["x_m"], c["y_m"])  # FORGEHISTORY-G3-REPAIR
             snapped = _snap_to_land(pt, land_xy, parts)  # FORGEHISTORY-G3-REPAIR

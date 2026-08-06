@@ -392,7 +392,7 @@ G6_KNOWN_PASSES = (
 # G3 — semis à espacement variable (villes / population → distance min).
 # Fourchette élargie : bornée par r(x), pas par un quota de germes.
 G3_SEED_COUNT_MIN = 150
-G3_SEED_COUNT_MAX = 400
+G3_SEED_COUNT_MAX = 600  # FORGEHISTORY-G3-REPAIR (re-derived, Amendment 007a-R2: 400 -> 600)
 G3_MASTER_SEED = 20260726
 # Noyau d'influence urbaine : R en mètres projetés (LAEA). Cauchy.
 G3_DENSITY_RADIUS_M = 55_000.0
@@ -402,7 +402,7 @@ G3_BASE_DENSITY = 0.12
 G3_R_FLOOR_M = 18_000.0
 G3_R_CEIL_M = 95_000.0
 # Relaxation de Lloyd : itérations FIXES (déterminisme > convergence).
-G3_LLOYD_ITERATIONS = 10
+G3_LLOYD_ITERATIONS = 30  # FORGEHISTORY-G3-REPAIR (seeding param, Amendment 007a-R2: 10 -> 30, improves G3-G compactness convergence)
 # Bornes de forme (contrôles G3-E/F/G) — dérivées de r(x).
 # Plancher assoupli pour îles singleton (masse entière = 1 cellule).
 G3_AREA_FLOOR_KM2 = 200.0
