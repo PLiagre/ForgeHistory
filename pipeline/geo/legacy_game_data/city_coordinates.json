@@ -1,0 +1,1249 @@
+﻿{
+  "projection": {
+    "type": "equirectangular",
+    "mid_latitude": 47.5,
+    "comment": "x = lon * cos(mid_latitude), y = -lat. Positions GeoNames CC BY 4.0 — 116 corrections v1_080 + 81 peuplements v1_082 depuis settlements_proposal_v1_072.json."
+  },
+  "attribution": "GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)",
+  "attribution_source": "GeoNames",
+  "license": "CC BY 4.0",
+  "import": {
+    "task_id": "v1_080",
+    "proposal": "sandbox/geo/artifacts/coordinate_correction_proposal_v1_072.json",
+    "matched": 116,
+    "unchanged_not_found": 7,
+    "cell_changes": 20
+  },
+  "coordinates": [
+    {
+      "id": 1,
+      "name": "Paris",
+      "lon": 2.3488,
+      "lat": 48.85341
+    },
+    {
+      "id": 2,
+      "name": "Saint-Denis",
+      "lon": 2.35387,
+      "lat": 48.93564
+    },
+    {
+      "id": 3,
+      "name": "Melun",
+      "lon": 2.65356,
+      "lat": 48.5457
+    },
+    {
+      "id": 4,
+      "name": "Rouen",
+      "lon": 1.09932,
+      "lat": 49.44313
+    },
+    {
+      "id": 5,
+      "name": "Caen",
+      "lon": -0.35912,
+      "lat": 49.18585
+    },
+    {
+      "id": 6,
+      "name": "Dieppe",
+      "lon": 1.07772,
+      "lat": 49.9216
+    },
+    {
+      "id": 7,
+      "name": "Rennes",
+      "lon": -1.67431,
+      "lat": 48.11109
+    },
+    {
+      "id": 8,
+      "name": "Nantes",
+      "lon": -1.55336,
+      "lat": 47.21725
+    },
+    {
+      "id": 9,
+      "name": "Quimper",
+      "lon": -4.09795,
+      "lat": 47.99597
+    },
+    {
+      "id": 10,
+      "name": "Bordeaux",
+      "lon": -0.58046,
+      "lat": 44.84124
+    },
+    {
+      "id": 11,
+      "name": "Bayonne",
+      "lon": -1.473,
+      "lat": 43.49316
+    },
+    {
+      "id": 12,
+      "name": "Toulouse",
+      "lon": 1.44367,
+      "lat": 43.60426
+    },
+    {
+      "id": 13,
+      "name": "Montpellier",
+      "lon": 3.87635,
+      "lat": 43.61093
+    },
+    {
+      "id": 14,
+      "name": "Narbonne",
+      "lon": 3.00141,
+      "lat": 43.18396
+    },
+    {
+      "id": 15,
+      "name": "Dijon",
+      "lon": 5.01391,
+      "lat": 47.31344
+    },
+    {
+      "id": 16,
+      "name": "Beaune",
+      "lon": 4.83887,
+      "lat": 47.02413
+    },
+    {
+      "id": 17,
+      "name": "Autun",
+      "lon": 4.29869,
+      "lat": 46.95104
+    },
+    {
+      "id": 18,
+      "name": "Reims",
+      "lon": 4.02853,
+      "lat": 49.26526
+    },
+    {
+      "id": 19,
+      "name": "Troyes",
+      "lon": 4.08524,
+      "lat": 48.30073
+    },
+    {
+      "id": 20,
+      "name": "Châlons",
+      "lon": 4.36724,
+      "lat": 48.95393
+    },
+    {
+      "id": 21,
+      "name": "London",
+      "lon": -0.12574,
+      "lat": 51.50853
+    },
+    {
+      "id": 22,
+      "name": "Westminster",
+      "lon": -0.1357,
+      "lat": 51.4975
+    },
+    {
+      "id": 23,
+      "name": "Southwark",
+      "lon": -0.09,
+      "lat": 51.5
+    },
+    {
+      "id": 24,
+      "name": "York",
+      "lon": -1.08271,
+      "lat": 53.95763
+    },
+    {
+      "id": 25,
+      "name": "Hull",
+      "lon": -0.33525,
+      "lat": 53.7446
+    },
+    {
+      "id": 26,
+      "name": "Cardiff",
+      "lon": -3.18,
+      "lat": 51.48
+    },
+    {
+      "id": 27,
+      "name": "Caernarfon",
+      "lon": -4.27016,
+      "lat": 53.14126
+    },
+    {
+      "id": 28,
+      "name": "Dublin",
+      "lon": -6.24889,
+      "lat": 53.33306
+    },
+    {
+      "id": 29,
+      "name": "Cork",
+      "lon": -8.47061,
+      "lat": 51.89797
+    },
+    {
+      "id": 30,
+      "name": "Edinburgh",
+      "lon": -3.19648,
+      "lat": 55.95206
+    },
+    {
+      "id": 31,
+      "name": "Leith",
+      "lon": -3.17,
+      "lat": 55.98
+    },
+    {
+      "id": 32,
+      "name": "Dresden",
+      "lon": 13.73832,
+      "lat": 51.05089
+    },
+    {
+      "id": 33,
+      "name": "Leipzig",
+      "lon": 12.37129,
+      "lat": 51.33962
+    },
+    {
+      "id": 34,
+      "name": "Meissen",
+      "lon": 13.4737,
+      "lat": 51.16158
+    },
+    {
+      "id": 35,
+      "name": "Vienna",
+      "lon": 16.37208,
+      "lat": 48.20849
+    },
+    {
+      "id": 36,
+      "name": "Wiener Neustadt",
+      "lon": 16.23196,
+      "lat": 47.80485
+    },
+    {
+      "id": 37,
+      "name": "Prague",
+      "lon": 14.42076,
+      "lat": 50.08804
+    },
+    {
+      "id": 38,
+      "name": "Kutná Hora",
+      "lon": 15.26816,
+      "lat": 49.94839
+    },
+    {
+      "id": 39,
+      "name": "Munich",
+      "lon": 11.57549,
+      "lat": 48.13743
+    },
+    {
+      "id": 40,
+      "name": "Regensburg",
+      "lon": 12.10161,
+      "lat": 49.01513
+    },
+    {
+      "id": 41,
+      "name": "Augsburg",
+      "lon": 10.89851,
+      "lat": 48.37154
+    },
+    {
+      "id": 42,
+      "name": "Berlin",
+      "lon": 13.41053,
+      "lat": 52.52437
+    },
+    {
+      "id": 43,
+      "name": "Brandenburg",
+      "lon": 12.55,
+      "lat": 52.41667
+    },
+    {
+      "id": 44,
+      "name": "Cologne",
+      "lon": 6.95,
+      "lat": 50.93333
+    },
+    {
+      "id": 45,
+      "name": "Mainz",
+      "lon": 8.28008,
+      "lat": 49.98185
+    },
+    {
+      "id": 46,
+      "name": "Aachen",
+      "lon": 6.08342,
+      "lat": 50.77664
+    },
+    {
+      "id": 47,
+      "name": "Trier",
+      "lon": 6.63935,
+      "lat": 49.75565
+    },
+    {
+      "id": 48,
+      "name": "Ulm",
+      "lon": 9.99155,
+      "lat": 48.39841
+    },
+    {
+      "id": 49,
+      "name": "Stuttgart",
+      "lon": 9.17702,
+      "lat": 48.78232
+    },
+    {
+      "id": 50,
+      "name": "Constance",
+      "lon": 9.17582,
+      "lat": 47.66033
+    },
+    {
+      "id": 51,
+      "name": "Toledo",
+      "lon": -4.02263,
+      "lat": 39.8581
+    },
+    {
+      "id": 52,
+      "name": "Burgos",
+      "lon": -3.70184,
+      "lat": 42.34106
+    },
+    {
+      "id": 53,
+      "name": "Valladolid",
+      "lon": -4.72353,
+      "lat": 41.65541
+    },
+    {
+      "id": 54,
+      "name": "Seville",
+      "lon": -5.97317,
+      "lat": 37.38283
+    },
+    {
+      "id": 55,
+      "name": "Cordoba",
+      "lon": -4.77275,
+      "lat": 37.89155
+    },
+    {
+      "id": 56,
+      "name": "Cadiz",
+      "lon": -6.2891,
+      "lat": 36.52672
+    },
+    {
+      "id": 57,
+      "name": "Zaragoza",
+      "lon": -0.87734,
+      "lat": 41.65606
+    },
+    {
+      "id": 58,
+      "name": "Barcelona",
+      "lon": 2.15899,
+      "lat": 41.38879
+    },
+    {
+      "id": 59,
+      "name": "Valencia",
+      "lon": -0.37966,
+      "lat": 39.47391
+    },
+    {
+      "id": 60,
+      "name": "Granada",
+      "lon": -3.60667,
+      "lat": 37.18817
+    },
+    {
+      "id": 61,
+      "name": "Malaga",
+      "lon": -4.42034,
+      "lat": 36.72016
+    },
+    {
+      "id": 62,
+      "name": "Lisbon",
+      "lon": -9.1498,
+      "lat": 38.72509
+    },
+    {
+      "id": 63,
+      "name": "Setubal",
+      "lon": -8.8882,
+      "lat": 38.5244
+    },
+    {
+      "id": 64,
+      "name": "Pamplona",
+      "lon": -1.64323,
+      "lat": 42.81687
+    },
+    {
+      "id": 65,
+      "name": "Pisa",
+      "lon": 10.4036,
+      "lat": 43.70853
+    },
+    {
+      "id": 66,
+      "name": "Siena",
+      "lon": 11.33064,
+      "lat": 43.31822
+    },
+    {
+      "id": 67,
+      "name": "Lucca",
+      "lon": 10.50447,
+      "lat": 43.84369
+    },
+    {
+      "id": 68,
+      "name": "Pavia",
+      "lon": 9.15917,
+      "lat": 45.19205
+    },
+    {
+      "id": 69,
+      "name": "Cremona",
+      "lon": 10.02129,
+      "lat": 45.13325
+    },
+    {
+      "id": 70,
+      "name": "Bergamo",
+      "lon": 9.66721,
+      "lat": 45.69601
+    },
+    {
+      "id": 71,
+      "name": "Rome",
+      "lon": 12.51133,
+      "lat": 41.89193
+    },
+    {
+      "id": 72,
+      "name": "Ancona",
+      "lon": 13.5103,
+      "lat": 43.60717
+    },
+    {
+      "id": 73,
+      "name": "Perugia",
+      "lon": 12.38878,
+      "lat": 43.1122
+    },
+    {
+      "id": 74,
+      "name": "Naples",
+      "lon": 14.26811,
+      "lat": 40.85216
+    },
+    {
+      "id": 75,
+      "name": "Salerno",
+      "lon": 14.79328,
+      "lat": 40.67545
+    },
+    {
+      "id": 76,
+      "name": "Capua",
+      "lon": 14.21269,
+      "lat": 41.10519
+    },
+    {
+      "id": 77,
+      "name": "Bursa",
+      "lon": 29.06013,
+      "lat": 40.19559
+    },
+    {
+      "id": 78,
+      "name": "Iznik",
+      "lon": 29.72111,
+      "lat": 40.42861
+    },
+    {
+      "id": 79,
+      "name": "Constantinople",
+      "lon": 28.94966,
+      "lat": 41.01384
+    },
+    {
+      "id": 80,
+      "name": "Galata",
+      "lon": 28.97,
+      "lat": 41.03
+    },
+    {
+      "id": 81,
+      "name": "Adrianople",
+      "lon": 26.55597,
+      "lat": 41.67719
+    },
+    {
+      "id": 82,
+      "name": "Gallipoli",
+      "lon": 26.67174,
+      "lat": 40.40836
+    },
+    {
+      "id": 83,
+      "name": "Belgrade",
+      "lon": 20.46513,
+      "lat": 44.80401
+    },
+    {
+      "id": 84,
+      "name": "Skopje",
+      "lon": 21.43141,
+      "lat": 41.99646
+    },
+    {
+      "id": 85,
+      "name": "Jajce",
+      "lon": 17.27059,
+      "lat": 44.34203
+    },
+    {
+      "id": 86,
+      "name": "Mostar",
+      "lon": 17.80806,
+      "lat": 43.34333
+    },
+    {
+      "id": 87,
+      "name": "Venice",
+      "lon": 12.33265,
+      "lat": 45.43713
+    },
+    {
+      "id": 88,
+      "name": "Chioggia",
+      "lon": 12.27774,
+      "lat": 45.21857
+    },
+    {
+      "id": 89,
+      "name": "Genoa",
+      "lon": 8.94439,
+      "lat": 44.40478
+    },
+    {
+      "id": 90,
+      "name": "Savona",
+      "lon": 8.47715,
+      "lat": 44.30905
+    },
+    {
+      "id": 91,
+      "name": "Milan",
+      "lon": 9.18951,
+      "lat": 45.46427
+    },
+    {
+      "id": 92,
+      "name": "Monza",
+      "lon": 9.27246,
+      "lat": 45.58005
+    },
+    {
+      "id": 93,
+      "name": "Florence",
+      "lon": 11.24626,
+      "lat": 43.77925
+    },
+    {
+      "id": 94,
+      "name": "Prato",
+      "lon": 11.09699,
+      "lat": 43.8805
+    },
+    {
+      "id": 95,
+      "name": "Palermo",
+      "lon": 13.3636,
+      "lat": 38.1166
+    },
+    {
+      "id": 96,
+      "name": "Messina",
+      "lon": 15.55256,
+      "lat": 38.19394
+    },
+    {
+      "id": 97,
+      "name": "Syracuse",
+      "lon": 15.28664,
+      "lat": 37.07542
+    },
+    {
+      "id": 98,
+      "name": "Konya",
+      "lon": 32.48464,
+      "lat": 37.87135
+    },
+    {
+      "id": 99,
+      "name": "Ankara",
+      "lon": 32.85427,
+      "lat": 39.91987
+    },
+    {
+      "id": 100,
+      "name": "Antalya",
+      "lon": 32.4922,
+      "lat": 39.0689
+    },
+    {
+      "id": 101,
+      "name": "Alexandria",
+      "lon": 29.91582,
+      "lat": 31.20176
+    },
+    {
+      "id": 102,
+      "name": "Rosetta",
+      "lon": 30.41718,
+      "lat": 31.39951
+    },
+    {
+      "id": 103,
+      "name": "Krakow",
+      "lon": 19.93658,
+      "lat": 50.06143
+    },
+    {
+      "id": 104,
+      "name": "Lublin",
+      "lon": 22.57009,
+      "lat": 51.25058
+    },
+    {
+      "id": 105,
+      "name": "Vilnius",
+      "lon": 25.2798,
+      "lat": 54.68916
+    },
+    {
+      "id": 106,
+      "name": "Kaunas",
+      "lon": 23.90909,
+      "lat": 54.90156
+    },
+    {
+      "id": 107,
+      "name": "Buda",
+      "lon": 19.03333,
+      "lat": 47.5
+    },
+    {
+      "id": 108,
+      "name": "Pest",
+      "lon": 19.08333,
+      "lat": 47.5
+    },
+    {
+      "id": 109,
+      "name": "Szeged",
+      "lon": 20.14824,
+      "lat": 46.253
+    },
+    {
+      "id": 110,
+      "name": "Königsberg",
+      "lon": 20.4,
+      "lat": 54.4
+    },
+    {
+      "id": 111,
+      "name": "Danzig",
+      "lon": 18.64912,
+      "lat": 54.35227
+    },
+    {
+      "id": 112,
+      "name": "Copenhagen",
+      "lon": 12.56553,
+      "lat": 55.67594
+    },
+    {
+      "id": 113,
+      "name": "Roskilde",
+      "lon": 12.08035,
+      "lat": 55.64152
+    },
+    {
+      "id": 114,
+      "name": "Stockholm",
+      "lon": 18.06871,
+      "lat": 59.32938
+    },
+    {
+      "id": 115,
+      "name": "Uppsala",
+      "lon": 17.63889,
+      "lat": 59.85882
+    },
+    {
+      "id": 116,
+      "name": "Bergen",
+      "lon": 10.7,
+      "lat": 60.0
+    },
+    {
+      "id": 117,
+      "name": "Oslo",
+      "lon": 10.74609,
+      "lat": 59.91273
+    },
+    {
+      "id": 118,
+      "name": "Trondheim",
+      "lon": 10.6869,
+      "lat": 60.1497
+    },
+    {
+      "id": 119,
+      "name": "Lübeck",
+      "lon": 10.68729,
+      "lat": 53.86893
+    },
+    {
+      "id": 120,
+      "name": "Hamburg",
+      "lon": 9.99302,
+      "lat": 53.55073
+    },
+    {
+      "id": 121,
+      "name": "Bremen",
+      "lon": 8.80717,
+      "lat": 53.07582
+    },
+    {
+      "id": 122,
+      "name": "Târgoviște",
+      "lon": 25.4567,
+      "lat": 44.92543
+    },
+    {
+      "id": 123,
+      "name": "Bucharest",
+      "lon": 26.10626,
+      "lat": 44.43225
+    },
+    {
+      "id": 124,
+      "name": "Aix-en-Provence",
+      "lon": 5.44973,
+      "lat": 43.5283
+    },
+    {
+      "id": 125,
+      "name": "Albi",
+      "lon": 2.148,
+      "lat": 43.9298
+    },
+    {
+      "id": 126,
+      "name": "Amiens",
+      "lon": 2.3,
+      "lat": 49.9
+    },
+    {
+      "id": 127,
+      "name": "Amsterdam",
+      "lon": 4.88969,
+      "lat": 52.37403
+    },
+    {
+      "id": 128,
+      "name": "Angers",
+      "lon": -0.55202,
+      "lat": 47.47156
+    },
+    {
+      "id": 129,
+      "name": "Anvers",
+      "lon": 4.40026,
+      "lat": 51.22047
+    },
+    {
+      "id": 130,
+      "name": "Arles",
+      "lon": 2.63457,
+      "lat": 42.45654
+    },
+    {
+      "id": 131,
+      "name": "Arras",
+      "lon": 2.78186,
+      "lat": 50.29301
+    },
+    {
+      "id": 132,
+      "name": "Auxerre",
+      "lon": 3.57033,
+      "lat": 47.7996
+    },
+    {
+      "id": 133,
+      "name": "Avignon",
+      "lon": 4.80892,
+      "lat": 43.94834
+    },
+    {
+      "id": 134,
+      "name": "Beauvais",
+      "lon": 2.08333,
+      "lat": 49.43333
+    },
+    {
+      "id": 135,
+      "name": "Besançon",
+      "lon": 6.01815,
+      "lat": 47.24878
+    },
+    {
+      "id": 136,
+      "name": "Bois-le-Duc",
+      "lon": 5.30417,
+      "lat": 51.69917
+    },
+    {
+      "id": 137,
+      "name": "Bonn",
+      "lon": 7.09549,
+      "lat": 50.73438
+    },
+    {
+      "id": 138,
+      "name": "Boston",
+      "lon": -0.02664,
+      "lat": 52.97633
+    },
+    {
+      "id": 139,
+      "name": "Bourges",
+      "lon": 2.4,
+      "lat": 47.08333
+    },
+    {
+      "id": 140,
+      "name": "Bristol",
+      "lon": -2.59665,
+      "lat": 51.45523
+    },
+    {
+      "id": 141,
+      "name": "Bruges",
+      "lon": 3.22424,
+      "lat": 51.20892
+    },
+    {
+      "id": 142,
+      "name": "Bruxelles",
+      "lon": 4.34878,
+      "lat": 50.85045
+    },
+    {
+      "id": 143,
+      "name": "Cambridge",
+      "lon": 0.11667,
+      "lat": 52.2
+    },
+    {
+      "id": 144,
+      "name": "Canterbury",
+      "lon": 1.07992,
+      "lat": 51.27904
+    },
+    {
+      "id": 145,
+      "name": "Carcassonne",
+      "lon": 2.34863,
+      "lat": 43.21649
+    },
+    {
+      "id": 146,
+      "name": "Carmarthen",
+      "lon": -4.30535,
+      "lat": 51.85552
+    },
+    {
+      "id": 147,
+      "name": "Chartres",
+      "lon": 1.48925,
+      "lat": 48.44685
+    },
+    {
+      "id": 148,
+      "name": "Chester",
+      "lon": -2.89189,
+      "lat": 53.1905
+    },
+    {
+      "id": 149,
+      "name": "Clermont",
+      "lon": 3.08682,
+      "lat": 45.77969
+    },
+    {
+      "id": 150,
+      "name": "Coblence",
+      "lon": 7.57883,
+      "lat": 50.35357
+    },
+    {
+      "id": 151,
+      "name": "Colchester",
+      "lon": 0.90421,
+      "lat": 51.88921
+    },
+    {
+      "id": 152,
+      "name": "Coventry",
+      "lon": -1.51217,
+      "lat": 52.40656
+    },
+    {
+      "id": 153,
+      "name": "Delft",
+      "lon": 4.35556,
+      "lat": 52.00667
+    },
+    {
+      "id": 154,
+      "name": "Deventer",
+      "lon": 6.16389,
+      "lat": 52.255
+    },
+    {
+      "id": 155,
+      "name": "Dordrecht",
+      "lon": 4.67361,
+      "lat": 51.81
+    },
+    {
+      "id": 156,
+      "name": "Douai",
+      "lon": 3.07922,
+      "lat": 50.37069
+    },
+    {
+      "id": 157,
+      "name": "Exeter",
+      "lon": -3.52751,
+      "lat": 50.7236
+    },
+    {
+      "id": 158,
+      "name": "Gand",
+      "lon": 3.71667,
+      "lat": 51.05
+    },
+    {
+      "id": 159,
+      "name": "Gloucester",
+      "lon": -2.2431,
+      "lat": 51.86568
+    },
+    {
+      "id": 160,
+      "name": "Grenoble",
+      "lon": 5.71479,
+      "lat": 45.17869
+    },
+    {
+      "id": 161,
+      "name": "Haarlem",
+      "lon": 4.63683,
+      "lat": 52.38084
+    },
+    {
+      "id": 162,
+      "name": "Kampen",
+      "lon": 5.91111,
+      "lat": 52.555
+    },
+    {
+      "id": 163,
+      "name": "La Rochelle",
+      "lon": -1.15222,
+      "lat": 46.16308
+    },
+    {
+      "id": 164,
+      "name": "Le Puy",
+      "lon": 3.88523,
+      "lat": 45.04366
+    },
+    {
+      "id": 165,
+      "name": "Leyde",
+      "lon": 4.49306,
+      "lat": 52.15833
+    },
+    {
+      "id": 166,
+      "name": "Lille",
+      "lon": 4.82313,
+      "lat": 51.24197
+    },
+    {
+      "id": 167,
+      "name": "Limoges",
+      "lon": 1.24759,
+      "lat": 45.83362
+    },
+    {
+      "id": 168,
+      "name": "Lincoln",
+      "lon": -0.53792,
+      "lat": 53.22683
+    },
+    {
+      "id": 169,
+      "name": "Liège",
+      "lon": 5.56749,
+      "lat": 50.63373
+    },
+    {
+      "id": 170,
+      "name": "Louvain",
+      "lon": 4.70093,
+      "lat": 50.87959
+    },
+    {
+      "id": 171,
+      "name": "Lyon",
+      "lon": 4.84789,
+      "lat": 45.74906
+    },
+    {
+      "id": 172,
+      "name": "Maastricht",
+      "lon": 5.68889,
+      "lat": 50.84833
+    },
+    {
+      "id": 173,
+      "name": "Malines",
+      "lon": 4.47762,
+      "lat": 51.02574
+    },
+    {
+      "id": 174,
+      "name": "Marseille",
+      "lon": 5.38107,
+      "lat": 43.29695
+    },
+    {
+      "id": 175,
+      "name": "Metz",
+      "lon": 6.17269,
+      "lat": 49.11911
+    },
+    {
+      "id": 176,
+      "name": "Middelburg",
+      "lon": 3.61389,
+      "lat": 51.5
+    },
+    {
+      "id": 177,
+      "name": "Mons",
+      "lon": 3.95229,
+      "lat": 50.45413
+    },
+    {
+      "id": 178,
+      "name": "Namur",
+      "lon": 4.86746,
+      "lat": 50.4669
+    },
+    {
+      "id": 179,
+      "name": "Nancy",
+      "lon": 6.18496,
+      "lat": 48.68439
+    },
+    {
+      "id": 180,
+      "name": "Newcastle",
+      "lon": -1.61396,
+      "lat": 54.97328
+    },
+    {
+      "id": 181,
+      "name": "Nimègue",
+      "lon": 5.85278,
+      "lat": 51.8425
+    },
+    {
+      "id": 182,
+      "name": "Norwich",
+      "lon": 1.29834,
+      "lat": 52.62783
+    },
+    {
+      "id": 183,
+      "name": "Nîmes",
+      "lon": 4.35788,
+      "lat": 43.83665
+    },
+    {
+      "id": 184,
+      "name": "Orléans",
+      "lon": 1.90407,
+      "lat": 47.90248
+    },
+    {
+      "id": 185,
+      "name": "Oxford",
+      "lon": -1.25596,
+      "lat": 51.75222
+    },
+    {
+      "id": 186,
+      "name": "Perpignan",
+      "lon": 2.89541,
+      "lat": 42.69764
+    },
+    {
+      "id": 187,
+      "name": "Plymouth",
+      "lon": -4.14305,
+      "lat": 50.37153
+    },
+    {
+      "id": 188,
+      "name": "Poitiers",
+      "lon": 0.34348,
+      "lat": 46.58261
+    },
+    {
+      "id": 189,
+      "name": "Saint-Malo",
+      "lon": -2.00877,
+      "lat": 48.64738
+    },
+    {
+      "id": 190,
+      "name": "Saint-Omer",
+      "lon": 2.26091,
+      "lat": 50.74834
+    },
+    {
+      "id": 191,
+      "name": "Salisbury",
+      "lon": -1.79569,
+      "lat": 51.06931
+    },
+    {
+      "id": 192,
+      "name": "Sens",
+      "lon": 3.28328,
+      "lat": 48.19738
+    },
+    {
+      "id": 193,
+      "name": "Shrewsbury",
+      "lon": -2.75208,
+      "lat": 52.71009
+    },
+    {
+      "id": 194,
+      "name": "Southampton",
+      "lon": -1.40428,
+      "lat": 50.90395
+    },
+    {
+      "id": 195,
+      "name": "Tournai",
+      "lon": 3.38932,
+      "lat": 50.60715
+    },
+    {
+      "id": 196,
+      "name": "Tours",
+      "lon": 0.70398,
+      "lat": 47.39484
+    },
+    {
+      "id": 197,
+      "name": "Utrecht",
+      "lon": 5.12222,
+      "lat": 52.09083
+    },
+    {
+      "id": 198,
+      "name": "Valenciennes",
+      "lon": 3.52506,
+      "lat": 50.35909
+    },
+    {
+      "id": 199,
+      "name": "Vannes",
+      "lon": -2.76205,
+      "lat": 47.65688
+    },
+    {
+      "id": 200,
+      "name": "Verdun",
+      "lon": 5.3829,
+      "lat": 49.15964
+    },
+    {
+      "id": 201,
+      "name": "Winchester",
+      "lon": -1.3187,
+      "lat": 51.06513
+    },
+    {
+      "id": 202,
+      "name": "Xanten",
+      "lon": 6.45297,
+      "lat": 51.65877
+    },
+    {
+      "id": 203,
+      "name": "Ypres",
+      "lon": 2.88569,
+      "lat": 50.85114
+    },
+    {
+      "id": 204,
+      "name": "Zwolle",
+      "lon": 6.09444,
+      "lat": 52.5125
+    }
+  ],
+  "import_v1_082": {
+    "task_id": "v1_082",
+    "proposal": "sandbox/geo/artifacts/settlements_proposal_v1_072.json",
+    "added": 81,
+    "source": "GeoNames matched list — not recalculated"
+  }
+}

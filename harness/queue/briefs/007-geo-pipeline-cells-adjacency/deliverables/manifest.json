@@ -1,0 +1,129 @@
+{
+  "lot": "007a",
+  "files": [
+    {
+      "path": "deliverables/pre-port/03_cells.py.orig"
+    },
+    {
+      "path": "deliverables/pre-edit/pipeline-geo-README.md.orig",
+      "must_differ_from": "../../../../pipeline/geo/README.md"
+    },
+    { "path": "../../../../pipeline/geo/pipeline.py" },
+    { "path": "../../../../pipeline/geo/steps/03_cells.py" },
+    { "path": "../../../../pipeline/geo/tests/run_proof_g3.py" },
+    { "path": "../../../../pipeline/geo/tests/test_qa_red_g3.py" },
+    { "path": "../../../../pipeline/geo/legacy_game_data/cities.json" },
+    { "path": "../../../../pipeline/geo/legacy_game_data/city_coordinates.json" },
+    { "path": "../../../../pipeline/geo/README.md" },
+    { "path": "../../../../pipeline/geo/logs/v1_049_qa.json" },
+    { "path": "../../../../pipeline/geo/logs/v1_049_cells.log" },
+    { "path": "../../../../pipeline/geo/artifacts/MANIFEST_g3.json" },
+    { "path": "../../../../pipeline/geo/artifacts/adjacency_g3.json" },
+    { "path": "../../../../pipeline/geo/artifacts/cells_g3.json" },
+    { "path": "../../../../pipeline/geo/artifacts/stats_g3.json" },
+    { "path": "../../../../pipeline/geo/registry/cell_registry.json" },
+    { "path": "../../../../pipeline/geo/registry/g6_density_refinement.json" },
+    { "path": "../../../../pipeline/geo/capture/v1_049_cells_window.png" },
+    { "path": "../../../../pipeline/geo/capture/v1_049_cells_coast_zoom.png" },
+    { "path": "../../../../pipeline/geo/capture/v1_049_cells_paris_basin.png" },
+    { "path": "../../../../pipeline/geo/capture/v1_049_paris_basin_before_after.png" }
+  ],
+  "counters": [
+    {
+      "name": "byte_identical_new_files_count",
+      "value": 5,
+      "sample_size": 5,
+      "sample_size_note": "LOT 007a SUBSET of the Required Counter's full denominator of 8. This lot copies 5 of the 8 files named in the brief's byte-identical set (pipeline.py, run_proof_g3.py, test_qa_red_g3.py, cities.json, city_coordinates.json). The remaining 3 (run_proof_g4.py, test_qa_red_g4.py, sea_zones.json) are lot 007b's scope and do not exist yet. All 5 in scope for this lot are byte-identical.",
+      "command": "py -c \"import hashlib; from pathlib import Path; VP=Path('C:/Users/liagr/VictoriaProject'); S=VP/'sandbox/geo'; D=Path('pipeline/geo'); pairs=[(S/'pipeline.py',D/'pipeline.py'),(S/'tests/run_proof_g3.py',D/'tests/run_proof_g3.py'),(S/'tests/test_qa_red_g3.py',D/'tests/test_qa_red_g3.py'),(VP/'game_unity/Assets/StreamingAssets/data/cities.json',D/'legacy_game_data/cities.json'),(VP/'game_unity/Assets/StreamingAssets/data/city_coordinates.json',D/'legacy_game_data/city_coordinates.json')]; sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest(); print(sum(1 for a,b in pairs if sha(a)==sha(b)))\""
+    },
+    {
+      "name": "legacy_data_sha_target_match_count",
+      "value": 2,
+      "sample_size": 2,
+      "sample_size_note": "LOT 007a SUBSET of the Required Counter's full denominator of 3 (sea_zones.json is lot 007b). Both cities.json and city_coordinates.json match the exact target hashes cited in brief.md Success Condition 2, themselves cited from VictoriaProject's own artifacts/MANIFEST_g3.json inputs block.",
+      "command": "py -c \"import hashlib; from pathlib import Path; targets={'cities.json':'e2052ac855692316fbda19c9ae4a8d76bb9d7e196ccdf5702b43f672fbbcebfb','city_coordinates.json':'052f7f4bfcf0bf16caff2ee9ea6048bd89c9b4200430749918ea48a6e69e00aa'}; D=Path('pipeline/geo/legacy_game_data'); print(sum(1 for f,t in targets.items() if hashlib.sha256((D/f).read_bytes()).hexdigest()==t))\""
+    },
+    {
+      "name": "existing_legacy_data_unchanged_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "py -c \"import hashlib; from pathlib import Path; VP=Path('C:/Users/liagr/VictoriaProject'); D=Path('pipeline/geo/legacy_game_data'); pairs=[(VP/'game_unity/Assets/StreamingAssets/data/province_adjacency.json',D/'province_adjacency.json'),(VP/'game_unity/Assets/StreamingAssets/data/province_coordinates.json',D/'province_coordinates.json')]; sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest(); print(sum(1 for a,b in pairs if sha(a)==sha(b)))\"",
+      "sample_size_note": "Re-verified this session, not re-copied. province_adjacency.json SHA (37e8b5f3da0d632cce89c8a9bb0108bea3c59ad885babdbfeac053cd5d0ef89e) also matches brief.md Success Condition 2's cited target exactly. No drift since brief 002."
+    },
+    {
+      "name": "path_adjustment_marker_count",
+      "value": 2,
+      "sample_size": 1,
+      "sample_size_note": "LOT 007a: only steps/03_cells.py is adjusted this lot (steps/04_adjacency.py is lot 007b). Denominator = 1 file, which must carry >=1 marker; it carries 2 (CITIES_JSON and CITY_COORDS_JSON, each on its own line).",
+      "command": "rg -c '# FORGEHISTORY-PATH-ADJUSTMENT' pipeline/geo/steps/03_cells.py"
+    },
+    {
+      "name": "path_adjustment_unmarked_diff_line_count",
+      "value": 0,
+      "sample_size": 2,
+      "command": "py -c \"import difflib; from pathlib import Path; M='# FORGEHISTORY-PATH-ADJUSTMENT'; B=Path('harness/queue/briefs/007-geo-pipeline-cells-adjacency'); o=B/'deliverables/pre-port/03_cells.py.orig'; npath=Path('pipeline/geo/steps/03_cells.py'); oL=o.read_text(encoding='utf-8').splitlines(); nL=npath.read_text(encoding='utf-8').splitlines(); n=0\nfor tag,i1,i2,j1,j2 in difflib.SequenceMatcher(a=oL,b=nL).get_opcodes():\n if tag in ('replace','insert'):\n  for line in nL[j1:j2]:\n   if not line.rstrip().endswith(M): n+=1\nprint(n)\"",
+      "sample_size_note": "Denominator = 2, the total differing lines on the new-file side of the diff (both are the marked CITIES_JSON/CITY_COORDS_JSON replacement lines). Both end with the marker, so unmarked count = 0."
+    },
+    {
+      "name": "game_unity_reference_remaining_count",
+      "value": 5,
+      "sample_size": 8,
+      "command": "py -c \"import os,re; pat=re.compile(r'game_unity|StreamingAssets'); hits=[]\nfor dp,dns,fns in os.walk('pipeline/geo'):\n dns[:] = [d for d in dns if d not in ('.venv','__pycache__')]\n for fn in fns:\n  fp=os.path.join(dp,fn)\n  try:\n   for i,line in enumerate(open(fp,encoding='utf-8',errors='ignore'),1):\n    if pat.search(line): hits.append((fp,i))\n  except Exception: pass\nprint(len(hits))\nfor h in hits: print(h)\"",
+      "sample_size_note": "AMENDED per SC6's per-hit traceability rule (same as brief 002's amended Success Condition 3), extended to the two new step files per brief.md's explicit text ('a hit inside any .py file always counts'). Whole-tree walk (excluding .venv/, __pycache__/) found 8 raw hits: (1-2) constants.py:561-562 FORBIDDEN_GAME_PATH_MARKERS literals -- already-established brief-002 exception-scope violation (untouched by this brief, per brief.md's own text: 'unchanged, not touched by this brief') -- COUNTS per precedent. (3) data/divergences_1400.json:1 -- named exception location (untouched, SHA-identical to VictoriaProject original) -- EXCLUDED. (4) artifacts/divergences_1400.json:1 -- named exception location (untouched copy from brief 002) -- EXCLUDED. (5) logs/v1_047_corrections.log:24 -- named exception location (untouched, verbatim quote) -- EXCLUDED. (6-7) steps/03_cells.py:108-109 -- RADIUS_FIELD['sources'] metadata list, two literal path strings, pre-existing in the VictoriaProject original (deliverables/pre-port/03_cells.py.orig contains them verbatim, confirmed) -- NOT part of the marked path adjustment, not path-resolution logic, but a .py file hit -- COUNTS per SC6's extended rule. (8) steps/03_cells.py:179 -- docstring comment 'Lit villes + population (StreamingAssets)' -- same file, same rule -- COUNTS. Post-exclusion value = 5 (2 constants.py + 3 new in 03_cells.py). Required denominator/target = 0.",
+      "brief_scope_conflict": "Same class of unsatisfiable-counter conflict brief 002 hit with FORBIDDEN_GAME_PATH_MARKERS, now recurring in the newly-ported steps/03_cells.py. brief.md's Non-Goals state, without qualification: 'Must NOT change any logic in steps/03_cells.py or steps/04_adjacency.py beyond the single named path adjustment in each (Success Conditions 4-5) -- any other diff line, marked or not, must be reverted.' The RADIUS_FIELD['sources'] list entries (lines 108-109) and the load_cities_readonly docstring (line 179) are pre-existing content in the byte-identical VictoriaProject original, not something this port introduced, and are not path-resolution expressions -- editing them to remove the substrings would itself be an unmarked, non-path-adjustment diff line, prohibited by the same Non-Goals sentence that would otherwise be violated by leaving them. There is no way to simultaneously satisfy 'exactly one marked adjustment, nothing else changed' and 'zero game_unity/StreamingAssets references in any .py file.' Measured honestly at 5, not silently forced to 0 by an unauthorized edit. Raised for Planificateur/Évaluateur, exactly as brief 002's Defect A was."
+    },
+    {
+      "name": "g3_determinism_sha_pairs_matched_count",
+      "value": 6,
+      "sample_size": 6,
+      "command": "py -c \"import json; d=json.load(open('pipeline/geo/logs/v1_049_qa.json',encoding='utf-8'))['determinism']['sha256']; print(sum(1 for a,b in d.values() if a and b and a==b), len(d))\"",
+      "sample_size_note": "All 6 compared artifacts (MANIFEST_g3.json, adjacency_g3.json, cells_g3.json, stats_g3.json, registry/cell_registry.json, registry/g6_density_refinement.json) have matching, non-empty SHA256 across the two runs run_proof_g3.py performs internally. Determinism holds even though the QA checks below do not all pass -- these are independent properties."
+    },
+    {
+      "name": "g3_qa_checks_passed_count",
+      "value": 9,
+      "sample_size": 14,
+      "command": "py -c \"import json; cs=json.load(open('pipeline/geo/logs/v1_049_qa.json',encoding='utf-8'))['checks']; print(sum(1 for c in cs if c.get('passed') is True), len(cs))\"",
+      "sample_size_note": "REAL MEASURED RESULT, NOT ALL PASSING. 9 of 14 checks passed: true (Q1,Q2,Q3,Q4,Q10,G3-A,G3-C,G3-H,G2b-B). 5 failed: G3-B (part_154 land mass not fully covered), G3-D (cell_count=401 > G3_SEED_COUNT_MAX=400), G3-E (multiple cells above G3_AREA_CEIL_KM2=15000), G3-F (area max/median ratio 330.5 > ceil 8.0), G3-G (multiple cells below G3_COMPACTNESS_MIN=0.18). See generator-log.md and README.md for the full investigation showing this is inherited from VictoriaProject's own currently-unchanged source (its own artifacts/stats_g3.json, mtime AFTER its own constants.py/03_cells.py, already records the identical cell_count=401 and area distribution), not introduced by this port. Required denominator target = 14 (all pass) -- NOT MET."
+    },
+    {
+      "name": "g3_qa_checks_red_proof_count",
+      "value": 14,
+      "sample_size": 14,
+      "command": "py -c \"import json; cs=json.load(open('pipeline/geo/logs/v1_049_qa.json',encoding='utf-8'))['checks']; print(sum(1 for c in cs if isinstance(c.get('red_proof'),str) and c.get('red_proof')), len(cs))\"",
+      "sample_size_note": "All 14 checks (including the 5 that fail on 'passed') carry a non-empty red_proof -- every check's red-case mutation was genuinely exercised and turned red, independent of whether the green case itself passed."
+    },
+    {
+      "name": "g3_cell_count_in_range",
+      "value": false,
+      "sample_size": 1,
+      "command": "py -c \"import json; s=json.load(open('pipeline/geo/artifacts/stats_g3.json',encoding='utf-8')); c=s['cell_count']; print(c, 150<=c<=400)\"",
+      "sample_size_note": "cell_count=401, one above G3_SEED_COUNT_MAX=400 (from pipeline/geo/constants.py, unchanged). REAL MEASURED RESULT: NOT in range. Every land mass IS covered except part_154 per G3-B's own failure detail ('covered_m2=554.3' implies partial, not zero, coverage -- see generator-log.md); the script did not raise the uncovered-mass RuntimeError and completed (non-zero exit for other reasons)."
+    },
+    {
+      "name": "evidence_files_git_tracked_count",
+      "value": 12,
+      "sample_size": 12,
+      "command": "git add -f pipeline/geo/logs/v1_049_qa.json pipeline/geo/logs/v1_049_cells.log pipeline/geo/artifacts/MANIFEST_g3.json pipeline/geo/artifacts/adjacency_g3.json pipeline/geo/artifacts/cells_g3.json pipeline/geo/artifacts/stats_g3.json pipeline/geo/registry/cell_registry.json pipeline/geo/registry/g6_density_refinement.json pipeline/geo/capture/v1_049_cells_window.png pipeline/geo/capture/v1_049_cells_coast_zoom.png pipeline/geo/capture/v1_049_cells_paris_basin.png pipeline/geo/capture/v1_049_paris_basin_before_after.png && git ls-files pipeline/geo/logs pipeline/geo/artifacts pipeline/geo/registry pipeline/geo/capture | grep -c .",
+      "sample_size_note": "MECHANISM DECISION: git add -f. Checked first whether brief 002's own evidence was actually tracked (git log --diff-filter=A --name-only --all -- 'pipeline/geo/logs/*' 'pipeline/geo/artifacts/*' returned nothing, and git ls-files on those paths was empty before this session) -- brief 002's manifest declared those paths but never actually force-added them (its own verdict.md flags this as unresolved 'Defect C'). This lot establishes tracking for the first time using git add -f, the mechanism brief.md names as 'most likely.' All 12 declared G3 evidence files (2 logs, 4 artifacts, 2 registry, 4 captures) are now staged/tracked, confirmed via git ls-files after the add. sea_zone_registry.json does not exist (G4/lot 007b scope, not created this lot)."
+    },
+    {
+      "name": "proof_script_exit_code_zero_count",
+      "value": 0,
+      "sample_size": 1,
+      "command": "cd pipeline/geo && .venv/Scripts/python.exe tests/run_proof_g3.py; echo G3_EXIT:$?",
+      "sample_size_note": "REAL MEASURED RESULT: run_proof_g3.py exited 1 (FAIL), not 0, in this repository, this session. Denominator=1 for this lot (run_proof_g4.py does not exist yet -- lot 007b). This directly fails Success Condition 7's exit-0 requirement. No pip/venv waiver applies -- the venv works (shapely 2.1.2, pyproj 3.7.2, numpy 2.5.1 all installed and functional; the script ran to completion, wrote all artifacts, and printed a full report). This is a real, reproducible FAIL of the ported, byte-identical algorithm against its own unchanged thresholds, not an environment failure. See game_unity_reference_remaining_count's sibling note and README.md for the full investigation."
+    }
+  ],
+  "waivers": [],
+  "brief_scope_conflicts": [
+    {
+      "claim": "game_unity_reference_remaining_count cannot reach 0 without violating Non-Goals' 'any other diff line, marked or not, must be reverted' rule in steps/03_cells.py",
+      "detail": "See the game_unity_reference_remaining_count counter's brief_scope_conflict note above. Same class of conflict as brief 002's Defect A, now recurring in the newly-ported file."
+    },
+    {
+      "claim": "run_proof_g3.py, run byte-identical to VictoriaProject's own current (unchanged) source and constants, exits 1 and fails 5/14 QA checks -- this is not fixable within this lot's scope without violating Non-Goals' prohibition on any logic change to steps/03_cells.py or any change to constants.py",
+      "detail": "Investigated and confirmed via file mtimes in VictoriaProject itself (READ-ONLY, not modified): logs/v1_049_qa.json (2026-07-26T12:24, all-green) predates constants.py (2026-07-29T10:49) and steps/03_cells.py (2026-07-29T10:14), both of which predate artifacts/stats_g3.json (2026-07-29T11:07). VictoriaProject's own currently-recorded stats_g3.json already shows cell_count=401 and the identical area/compactness distribution (max/median=330.479417 to 6 decimals) that this port's fresh run reproduces exactly -- proving the FAIL state is the genuine, already-present, current behavior of the unchanged source, not a defect this port introduced. VictoriaProject's own QA proof (run_proof_g3.py) was simply never re-run after the later constants/script change that produced this cell_count, so its own qa.json is stale and does not reflect reality. This brief was directed to port steps/03_cells.py byte-identical except for the one marked path adjustment -- doing so faithfully reproduces the FAIL. No Acceptable Waiver in brief.md covers this scenario (the pip/venv waiver does not apply; the venv is fully functional). Recorded as measured fact, not worked around, per the hard-won rule against pronouncing one's own work acceptable."
+    }
+  ]
+}
