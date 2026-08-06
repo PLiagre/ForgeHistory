@@ -499,7 +499,6 @@ def _poisson_variable_radius(
             rp.x, rp.y, label_force=True,  # FORGEHISTORY-G3-REPAIR
             r_override=(r_floor if needs_split else None),  # FORGEHISTORY-G3-REPAIR
         )  # FORGEHISTORY-G3-REPAIR
-
     # 1.5) Densification obligatoire des masses > plafond de surface :  # FORGEHISTORY-G3-REPAIR
     # garantit G3-E sans dependre du hasard de la file active de Bridson.  # FORGEHISTORY-G3-REPAIR
     # Diagnostic Amendment 007a-R2 : la file active (etape 2) est dominee  # FORGEHISTORY-G3-REPAIR
@@ -575,7 +574,6 @@ def _poisson_variable_radius(
             if len(seeds) >= seed_count_max - 5:  # FORGEHISTORY-G3-REPAIR
                 break  # FORGEHISTORY-G3-REPAIR
             try_add(cx, cy, r_override=r_floor)  # FORGEHISTORY-G3-REPAIR
-
     # 2) Bridson : file active + k essais par point actif.  # FORGEHISTORY-G3-REPAIR
     # Reordonne avant les ancres urbaines (etait l'etape 3) : le budget  # FORGEHISTORY-G3-REPAIR
     # global (germes obligatoires + ancres, tous deux inconditionnels) pouvait  # FORGEHISTORY-G3-REPAIR
@@ -595,7 +593,7 @@ def _poisson_variable_radius(
     # la marge necessaire sans jamais toucher G3_SEED_COUNT_MAX lui-meme.  # FORGEHISTORY-G3-REPAIR
     effective_seed_cap = seed_count_max - 8  # FORGEHISTORY-G3-REPAIR
     # Limite de sécurité : ne pas dépasser le plafond déclaré.
-    while active and len(seeds) < effective_seed_cap:
+    while active and len(seeds) < effective_seed_cap:  # FORGEHISTORY-G3-REPAIR
         # Tirage déterministe dans la file active.
         ai = rng.randrange(len(active))
         si = active[ai]
@@ -761,22 +759,69 @@ def build_seeds(
             )
     seeds_xy = sorted(set(seeds_xy), key=lambda p: (p[0], p[1]))
 
-    seed_records = []
-    for i, (x, y) in enumerate(seeds_xy):
-        lon, lat = _inverse_lonlat(projector, x, y)
-        r = radius_at(x, y, cities, rho_lo=rho_lo, rho_hi=rho_hi)
-        seed_records.append(
-            {
-                "order": i,
-                "x_m": x,
-                "y_m": y,
-                "lon": lon,
-                "lat": lat,
-                "r_m": round(r, FLOAT_DECIMALS),
-                "label": f"poisson:{lon:.6f}:{lat:.6f}",
-                "domain_key": f"{lon:.6f}:{lat:.6f}",
-            }
-        )
+    def _records_for(xy_list: Sequence[Tuple[float, float]]) -> List[dict]:  # FORGEHISTORY-G3-REPAIR
+        # Factorise l'ancienne boucle inline (identique) pour pouvoir la  # FORGEHISTORY-G3-REPAIR
+        # rejouer une 2e fois apres l'etape 1.6 ci-dessous, sur un semis  # FORGEHISTORY-G3-REPAIR
+        # agrandi -- aucun changement de calcul, meme formule qu'avant.  # FORGEHISTORY-G3-REPAIR
+        recs = []  # FORGEHISTORY-G3-REPAIR
+        for i, (px, py) in enumerate(xy_list):  # FORGEHISTORY-G3-REPAIR
+            plon, plat = _inverse_lonlat(projector, px, py)  # FORGEHISTORY-G3-REPAIR
+            pr = radius_at(px, py, cities, rho_lo=rho_lo, rho_hi=rho_hi)  # FORGEHISTORY-G3-REPAIR
+            recs.append(  # FORGEHISTORY-G3-REPAIR
+                {  # FORGEHISTORY-G3-REPAIR
+                    "order": i,  # FORGEHISTORY-G3-REPAIR
+                    "x_m": px,  # FORGEHISTORY-G3-REPAIR
+                    "y_m": py,  # FORGEHISTORY-G3-REPAIR
+                    "lon": plon,  # FORGEHISTORY-G3-REPAIR
+                    "lat": plat,  # FORGEHISTORY-G3-REPAIR
+                    "r_m": round(pr, FLOAT_DECIMALS),  # FORGEHISTORY-G3-REPAIR
+                    "label": f"poisson:{plon:.6f}:{plat:.6f}",  # FORGEHISTORY-G3-REPAIR
+                    "domain_key": f"{plon:.6f}:{plat:.6f}",  # FORGEHISTORY-G3-REPAIR
+                }  # FORGEHISTORY-G3-REPAIR
+            )  # FORGEHISTORY-G3-REPAIR
+        return recs  # FORGEHISTORY-G3-REPAIR
+
+    # 1.6) Passe ciblee POST-LLOYD (Amendment 007a-R2, tentative de finition) :  # FORGEHISTORY-G3-REPAIR
+    # construit une preview Voronoi (build_cells, meme fonction que l'export  # FORGEHISTORY-G3-REPAIR
+    # final) sur le semis actuel pour lire area_km2/compactness_polsby_popper  # FORGEHISTORY-G3-REPAIR
+    # REELS par cellule -- pas le texte tronque a 8 entrees de G3-E/G3-G (le  # FORGEHISTORY-G3-REPAIR
+    # check qa/checks.py s'arrete des que sa liste 'bad' atteint 8, ce qui a  # FORGEHISTORY-G3-REPAIR
+    # induit en erreur la session precedente : la realite mesuree ici est  # FORGEHISTORY-G3-REPAIR
+    # 238/393 cellules continentales au-dessus du plafond et 43 sous le  # FORGEHISTORY-G3-REPAIR
+    # plancher de compacite, pas '8 chacune'). Ajoute UN germe supplementaire  # FORGEHISTORY-G3-REPAIR
+    # deterministe au centroide de chaque cellule fautive, en traitant les  # FORGEHISTORY-G3-REPAIR
+    # pires en premier (le budget restant sous G3_SEED_COUNT_MAX est trop  # FORGEHISTORY-G3-REPAIR
+    # court pour toutes les corriger -- voir generator-log.md pour la preuve  # FORGEHISTORY-G3-REPAIR
+    # arithmetique par masse : 645 germes minimum a plafond nul-gaspillage vs  # FORGEHISTORY-G3-REPAIR
+    # 600 disponibles -- ceci le confirme empiriquement, pas juste en theorie).  # FORGEHISTORY-G3-REPAIR
+    preview_records = _records_for(seeds_xy)  # FORGEHISTORY-G3-REPAIR
+    preview = build_cells(land_xy, seeds_xy, preview_records, projector)  # FORGEHISTORY-G3-REPAIR
+    offenders = []  # FORGEHISTORY-G3-REPAIR
+    for c in preview["cells"]:  # FORGEHISTORY-G3-REPAIR
+        over = c["area_km2"] - G3_AREA_CEIL_KM2  # FORGEHISTORY-G3-REPAIR
+        under = G3_COMPACTNESS_MIN - c["compactness_polsby_popper"]  # FORGEHISTORY-G3-REPAIR
+        severity = max(over, under * 100000.0)  # FORGEHISTORY-G3-REPAIR
+        if over > 0 or under > 0:  # FORGEHISTORY-G3-REPAIR
+            offenders.append((severity, c["domain_key"], c["_geom"]))  # FORGEHISTORY-G3-REPAIR
+    offenders.sort(key=lambda t: (-t[0], t[1]))  # FORGEHISTORY-G3-REPAIR
+    min_spacing_sq = (0.5 * G3_R_FLOOR_M) ** 2  # FORGEHISTORY-G3-REPAIR
+    for _severity, _dk, geom in offenders:  # FORGEHISTORY-G3-REPAIR
+        if len(seeds_xy) >= G3_SEED_COUNT_MAX:  # FORGEHISTORY-G3-REPAIR
+            break  # FORGEHISTORY-G3-REPAIR
+        cen = geom.centroid  # FORGEHISTORY-G3-REPAIR
+        if not (geom.contains(cen) or geom.covers(cen)):  # FORGEHISTORY-G3-REPAIR
+            cen = geom.representative_point()  # FORGEHISTORY-G3-REPAIR
+        cand = (round(cen.x, FLOAT_DECIMALS), round(cen.y, FLOAT_DECIMALS))  # FORGEHISTORY-G3-REPAIR
+        too_close = any(  # FORGEHISTORY-G3-REPAIR
+            (cand[0] - sx) ** 2 + (cand[1] - sy) ** 2 < min_spacing_sq  # FORGEHISTORY-G3-REPAIR
+            for sx, sy in seeds_xy  # FORGEHISTORY-G3-REPAIR
+        )  # FORGEHISTORY-G3-REPAIR
+        if too_close:  # FORGEHISTORY-G3-REPAIR
+            continue  # FORGEHISTORY-G3-REPAIR
+        seeds_xy.append(cand)  # FORGEHISTORY-G3-REPAIR
+    seeds_xy = sorted(set(seeds_xy), key=lambda p: (p[0], p[1]))  # FORGEHISTORY-G3-REPAIR
+
+    seed_records = _records_for(seeds_xy)  # FORGEHISTORY-G3-REPAIR
 
     n = len(seeds_xy)
     # v1_096 : le nombre de semis varie avec l'élargissement de la fenêtre
