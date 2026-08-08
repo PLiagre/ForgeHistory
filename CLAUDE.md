@@ -9,6 +9,20 @@ to VictoriaProject. Single source of truth: World -> Country -> Province ->
 City -> District -> Building -> Family -> Person. Full vision: see
 [VISION.md](VISION.md).
 
+## Langue et clarté
+
+- Toute communication avec l'utilisateur, et tout compte-rendu écrit
+  (`generator-log.md`, `verdict.md`, `checkpoint-NNN.md`, messages de
+  commit, mises à jour de `HANDOFF.md`), est rédigé en **français clair**.
+- Éviter le jargon technique non expliqué ; si un terme technique est
+  nécessaire, l'expliquer en une phrase simple la première fois qu'il
+  apparaît.
+- Préférer des phrases courtes et concrètes — ce qui a été fait, pourquoi,
+  ce qui reste à faire — à une narration savante ou un vocabulaire
+  inutilement complexe.
+- S'applique aux trois rôles du harnais (Planificateur, Générateur,
+  Évaluateur) et à tout travail interactif en dehors du harnais.
+
 ## Non-Negotiable Principles
 
 1. One source of truth — views never become parallel databases.
