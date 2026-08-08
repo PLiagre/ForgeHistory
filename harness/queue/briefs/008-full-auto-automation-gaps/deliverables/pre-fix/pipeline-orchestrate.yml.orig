@@ -55,19 +55,6 @@ jobs:
           python-version: "3.13"
 
       - name: Resolve event + payload
-        # Brief 008, Lot 008a: this step used to decide event=/payload=
-        # itself, in inline bash, and never consulted
-        # architecture/audit-ledger.jsonl before doing so -- the exact gap
-        # that let incident run 31085883052 try to replay a transition on
-        # an already-AUDIT_ARCHIVED audit. ALL decision logic (including
-        # the push-diff auto-dispatch path's own SC2 ledger consultation
-        # and SC5 ambiguous-diff fallback) now lives in
-        # harness/pipeline/trigger_resolve.py -- unit-testable directly by
-        # `py -m pytest harness/tests/test_trigger_resolve.py`, no GitHub
-        # Actions context required. This step's own bash does only what
-        # cannot move out of a real checkout: computing the push's own
-        # before/after diff, then handing the raw filenames to that entry
-        # point on stdin.
         id: resolve
         env:
           IN_EVENT: ${{ github.event.inputs.event }}
@@ -75,13 +62,25 @@ jobs:
           IN_PAYLOAD: ${{ github.event.inputs.payload }}
         run: |
           set -euo pipefail
-          changed="$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" -- 'architecture/reviews/*.md' || true)"
-          printf '%s\n' "$changed" | python harness/pipeline/trigger_resolve.py resolve \
-            --in-event "${IN_EVENT:-}" \
-            --in-audit-id "${IN_AUDIT_ID:-}" \
-            --in-payload "${IN_PAYLOAD:-}" \
-            --ledger architecture/audit-ledger.jsonl \
-            --github-output "$GITHUB_OUTPUT"
+          if [ -n "${IN_PAYLOAD:-}" ]; then
+            echo "event=${IN_EVENT}" >> "$GITHUB_OUTPUT"
+            echo "payload=${IN_PAYLOAD}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${IN_AUDIT_ID:-}" ]; then
+            echo "event=${IN_EVENT}" >> "$GITHUB_OUTPUT"
+            printf 'payload={"audit_id": "%s"}\n' "${IN_AUDIT_ID}" >> "$GITHUB_OUTPUT"
+          else
+            changed="$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" -- 'architecture/reviews/*.md' || true)"
+            count="$(printf '%s\n' "$changed" | grep -c . || true)"
+            if [ "$count" = "1" ]; then
+              fname="$(basename "$changed")"
+              audit_id="${fname#CLAUDE-}"; audit_id="${audit_id%.md}"
+              echo "event=review_recorded" >> "$GITHUB_OUTPUT"
+              printf 'payload={"audit_id": "%s"}\n' "$audit_id" >> "$GITHUB_OUTPUT"
+            else
+              echo "event=" >> "$GITHUB_OUTPUT"
+              echo "::notice::$count reviews/*.md changed by this push (need exactly 1 to auto-dispatch); skipping. Use workflow_dispatch with an explicit audit_id."
+            fi
+          fi
 
       - name: Run orchestrator
         if: steps.resolve.outputs.event != ''
