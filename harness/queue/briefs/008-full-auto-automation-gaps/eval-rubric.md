@@ -42,7 +42,7 @@ judgment call. "Manual" = requires an Évaluateur reading/reasoning step.
 | — | `must_differ_from`: `deliverables/pre-fix/auto_policy.yaml.orig` vs. `harness/pipeline/auto_policy.yaml` | Mechanical | SHA256 of the two differ |
 | — | `must_differ_from`: `deliverables/pre-fix/orchestrator.py.orig` vs. `harness/pipeline/orchestrator.py` | Mechanical | SHA256 of the two differ |
 
-## Non-Goals — disqualifying failures (either lot)
+## Disqualifying failures — brief.md Non-Goal violations (either lot)
 
 Any one of these is a FAIL regardless of how complete the rest looks:
 

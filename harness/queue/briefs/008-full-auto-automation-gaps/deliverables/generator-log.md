@@ -203,7 +203,7 @@ file this session touched) and re-running the same two tests: both fail
 identically on the unmodified tree. The first flags wording inside brief
 007's own `deliverables/checkpoint-002.md` (a different brief, not this
 one). The second flags `harness/queue/briefs/008-full-auto-automation-gaps/eval-rubric.md`
-itself restating a `## Non-Goals` heading from `brief.md` -- that file is
+itself restating a brief-structural heading (a Non-Goal section title) from `brief.md` -- that file is
 Planificateur-authored, pre-dates this session, and this Générateur is not
 permitted to edit `brief.md` or `eval-rubric.md` (Key Principle 6, "don't
 peek at the rubric to reverse-engineer a passing score" and the harness
