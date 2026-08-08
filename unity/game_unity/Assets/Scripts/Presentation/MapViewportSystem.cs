@@ -740,7 +740,23 @@ namespace VictoriaGame.Presentation
             _hoverLabel = "";
         }
 
-        public static void EnsureWorldWindow(MapSnapshotExporter.MapGeometry worldGeo)
+        public static void EnsureWorldWindow(MapSnapshotExporter.MapGeometry worldGeo) =>
+            EnsureWorldWindow(worldGeo, null);
+
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte, Success Condition 2 : <paramref
+        /// name="initialFrame"/>, si fourni, cadre l'état caméra initial (une seule fois,
+        /// cf. <c>_initialized</c>) sur l'emprise réelle des provinces jouables plutôt que
+        /// sur le buffer monde entier. <c>_worldWindow</c> (la borne complète, utilisée par
+        /// le clamp pan/zoom et par <see cref="ApproximatelyWorldWindow"/> côté appelant)
+        /// reste TOUJOURS le buffer monde entier, dérivé de <paramref name="worldGeo"/> — ce
+        /// n'est que le cadrage INITIAL qui change, jamais la borne. <paramref
+        /// name="initialFrame"/> est calculé par l'appelant (<c>MapDisplaySystem</c>, seul
+        /// endroit ayant accès à l'EntityManager pour dériver l'emprise depuis les données
+        /// chargées) — jamais une constante en dur ici.
+        /// </summary>
+        public static void EnsureWorldWindow(
+            MapSnapshotExporter.MapGeometry worldGeo, MapWindow? initialFrame)
         {
             if (worldGeo == null)
                 return;
@@ -753,7 +769,8 @@ namespace VictoriaGame.Presentation
             };
             if (!_initialized)
             {
-                _state = MapViewportNavigation.CreateWorld(_worldWindow);
+                var initWindow = initialFrame ?? _worldWindow;
+                _state = MapViewportNavigation.CreateWorld(initWindow);
                 _initialized = true;
                 _revision++;
             }

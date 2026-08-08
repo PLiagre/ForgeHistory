@@ -73,6 +73,34 @@ namespace VictoriaGame.Presentation
         public static MapSnapshotExporter.MapGeometry ActiveGeometry { get; private set; }
         public static bool LastGeometryCacheHit { get; private set; }
 
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte, Success Condition 2 : nombre de provinces
+        /// jouables (possédées ou peuplées) trouvées au calcul du cadrage initial —
+        /// diagnostic seulement, un seul calcul par session (cf. <c>_initialized</c> côté
+        /// MapViewportSystem).
+        /// </summary>
+        public static int LastPlayableProvinceCount { get; private set; } = -1;
+
+        /// <summary>brief 005-refonte-visuelle-carte, Success Condition 2 — diagnostic.</summary>
+        public static MapWindow LastPlayableWindow { get; private set; }
+
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte, Success Condition 3 — coût de
+        /// <c>RenderPoliticalPixels</c>/<c>MapLayerRenderer</c> seul (rastérisation CPU
+        /// pleine, sans la présentation), dernier redessin.
+        /// </summary>
+        public static double LastCpuRasterMilliseconds { get; private set; }
+
+        /// <summary>brief 005-refonte-visuelle-carte, Success Condition 3 — coût de
+        /// <see cref="InGameHud.PresentFrame"/> seul, dernier redessin.</summary>
+        public static double LastPresentFrameMilliseconds { get; private set; }
+
+        /// <summary>brief 005-refonte-visuelle-carte, Success Condition 3 — coût total
+        /// rastérisation + présentation, dernier redessin (ce que l'œil paie réellement,
+        /// contrairement à <see cref="LastGpuBackgroundMilliseconds"/> qui n'est jamais
+        /// le dernier mot présenté à l'écran cette même frame — voir OnUpdate).</summary>
+        public static double LastFullRedrawMilliseconds { get; private set; }
+
         public static void ForceLayer(DisplayLayer layer)
         {
             _forcedLayer = layer;
@@ -159,6 +187,13 @@ namespace VictoriaGame.Presentation
             // La 2 reste parce que le GPU n'est disponible qu'en mode pilote et sur
             // un matériel qui accepte le shader ; on ne remplace pas un chemin qui
             // marche partout par un chemin qui marche souvent.
+            // brief 005-refonte-visuelle-carte, Success Condition 3 : capturé LOCALEMENT
+            // (pas via le champ statique GpuBackgroundUsedThisFrame, qui reste vrai d'un
+            // appel à l'autre tant que TryRenderGpuBackground n'est pas rappelé — le lire
+            // seul hors de ce bloc skipperait la rastérisation CPU d'un futur appel où le
+            // GPU n'a PAS été retenté cette frame-ci). Vrai UNIQUEMENT si CET appel a
+            // réussi un rendu GPU, jamais un état d'un appel précédent.
+            var gpuImmediatePreviewPresentedThisCall = false;
             if (viewportChanged && HasPresentedFrame)
             {
                 var gpuFrame = TryRenderGpuBackground(em);
@@ -172,6 +207,7 @@ namespace VictoriaGame.Presentation
                     }
 
                     hudGpu.PresentRenderTexture(gpuFrame, AppendHover(_lastMetricsLine));
+                    gpuImmediatePreviewPresentedThisCall = true;
                 }
             }
 
@@ -214,13 +250,36 @@ namespace VictoriaGame.Presentation
                     return;
                 }
 
-                MapViewport.EnsureWorldWindow(_worldGeometry);
+                var fullWorld = new MapWindow
+                {
+                    MinX = _worldGeometry.MinX, MaxX = _worldGeometry.MaxX,
+                    MinY = _worldGeometry.MinY, MaxY = _worldGeometry.MaxY
+                };
+                var playable = ComputePlayableWindow(em, fullWorld, out var playableCount);
+                LastPlayableProvinceCount = playableCount;
+                LastPlayableWindow = playable;
+                MapViewport.EnsureWorldWindow(_worldGeometry, playable);
                 _activeGeometry = _worldGeometry;
                 ActiveGeometry = _activeGeometry;
+                // Culture-invariante EXPLICITE : ce log est parsé par les evidence logs de ce
+                // brief — un ToString("0.##") sans culture produit une décimale à virgule en
+                // build FR (locale du poste), rendant "x=[-7,56,23,43]" ambigu (virgule à la
+                // fois séparateur décimal ET séparateur de liste). PLAYABLE_MINX=/PLAYABLE_MAXX=
+                // etc. séparés en champs individuels, jamais combinés dans un même "[a,b]".
+                var ic = System.Globalization.CultureInfo.InvariantCulture;
                 UnityEngine.Debug.Log(
                     $"MapDisplaySystem: GEOMETRY_BUILDS={_geometryBuilds} " +
                     $"worldMs={LastWindowRebuildMilliseconds:0.0} cacheHit={worldHit} " +
-                    $"(cadence refresh={RefreshIntervalTicks} ticks ou Owner/layer/viewport change)");
+                    $"(cadence refresh={RefreshIntervalTicks} ticks ou Owner/layer/viewport change) " +
+                    $"PLAYABLE_WINDOW count={playableCount} " +
+                    $"PLAYABLE_MINX={playable.MinX.ToString("0.###", ic)} " +
+                    $"PLAYABLE_MAXX={playable.MaxX.ToString("0.###", ic)} " +
+                    $"PLAYABLE_MINY={playable.MinY.ToString("0.###", ic)} " +
+                    $"PLAYABLE_MAXY={playable.MaxY.ToString("0.###", ic)} " +
+                    $"WORLD_MINX={fullWorld.MinX.ToString("0.###", ic)} " +
+                    $"WORLD_MAXX={fullWorld.MaxX.ToString("0.###", ic)} " +
+                    $"WORLD_MINY={fullWorld.MinY.ToString("0.###", ic)} " +
+                    $"WORLD_MAXY={fullWorld.MaxY.ToString("0.###", ic)}");
             }
 
             if (viewportChanged || _activeGeometry == null)
@@ -260,52 +319,138 @@ namespace VictoriaGame.Presentation
 
             // ui_001 — texture interactive map-only : pas de panneau/dump bitmap.
             // Les exports diagnostiques (MapSnapshotExporter) gardent leurs overlays.
-            Color32[] pixels;
-            if (_layer == DisplayLayer.Political)
+            //
+            // brief 005-refonte-visuelle-carte, Success Condition 3 : FIX (itération de
+            // correction du feedback). Diagnostiqué puis mesuré par l'itération précédente
+            // (v005-zoom-gpu-run.log) : RenderPoliticalPixels + PresentFrame (chemin CPU
+            // pleine rastérisation) s'exécutaient INCONDITIONNELLEMENT ici, y compris quand
+            // un fond GPU avait déjà été présenté plus haut cette même frame
+            // (TryRenderGpuBackground) — la « preview GPU immédiate » n'était donc jamais ce
+            // que l'œil voyait réellement en fin de frame, toujours écrasée par ce chemin
+            // CPU avant présentation. Les 5 transitions mesurées dépassaient toutes le
+            // budget de 33 ms (30 fps) par ce seul mécanisme.
+            //
+            // Correctif : quand CET appel a déjà présenté une image GPU
+            // (gpuImmediatePreviewPresentedThisCall), la rastérisation CPU pleine +
+            // PresentFrame sont court-circuitées pour CETTE frame — le chemin CPU reste
+            // entièrement intact comme repli complet dès que le GPU échoue ou n'est pas
+            // disponible (gpuImmediatePreviewPresentedThisCall == false, la branche
+            // ci-dessous ne change pas une ligne du chemin CPU existant). Rejoué et vérifié
+            // après ce correctif : V1095GpuMapTests (parité d'orientation CPU/GPU) — voir
+            // generator-log.md, ce même Success Condition.
+            if (!gpuImmediatePreviewPresentedThisCall)
             {
-                pixels = MapSnapshotExporter.RenderPoliticalPixels(
-                    em, geo, labels, selectedProv,
-                    overlay: p => ComposeInteractiveMapOnly(
-                        p, geo, em, level, filterProv, filterCountry, hoverProv));
+                var redrawSw = Stopwatch.StartNew();
+                Color32[] pixels;
+                if (_layer == DisplayLayer.Political)
+                {
+                    pixels = MapSnapshotExporter.RenderPoliticalPixels(
+                        em, geo, labels, selectedProv,
+                        overlay: p => ComposeInteractiveMapOnly(
+                            p, geo, em, level, filterProv, filterCountry, hoverProv));
+                }
+                else
+                {
+                    var frame = MapLayerRenderer.CaptureFrame(em, geo, _colors, tick);
+                    var kind = ToLayerKind(_layer);
+                    pixels = MapLayerRenderer.RenderLayerToPixels(
+                        geo, frame, kind, _palettes, _domains, _colors,
+                        extraOverlay: p => ComposeInteractiveMapOnly(
+                            p, geo, em, level, filterProv, filterCountry, hoverProv,
+                            thematicLayer: true));
+                }
+
+                LastCpuRasterMilliseconds = redrawSw.Elapsed.TotalMilliseconds;
+
+                if (pixels == null)
+                    return;
+
+                var hud = InGameHud.Instance;
+                if (hud == null)
+                {
+                    var go = new GameObject("InGameHud");
+                    hud = go.AddComponent<InGameHud>();
+                }
+
+                var presentSw = Stopwatch.StartNew();
+                hud.PresentFrame(pixels, geo.Width, geo.Height, AppendHover(_lastMetricsLine));
+                presentSw.Stop();
+                LastPresentFrameMilliseconds = presentSw.Elapsed.TotalMilliseconds;
+                redrawSw.Stop();
+                LastFullRedrawMilliseconds = redrawSw.Elapsed.TotalMilliseconds;
+                if (viewportChanged)
+                {
+                    UnityEngine.Debug.Log(
+                        $"MapDisplaySystem: ZOOM_TRANSITION_MS raster={LastCpuRasterMilliseconds:0.00} " +
+                        $"present={LastPresentFrameMilliseconds:0.00} " +
+                        $"total={LastFullRedrawMilliseconds:0.00} " +
+                        $"geometryRebuildMs={LastWindowRebuildMilliseconds:0.00} " +
+                        $"gpuUsed={GpuBackgroundUsedThisFrame} gpuMs={LastGpuBackgroundMilliseconds:0.00} " +
+                        $"level={level} window=[{geo?.MinX:0.#},{geo?.MaxX:0.#}]x[{geo?.MinY:0.#},{geo?.MaxY:0.#}] " +
+                        "cpuSkipped=False");
+                }
+                hud.RefreshInfoBar(AppendHover(_lastMetricsLine));
+                hud.RefreshProvincePanel(
+                    !string.IsNullOrEmpty(_lastCityDetail) ? _lastCityDetail : _lastProvinceDetail);
+                hud.RefreshCountryPanel(_lastCountryDetail);
+                hud.RefreshHoverLabel(MapViewport.HoverLabel);
+                _lastPixels = pixels;
+                _lastPixelW = geo.Width;
+                _lastPixelH = geo.Height;
+                _lastPresentedWindow = MapViewport.State.Window;
+                _lastHoverProvinceId = hoverProv;
+                _lastRenderedTick = tick;
+                _lastOwnerChangeFingerprint = ownerFp;
+                _lastPresentedLayer = _layer;
+                _forceRefresh = false;
+                HasPresentedFrame = true;
+                CurrentLayer = _layer;
             }
             else
             {
-                var frame = MapLayerRenderer.CaptureFrame(em, geo, _colors, tick);
-                var kind = ToLayerKind(_layer);
-                pixels = MapLayerRenderer.RenderLayerToPixels(
-                    geo, frame, kind, _palettes, _domains, _colors,
-                    extraOverlay: p => ComposeInteractiveMapOnly(
-                        p, geo, em, level, filterProv, filterCountry, hoverProv,
-                        thematicLayer: true));
+                // Le fond GPU a déjà été présenté plus haut cette même frame
+                // (hudGpu.PresentRenderTexture) — seuls les panneaux texte et le survol
+                // restent à rafraîchir, avec les métriques FRAÎCHEMENT recalculées ci-dessus
+                // (le RefreshInfoBar interne à PresentRenderTexture, plus haut, utilisait
+                // encore l'ancienne _lastMetricsLine de la frame précédente, pas celle-ci).
+                // _lastPixels/_lastPixelW/_lastPixelH/_lastPresentedWindow ne sont PAS mis à
+                // jour ici : aucun nouveau buffer CPU n'a été calculé cette frame ; ils
+                // restent la dernière image CPU réelle, utilisée UNIQUEMENT comme source du
+                // recadrage immédiat (CropScalePreview) le jour où un futur changement de
+                // fenêtre trouve le GPU indisponible (ce chemin reste déjà explicitement
+                // gardé par `!GpuBackgroundUsedThisFrame` plus haut).
+                LastCpuRasterMilliseconds = 0;
+                LastPresentFrameMilliseconds = 0;
+                LastFullRedrawMilliseconds = LastGpuBackgroundMilliseconds;
+                if (viewportChanged)
+                {
+                    UnityEngine.Debug.Log(
+                        $"MapDisplaySystem: ZOOM_TRANSITION_MS raster=0.00 present=0.00 " +
+                        $"total={LastFullRedrawMilliseconds:0.00} " +
+                        $"geometryRebuildMs={LastWindowRebuildMilliseconds:0.00} " +
+                        $"gpuUsed={GpuBackgroundUsedThisFrame} gpuMs={LastGpuBackgroundMilliseconds:0.00} " +
+                        $"level={level} window=[{geo?.MinX:0.#},{geo?.MaxX:0.#}]x[{geo?.MinY:0.#},{geo?.MaxY:0.#}] " +
+                        "cpuSkipped=True (brief 005-refonte-visuelle-carte, Success Condition 3)");
+                }
+
+                var hudRefreshOnly = InGameHud.Instance;
+                if (hudRefreshOnly != null)
+                {
+                    hudRefreshOnly.RefreshInfoBar(AppendHover(_lastMetricsLine));
+                    hudRefreshOnly.RefreshProvincePanel(
+                        !string.IsNullOrEmpty(_lastCityDetail) ? _lastCityDetail : _lastProvinceDetail);
+                    hudRefreshOnly.RefreshCountryPanel(_lastCountryDetail);
+                    hudRefreshOnly.RefreshHoverLabel(MapViewport.HoverLabel);
+                }
+
+                _lastHoverProvinceId = hoverProv;
+                _lastRenderedTick = tick;
+                _lastOwnerChangeFingerprint = ownerFp;
+                _lastPresentedLayer = _layer;
+                _forceRefresh = false;
+                HasPresentedFrame = true;
+                CurrentLayer = _layer;
             }
-
-            if (pixels == null)
-                return;
-
-            var hud = InGameHud.Instance;
-            if (hud == null)
-            {
-                var go = new GameObject("InGameHud");
-                hud = go.AddComponent<InGameHud>();
-            }
-
-            hud.PresentFrame(pixels, geo.Width, geo.Height, AppendHover(_lastMetricsLine));
-            hud.RefreshInfoBar(AppendHover(_lastMetricsLine));
-            hud.RefreshProvincePanel(
-                !string.IsNullOrEmpty(_lastCityDetail) ? _lastCityDetail : _lastProvinceDetail);
-            hud.RefreshCountryPanel(_lastCountryDetail);
-            hud.RefreshHoverLabel(MapViewport.HoverLabel);
-            _lastPixels = pixels;
-            _lastPixelW = geo.Width;
-            _lastPixelH = geo.Height;
-            _lastPresentedWindow = MapViewport.State.Window;
-            _lastHoverProvinceId = hoverProv;
-            _lastRenderedTick = tick;
-            _lastOwnerChangeFingerprint = ownerFp;
-            _lastPresentedLayer = _layer;
-            _forceRefresh = false;
-            HasPresentedFrame = true;
-            CurrentLayer = _layer;
         }
 
         void EnsureGeometryForViewport()
@@ -363,6 +508,100 @@ namespace VictoriaGame.Presentation
                    math.abs(w.MaxX - ww.MaxX) < 0.0001f &&
                    math.abs(w.MinY - ww.MinY) < 0.0001f &&
                    math.abs(w.MaxY - ww.MaxY) < 0.0001f;
+        }
+
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte, Success Condition 2 — cadrage initial dérivé
+        /// des données réellement chargées, jamais une constante en dur.
+        ///
+        /// « Jouable » = province avec un <see cref="ProvinceOwnership.Owner"/> non nul
+        /// (appartient à un pays) OU une <see cref="VictoriaGame.Population.PopulationData"/>
+        /// non vide (peuplée même sans maître) — exactement la formulation de
+        /// <c>brief.md</c> Success Condition 2 (« owned, populated »). La position de
+        /// chaque province vient de <see cref="ProvinceCoordinates.LoadProjected"/> — les
+        /// mêmes coordonnées projetées que celles qui posent les étiquettes sur la carte,
+        /// jamais une position recalculée séparément (une seule source de vérité
+        /// géographique). Marge de 12% (état, pas caché) + mise à l'aspect du buffer carte,
+        /// même mécanisme que <see cref="MapViewportNavigation.FitAspectWithMargin"/> déjà
+        /// utilisé pour le cadrage pays/province. Repli sur <paramref name="fullWorld"/> si
+        /// aucune province jouable n'est trouvée (jeu non chargé) — jamais un cadrage vide.
+        /// </summary>
+        // brief 005-refonte-visuelle-carte, Success Condition 2 : mesuré, pas deviné, à
+        // travers DEUX itérations. (1) 0.12 avec mise à l'aspect 4:3 débordait toujours les
+        // bornes monde : l'emprise jouable brute est quasi carrée (ratio mesuré ≈0.978,
+        // largeur/hauteur 28.17/28.8) alors que la mise à l'aspect visait 1600/1200=1.333 —
+        // rien qu'ATTEINDRE cet aspect gonflait déjà la largeur à 38.4, hors bornes.
+        // (2) Mesure du buffer monde lui-même (`WORLD_MINX/MAXX/MINY/MAXY`, log
+        // MapDisplaySystem) a montré que ses propres bornes conservent CE MÊME ratio
+        // ≈0.978 (30.989/31.68), avec seulement une marge uniforme ≈10 % au-delà de
+        // l'emprise brute des provinces — le buffer monde n'est PAS mis à l'aspect
+        // 1600×1200 en coordonnées projetées (ce rapport ne s'applique qu'au nombre de
+        // pixels du buffer, pas à la fenêtre monde qu'on y projette). Mise à l'aspect
+        // supprimée ici pour la même raison ; marge directe seulement, assez petite pour
+        // ne jamais atteindre la branche "w >= b.Width" de MapViewportNavigation.
+        // ClampWindow (qui remplace silencieusement la fenêtre entière par la borne
+        // complète — exactement le défaut que ce Success Condition corrige).
+        const float PlayableWindowMarginFraction = 0.04f;
+
+        static MapWindow ComputePlayableWindow(
+            EntityManager em, MapWindow fullWorld, out int playableCount)
+        {
+            playableCount = 0;
+            var coords = ProvinceCoordinates.LoadProjected(out _);
+            if (coords.Count == 0)
+                return fullWorld;
+
+            var byId = new Dictionary<int, ProvinceCoordinates.Point>(coords.Count);
+            for (var i = 0; i < coords.Count; i++)
+                byId[coords[i].Id] = coords[i];
+
+            var minX = float.MaxValue;
+            var maxX = float.MinValue;
+            var minY = float.MaxValue;
+            var maxY = float.MinValue;
+
+            using (var q = em.CreateEntityQuery(
+                       ComponentType.ReadOnly<ProvinceData>(),
+                       ComponentType.ReadOnly<ProvinceOwnership>()))
+            using (var entities = q.ToEntityArray(Unity.Collections.Allocator.Temp))
+            using (var pdata = q.ToComponentDataArray<ProvinceData>(Unity.Collections.Allocator.Temp))
+            using (var owns = q.ToComponentDataArray<ProvinceOwnership>(Unity.Collections.Allocator.Temp))
+            {
+                for (var i = 0; i < pdata.Length; i++)
+                {
+                    var owned = owns[i].Owner != Entity.Null;
+                    var populated = em.HasComponent<VictoriaGame.Population.PopulationData>(entities[i]) &&
+                                     em.GetComponentData<VictoriaGame.Population.PopulationData>(entities[i]).Total > 0;
+                    if (!owned && !populated)
+                        continue;
+                    if (!byId.TryGetValue(pdata[i].ProvinceId, out var pt))
+                        continue;
+
+                    if (pt.X < minX) minX = pt.X;
+                    if (pt.X > maxX) maxX = pt.X;
+                    if (pt.Y < minY) minY = pt.Y;
+                    if (pt.Y > maxY) maxY = pt.Y;
+                    playableCount++;
+                }
+            }
+
+            if (playableCount == 0)
+                return fullWorld;
+
+            // Marge directe, PAS de mise à l'aspect (voir commentaire ci-dessus) — la
+            // fenêtre monde elle-même ne l'est pas non plus.
+            var dx = maxX - minX;
+            var dy = maxY - minY;
+            if (dx < 0.01f) dx = 0.01f;
+            if (dy < 0.01f) dy = 0.01f;
+            var mx = dx * PlayableWindowMarginFraction;
+            var my = dy * PlayableWindowMarginFraction;
+            var fitted = new MapWindow
+            {
+                MinX = minX - mx, MaxX = maxX + mx,
+                MinY = minY - my, MaxY = maxY + my
+            };
+            return MapViewportNavigation.ClampWindow(fitted, fullWorld);
         }
 
         string BuildCityDetailIfNeeded(EntityManager em)
@@ -648,6 +887,20 @@ namespace VictoriaGame.Presentation
                     label = tag + " / " + label;
             }
 
+            // brief 005-refonte-visuelle-carte, Success Condition 5 : légende du liseré
+            // front, atteignable depuis la carte elle-même (survol), sans nouvel écran —
+            // MapSnapshotExporter.LastFrontDrawnProvinceIds est déjà rempli à chaque rendu
+            // par ApplyFrontOverlay (même passage que celui qui peint le liseré), donc
+            // « province survolée = province peinte en liseré/damier ce cadre-ci » se lit
+            // directement sans nouvelle requête ECS ni nouveau calcul de simulation.
+            var simProvinceId = ToSimulationProvinceId(id);
+            if (MapSnapshotExporter.LastFrontDrawnProvinceIds.Contains(id) ||
+                MapSnapshotExporter.LastFrontDrawnProvinceIds.Contains(simProvinceId))
+            {
+                label += "  —  Front de guerre actif (liseré rouge = ligne de front ; " +
+                         "damier = secteur contesté)";
+            }
+
             MapViewport.SetHover(id, label);
         }
 
@@ -660,9 +913,14 @@ namespace VictoriaGame.Presentation
                 return false;
             var w = MapViewport.State.Window;
             var dx = -dpx / geo.Width * w.Width;
+            // brief 005-refonte-visuelle-carte, Success Condition 1 : cette ligne inversait
+            // encore dy (« Texture y=0 bas ; delta UI y-down → inverser dy monde ») pour
+            // compenser l'ancien affichage non retourné de InGameHud.PresentFrame. Depuis
+            // que PresentFrame applique le retournement unique (buffer py=0=nord affiché en
+            // haut), cette compensation ferait glisser la carte dans le mauvais sens au
+            // drag — supprimée, pas réintroduite ailleurs (une seule frontière de
+            // conversion, ici même, plus haut dans InGameHud.TryLocalToTexture).
             var dy = -dpy / geo.Height * w.Height;
-            // Texture y=0 bas ; delta UI y-down → inverser dy monde.
-            dy = -dy;
             var ok = MapViewport.Pan(dx, dy);
             if (ok)
                 RequestRefresh();

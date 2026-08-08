@@ -43,6 +43,24 @@
 > unaffected — it now simply reads whichever cells land within the newly
 > re-derived bounds.
 
+> **Amendment 007a-R4 (2026-08-07T10:00:00)**: Amendment 007a-R3's Amended
+> Success Condition 7 required a fresh **14/14** result as the sole
+> acceptable outcome for Lot 007a. The Générateur's own honest handoff
+> (`deliverables/checkpoint-003.md`, `deliverables/generator-log.md`'s "Lot
+> 007a-R3" §R3.3) reached **13/14** — every check green except `G3-G`
+> (compactness floor) — after seven distinct, measured seeding-repair
+> attempts, all reverted because none improved on the 21-violation baseline.
+> The owner was escalated and chose **Option 1: land Lot 007a at 13/14,
+> accepting the `G3-G` shortfall as a documented, attributed debt** — the
+> project's existing "attributed reds" pattern (see `HANDOFF.md`'s "7
+> attributed legacy reds" precedent: understood / documented /
+> proven-deliberate) — see "## Amendment 007a-R4 (2026-08-07): accept G3-G as
+> an attributed compactness debt (owner Option 1)" at the end of this file.
+> **`G3_COMPACTNESS_MIN` stays 0.18, unchanged — this amendment does NOT
+> relax the shape bar; it documents the shortfall against the bar exactly as
+> it stands.** Read that section before evaluating Lot 007a. Lot 007b is
+> unaffected.
+
 ## World-Terms Requirement
 
 Stated causally, not as a tooling preference:
@@ -310,7 +328,7 @@ recorded.
 | path_adjustment_unmarked_diff_line_count | **[AMENDED for `steps/03_cells.py` / 007a — see "Amendment 007a-R" below, which renames this counter's 007a instance to `g3_unmarked_nonrepair_diff_line_count`. For `steps/04_adjacency.py` / 007b, unchanged.]** line diff of each adjusted file vs its `deliverables/pre-port/*.orig` snapshot, counting differing lines not ending in the marker | 0 |
 | game_unity_reference_remaining_count | grep `game_unity`/`StreamingAssets` across `pipeline/geo/`, same per-hit traceability rule as brief 002's amended Success Condition 3 (exception scope unchanged: `data/divergences_1400.json` + its verbatim copies/quotations + `constants.py`'s untouched `FORBIDDEN_GAME_PATH_MARKERS`, **plus, per Amendment 007a-R, the three named pre-existing `03_cells.py` literals**) | 0 after exclusions |
 | g3_determinism_sha_pairs_matched_count | `logs/v1_049_qa.json`'s `determinism.sha256` dict — matched/total | total key count (must equal numerator; total > 0) |
-| g3_qa_checks_passed_count / g3_qa_checks_red_proof_count | `logs/v1_049_qa.json`'s `checks` array | total entries (all green, all red-proven) — **per Amendment 007a-R, no longer excusable as brief-premise carry-forward for Lot 007a** |
+| g3_qa_checks_passed_count / g3_qa_checks_red_proof_count | `logs/v1_049_qa.json`'s `checks` array | total entries (all green, all red-proven) — **per Amendment 007a-R, no longer excusable as brief-premise carry-forward for Lot 007a. Per Amendment 007a-R4, `g3_qa_checks_passed_count`'s acceptance target for Lot 007a is redefined to 13 of 14 (G3-G excluded, separately attributed) — see that section, "not a regression".**|
 | g3_cell_count_in_range | `artifacts/stats_g3.json`'s `cell_count` vs `[G3_SEED_COUNT_MIN, G3_SEED_COUNT_MAX]` in `pipeline/geo/constants.py` | must be within [150, 400] — **per Amendment 007a-R, must be true, not carry-forward false. Per Amendment 007a-R2, the range itself is now [150, 600] — see that section.** |
 | g4_determinism_sha_pairs_matched_count | `logs/v1_050_qa.json`'s `determinism.sha256` dict | total key count (must equal numerator; total > 0) |
 | g4_qa_checks_passed_count / g4_qa_checks_red_proof_count | `logs/v1_050_qa.json`'s `checks` array | total entries (all green, all red-proven) |
@@ -320,15 +338,19 @@ recorded.
 | g4_open_sea_reachability_without_links_fails | `logs/v1_050_qa.json`'s `G4-B` check `red_proof` field (natural links-off case) | must be non-empty (proves the topology link is load-bearing, not decorative) |
 | adjacency_g4_province_field_count | grep the substring `province` inside `artifacts/adjacency_g4.json` only (not `adjacency_divergence_g4.json`) | 0 (must equal 0) |
 | evidence_files_git_tracked_count | `git ls-files` intersected with the declared list of new G3/G4 evidence files (both `logs/v1_04{9,50}_*`, both `artifacts/*g{3,4}*.json`, `registry/cell_registry.json`, `registry/sea_zone_registry.json`, `registry/g6_density_refinement.json`) | must equal the full declared count — none silently gitignored |
-| proof_script_exit_code_zero_count | exit codes of `run_proof_g3.py` and `run_proof_g4.py` | 2 (must equal 2) |
+| proof_script_exit_code_zero_count | exit codes of `run_proof_g3.py` and `run_proof_g4.py` | 2 (must equal 2) — **per Amendment 007a-R4, `run_proof_g3.py`'s Lot 007a instance is redefined: exit code 1, attributable SOLELY to `G3-G`, is now an accepted terminal state (not a FAIL) — see that section's redefined counter, `g3_exit_attributable_to_g3g_only`.** |
 
 **See "Amendment 007a-R" below for the additional counters
 (`g3_repair_marker_count`, `g3_check_definitions_byte_identical`,
 `g3_bound_constants_unchanged`) required for Lot 007a post-amendment,
 "Amendment 007a-R2" for that same counter's redefinition plus the new
-`g3_seed_count_max_matches_derivation` counter, and "Amendment 007a-R3" for
+`g3_seed_count_max_matches_derivation` counter, "Amendment 007a-R3" for
 the further redefinition of `g3_bound_constants_unchanged` plus the new
-`g3_area_ceil_matches_derivation` counter.**
+`g3_area_ceil_matches_derivation` counter, and "Amendment 007a-R4" for the
+new `g3_compactness_debt_cells_count`, `g3_compactness_debt_documented`,
+`g3g_debt_registered_locations_count`, and `g3_exit_attributable_to_g3g_only`
+counters, plus the redefined acceptance target for
+`g3_qa_checks_passed_count`.**
 
 ## Acceptable Waivers (if any claim of infeasibility arises)
 
@@ -347,8 +369,12 @@ Planificateur — never self-granted as a pass). **Amendment 007a-R2 was the
 first resolution of exactly that escalation, for the `G3-E/F/G` pigeonhole
 finding raised during the Amendment 007a-R repair run; Amendment 007a-R3 is
 the resolution of the *second*, stronger per-land-part escalation raised
-against Amendment 007a-R2's own `G3_SEED_COUNT_MAX = 600` bound — see that
-amendment's section at the end of this file.**
+against Amendment 007a-R2's own `G3_SEED_COUNT_MAX = 600` bound; Amendment
+007a-R4 is the resolution of the *third* escalation — this time not a
+pigeonhole proof of mathematical impossibility, but seven measured,
+reproducible empirical strategies that failed to improve on the 21-violation
+`G3-G` baseline without a worse trade-off — see that amendment's section at
+the end of this file.**
 
 ## Execution Contract
 
@@ -390,23 +416,23 @@ py harness/budget.py split-check --brief harness/queue/briefs/007-geo-pipeline-c
 
 ## Lots atomiques (ordre d'exécution — chaque lot = un `/forge-run` séparé)
 
-### Lot 007a — G3 cells (≤100 appels estimés) — **[re-scoped, see Amendment 007a-R below for the repair-scope estimate, Amendment 007a-R2 for the small follow-on recalibration estimate, and Amendment 007a-R3 for the further small area-ceiling recalibration estimate]**
+### Lot 007a — G3 cells (≤100 appels estimés) — **[re-scoped, see Amendment 007a-R below for the repair-scope estimate, Amendment 007a-R2 for the small follow-on recalibration estimate, Amendment 007a-R3 for the further small area-ceiling recalibration estimate, and Amendment 007a-R4 for the small debt-attribution estimate]**
 
 | Champ | Valeur |
 |---|---|
 | Objectif | `pipeline.py` ported; `steps/03_cells.py` ported with marked path adjustment; `cities.json`/`city_coordinates.json` copied into `legacy_game_data/`; G3 determinism + QA proof green; evidence tracked in git |
 | Dépendances | Brief 002 merged (`pipeline/geo/artifacts/coastline_1400.json`, shared infra, `legacy_game_data/province_*.json` already present) |
 | Fichiers | `pipeline/geo/pipeline.py`, `pipeline/geo/steps/03_cells.py`, `pipeline/geo/tests/run_proof_g3.py`, `pipeline/geo/tests/test_qa_red_g3.py`, `pipeline/geo/legacy_game_data/cities.json`, `pipeline/geo/legacy_game_data/city_coordinates.json`, `pipeline/geo/README.md` (G3-landed edit), `harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/**` |
-| Critères | Success Conditions 1, 2 (cities/city_coordinates half), 3 (007a rows), 4 (amended), 6 (amended), 7 (amended, range further amended by 007a-R2, area-ceiling amended by 007a-R3), 10 (G3 evidence), 11 (first edit), 12 (03_cells.py.orig + first README snapshot), 13, 14 |
-| Commande de validation | `cd pipeline/geo && .venv/Scripts/python.exe tests/run_proof_g3.py` — exit 0 |
-| Définition de terminé | Gate ACCEPT 007a; `artifacts/cells_g3.json` + `artifacts/adjacency_g3.json` + `artifacts/MANIFEST_g3.json` exist, are git-tracked, and are the input `04_adjacency.py` will read in 007b; **per Amendment 007a-R, the mesh is genuinely non-degenerate — all of G3-A..G3-H green with non-empty red_proof, not a carry-forward FAIL; per Amendment 007a-R2, this was checked against `cell_count` in `[150, 600]`; per Amendment 007a-R3, `G3-E` is now checked against the re-derived `G3_AREA_CEIL_KM2 = 40,000` km², and this is the version of Amended SC7 that must actually reach 14/14** |
+| Critères | Success Conditions 1, 2 (cities/city_coordinates half), 3 (007a rows), 4 (amended), 6 (amended), 7 (amended, range further amended by 007a-R2, area-ceiling amended by 007a-R3, acceptance target amended by 007a-R4), 10 (G3 evidence), 11 (first edit), 12 (03_cells.py.orig + first README snapshot), 13, 14 |
+| Commande de validation | `cd pipeline/geo && .venv/Scripts/python.exe tests/run_proof_g3.py` — **per Amendment 007a-R4, exit 1 attributable solely to `G3-G` is the expected, accepted terminal state; exit 0 is no longer required for this lot's PASS** |
+| Définition de terminé | Gate ACCEPT 007a; `artifacts/cells_g3.json` + `artifacts/adjacency_g3.json` + `artifacts/MANIFEST_g3.json` exist, are git-tracked, and are the input `04_adjacency.py` will read in 007b; **per Amendment 007a-R, the mesh is genuinely non-degenerate — all of G3-A..G3-H green with non-empty red_proof, not a carry-forward FAIL; per Amendment 007a-R2, this was checked against `cell_count` in `[150, 600]`; per Amendment 007a-R3, `G3-E` is checked against the re-derived `G3_AREA_CEIL_KM2 = 40,000` km²; per Amendment 007a-R4, this is the version of Amended SC7 that actually governs Lot 007a's PASS: 13/14 green + red-proven, `G3-G` red-and-attributed via the three-part proof, is a full PASS — 14/14 remains the preferred outcome for any future session that finds a genuine fix, but is no longer required for this lot to close** |
 
 ### Lot 007b — G4 adjacency (≤90 appels estimés)
 
 | Champ | Valeur |
 |---|---|
 | Objectif | `steps/04_adjacency.py` ported with marked path adjustment; `sea_zones.json` copied; `province_adjacency.json`/`province_coordinates.json` re-verified unchanged; G4 determinism + QA proof green including the Zuiderzee topology-link red-case; ADR-0003 boundary enforced in the exported artifact; evidence tracked in git |
-| Dépendances | 007a merged (`artifacts/cells_g3.json` exists) — **per Amendment 007a-R, this must be the repaired, all-green `cells_g3.json`, not the degenerate 401-cell one; per Amendment 007a-R2, "all-green" allowed a `cell_count` anywhere in `[150, 600]`; per Amendment 007a-R3, "all-green" now also requires the mesh to be built against `G3_AREA_CEIL_KM2 = 40,000`, not the original 15,000** |
+| Dépendances | 007a merged (`artifacts/cells_g3.json` exists) — **per Amendment 007a-R, this must be the repaired, all-green `cells_g3.json`, not the degenerate 401-cell one; per Amendment 007a-R2, "all-green" allowed a `cell_count` anywhere in `[150, 600]`; per Amendment 007a-R3, "all-green" now also requires the mesh to be built against `G3_AREA_CEIL_KM2 = 40,000`, not the original 15,000; per Amendment 007a-R4, "all-green" for the purpose of 007b's dependency means Lot 007a's own PASS state (13/14 + attributed `G3-G` debt) — 007b reads `cells_g3.json` exactly as it is, including the 21 attributed-debt cells; nothing about 007b's own G4 checks depends on cell-level compactness** |
 | Fichiers | `pipeline/geo/steps/04_adjacency.py`, `pipeline/geo/tests/run_proof_g4.py`, `pipeline/geo/tests/test_qa_red_g4.py`, `pipeline/geo/legacy_game_data/sea_zones.json`, `pipeline/geo/README.md` (G4-landed edit), `harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/**` |
 | Critères | Success Conditions 2 (sea_zones + province re-verify), 3 (007b rows), 5, 6 (04_adjacency.py scope), 8, 9, 10 (G4 evidence), 11 (second edit), 12 (04_adjacency.py.orig + second README snapshot), 13, 14 |
 | Commande de validation | `cd pipeline/geo && .venv/Scripts/python.exe tests/run_proof_g4.py` — exit 0 |
@@ -487,6 +513,14 @@ once Amendment 007a-R2's own `G3_SEED_COUNT_MAX = 600` bound was itself
 shown mathematically insufficient at the frozen 15,000 km² ceiling. The
 other six constants in this list (excluding `G3_SEED_COUNT_MAX`, already
 superseded, and now `G3_AREA_CEIL_KM2`) remain exactly as stated here.
+
+**[Amendment 007a-R4 note, inserted for continuity]**: none of the eight
+values themselves are touched by Amendment 007a-R4 — `G3_COMPACTNESS_MIN`
+(0.18) is explicitly and repeatedly reasserted frozen by that amendment.
+What Amendment 007a-R4 changes is only what counts as an acceptable *lot
+outcome* when, after a genuine, exhausted, honestly-documented repair
+attempt, one check (`G3-G`) still cannot be closed without touching a frozen
+bound — see that section.
 
 **What MAY change**: the seeding/mesh-construction logic inside
 `pipeline/geo/steps/03_cells.py` — seed placement, the Poisson-disk radius
@@ -588,7 +622,9 @@ quality bar; full replacement)
   the claim the repair run raised for G3-E/F/G, and Amendment 007a-R2 below
   is its resolution — and Amendment 007a-R3, further below, is the
   resolution of the second such escalation raised against 007a-R2's own
-  bound.**
+  bound. Amendment 007a-R4, at the very end of this file, is the resolution
+  of the third such escalation — this time an empirical, not closed-form,
+  finding against `G3-G` specifically.**
 
 ### Non-Goals amended (Lot 007a scope only, except where noted)
 
@@ -920,18 +956,19 @@ Any ONE of the following is an automatic REJECT for Lot 007a, regardless of
    value (`g3_bound_constants_unchanged` < 7), **OR** `G3_SEED_COUNT_MAX` set
    to any value other than **600** (`g3_seed_count_max_matches_derivation`
    false). Touching `G3_AREA_CEIL_KM2` (or any of the other six) to "solve"
-   the pigeonhole shortfall instead of moving `G3_SEED_COUNT_MAX` is
-   precisely the disqualifying move this row exists to catch. **[Amendment
-   007a-R3: superseded — see that section's amended list, which frees
-   `G3_AREA_CEIL_KM2` (and only `G3_AREA_CEIL_KM2`) to move to exactly
-   40,000, while freezing the remaining six plus the now-settled
-   `G3_SEED_COUNT_MAX = 600`.]**
+   the pigeonhole shortfall instead of moving `G3_SEED_COUNT_MAX` was the
+   disqualifying move this row existed to catch — **as of Amendment
+   007a-R3, `G3_AREA_CEIL_KM2` is legitimately movable to exactly 40,000
+   under the owner's own Option 2 decision; this specific prohibition no
+   longer applies to that one constant.**
 3. Any `checks` entry with `passed: true` and an empty `red_proof`
-   (unchanged).
-4. Any diff line in `steps/03_cells.py` vs `.orig` not ending in
-   `# FORGEHISTORY-PATH-ADJUSTMENT` or `# FORGEHISTORY-G3-REPAIR`
-   (extended from Amendment 007a-R's item 4 to cover `constants.py`).
-5. Any unequal or empty pair in `determinism.sha256` (unchanged).
+   (unchanged, still governs).
+4. Any diff line in `steps/03_cells.py` vs `.orig`, or in `constants.py`'s
+   `G3_SEED_COUNT_MAX` line, not ending in `# FORGEHISTORY-PATH-ADJUSTMENT`
+   or `# FORGEHISTORY-G3-REPAIR` (unchanged, still governs — now also
+   extended to the `G3_AREA_CEIL_KM2` line per Amendment 007a-R3).
+5. Any unequal or empty pair in `determinism.sha256` (unchanged, still
+   governs).
 
 ### Execution note
 
@@ -1249,7 +1286,12 @@ required or performed.
   proof (see Guardrails above).** This is the version of Amended SC7 that
   must actually reach fully green; Amendment 007a-R's original text and
   Amendment 007a-R2's range widening were each, in turn, a necessary but not
-  sufficient step toward this.
+  sufficient step toward this. **[Amendment 007a-R4 note: this specific
+  bullet — the hard requirement of 14/14 with no other admissible outcome —
+  is the one superseded by Amendment 007a-R4, below, after this exact
+  requirement was pursued to exhaustion and produced 13/14 plus seven
+  measured, reverted repair attempts. Every other bullet in this Amended
+  SC7 stays exactly as stated here.]**
 - `artifacts/stats_g3.json`'s `cell_count` within `[150, 600]` (unchanged
   from Amendment 007a-R2).
 - `G3-E` checked against the re-derived ceiling — every cell's `area_km2`
@@ -1266,7 +1308,7 @@ required or performed.
 | `g3_seed_count_max_matches_derivation` | (unchanged from Amendment 007a-R2) this repo's `constants.py` `G3_SEED_COUNT_MAX` value | must equal 600 exactly — this amendment leaves it untouched |
 | `g3_area_ceil_matches_derivation` | **[NEW]** this repo's `constants.py` `G3_AREA_CEIL_KM2` value, compared to the derived value cited in this section (40,000.0) — cited here, not re-derived by the Évaluateur | must equal 40,000.0 exactly |
 | `g3_cell_count_in_range` | (unchanged source and range) `artifacts/stats_g3.json`'s `cell_count` vs `[150, 600]` | must be within [150, 600] — must be true, no carry-forward FAIL |
-| `g3_qa_checks_passed_count` / `g3_qa_checks_red_proof_count` | (unchanged source) `logs/v1_049_qa.json`'s `checks` array, **post-this-amendment fresh re-run only** | 14 / 14 (must equal total entries — this is the counter that must finally reach its full denominator; a pre-007a-R3 measurement does not satisfy it) |
+| `g3_qa_checks_passed_count` / `g3_qa_checks_red_proof_count` | (unchanged source) `logs/v1_049_qa.json`'s `checks` array, **post-this-amendment fresh re-run only** | 14 / 14 (must equal total entries — this is the counter that must finally reach its full denominator; a pre-007a-R3 measurement does not satisfy it). **[Amendment 007a-R4: `g3_qa_checks_passed_count`'s acceptance target for Lot 007a is redefined to 13/14 — see that section.]** |
 | `g3_repair_marker_count` | (unchanged mechanism) occurrences of `# FORGEHISTORY-G3-REPAIR` across `steps/03_cells.py` and `constants.py` | >= 1 in `steps/03_cells.py` (already true from the prior repair, plus any new "1.6"-class compactness-fix hunk) and now >= 2 in `constants.py` (the existing `G3_SEED_COUNT_MAX` line plus the new `G3_AREA_CEIL_KM2` line) |
 
 All other counters from the main table and Amendments 007a-R/007a-R2
@@ -1298,7 +1340,9 @@ Any ONE of the following is an automatic REJECT for Lot 007a, regardless of
    includes editing a check *definition* (`qa/checks.py`) to weaken or
    bypass either check — covered independently by item 1 above, but named
    here too for emphasis given this amendment's explicit shape/size
-   distinction.
+   distinction. **[This item is unaffected by Amendment 007a-R4 — the
+   shape-vs-size distinction it enforces continues to govern in full,
+   unchanged, through the debt-attribution path below.]**
 3. Any `checks` entry with `passed: true` and an empty `red_proof`
    (unchanged).
 4. Any diff line in `steps/03_cells.py` vs `.orig`, or in `constants.py`'s
@@ -1313,7 +1357,13 @@ Any ONE of the following is an automatic REJECT for Lot 007a, regardless of
    15,000 km² ceiling, does not qualify — those numbers are moot once the
    ceiling itself changes). Ordinary "still iterating, not yet green" is not
    this failure mode; presenting a stale proof as if it still applied, or
-   silently landing short of 14/14 without escalating, is.
+   silently landing short of 14/14 without escalating, is. **[Amendment
+   007a-R4: this item is superseded for the specific, narrow case of
+   `G3-G` alone remaining red after a genuinely exhausted, honestly
+   documented seeding-repair attempt — see that amendment's own
+   Disqualifying Failures list, which is the currently-governing one for
+   Lot 007a. A short-of-13/14 result, or any check OTHER than `G3-G`
+   remaining red, is still squarely caught by this item, unchanged.]**
 
 ### Execution note — estimated tool calls for this amendment's scope
 
@@ -1361,5 +1411,407 @@ one `budget.py split-check` re-confirmation). This stays well inside Lot
 007a's existing `135`-call budget (a fresh session starts its own tool-call
 counter at 0 per the harness's per-session budget model). Before touching
 any file, the Générateur must still run
+`py harness/budget.py split-check --brief harness/queue/briefs/007-geo-pipeline-cells-adjacency --estimated-calls 135`
+(or its own re-estimate, if materially higher) per Success Condition 13.
+
+**[Amendment 007a-R4 note]**: this is exactly what happened, and exactly
+where it stopped. The fresh re-run reached 13/14 (`G3-E` newly green,
+structurally, as predicted; `G3-D`/`G3-F` already green) — only `G3-G`
+remained. Seven distinct, measured seeding-repair configurations were then
+attempted, all documented, all reverted, none improving on the 21-violation
+baseline. `deliverables/checkpoint-003.md` (`2026-08-06T19:44:00`) is the
+resulting honest handoff — `BUDGET_EXHAUSTED`, not a defect finding. See
+Amendment 007a-R4, immediately below, for the owner's resolution.
+
+---
+
+## Amendment 007a-R4 (2026-08-07T10:00:00): accept G3-G as an attributed compactness debt (owner Option 1)
+
+**Authored**: 2026-08-07T10:00:00
+**Author**: forge-planificateur
+
+**Timestamp note**: this amendment must postdate
+`deliverables/checkpoint-003.md` (`2026-08-06T19:44:00`), the Générateur's
+own honest `BUDGET_EXHAUSTED` handoff this amendment resolves, and the
+orchestrator's own escalation of that handoff's §6/§7 open finding to the
+owner. `2026-08-07T10:00:00` is a next-day, non-future timestamp consistent
+with that ordering.
+
+**Supersedes** (Lot 007a only, narrowly — nothing else in Amendments
+007a-R/R2/R3 changes): Amendment 007a-R3's Amended Success Condition 7's
+requirement that a fresh run reach **14/14** as the *sole* acceptable
+outcome for Lot 007a (redefined below to two admissible outcomes — 14/14
+remains preferred and achievable by a future session, but 13/14 with `G3-G`
+formally attributed is now **also** a full PASS); Amendment 007a-R3's
+Disqualifying Failure item 6 (any sub-14/14 result without a fresh
+pigeonhole-style proof is an automatic REJECT — narrowed below to exempt
+*exactly* the `G3-G`-only, three-part-attributed case; any other check red,
+or any check red *without* the full attribution, remains an unconditional
+REJECT under that item, unchanged); the main Required Counters table's and
+Amendment 007a-R3's `g3_qa_checks_passed_count` acceptance target (14 → 13,
+restated explicitly below so this is read as the resolution of a
+pre-agreed escalation, never as a silently-lowered bar); and
+`proof_script_exit_code_zero_count`'s Lot 007a instance (exit 1,
+attributable solely to `G3-G`, is now the accepted terminal state for this
+lot — `run_proof_g4.py`'s own exit-0 requirement in Lot 007b is completely
+unaffected).
+
+**Nothing else changes, and this is the crux of Option 1, stated as plainly
+as possible: `G3_COMPACTNESS_MIN` stays exactly `0.18` — byte-value-
+identical to VictoriaProject, exactly as every prior amendment already
+required, and this amendment does not touch that requirement at all.**
+`G3_AREA_MAX_MEDIAN_RATIO` (8.0), `G3_SEED_COUNT_MAX` (600, Amendment
+007a-R2), `G3_AREA_CEIL_KM2` (40,000.0, Amendment 007a-R3), and the other
+four G3 bound constants all stay exactly as the prior amendments left them
+— frozen, unchanged, still disqualifying to touch. `run_proof_g3.py`,
+`test_qa_red_g3.py`, and `qa/checks.py` stay byte-identical to
+VictoriaProject — this amendment, like every one before it, does not touch
+a check *definition*, only what counts as an acceptable *lot outcome* when
+one specific, exhaustively-attempted check stays red. **Lot 007b is
+completely untouched** — it still ports `steps/04_adjacency.py`
+byte-identical except its one marked path adjustment, and reads whichever
+`artifacts/cells_g3.json` Lot 007a lands (the current, already-on-disk
+596-cell mesh, 13/14, `G3-G` attributed) exactly as it is; nothing about
+G4's own checks depends on any individual cell's compactness value.
+
+### Why (causal chain, world-terms — grounded in checkpoint-003's own measured, reverted evidence, not re-derived from memory)
+
+The grain this brief exists to produce is a set of addressable **places** —
+somewhere a garrison can hold, a caravan can cross, a province can aggregate
+from. Compactness is not a cosmetic property of that grain: a highly
+elongated, sliver-shaped cell is a poor stand-in for a defensible place, and
+`G3_COMPACTNESS_MIN = 0.18` exists precisely to keep the mesh's addressable
+units plausible as places, not as digitization artifacts. That is exactly
+why this amendment does not touch the bound — the bar the mesh is measured
+against continues to say what a legitimate cell shape is.
+
+What Amendment 007a-R3's own session established, and checkpoint-003
+confirms with seven independently measured, reverted attempts, is that the
+21 remaining violations are not evenly distributed across the map — they
+cluster specifically where the coastline itself is fractal at a scale finer
+than the mesh's own seed density can resolve without a genuinely different
+splitting geometry: the Northern Isles/Shetland, the Norwegian fjord coast,
+the Scottish west-coast Highlands, and the Baltic/Aegean archipelagic
+fringes. In this specific geography, one more seed does not reliably turn a
+sliver into two compact cells — checkpoint-003's own root-cause finding
+(§2.4/§6, `generator-log.md`'s "Lot 007a-R3" §R3.3-6) is that a fresh seed
+placed to relieve one offending cell's elongation routinely produces a new,
+differently-shaped sliver neighbor at a comparable rate, because the
+underlying coastline geometry — not the seeding algorithm's placement
+heuristic — is what is forcing the shape. This is a *geometric* property of
+this specific coastline at this specific seed density, independent of which
+of the seven measured placement/ordering/spacing strategies is tried; it is
+not the same class of finding as Amendments 007a-R2/R3's closed-form
+pigeonhole proofs (which showed a specific bound *mathematically*
+insufficient, full stop), but it is a materially equivalent one for
+practical purposes: seven independently designed, independently measured
+attempts at the only class of fix this brief's own discipline permits
+(seeding/construction logic, never a threshold) converged on the same
+21-violation floor or worse, with a clearly identified geometric cause.
+
+Continuing to iterate seeding-only strategies indefinitely, with no new
+geometric leverage in hand (checkpoint-003 itself names the two genuinely
+untried classes of idea — shape-aware splitting geometry, region-specific
+density overrides — and explicitly could not attempt either within budget),
+is not obviously more honest than stopping and attributing the finding: it
+risks silently consuming further budget on variations of a strategy class
+already shown, seven times, not to move past this floor. The project
+already has an established, disciplined answer for exactly this situation —
+not "iterate forever" and not "quietly relax the bar" — which is
+`HANDOFF.md`'s own precedent: "the 7 attributed legacy reds must stay
+red-and-attributed until someone deliberately retires or rebases them with
+the three-part proof (understood / documented / proven-deliberate)." This
+amendment applies that same discipline to `G3-G`, mirroring it, not
+inventing a new standard for this one check.
+
+### The decision (owner Option 1): G3-G stays red, attributed — `G3_COMPACTNESS_MIN` is not touched
+
+No bound moves in this amendment. `G3_COMPACTNESS_MIN = 0.18` is reasserted,
+unchanged, with the same disqualifying-failure severity every prior
+amendment gave it. What changes is only the **acceptance rule for Lot
+007a's own PASS/FAIL outcome**: a lot may close at 13/14, with `G3-G` red,
+if and only if the red is attributed by the three-part proof below and
+registered as a retire-able debt. A 13/14 result *without* that full
+attribution remains exactly what Amendment 007a-R3 already said it was: an
+ordinary FAIL, to be iterated or escalated, never self-granted.
+
+### Amended Success Condition 7 (Lot 007a scope only — supersedes Amendment 007a-R3's "must reach 14/14" as the sole path; **currently governing version for Lot 007a**)
+
+PASS for Lot 007a requires **all** of the following:
+
+1. **Every G3/Q check except `G3-G` is green and red-proven** — verified
+   directly against `logs/v1_049_qa.json`'s `checks` array, whose 14 named
+   entries are `Q1`, `Q2`, `Q3`, `Q4`, `Q10`, `G3-A`, `G3-B`, `G3-C`, `G3-D`,
+   `G3-E`, `G3-F`, `G3-H`, `G2b-B` (13 entries — **note for the Évaluateur**:
+   this is the precise, verified list of the 13 non-`G3-G` entries actually
+   present in `v1_049_qa.json`, cited from the artifact itself rather than
+   re-derived from a shorthand description; `G3-E` is included because it is
+   the check Amendment 007a-R3's ceiling change already made genuinely
+   green) plus `G3-G` itself (the 14th entry, expected `passed: false`).
+   Every one of the 13 non-`G3-G` entries must have `passed: true` and a
+   non-empty `red_proof`.
+2. **`G3-G`'s own entry has `passed: false` and a non-empty `red_proof`**
+   (the red-case must still genuinely fire — unchanged from every prior
+   amendment; a check that can never trigger its red-case is a separate,
+   independent FAIL, never conflated with an attributed debt).
+3. **Determinism preserved**: every `logs/v1_049_qa.json`
+   `determinism.sha256` pair equal and non-empty (unchanged, absolute,
+   every prior amendment's requirement, not relaxed here).
+4. **`cell_count` within `[150, 600]`** (unchanged from Amendment 007a-R2/R3).
+5. **No check other than `G3-G` may be red.** If the finalization run (or
+   any re-run performed while producing this amendment's deliverables)
+   shows any entry other than `G3-G` with `passed: false`, that is an
+   ordinary regression — a genuine, unattributed FAIL — not covered by this
+   amendment's acceptance path. Only `G3-G` may be the attributed red.
+6. **`G3-G` is accepted as an attributed compactness debt**, meeting the
+   full three-part proof defined below (Understood / Documented /
+   Proven-deliberate). `G3-G` red **without** all three parts present,
+   verifiable, and consistent with the actual on-disk evidence is still an
+   ordinary FAIL — the three-part proof is not a formality, it is the
+   condition that makes 13/14 an accepted outcome at all.
+7. **The debt is registered** for a future dedicated effort, per the
+   registration requirement below — an attributed-but-unregistered debt
+   does not satisfy this Amended SC7 (see "Register the debt" below).
+
+`run_proof_g3.py`'s own exit code is **not**, by itself, a pass/fail signal
+for this lot any more: an exit code of 1 caused *solely* by `G3-G` (i.e.,
+every other entry `passed: true`) is the expected, accepted terminal state.
+An exit code of 1 caused by any other entry is still an ordinary FAIL. An
+exit code of 0 (a future session reaching genuine 14/14) remains the
+preferred outcome and, if reached, supersedes this amendment's debt-
+acceptance path entirely for that run — nothing here discourages continued
+effort on `G3-G`, it only stops requiring it before Lot 007a can close.
+
+### The three-part proof the debt deliverable must contain
+
+Mirroring the project's own established "7 attributed legacy reds"
+discipline (`HANDOFF.md`: understood / documented / proven-deliberate) —
+not inventing a new standard, applying the existing one:
+
+**1. Understood (root cause, causal, not gameplay-terms)**
+
+The generator-log (a new "Lot 007a-R4" section, or the debt artifact itself)
+must state, causally, why `G3-G` cannot currently be closed without touching
+a frozen bound: the mesh covers the full pilot-window coastline (lat
+≈30.5–61.5, lon ≈-10..34.8), and the specific violating cells sit on
+genuinely fractal coastal geography (fjords, archipelagos, highland-fringed
+sea lochs) whose real-world shape, at this mesh's seed density, forces an
+elongated cell no matter where the next seed is placed — placing a seed to
+relieve one sliver's elongation routinely produces a new, comparably
+elongated neighbor, because the coastline's own geometry is the limiting
+factor, not the placement heuristic. This must be stated as a causal
+mechanism (as in the "Why" section above), not merely asserted as "hard to
+fix."
+
+**2. Documented (exact extent, reproducible, sourced)**
+
+A committed artifact — `deliverables/g3g_compactness_debt.json` (preferred;
+a clearly-labeled table inside `generator-log.md`'s new "Lot 007a-R4"
+section is acceptable only if it carries the identical structured content)
+— containing, freshly re-measured this session against the current, on-disk
+`artifacts/cells_g3.json` / `artifacts/stats_g3.json` (not asserted from
+checkpoint-003's numbers without re-verification, though those numbers are
+expected to reproduce identically given determinism):
+
+- The exact **count** of violating cells, both the non-island count (cells
+  outside `stats_g3.json`'s own `singleton_cell_ids` exemption — checkpoint-
+  003 measured 21 of 393) and the raw count before that exemption is
+  applied, with the exemption's own justification restated (a singleton
+  island cell has no neighbor to be compact relative to in the same sense a
+  mainland border cell does — this is the check's own existing exemption
+  logic, unchanged, not invented by this amendment).
+- **Every one** of the violating cells' `cell_id`, `compactness_polsby_popper`,
+  `area_km2`, and seed `lat`/`lon` (or centroid, if the artifact's schema
+  names it differently — state which), as a machine-readable list — not a
+  truncated sample (this is precisely the class of "detail string truncates
+  at 8" display-artifact problem Amendment 007a-R3 itself found and worked
+  around; the debt artifact must not repeat that mistake).
+- The **distribution**: minimum compactness value, count below 0.15 versus
+  count in `[0.15, 0.18)`, and the named geographic clusters the seed
+  coordinates fall into (Northern Isles/Shetland, Norwegian fjords, Scottish
+  west-coast Highlands, Baltic/Aegean fringe, or any other cluster the fresh
+  measurement actually shows — checkpoint-003 already named three of these;
+  the debt artifact must independently confirm and cite the real, current
+  seed coordinates, not merely repeat the prior session's prose).
+
+**3. Proven-deliberate (not laziness — evidence-backed, not asserted)**
+
+The debt artifact or generator-log must carry, or explicitly and precisely
+reference by section (e.g. `generator-log.md`'s "Lot 007a-R3" §R3.3), the
+full record of the seven measured remediation strategies checkpoint-003 and
+generator-log.md already document (widened seed reserve; reduced
+`G3_R_CEIL_M`; reserve-35 iterative multi-round repair; farthest-point
+candidate placement; hybrid centroid/farthest-point + area-priority
+ordering; and the root-cause geographic clustering analysis), each with its
+own real, measured before/after numbers (not merely "we tried several
+things and none worked") — proving the acceptance is evidence-backed, not
+an unattempted or lazily-abandoned red. A reference-by-pointer to
+generator-log.md's existing §R3.3 content is sufficient **provided** the
+debt artifact itself states, inline, at minimum: the count of distinct
+strategies attempted (7), that all were reverted, and the specific
+before/after violation counts for each — a bare "see generator-log.md" with
+no inline summary does not satisfy this part on its own.
+
+### Register the debt (project pattern: named, quantified, registered — retire-able, not silently swept)
+
+- **`deliverables/generator-log.md`** must carry (or gain, if it does not
+  already exist) a **"Registered debts"** heading, under which this session
+  adds one entry for `G3-G`: a one-line name/id (e.g.
+  `DEBT-G3G-COMPACTNESS`), the count (21 of 393, or the freshly re-measured
+  equivalent), a pointer to the three-part proof's location, and a one-line
+  statement of what would retire it (a dedicated coastline-aware meshing
+  effort — see below).
+- **`pipeline/geo/README.md`** must gain (or update, if a suitable heading
+  already exists) a **"Known debts" / "Deferred work"** section naming the
+  same debt, in terms a future reader who has not read this brief can
+  understand: what is short (compactness on 21 of 393 non-island cells,
+  concentrated in fractal coastal geography), why (root cause, one
+  sentence), and what would close it.
+- Both locations must name the same **retiring effort**: a future, dedicated
+  "coastline-aware meshing" brief — the generator-log/README text must name
+  at least one concrete candidate approach (e.g. a constrained-Lloyd
+  relaxation that is coastline-aware rather than purely seed-density-aware;
+  simplifying the coastline specifically for cell-shape purposes while
+  keeping the current, finer coastline for rendering; or a smaller pilot
+  window that excludes the most fractal peripheral coasts) — not a bare "fix
+  later" with no shape.
+- This registration is what distinguishes an *attributed* debt from a
+  quietly-dropped check: a future Planificateur session must be able to find
+  this debt, its size, and its retiring approach from `pipeline/geo/README.md`
+  alone, without reading this brief's full amendment history.
+
+### Non-Goals amended (Lot 007a scope only)
+
+- **New, hard Non-Goal**: must NOT relax `G3_COMPACTNESS_MIN`,
+  `G3_AREA_MAX_MEDIAN_RATIO`, `G3_SEED_COUNT_MAX`, `G3_AREA_CEIL_KM2`, or any
+  of the other frozen G3 bound constants, in value, to close or hide the
+  `G3-G` finding. This amendment's entire purpose is to accept the red
+  without moving the bar — moving the bar instead is precisely what Option 2
+  (already rejected by the owner for shape-quality bounds in Amendment
+  007a-R3) would have been; doing so here is a disqualifying failure, same
+  severity as every prior amendment's list.
+- **New, hard Non-Goal**: must NOT edit `qa/checks.py`, `run_proof_g3.py`, or
+  `test_qa_red_g3.py` to make `G3-G` untriggerable, silently skip it, or
+  otherwise weaken its red-case — unchanged from every prior amendment,
+  restated for emphasis given this amendment's own subject matter.
+- **New, hard Non-Goal**: must NOT claim the `G3-G` debt is attributed
+  without all three parts (Understood / Documented / Proven-deliberate)
+  verifiably present and consistent with the actual on-disk artifacts — an
+  assertion of "documented" with no committed, machine-readable per-cell
+  list, or a "proven-deliberate" claim with no measured before/after
+  numbers, does not satisfy this amendment; it is the equivalent of a bare
+  prose infeasibility claim, which hard-won rule 9 already forbids.
+- **New, hard Non-Goal**: must NOT let any check other than `G3-G` go red in
+  whatever final run this amendment's deliverables are measured against — a
+  new red beyond `G3-G` is a real regression (e.g. reintroducing a `G3-E`
+  violation, or breaking determinism), not covered by this amendment's
+  acceptance path, and must be treated as an ordinary FAIL.
+- **New Non-Goal**: must NOT re-run large portions of the seeding-repair
+  experimentation checkpoint-003 already measured and reverted (the seven
+  named strategies) — this amendment's own scope is the attribution and
+  registration deliverable, not a further repair attempt; a future session
+  is free to try the two genuinely untried ideas checkpoint-003 names
+  (shape-aware splitting, region-specific density override) if it chooses,
+  but this amendment does not require it, and doing so is not necessary to
+  reach PASS under this amendment's Amended SC7.
+
+### Required Counters — new / redefined for this amendment (Lot 007a scope)
+
+| name | sample source | denominator |
+|---|---|---|
+| `g3_qa_checks_passed_count` | **[REDEFINED acceptance target — sample source unchanged]** `logs/v1_049_qa.json`'s `checks` array, count of entries with `passed: true` | sample denominator stays 14 (total entries in the array, unchanged — `G3-G`'s own entry remains present, `passed: false`); **the accepted PASS target for Lot 007a is now 13, not 14 — this is a defined, pre-agreed resolution of an escalation, not a regression, and must not be read as one** |
+| `g3_qa_checks_red_proof_count` | (unchanged) `logs/v1_049_qa.json`'s `checks` array, count of entries with a non-empty `red_proof` | 14 (must equal 14 — every entry, including `G3-G`'s, still carries a genuine, non-empty red-proof; unaffected by this amendment) |
+| `g3_only_failing_check_is_g3g` | **[NEW]** `logs/v1_049_qa.json`'s `checks` array: the set of entries with `passed: false` | must equal exactly `{"G3-G"}` — if any other check id appears in this set, PASS is not available via this amendment's path (Non-Goals above) |
+| `g3_exit_attributable_to_g3g_only` | **[NEW]** derived from `run_proof_g3.py`'s own exit code plus `g3_only_failing_check_is_g3g` | true if and only if exit code is 1 **and** `g3_only_failing_check_is_g3g` is true (or exit code is 0, the strictly-better case) — supersedes the main table's `proof_script_exit_code_zero_count` for the G3/Lot-007a instance only; the G4/Lot-007b instance of that counter is completely unaffected and still requires exit 0 |
+| `g3_compactness_debt_cells_count` | **[NEW]** count of cells in the freshly-measured, committed `deliverables/g3g_compactness_debt.json` (or equivalent table) whose `compactness_polsby_popper < 0.18` and whose `cell_id` is not in `stats_g3.json`'s `singleton_cell_ids`, cross-checked directly against a fresh read of `artifacts/cells_g3.json` + `artifacts/stats_g3.json` | must be quantified (a specific integer, expressed as "N of D" against the live non-island cell count D = `len(cells) - len(singleton_cell_ids)`) **and** must exactly match the count of entries actually listed in the committed debt artifact — a count with no matching enumerated list, or a list shorter/longer than the stated count, is a FAIL on this counter (`no_empty_sample_pass` — a debt claimed but not enumerated is not documented) |
+| `g3_compactness_debt_documented` | **[NEW]** presence check across three parts: (a) a causal "Understood" explanation present in `generator-log.md`'s new "Lot 007a-R4" section or the debt artifact; (b) the committed, per-cell-enumerated `deliverables/g3g_compactness_debt.json` (or equivalent) satisfying the "Documented" requirement above, including the distribution stats (min, count <0.15 vs [0.15,0.18), named geographic clusters); (c) the seven-strategy "Proven-deliberate" record, inline or precisely pointer-referenced, with real before/after numbers | must equal 1 (all three parts present and verifiable); 0 (any part missing, vague, or unverifiable against on-disk evidence) is a FAIL on Amended SC7 |
+| `g3g_debt_registered_locations_count` | **[NEW]** grep for a shared debt identifier (e.g. `DEBT-G3G-COMPACTNESS`, or whatever exact tag the Générateur chooses — must be identical across both locations) across `deliverables/generator-log.md`'s "Registered debts" section and `pipeline/geo/README.md`'s "Known debts"/"Deferred work" section | 2 (must equal 2 — registered in both named locations, same identifier, both naming the same retiring-effort approach) |
+
+All other counters from the main table and Amendments 007a-R/R2/R3
+(`g3_check_definitions_byte_identical`, `g3_unmarked_nonrepair_diff_line_count`,
+`g3_bound_constants_unchanged`, `g3_seed_count_max_matches_derivation`,
+`g3_area_ceil_matches_derivation`, `g3_determinism_sha_pairs_matched_count`,
+`g3_cell_count_in_range`, `evidence_files_git_tracked_count`) are unchanged
+in source, denominator, and required value — none of them are loosened by
+this amendment.
+
+### Disqualifying Failures — amended (Lot 007a only; supersedes item 6 of Amendment 007a-R3's list; **currently governing version**)
+
+Any ONE of the following is an automatic REJECT for Lot 007a, regardless of
+`run_proof_g3.py`'s exit code or any other green counter:
+
+1. Any byte difference between `run_proof_g3.py`, `test_qa_red_g3.py`, or
+   `qa/checks.py` and their VictoriaProject originals
+   (`g3_check_definitions_byte_identical` < 3). *(unchanged, still governs)*
+2. Any of the six now-frozen G3 constants (`G3_SEED_COUNT_MIN`,
+   `G3_AREA_FLOOR_KM2`, `G3_AREA_MAX_MEDIAN_RATIO`, `G3_COMPACTNESS_MIN`,
+   `G3_AREA_EPS_M2`, `G3_OVERLAP_EPS_M2`) changed in value
+   (`g3_bound_constants_unchanged` < 6), **OR** `G3_SEED_COUNT_MAX` set to
+   any value other than **600**, **OR** `G3_AREA_CEIL_KM2` set to any value
+   other than **40,000.0**. **Explicitly, and this is the crux of this
+   amendment: relaxing `G3_COMPACTNESS_MIN` (or `G3_AREA_MAX_MEDIAN_RATIO`)
+   to make `G3-G` (or `G3-F`) pass instead of attributing the red is
+   precisely the disqualifying move this item exists to catch — Option 1
+   documents the shortfall against the existing bar; it never lowers the
+   bar.** *(unchanged from Amendment 007a-R3, restated for emphasis)*
+3. Any `checks` entry with `passed: true` and an empty `red_proof`
+   (unchanged, still governs).
+4. Any diff line in `steps/03_cells.py` vs `.orig`, or in `constants.py`'s
+   `G3_AREA_CEIL_KM2` or `G3_SEED_COUNT_MAX` lines, not ending in
+   `# FORGEHISTORY-PATH-ADJUSTMENT` or `# FORGEHISTORY-G3-REPAIR`
+   (unchanged, still governs).
+5. Any unequal or empty pair in `determinism.sha256` (unchanged, still
+   governs).
+6. **[AMENDED — currently governing]** `run_proof_g3.py`'s `checks` array
+   showing **any check other than `G3-G`** with `passed: false`
+   (`g3_only_failing_check_is_g3g` false) — this is an unattributed
+   regression, never covered by this amendment's debt-acceptance path,
+   regardless of how well `G3-G` itself is documented.
+7. **[NEW]** `G3-G` reported red without all three parts of the attribution
+   proof verifiably present (`g3_compactness_debt_documented` = 0) — a bare
+   claim of "known issue, documented elsewhere" with no committed,
+   per-cell-enumerated artifact and no seven-strategy evidence record is
+   still an ordinary FAIL, not a debt.
+8. **[NEW]** The debt not registered in both named locations with a matching
+   identifier (`g3g_debt_registered_locations_count` < 2) — an attributed
+   but unregistered debt is not retire-able by a future session and does
+   not satisfy this amendment's Amended SC7.
+9. **[NEW]** `g3_compactness_debt_cells_count` unquantified, or mismatched
+   against the committed debt artifact's own enumerated cell list
+   (`no_empty_sample_pass` — a debt asserted without a matching, checkable
+   sample is not a measurement).
+
+### Execution note — estimated tool calls for this amendment's scope
+
+This amendment requires **no further seeding-repair experimentation** and
+**no code change to `steps/03_cells.py` or `constants.py`** — the mesh
+already on disk (`cell_count=596`, 13/14, determinism 6/6, per
+`deliverables/007a-r3-validation.log`) is expected to satisfy this
+amendment's Amended SC7 as-is, since it is exactly the state checkpoint-003
+measured and left in place. The work is: (1) freshly re-measure the `G3-G`
+violation set directly from the current `artifacts/cells_g3.json` /
+`artifacts/stats_g3.json` (do not merely copy checkpoint-003's numbers
+without re-verification, even though they are expected to reproduce
+identically under determinism); (2) write the committed
+`deliverables/g3g_compactness_debt.json` per-cell artifact; (3) write the
+"Lot 007a-R4" generator-log section with the Understood/Proven-deliberate
+prose (Proven-deliberate may point at the existing §R3.3 content, per that
+part's own allowance); (4) add the "Registered debts" heading to
+generator-log.md and the "Known debts"/"Deferred work" heading to
+`pipeline/geo/README.md`, both naming the same debt id and retiring
+approach; (5) update `deliverables/manifest.json` with this amendment's new
+counters; (6) optionally, one fresh confirmatory `run_proof_g3.py` run (not
+strictly required if the already-committed, already-git-tracked
+`logs/v1_049_qa.json` / `artifacts/stats_g3.json` / `artifacts/cells_g3.json`
+from checkpoint-003's final state are reused as this amendment's evidence,
+consistent with this brief family's existing "reused, not re-created"
+pattern for `.orig` snapshots — state explicitly in the generator-log
+whether reused or re-run).
+
+Estimated tool calls for this amendment's scope, fresh session: **15-25**
+(reads of the current artifacts to re-derive the debt list; one JSON write
+for the debt artifact; generator-log/README/manifest edits; optionally one
+`run_proof_g3.py` re-run). This stays well inside Lot 007a's existing
+`135`-call budget. Before touching any file, the Générateur must still run
 `py harness/budget.py split-check --brief harness/queue/briefs/007-geo-pipeline-cells-adjacency --estimated-calls 135`
 (or its own re-estimate, if materially higher) per Success Condition 13.

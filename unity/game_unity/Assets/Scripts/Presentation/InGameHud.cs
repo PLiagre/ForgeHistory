@@ -952,6 +952,21 @@ namespace VictoriaGame.Presentation
             evt.StopPropagation();
         }
 
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte, Success Condition 1 : la sortie <paramref
+        /// name="py"/> ici est en espace BUFFER MONDE (py=0=nord, la convention que lisent
+        /// <see cref="MapDisplaySystem.UpdateHoverAtTexturePixel"/>/<c>TryPickProvinceId</c>
+        /// via <c>geo.ProvinceAt</c>), pas en espace pixel-texture brut. Depuis que
+        /// <see cref="PresentFrame"/> retourne le buffer avant affichage (même correction),
+        /// <c>_mapTexture</c> montre la ligne (hauteur-1-py) du buffer en haut de l'écran —
+        /// donc le point UI tout en haut (uiPy=0) correspond maintenant DIRECTEMENT à
+        /// py=0 (nord) : les deux retournements (celui de l'affichage, celui que
+        /// <see cref="MapClickPicker.TryLocalToTexturePixel"/> applique en interne pour
+        /// <c>uiYDown: true</c>) s'annuleraient l'un l'autre. <c>uiYDown: false</c> ici
+        /// donne exactement <c>py = uiPy</c>, la bonne coordonnée buffer. Ne pas
+        /// remettre <c>true</c> sans refaire ce calcul : ça redonnerait un clic/survol
+        /// décalé de la même ampleur que la carte à l'envers que ce brief corrige.
+        /// </summary>
         bool TryLocalToTexture(Vector2 local, out int px, out int py)
         {
             px = 0;
@@ -961,7 +976,7 @@ namespace VictoriaGame.Presentation
             var rect = _mapRoot.contentRect;
             return MapClickPicker.TryLocalToTexturePixel(
                 local.x, local.y, rect.width, rect.height,
-                _mapTexture.width, _mapTexture.height, uiYDown: true,
+                _mapTexture.width, _mapTexture.height, uiYDown: false,
                 out px, out py);
         }
 
@@ -1066,8 +1081,23 @@ namespace VictoriaGame.Presentation
         /// <summary>
         /// Met à jour la texture affichée (appelé depuis MapDisplaySystem, lecture seule).
         /// Convention v1_079 : <paramref name="pixels"/> est un buffer carte nord@py0
-        /// (glyphes droits, sans compensation locale). UI Toolkit affiche py=0 en haut
-        /// de l'écran — équivalent visuel de WriteMapBufferPng. Ne pas retourner ici.
+        /// (glyphes droits, sans compensation locale).
+        ///
+        /// brief 005-refonte-visuelle-carte, Success Condition 1 : ce commentaire disait
+        /// auparavant « UI Toolkit affiche py=0 en haut de l'écran », l'exact inverse de
+        /// ce que <c>Texture2D.SetPixels32</c> produit réellement une fois affiché via
+        /// <c>style.backgroundImage</c> — même convention bas-en-haut que
+        /// <c>Texture2D.EncodeToPNG</c> (index 0 = bas de l'image affichée, pas le haut),
+        /// c'est justement pour ça que <see cref="MapSnapshotExporter.WriteMapBufferPng"/>
+        /// doit retourner les rangées UNE SEULE FOIS avant d'écrire un PNG nord-en-haut.
+        /// Ce chemin live faisait un <c>SetPixels32</c> direct sans ce même retournement :
+        /// nord@py0 finissait donc affiché en BAS de l'écran (carte à l'envers, étiquettes
+        /// tête-bêche — grief propriétaire + Évaluateur, `verdict.md` brief 004).
+        /// Convention UNIQUE, tenue ici comme au seul autre point d'écriture PNG : on
+        /// réutilise <see cref="MapSnapshotExporter.FlipMapBufferRows"/> (pas de logique
+        /// dupliquée) pour que ce chemin produise le MÊME retournement que
+        /// <see cref="MapSnapshotExporter.WriteMapBufferPng"/>, donc le même rendu
+        /// nord-en-haut que l'export PNG sur la même fenêtre monde.
         /// </summary>
         public void PresentFrame(Color32[] pixels, int width, int height, string metricsLine)
         {
@@ -1088,7 +1118,8 @@ namespace VictoriaGame.Presentation
                 };
             }
 
-            _mapTexture.SetPixels32(pixels);
+            var displayPixels = MapSnapshotExporter.FlipMapBufferRows(pixels, width, height);
+            _mapTexture.SetPixels32(displayPixels);
             _mapTexture.Apply(false, false);
 
             if (_mapRoot != null)
@@ -1197,6 +1228,7 @@ namespace VictoriaGame.Presentation
                 RefreshTaxControls();
                 RefreshWarControls();
                 RefreshLawControls();
+                RefreshBottomBarStack();
                 return;
             }
 
@@ -1206,6 +1238,71 @@ namespace VictoriaGame.Presentation
             RefreshTaxControls();
             RefreshWarControls();
             RefreshLawControls();
+            RefreshBottomBarStack();
+        }
+
+        const float BottomBarBaseOffset = 10f;
+        const float BottomBarGap = 10f;
+
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte, Success Condition 6a : point de calcul UNIQUE
+        /// pour l'empilement TaxBar/WarBar/LawBar au-dessus de <see cref="_countryPanel"/>.
+        /// Avant ce brief, <see cref="RefreshTaxControls"/>, <see cref="RefreshWarControls"/>
+        /// et <see cref="RefreshLawControls"/> posaient chacune un <c>style.bottom</c> en
+        /// dur (10 / 100 / 148 / 240) SANS lire la hauteur réellement rendue des autres
+        /// barres — TaxBar en particulier pouvait dépasser en hauteur l'écart de 90 px
+        /// laissé sous LawBar/WarBar (tous deux fixés à 100), d'où le chevauchement
+        /// Lois/Impôt corroboré par le propriétaire ET l'Évaluateur (`verdict.md` brief
+        /// 004, clip du circonflexe d'« Impôt »). Empilement réel, bas vers haut, à partir
+        /// des hauteurs RENDUES (<see cref="VisualElement.worldBound"/>) — jamais deux
+        /// constantes qui s'ignorent.
+        /// </summary>
+        void RefreshBottomBarStack()
+        {
+            if (_countryPanel == null)
+                return;
+
+            var cursor = BottomBarBaseOffset;
+
+            // TaxBar toujours la plus proche du panneau (« décision souveraine » —
+            // ordre voulu, inchangé).
+            if (_taxBar != null && !IsHidden(_taxBar))
+            {
+                _taxBar.style.bottom = cursor;
+                cursor += StackedHeight(_taxBar) + BottomBarGap;
+            }
+
+            // WarBar et LawBar sont mutuellement exclusifs par construction
+            // (RefreshWarControls exige un pays ÉTRANGER visualisé, RefreshLawControls
+            // exige le pays CONTRÔLÉ par le joueur — jamais les deux en même temps) mais
+            // le calcul reste générique : si cette exclusivité change un jour, l'empilement
+            // reste correct au lieu de se re-chevaucher silencieusement.
+            if (_warBar != null && !IsHidden(_warBar))
+            {
+                _warBar.style.bottom = cursor;
+                cursor += StackedHeight(_warBar) + BottomBarGap;
+            }
+
+            if (_lawBar != null && !IsHidden(_lawBar))
+            {
+                _lawBar.style.bottom = cursor;
+                cursor += StackedHeight(_lawBar) + BottomBarGap;
+            }
+
+            _countryPanel.style.bottom = cursor;
+        }
+
+        /// <summary>Hauteur rendue si connue ; repli raisonnable avant le premier passage
+        /// de layout (se corrige seul au refresh suivant, jamais figé).</summary>
+        static float StackedHeight(VisualElement el)
+        {
+            var resolved = el.resolvedStyle.height;
+            if (!float.IsNaN(resolved) && resolved > 1f)
+                return resolved;
+            var wb = el.worldBound;
+            if (wb.height > 1f)
+                return wb.height;
+            return 90f;
         }
 
         /// <summary>
@@ -1349,6 +1446,8 @@ namespace VictoriaGame.Presentation
             if (!provinceOpen || !TryGetEntityManager(out var em))
             {
                 SetHidden(_investBar, true);
+                if (_provincePanel != null)
+                    _provincePanel.style.bottom = BottomBarBaseOffset;
                 return;
             }
 
@@ -1358,19 +1457,51 @@ namespace VictoriaGame.Presentation
                     out var owned))
             {
                 SetHidden(_investBar, true);
+                if (_provincePanel != null)
+                    _provincePanel.style.bottom = BottomBarBaseOffset;
                 return;
             }
 
             SetHidden(_investBar, false);
+            // brief 005-refonte-visuelle-carte, Success Condition 6a : chevauchement
+            // ProvincePanel/InvestBar trouvé par le contrôle exhaustif de ce brief
+            // (HudLayoutProbe.MeasureAllPanelOverlaps, jamais vérifié avant — brief 004 ne
+            // testait que TopBar/TaxBar contre le panneau visible). Même défaut de fond que
+            // Lois/Impôt côté pays : `.hud__taxbar`/`.hud__panel` partagent tous deux
+            // `bottom: 10px` en USS, et rien ne poussait ProvincePanel au-dessus d'InvestBar.
+            // Même empilement réel que RefreshBottomBarStack, côté province.
+            _investBar.style.bottom = BottomBarBaseOffset;
+            if (_provincePanel != null)
+                _provincePanel.style.bottom = BottomBarBaseOffset + StackedHeight(_investBar) + BottomBarGap;
             if (_investStatusLabel != null)
             {
-                _investStatusLabel.text = DevelopmentHudSnapshot.FormatHudLine(in dev) +
-                    (owned
-                        ? "  coût T/P/M " +
-                          cTax.ToString("0") + "/" +
-                          cProd.ToString("0") + "/" +
-                          cMan.ToString("0")
-                        : "  (lecture seule)");
+                // brief 005-refonte-visuelle-carte, Success Condition 6b : le dump
+                // technique brut (« DEV T5 P4 M3 score=4  coût T/P/M 250/200/150 »)
+                // s'affichait identiquement en mode par défaut et en mode debug —
+                // corroboré deux fois par l'Évaluateur sur les captures du brief 004
+                // (verdict.md), explicitement reporté hors scope à l'époque. Même
+                // patron de porte que LAWMOD/EFF (brief 004, HudDetailPresenter) :
+                // libellés français lisibles par défaut ; les jetons bruts
+                // (DevelopmentHudSnapshot.FormatHudLine, un contrat testé — jamais
+                // modifié ici) restent accessibles tels quels en mode debug explicite.
+                var line = "Développement : Fiscalité " + dev.Tax +
+                           " · Production " + dev.Production +
+                           " · Main-d'œuvre " + dev.Manpower;
+                line += owned
+                    ? "  —  coût (or) Fiscalité " + cTax.ToString("0") +
+                      " · Production " + cProd.ToString("0") +
+                      " · Main-d'œuvre " + cMan.ToString("0")
+                    : "  (lecture seule)";
+                if (ShowDebugIds)
+                {
+                    line += "  ·  " + DevelopmentHudSnapshot.FormatHudLine(in dev) +
+                            "  coût T/P/M " +
+                            cTax.ToString("0") + "/" +
+                            cProd.ToString("0") + "/" +
+                            cMan.ToString("0");
+                }
+
+                _investStatusLabel.text = line;
             }
 
             var canAct = owned;
@@ -1501,9 +1632,9 @@ namespace VictoriaGame.Presentation
             }
 
             SetHidden(_lawBar, false);
-            _lawBar.style.bottom = 100;
-            if (_countryPanel != null)
-                _countryPanel.style.bottom = 240;
+            // brief 005-refonte-visuelle-carte, Success Condition 6a : positionnement
+            // désormais calculé par RefreshBottomBarStack (empilement réel), plus de
+            // bottom=100/240 en dur ici.
 
             var lawList = "(aucune)";
             var lawMod = 0f;
@@ -1576,9 +1707,9 @@ namespace VictoriaGame.Presentation
             }
 
             SetHidden(_warBar, false);
-            _warBar.style.bottom = 100;
-            if (_countryPanel != null)
-                _countryPanel.style.bottom = 240;
+            // brief 005-refonte-visuelle-carte, Success Condition 6a : positionnement
+            // désormais calculé par RefreshBottomBarStack (empilement réel), plus de
+            // bottom=100/240 en dur ici.
 
             var atWar = AreCountriesAtWar(em, controlledId, viewedId);
             var warsForViewed = CountActiveWarsForCountry(em, viewedId);
@@ -1683,16 +1814,15 @@ namespace VictoriaGame.Presentation
             if (!showCountry)
             {
                 SetHidden(_taxBar, true);
-                if (_countryPanel != null)
-                    _countryPanel.style.bottom = 10;
+                // brief 005-refonte-visuelle-carte, Success Condition 6a : positionnement
+                // désormais calculé par RefreshBottomBarStack (empilement réel), plus de
+                // bottom en dur ici.
                 return;
             }
 
             SetHidden(_taxBar, false);
-            // Décision souveraine empilée au-dessus du panneau pays (valeur dynamique de layout).
-            _taxBar.style.bottom = 10;
-            var warOpen = _warBar != null && !IsHidden(_warBar);
-            _countryPanel.style.bottom = warOpen ? 240 : 148;
+            // Décision souveraine empilée au-dessus du panneau pays — position réelle
+            // posée par RefreshBottomBarStack (empilement, pas une constante).
 
             if (!TryGetEntityManager(out var em))
             {

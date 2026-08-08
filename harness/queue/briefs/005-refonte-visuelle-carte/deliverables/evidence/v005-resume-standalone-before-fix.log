@@ -1,0 +1,117 @@
+﻿=== ui_003 standalone visual proof (editorial FR) ===
+started_at=2026-08-02T18:13:54.6858965Z
+verdict_policy=A_REVOIR_HUMAINEMENT
+source=standalone framebuffer
+capture_target=1920x1080
+composer=NONE
+capture_dir=D:/ForgeHistory/unity/game_unity/Captures/v005_before_default
+debug_ids=False
+initial_window_at_boot INIT_MINX=-7.275 INIT_MAXX=23.151 INIT_MINY=-61.152 INIT_MAXY=-30.048 playable_provinces_count=50 WORLD_MINX=-7.556 WORLD_MAXX=23.433 WORLD_MINY=-61.44 WORLD_MAXY=-29.76
+hud_state tag=00_initial_framing view='Monde · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1400' info='AN 1400  Trésor 346,8  Dette 0,0  Armée 68628  Population 129826  Guerres 4  ZOOM Monde  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=hidden
+capture file=00_initial_framing.png bytes=341812 sha256=bc25d072b580f0a393d37e1b5f00a11c94b5f0a6c6c693c08ecc4ba5d9b90c20 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+panel_overlap tag=01_world_neutral pairs_checked=1 overlaps=0
+hud_state tag=01_world_neutral view='Monde · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1401' info='AN 1401  Trésor -84,6  Dette 0,0  Armée 110812  Population 130891  Guerres 7  ZOOM Monde  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=hidden
+capture file=01_world_neutral.png bytes=621140 sha256=30a20dee1275acd08638e71e7edc74fea073ae8bfbf59d178336926a6df32b7b dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+hud_state tag=01_world_neutral_b view='Monde · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1401' info='AN 1401  Trésor -84,6  Dette 0,0  Armée 110812  Population 130891  Guerres 7  ZOOM Monde  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=hidden
+capture file=01_world_neutral_b.png bytes=621140 sha256=30a20dee1275acd08638e71e7edc74fea073ae8bfbf59d178336926a6df32b7b dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+determinism_match sha=30a20dee1275acd08638e71e7edc74fea073ae8bfbf59d178336926a6df32b7b
+editorial_probe tag=02_country_selected chars=159 scope=CountryPanel+TaxStatus+TaxButtons
+--- editorial_text_begin ---
+Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 %
+Revenu 7,4  ·  Trésor 35,3  ·  Dette 0 (stable)
+Sat 0,797  ·  Affamés 0  ·  Prov. affamées 0
+Impôt −
+Impôt +
+--- editorial_text_end ---
+editorial_forbidden=PASS tag=02_country_selected scope=CountryPanel+TaxStatus+TaxButtons
+FAIL editorial missing FR subtitle pays tag=02_country_selected
+panel_overlap tag=02_country_selected pairs_checked=3 overlaps=1
+  overlap tag=02_country_selected pair=ProvincePanel+LawBar
+hud_state tag=02_country_selected view='Pays · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1401' info='AN 1401  Trésor -303,1  Dette 0,0  Armée 109419  Population 131327  Guerres 7  ZOOM Pays  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,5  ·  Trésor 36,3  ·  Dette 0 (stable) | Sat 0,806  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=visible
+capture file=02_country_selected.png bytes=269033 sha256=626eedda3afa3433942cbc3abe5d0cff8e826b9b82a0b7885c4f1fadff207c5c dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+hud_state tag=07_hover_debug_leak view='Pays · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1401' info='AN 1401  Trésor -413,1  Dette 0,0  Armée 113593  Population 131644  Guerres 6  ZOOM Pays  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,5  ·  Trésor 8,6  ·  Dette 0 (stable) | Sat 0,809  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=visible
+capture file=07_hover_debug_leak.png bytes=274961 sha256=d64ddc2d06fdf8c8a050488894ba8cba9287d160ff4add9143fcca83521b3207 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+editorial_probe tag=03_province_selected chars=719 scope=ProvincePanel+TaxStatus+TaxButtons
+--- editorial_text_begin ---
+Province
+Indicateurs
+CELLULE
+1243
+Surface:
+8392,2 km²
+Altitude
+moy.: 225,7 m
+Terrain:
+hills
+DETAIL
+Biome:
+lande
+Littoral:
+non
+Fleuves
+navigables: oui
+Voisins
+(6): 1170, 1174, 1242, 1252, 1265, 1269
+Propriétaire:
+FRA (certitude: gameplay — pas un fait historique)
+Province
+comparable: Gascogne (#4)
+Relief:
+© DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA
+Coordonnées
+villes: GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4 International (CC BY 4.0)
+Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 %
+Revenu 7,5  ·  Trésor 13,5  ·  Dette 0 (stable)
+Sat 0,829  ·  Affamés 0  ·  Prov. affamées 0
+Impôt −
+Impôt +
+--- editorial_text_end ---
+editorial_forbidden=PASS tag=03_province_selected scope=ProvincePanel+TaxStatus+TaxButtons
+FAIL editorial missing pop FR tag=03_province_selected
+panel_overlap tag=03_province_selected pairs_checked=3 overlaps=1
+  overlap tag=03_province_selected pair=ProvincePanel+InvestBar
+investir_status_default tag=03_province_selected text='DEV T5 P4 M3  score=4  coût T/P/M 250/200/150'
+hud_state tag=03_province_selected view='Province · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1402' info='AN 1402  Trésor -589,6  Dette 0,0  Armée 90596  Population 131986  Guerres 6  ZOOM Province  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,5  ·  Trésor 13,5  ·  Dette 0 (stable) | Sat 0,829  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=hidden
+capture file=03_province_selected.png bytes=332038 sha256=8d941ed1437c7a20eb6f40360e43b8fb0949b29a7b6c62b411b16cf491d14122 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+investir_status_debug tag=03_province_selected_debug text='DEV T5 P4 M3  score=4  coût T/P/M 250/200/150'
+hud_state tag=03_province_selected_debug view='Province · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1402' info='AN 1402  Trésor -589,6  Dette 0,0  Armée 90596  Population 131986  Guerres 6  ZOOM Province  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,5  ·  Trésor 13,5  ·  Dette 0 (stable) | Sat 0,829  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=hidden
+capture file=03_province_selected_debug.png bytes=332038 sha256=8d941ed1437c7a20eb6f40360e43b8fb0949b29a7b6c62b411b16cf491d14122 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+hud_state tag=04_pause_active view='Pays · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1402' info='AN 1402  Trésor -566,9  Dette 0,0  Armée 91589  Population 132326  Guerres 6  ZOOM Pays  EN PAUSE' badge='EN PAUSE' pauseBtn='Lecture' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,5  ·  Trésor 38,4  ·  Dette 0 (stable) | Sat 0,794  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=visible
+capture file=04_pause_active.png bytes=309548 sha256=335246b84cb71cea139e75ee04c6351466770b844b201d105a07695da64947b3 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+editorial_probe tag=05_tax_min chars=157 scope=CountryPanel+TaxStatus+TaxButtons
+--- editorial_text_begin ---
+Vous  ·  Taux 0 %  ·  plage 0 % – 0,02 %
+Revenu 0,4  ·  Trésor -227,1  ·  Dette 0 (stable)
+Sat 0,831  ·  Affamés 0  ·  Prov. affamées 0
+Impôt −
+Impôt +
+--- editorial_text_end ---
+editorial_forbidden=PASS tag=05_tax_min scope=CountryPanel+TaxStatus+TaxButtons
+FAIL editorial missing FR subtitle pays tag=05_tax_min
+panel_overlap tag=05_tax_min pairs_checked=3 overlaps=1
+  overlap tag=05_tax_min pair=ProvincePanel+LawBar
+hud_state tag=05_tax_min view='Pays · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1402' info='AN 1402  Trésor -566,6  Dette 0,0  Armée 87924  Population 132594  Guerres 4  ZOOM Pays  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0 %  ·  plage 0 % – 0,02 % | Revenu 0,4  ·  Trésor -230,5  ·  Dette 0 (stable) | Sat 0,798  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=visible
+capture file=05_tax_min.png bytes=301267 sha256=af526fa709b781b9cc7836636c35d0512010ebbd1371d8f02c6c922077c0e631 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+editorial_probe tag=06_tax_max chars=158 scope=CountryPanel+TaxStatus+TaxButtons
+--- editorial_text_begin ---
+Vous  ·  Taux 0,02 %  ·  plage 0 % – 0,02 %
+Revenu 1  ·  Trésor -478,9  ·  Dette 0 (stable)
+Sat 0,802  ·  Affamés 0  ·  Prov. affamées 0
+Impôt −
+Impôt +
+--- editorial_text_end ---
+editorial_forbidden=PASS tag=06_tax_max scope=CountryPanel+TaxStatus+TaxButtons
+FAIL editorial missing FR subtitle pays tag=06_tax_max
+hud_state tag=06_tax_max view='Pays · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1402' info='AN 1402  Trésor -1303,5  Dette 0,0  Armée 92289  Population 134292  Guerres 2  ZOOM Pays  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,02 %  ·  plage 0 % – 0,02 % | Revenu 1  ·  Trésor -481,9  ·  Dette 0 (stable) | Sat 0,803  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=visible
+capture file=06_tax_max.png bytes=301347 sha256=9cea3a125349af41f974fbcf2cb91fe31f27496abce008ea9eaf283e8e2485cc dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+=== SHA256 captures ===
+01_world_neutral.png sha=30a20dee1275acd08638e71e7edc74fea073ae8bfbf59d178336926a6df32b7b dim=1920x1080 bytes=621140 source=standalone framebuffer hud=True map=True ok=True
+01_world_neutral_b.png sha=30a20dee1275acd08638e71e7edc74fea073ae8bfbf59d178336926a6df32b7b dim=1920x1080 bytes=621140 source=standalone framebuffer hud=True map=True ok=True
+02_country_selected.png sha=626eedda3afa3433942cbc3abe5d0cff8e826b9b82a0b7885c4f1fadff207c5c dim=1920x1080 bytes=269033 source=standalone framebuffer hud=True map=True ok=True
+03_province_selected.png sha=d64ddc2d06fdf8c8a050488894ba8cba9287d160ff4add9143fcca83521b3207 dim=1920x1080 bytes=274961 source=standalone framebuffer hud=True map=True ok=True
+04_pause_active.png sha=8d941ed1437c7a20eb6f40360e43b8fb0949b29a7b6c62b411b16cf491d14122 dim=1920x1080 bytes=332038 source=standalone framebuffer hud=True map=True ok=True
+05_tax_min.png sha=335246b84cb71cea139e75ee04c6351466770b844b201d105a07695da64947b3 dim=1920x1080 bytes=309548 source=standalone framebuffer hud=True map=True ok=True
+06_tax_max.png sha=af526fa709b781b9cc7836636c35d0512010ebbd1371d8f02c6c922077c0e631 dim=1920x1080 bytes=301267 source=standalone framebuffer hud=True map=True ok=True
+07_hover_debug_leak.png sha=9cea3a125349af41f974fbcf2cb91fe31f27496abce008ea9eaf283e8e2485cc dim=1920x1080 bytes=301347 source=standalone framebuffer hud=True map=True ok=True
+VERDICT=A_REVOIR_HUMAINEMENT
+status=FAIL_CAPTURE_OU_HUD_ABSENT

@@ -128,11 +128,24 @@ namespace VictoriaGame.Presentation
         /// </summary>
         public static int FrontRimThicknessPx { get; set; } = 2;
 
-        /// <summary>Liseré front non contesté (rouge franc, distinct du hachurage occupation).</summary>
-        static readonly Color32 FrontRimColor = new Color32(210, 36, 36, 255);
+        /// <summary>
+        /// Liseré front non contesté — distinct du hachurage occupation, mais SECONDAIRE
+        /// sur une carte politique (brief 005-refonte-visuelle-carte, Success Condition 5).
+        /// Était (210,36,36) : rouge pleinement saturé, la couleur la plus criarde de toute
+        /// la carte politique (griefs indépendants propriétaire + reporté à ce brief) — le
+        /// fait de simulation reste affiché (le liseré n'est pas supprimé, voir
+        /// <see cref="ApplyFrontOverlay"/> inchangée) mais sa saturation est réduite d'un
+        /// tiers environ (S≈83% → S≈60%) en restant dans la même famille de teinte rouge,
+        /// pour se lire comme un marquage cartographique secondaire — toujours net et
+        /// distinguable des liserés politiques (quasi noir/gris, cf. <see
+        /// cref="PoliticalBorder"/>/<see cref="InternalBorder"/>) et du damier front
+        /// contesté (jaune/brun, cf. <see cref="FrontContestedLight"/>/<see
+        /// cref="FrontContestedDark"/>), jamais confondu avec l'un ou l'autre.
+        /// </summary>
+        static readonly Color32 FrontRimColor = new Color32(150, 60, 60, 255);
 
-        /// <summary>Halo sombre autour du liseré (v1_093 — lisibilité).</summary>
-        static readonly Color32 FrontRimHalo = new Color32(96, 12, 12, 255);
+        /// <summary>Halo sombre autour du liseré (v1_093 — lisibilité) — assoupli à l'identique.</summary>
+        static readonly Color32 FrontRimHalo = new Color32(70, 26, 26, 255);
 
         /// <summary>Damier front contesté — case claire.</summary>
         static readonly Color32 FrontContestedLight = new Color32(255, 214, 64, 255);
@@ -3664,13 +3677,61 @@ namespace VictoriaGame.Presentation
                 }
             }
 
+            // brief 005-refonte-visuelle-carte, Success Condition 4 : anneau de PLUME
+            // (feather) d'1 px de plus autour du polygone dilaté ci-dessus, mélangé à 50%
+            // avec la couleur DÉJÀ PRÉSENTE sous ce pixel (relief/remplissage), au lieu
+            // d'un remplacement franc — confirmé par inspection à l'œil (crop 4x) : le
+            // dilatation carrée sans anti-aliasing produit un escalier de pixels net.
+            // Volontairement borné à UN SEUL anneau supplémentaire (pas une passe
+            // multi-pixels/gaussienne) pour ne pas aggraver le coût CPU déjà mesuré comme
+            // significatif (Success Condition 3) — un ajout de complexité O(1) par pixel de
+            // bord déjà identifié, pas un second passage plein-buffer.
+            var feather = new byte[ActiveW * ActiveH];
+            var fr = r + 1;
+            for (var py = 0; py < ActiveH; py++)
+            {
+                for (var px = 0; px < ActiveW; px++)
+                {
+                    var idx = py * ActiveW + px;
+                    if (border[idx] < 2)
+                        continue;
+                    for (var oy = -fr; oy <= fr; oy++)
+                    {
+                        for (var ox = -fr; ox <= fr; ox++)
+                        {
+                            if (System.Math.Abs(ox) < r + 1 && System.Math.Abs(oy) < r + 1)
+                                continue; // déjà couvert par le coeur plein (dilated)
+                            var nx = px + ox;
+                            var ny = py + oy;
+                            if (nx < 0 || ny < 0 || nx >= ActiveW || ny >= ActiveH)
+                                continue;
+                            var nidx = ny * ActiveW + nx;
+                            if (provinceAt[nidx] >= 0 && dilated[nidx] == 0)
+                                feather[nidx] = 1;
+                        }
+                    }
+                }
+            }
+
             for (var i = 0; i < dilated.Length; i++)
             {
                 if (dilated[i] == 2)
                     pixels[i] = PoliticalBorder;
                 else if (dilated[i] == 1)
                     pixels[i] = InternalBorder;
+                else if (feather[i] == 1)
+                    pixels[i] = BlendColor(pixels[i], PoliticalBorder, 0.5f);
             }
+        }
+
+        /// <summary>Mélange linéaire RGB (le canal A reste celui de <paramref name="a"/>).</summary>
+        static Color32 BlendColor(Color32 a, Color32 b, float t)
+        {
+            return new Color32(
+                (byte)(a.r + (b.r - a.r) * t),
+                (byte)(a.g + (b.g - a.g) * t),
+                (byte)(a.b + (b.b - a.b) * t),
+                a.a);
         }
 
         /// <summary>

@@ -1,0 +1,1066 @@
+Mono path[0] = 'D:/ForgeHistory/unity/game_unity/Builds/ui_002/VictoriaGame_Data/Managed'
+Mono config path = 'D:/ForgeHistory/unity/game_unity/Builds/ui_002/MonoBleedingEdge/etc'
+Found 4 interfaces on host : 0) 192.168.1.144 1) 192.168.56.1 2) 172.18.0.1 3) 192.168.1.107
+Player connection [19960]  Target information:
+
+Player connection [19960]  * "[IP] 192.168.1.144 [Port] 55000 [Flags] 2 [Guid] 3958995969 [EditorId] 598112184 [Version] 1048832 [Id] WindowsPlayer(2,Pe) [Debug] 0 [PackageName] WindowsPlayer [ProjectName] game_unity" 
+
+Player connection [19960]  * "[IP] 192.168.56.1 [Port] 55000 [Flags] 2 [Guid] 3958995969 [EditorId] 598112184 [Version] 1048832 [Id] WindowsPlayer(2,Pe) [Debug] 0 [PackageName] WindowsPlayer [ProjectName] game_unity" 
+
+Player connection [19960]  * "[IP] 172.18.0.1 [Port] 55000 [Flags] 2 [Guid] 3958995969 [EditorId] 598112184 [Version] 1048832 [Id] WindowsPlayer(2,Pe) [Debug] 0 [PackageName] WindowsPlayer [ProjectName] game_unity" 
+
+Player connection [19960]  * "[IP] 192.168.1.107 [Port] 55000 [Flags] 2 [Guid] 3958995969 [EditorId] 598112184 [Version] 1048832 [Id] WindowsPlayer(2,Pe) [Debug] 0 [PackageName] WindowsPlayer [ProjectName] game_unity" 
+
+Player connection [19960] Started UDP target info broadcast (1) on [225.0.0.222:54997].
+
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.0.43f1 (97272b72f107)
+[Subsystems] Discovering subsystems at path D:/ForgeHistory/unity/game_unity/Builds/ui_002/VictoriaGame_Data/UnitySubsystems
+kGfxThreadingModeSplitJobs is not supported on Direct3D 11. Reverting to kGfxThreadingModeClientWorkerJobs instead.
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 3070 Ti (ID=0x2482)
+    Vendor:   NVIDIA
+    VRAM:     8017 MB
+    Driver:   32.0.15.9174
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.073 seconds
+- Finished resetting the current domain, in  0.001 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+<RI> Input initialized.
+<RI> Initialized touch support.
+UnloadTime: 1.618700 ms
+PhysicalProductionSystem: outlet_cap_intensity=1 storage_months=3 (depuis JSON)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalProductionSystem:LoadFromJson (single,single) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:162)
+VictoriaGame.Economy.PhysicalProductionSystem:ApplyJsonDefaultIfUnlocked () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:123)
+VictoriaGame.Economy.PhysicalProductionSystem:OnCreate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:64)
+VictoriaGame.Economy.PhysicalProductionSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:Initialize (string,bool) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:147)
+Unity.Entities.AutomaticWorldBootstrap:Initialize () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities.Hybrid/Injection/AutomaticWorldBootstrap.cs:16)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs Line: 162)
+
+PopGrowthSystem: response_continuity=0,5 (depuis JSON; justification=v1_026 redescente: c=1 (même à w=0.25) casse V1016/17 (armée t3000). ADOPTÉ c=0.5 w=0.25: grille pop=154437 ratio=0.985 army=24057. Palier w=0.5 sous c=1 prouvé mais non livré. c=0 = escalier bit-identique.)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Population.PopGrowthSystem:LoadContinuityFromJson (single) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Population/Systems/PopGrowthSystem.cs:238)
+VictoriaGame.Population.PopGrowthSystem:ApplyJsonDefaultIfUnlocked () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Population/Systems/PopGrowthSystem.cs:212)
+VictoriaGame.Population.PopGrowthSystem:OnCreate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Population/Systems/PopGrowthSystem.cs:74)
+VictoriaGame.Population.PopGrowthSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:Initialize (string,bool) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:147)
+Unity.Entities.AutomaticWorldBootstrap:Initialize () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities.Hybrid/Injection/AutomaticWorldBootstrap.cs:16)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Population/Systems/PopGrowthSystem.cs Line: 238)
+
+PhysicalSatisfactionBlendSystem: physical_blend_weight=0,25 (depuis JSON; justification=v1_026 redescente: w=0.5 et w=0.4 avec c=1 cassent V1016-18. Conservé w=0.25 (palier v1_022/v1_025) + ResponseContinuity=1. Grille: à c=1 w=0.25 popRatio=1.024 (sensibilité↑ sans rupture stabilité).)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalSatisfactionBlendSystem:LoadWeightFromJson (single) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalSatisfactionBlendSystem.cs:162)
+VictoriaGame.Economy.PhysicalSatisfactionBlendSystem:ApplyJsonDefaultIfUnlocked () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalSatisfactionBlendSystem.cs:136)
+VictoriaGame.Economy.PhysicalSatisfactionBlendSystem:OnCreate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalSatisfactionBlendSystem.cs:46)
+VictoriaGame.Economy.PhysicalSatisfactionBlendSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:Initialize (string,bool) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:147)
+Unity.Entities.AutomaticWorldBootstrap:Initialize () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities.Hybrid/Injection/AutomaticWorldBootstrap.cs:16)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalSatisfactionBlendSystem.cs Line: 162)
+
+TaxPhysicalWithdrawalSystem: withdrawal_coefficient=0 abstract_withdrawal_coefficient=0,5 (depuis JSON; justification=v1_086 ADOPTÉ : cPhys=0.00 (mono=False Δsat=0.0042 fraction_extra=-0.0091 — inutile) ; cAbs=0.50 (mono=True Δsat=-0.1204). Mesure CE brief Logs/v1_086_tax.log. PhysicalBlendWeight=0.25 inchangé. Réversibilité c=0/0 → 0x4ED26CB61DE7B2B2. cPhys NON adopté : mono=False Δsat=0.0042 ; fraction additionnelle=-0.0091 — le JSON le déclare inutile plutôt que réglable. cAbs=0.5 ADOPTÉ : sat [0.630→0.628→0.624→0.582→0.510] mono=True Δsat=-0.1204.)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.TaxPhysicalWithdrawalSystem:LoadCoefficientsFromJson (single,single) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/TaxPhysicalWithdrawalSystem.cs:421)
+VictoriaGame.Economy.TaxPhysicalWithdrawalSystem:ApplyJsonDefaultIfUnlocked () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/TaxPhysicalWithdrawalSystem.cs:383)
+VictoriaGame.Economy.TaxPhysicalWithdrawalSystem:OnCreate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/TaxPhysicalWithdrawalSystem.cs:95)
+VictoriaGame.Economy.TaxPhysicalWithdrawalSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:Initialize (string,bool) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:147)
+Unity.Entities.AutomaticWorldBootstrap:Initialize () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities.Hybrid/Injection/AutomaticWorldBootstrap.cs:16)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/TaxPhysicalWithdrawalSystem.cs Line: 421)
+
+BuildingConstructionSystem: capacity_intensity=1 (depuis JSON)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.BuildingConstructionSystem:LoadFromJson (single) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:132)
+VictoriaGame.Economy.BuildingConstructionSystem:ApplyJsonDefaultIfUnlocked () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:106)
+VictoriaGame.Economy.BuildingConstructionSystem:OnCreate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:52)
+VictoriaGame.Economy.BuildingConstructionSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:Initialize (string,bool) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:147)
+Unity.Entities.AutomaticWorldBootstrap:Initialize () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities.Hybrid/Injection/AutomaticWorldBootstrap.cs:16)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs Line: 132)
+
+BuildingAiSystem: mode=Active budget_reserve=0 (règle ByDeficitSeverity — gaps Food/Cloth + déficit bois observés ; émission si trésorerie OK ; stocks = juge chantier, pas pré-filtre IA)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.AI.BuildingAiSystem:ApplyJsonDefaultIfUnlocked () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/AI/Systems/BuildingAiSystem.cs:286)
+VictoriaGame.AI.BuildingAiSystem:OnCreate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/AI/Systems/BuildingAiSystem.cs:48)
+VictoriaGame.AI.BuildingAiSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:Initialize (string,bool) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:147)
+Unity.Entities.AutomaticWorldBootstrap:Initialize () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities.Hybrid/Injection/AutomaticWorldBootstrap.cs:16)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/AI/Systems/BuildingAiSystem.cs Line: 286)
+
+GoodInitSystem: 15 biens créés
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.GoodInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/GoodInitSystem.cs:43)
+VictoriaGame.Economy.GoodInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/GoodInitSystem.cs Line: 43)
+
+CountryInitSystem: 20 pays crees
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Core.CountryInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Core/Systems/CountryInitSystem.cs:96)
+VictoriaGame.Core.CountryInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Core/Systems/CountryInitSystem.cs Line: 96)
+
+CountryInitSystem: 20 capitales résolues et possédées à t0 (owner_tag).
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Core.CountryInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Core/Systems/CountryInitSystem.cs:106)
+VictoriaGame.Core.CountryInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Core/Systems/CountryInitSystem.cs Line: 106)
+
+MapInitSystem: 50 provinces créées
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.World.MapInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/World/Systems/MapInitSystem.cs:76)
+VictoriaGame.World.MapInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/World/Systems/MapInitSystem.cs Line: 76)
+
+MilitaryInitSystem: 20 gabarits, 20 dépôts, 20 armées
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Military.MilitaryInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Military/Systems/MilitaryInitSystem.cs:101)
+VictoriaGame.Military.MilitaryInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Military/Systems/MilitaryInitSystem.cs Line: 101)
+
+ProvinceOwnershipInitSystem: 50 provinces rattachées à leur pays
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.World.ProvinceOwnershipInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/World/Systems/ProvinceOwnershipInitSystem.cs:69)
+VictoriaGame.World.ProvinceOwnershipInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/World/Systems/ProvinceOwnershipInitSystem.cs Line: 69)
+
+ArmyGroupInitSystem: 20 groupes, 20 armées rattachées
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Military.ArmyGroupInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Military/Systems/ArmyGroupInitSystem.cs:87)
+VictoriaGame.Military.ArmyGroupInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Military/Systems/ArmyGroupInitSystem.cs Line: 87)
+
+SeaZoneInitSystem: 14 zones maritimes créées
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Navy.SeaZoneInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Navy/Systems/SeaZoneInitSystem.cs:53)
+VictoriaGame.Navy.SeaZoneInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Navy/Systems/SeaZoneInitSystem.cs Line: 53)
+
+FortInitSystem: 20 forts créés sur les capitales
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Military.FortInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Military/Systems/FortInitSystem.cs:64)
+VictoriaGame.Military.FortInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Military/Systems/FortInitSystem.cs Line: 64)
+
+ProductionSiteInitSystem: 50 sites de production créés
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.ProductionSiteInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/ProductionSiteInitSystem.cs:80)
+VictoriaGame.Economy.ProductionSiteInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/ProductionSiteInitSystem.cs Line: 80)
+
+PhysicalStockInitSystem: recettes de production physique:
+  cloth(id=8) <- 1 wool(id=6)
+  tools(id=9) <- 0,5 iron(id=5) + 0,5 wood(id=4)
+  weapons(id=10) <- 0,8 iron(id=5) + 0,4 coal(id=7)
+  paper(id=11) <- 1,2 wood(id=4)
+Justification ratios: Ratios early-modern plausibles (affinables): cloth 1:1 wool (masse filée/tissée); tools 0.5 iron + 0.5 wood (tête + manche); weapons 0.8 iron + 0.4 coal (forge); paper 1.2 wood (perte pulpe). Primaires (grain/fish/livestock/wood/iron/wool/coal) et luxes sans recette = extraction sans intrant transformé.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalStockInitSystem:LoadRecipes (Unity.Entities.DynamicBuffer`1<VictoriaGame.Economy.PhysicalRecipeEntry>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs:241)
+VictoriaGame.Economy.PhysicalStockInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs:91)
+VictoriaGame.Economy.PhysicalStockInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs Line: 241)
+
+PhysicalStockInitSystem: 50 provinces stockées, 3 isolée(s) du réseau terrestre (détroits exclus), capacity=500 perDev=2400,643 delay=1
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalStockInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs:103)
+VictoriaGame.Economy.PhysicalStockInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs Line: 103)
+
+=== CityInitSystem v1_036 ===
+criterion=Villes d'importance politique, commerciale, religieuse ou démographique attestées vers 1400 dans le périmètre des 50 provinces. Une province qui porte déjà un nom de ville (London, Venice…) reçoit cette ville comme principale sans doublon fictif. Les provinces régionales (Île-de-France, Bourgogne…) reçoivent leurs sièges historiques (Paris, Dijon…). Populations en unités PopData (échelle sim), classées par importance relative historique — pas des effectifs d'historien.
+demographic_policy=included_in_provincial_pops
+choice=urban_population_INCLUDED_in_provincial_pops (CityData.Population is a share label; PopData untouched)
+cities_seeded=204 provinces_with_cities=50 missing_province=0 scaled_provinces=1
+urban_total=14445 world_pop_before=129200 world_pop_after=129200 delta_world_pop=0 urban_share=11,18%
+extensibility: buildings→CityId; growth→CityData.Population; new cities→CreateEntity+ProvinceCity; districts→buffer on City
+--- cities_per_province ---
+  province=1 cities=11
+  province=2 cities=4
+  province=3 cities=6
+  province=4 cities=5
+  province=5 cities=12
+  province=6 cities=9
+  province=7 cities=11
+  province=8 cities=15
+  province=9 cities=5
+  province=10 cities=9
+  province=11 cities=2
+  province=12 cities=2
+  province=13 cities=3
+  province=14 cities=2
+  province=15 cities=2
+  province=16 cities=3
+  province=17 cities=2
+  province=18 cities=25
+  province=19 cities=3
+  province=20 cities=3
+  province=21 cities=3
+  province=22 cities=3
+  province=23 cities=2
+  province=24 cities=2
+  province=25 cities=1
+  province=26 cities=3
+  province=27 cities=3
+  province=28 cities=3
+  province=29 cities=3
+  province=30 cities=2
+  province=31 cities=2
+  province=32 cities=2
+  province=33 cities=2
+  province=34 cities=2
+  province=35 cities=2
+  province=36 cities=2
+  province=37 cities=2
+  province=38 cities=2
+  province=39 cities=3
+  province=40 cities=3
+  province=41 cities=2
+  province=42 cities=2
+  province=43 cities=2
+  province=44 cities=3
+  province=45 cities=2
+  province=46 cities=2
+  province=47 cities=2
+  province=48 cities=3
+  province=49 cities=3
+  province=50 cities=2
+--- urban_per_owner_tag ---
+  owner=ARA urban=263
+  owner=AUS urban=2807
+  owner=BOH urban=209
+  owner=BUR urban=483
+  owner=BYZ urban=314
+  owner=CAS urban=714
+  owner=DAN urban=255
+  owner=ENG urban=1965
+  owner=FLO urban=393
+  owner=FRA urban=3608
+  owner=GEN urban=230
+  owner=HUN urban=412
+  owner=MIL urban=390
+  owner=NAP urban=616
+  owner=OTT urban=678
+  owner=POL urban=438
+  owner=POR urban=177
+  owner=SCO urban=108
+  owner=SWE urban=119
+  owner=VEN urban=266
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.World.CityInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/World/Systems/CityInitSystem.cs:173)
+VictoriaGame.World.CityInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/World/Systems/CityInitSystem.cs Line: 173)
+
+BuildingInitSystem seed: total=174 city_seed_coeff=0 Farm=94 Sawmill=4 Workshop=76
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.BuildingInitSystem:SeedHistoricalBuildings (Unity.Entities.EntityManager,System.Collections.Generic.List`1<VictoriaGame.Economy.BuildingCatalogEntry>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingInitSystem.cs:261)
+VictoriaGame.Economy.BuildingInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingInitSystem.cs:94)
+VictoriaGame.Economy.BuildingInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingInitSystem.cs Line: 261)
+
+BuildingInitSystem: catalogue=3 types, bâtiments semés=174 city_seed_coeff=0
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.BuildingInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingInitSystem.cs:99)
+VictoriaGame.Economy.BuildingInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/BuildingInitSystem.cs Line: 99)
+
+PhysicalEndowmentInitSystem: 50 provinces dotées, 96 activités, 19 multi-biens, scale=2000
+Découplage: activités hors GoodId du ProductionSite LOD produisent à BaseCapacity (pas de plafond LastOutput). Site LOD inchangé.
+Formule: v1_025: BaseCapacity = relative_intensity × climate_mod × DevScore × production_scale. DevScore = max(1, (Tax+Production+Manpower)/3) — même score que transport v1_024. production_scale=2000 aligné LOD. PAS de typeYield Food (évite inondation stocks / dérive float). Table = RawMaterial UNIQUEMENT (wool/iron/coal/wood) : les Food/Luxury/Manufactured restent au LOD. Objectif: capacité MONDIALE des intrants ≥ demande transformée, concentration GÉOGRAPHIQUE (laine=Hills+Arid, charbon=Mountains+Hills, bois=Cold/Forest/Hills).
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalEndowmentInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalEndowmentInitSystem.cs:85)
+VictoriaGame.Economy.PhysicalEndowmentInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Economy/Systems/PhysicalEndowmentInitSystem.cs Line: 85)
+
+LawInitSystem: 23 lois créées (ordre LawId)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Politics.LawInitSystem:OnUpdate (Unity.Entities.SystemState&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Politics/Systems/LawInitSystem.cs:59)
+VictoriaGame.Politics.LawInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry/<>c__DisplayClass9_0:<SelectBurstFn>b__0 (intptr,intptr) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:249)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001629$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Politics/Systems/LawInitSystem.cs Line: 59)
+
+MapSnapshotExporter: MASKSTATS mode=DataDerived components=7 triangles=59 trianglePixels+=0 hullPixels+=337048 hexSeeds=50 pocketPixels+=30989 buildMs=147.2
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildLandMask (System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,single,single,single,single) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:2078)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapSnapshotExporter/LandMaskMode,System.Nullable`1<VictoriaGame.Presentation.MapWindow>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:435)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:362)
+VictoriaGame.Presentation.MapGeometryCache:GetOrBuild (int,int,System.Nullable`1<VictoriaGame.Presentation.MapWindow>,bool&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapViewportSystem.cs:633)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:231)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs Line: 2078)
+
+MapSnapshotExporter: LANDMASSES count=7 sizes=[39,4,2,2,1,1,1] target=[39,4,2,2,1,1,1] OK
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapSnapshotExporter:AnalyzeLandMasses (System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,bool[],int[]) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:3298)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapSnapshotExporter/LandMaskMode,System.Nullable`1<VictoriaGame.Presentation.MapWindow>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:441)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:362)
+VictoriaGame.Presentation.MapGeometryCache:GetOrBuild (int,int,System.Nullable`1<VictoriaGame.Presentation.MapWindow>,bool&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapViewportSystem.cs:633)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:231)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs Line: 3298)
+
+MapSnapshotExporter: SHAPE coastal_touch=30/30 inland_false_sea=12/20 land_border=68/72 strait_glued=0/8
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapSnapshotExporter:MeasureShapeCoherence (System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,bool[],int[]) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:2825)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapSnapshotExporter/LandMaskMode,System.Nullable`1<VictoriaGame.Presentation.MapWindow>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:443)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:362)
+VictoriaGame.Presentation.MapGeometryCache:GetOrBuild (int,int,System.Nullable`1<VictoriaGame.Presentation.MapWindow>,bool&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapViewportSystem.cs:633)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:231)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs Line: 2825)
+
+MapDisplaySystem: GEOMETRY_BUILDS=1 worldMs=915,1 cacheHit=False (cadence refresh=10 ticks ou Owner/layer/viewport change) PLAYABLE_WINDOW count=50 PLAYABLE_MINX=-7.275 PLAYABLE_MAXX=23.151 PLAYABLE_MINY=-61.152 PLAYABLE_MAXY=-30.048 WORLD_MINX=-7.556 WORLD_MAXX=23.433 WORLD_MINY=-61.44 WORLD_MAXY=-29.76
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:262)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 262)
+
+MapSnapshotExporter: MASKSTATS mode=DataDerived components=7 triangles=59 trianglePixels+=0 hullPixels+=349630 hexSeeds=50 pocketPixels+=32161 buildMs=137.6
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildLandMask (System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,single,single,single,single) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:2078)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapSnapshotExporter/LandMaskMode,System.Nullable`1<VictoriaGame.Presentation.MapWindow>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:435)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapWindow) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:376)
+VictoriaGame.Presentation.MapGeometryCache:GetOrBuild (int,int,System.Nullable`1<VictoriaGame.Presentation.MapWindow>,bool&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapViewportSystem.cs:631)
+VictoriaGame.Presentation.MapDisplaySystem:EnsureGeometryForViewport () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:409)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:280)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs Line: 2078)
+
+MapSnapshotExporter: LANDMASSES count=7 sizes=[39,4,2,2,1,1,1] target=[39,4,2,2,1,1,1] OK
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapSnapshotExporter:AnalyzeLandMasses (System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,bool[],int[]) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:3298)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapSnapshotExporter/LandMaskMode,System.Nullable`1<VictoriaGame.Presentation.MapWindow>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:441)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapWindow) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:376)
+VictoriaGame.Presentation.MapGeometryCache:GetOrBuild (int,int,System.Nullable`1<VictoriaGame.Presentation.MapWindow>,bool&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapViewportSystem.cs:631)
+VictoriaGame.Presentation.MapDisplaySystem:EnsureGeometryForViewport () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:409)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:280)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs Line: 3298)
+
+MapSnapshotExporter: SHAPE coastal_touch=30/30 inland_false_sea=12/20 land_border=68/72 strait_glued=0/8
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapSnapshotExporter:MeasureShapeCoherence (System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,bool[],int[]) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:2825)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapSnapshotExporter/LandMaskMode,System.Nullable`1<VictoriaGame.Presentation.MapWindow>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:443)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapWindow) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:376)
+VictoriaGame.Presentation.MapGeometryCache:GetOrBuild (int,int,System.Nullable`1<VictoriaGame.Presentation.MapWindow>,bool&) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapViewportSystem.cs:631)
+VictoriaGame.Presentation.MapDisplaySystem:EnsureGeometryForViewport () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:409)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:280)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs Line: 2825)
+
+MapDisplaySystem: viewport rebuild level=World prov=-1 country=-1 ms=920,6 cacheHit=False GEOMETRY_BUILDS=2
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:EnsureGeometryForViewport () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:429)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:280)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 429)
+
+MapSpriteCatalog: found=0 converted=21 discarded=0 root=D:/ForgeHistory/unity/game_unity/Builds/ui_002/VictoriaGame_Data\Art\Models cache=D:\ForgeHistory\unity\game_unity\Builds\ui_002\PresentationCache\Sprites
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapSpriteCatalog:Rebuild () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSpriteOverlay.cs:263)
+VictoriaGame.Presentation.MapSpriteCatalog:EnsureReady () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSpriteOverlay.cs:171)
+VictoriaGame.Presentation.MapSpriteCatalog:EnsureCitySprites () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSpriteOverlay.cs:271)
+VictoriaGame.Presentation.CityMarkerComposer:Compose (UnityEngine.Color32[],VictoriaGame.Presentation.MapSnapshotExporter/MapGeometry,Unity.Entities.EntityManager,VictoriaGame.Presentation.MapObservationLevel,int,int) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/CityPresentation.cs:148)
+VictoriaGame.Presentation.MapDisplaySystem:ComposeInteractiveMapOnly (UnityEngine.Color32[],VictoriaGame.Presentation.MapSnapshotExporter/MapGeometry,Unity.Entities.EntityManager,VictoriaGame.Presentation.MapObservationLevel,int,int,int,bool) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:1290)
+VictoriaGame.Presentation.MapDisplaySystem/<>c__DisplayClass155_0:<__OnUpdate_450AADF4>b__0 (UnityEngine.Color32[]) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:330)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildPoliticalPixels (System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,VictoriaGame.Presentation.MapSnapshotExporter/MapGeometry,VictoriaGame.Presentation.MapSnapshotExporter/LabelDensity,int,System.Action`1<UnityEngine.Color32[]>,VictoriaGame.Presentation.CountryColors/Table) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:672)
+VictoriaGame.Presentation.MapSnapshotExporter:RenderPoliticalPixels (Unity.Entities.EntityManager,VictoriaGame.Presentation.MapSnapshotExporter/MapGeometry,VictoriaGame.Presentation.MapSnapshotExporter/LabelDensity,int,System.Action`1<UnityEngine.Color32[]>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:530)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:328)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSpriteOverlay.cs Line: 263)
+
+MapDisplaySystem: ZOOM_TRANSITION_MS raster=117,16 present=8,25 total=125,41 geometryRebuildMs=920,62 gpuUsed=False gpuMs=0,00 level=World window=[-7,3,23,2]x[-61,2,-30]
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:364)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 364)
+
+PilotMapProvider: JSON chargé cells=237 unowned=43 tags=AUS=23,BUR=22,CAS=7,ENG=33,FRA=109 json_bytes=698636 (PNG paresseux par LOD) mapping→D:/ForgeHistory/unity/game_unity/Builds/ui_002/VictoriaGame_Data/StreamingAssets\data/map\cell_to_view_index.json
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.PilotMapProvider:LoadAll () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs:699)
+VictoriaGame.Presentation.PilotMapProvider:EnsureLoaded () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs:372)
+VictoriaGame.Presentation.PilotMapProvider:ProvinceIdOfCell (int) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs:1363)
+VictoriaGame.Presentation.PilotMapProvider:SimulationProvinceIdOfView (int) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs:1375)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildViewsAligned (Unity.Entities.EntityManager,System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,VictoriaGame.Presentation.CountryColors/Table) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:1804)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildViewsForRender (Unity.Entities.EntityManager,System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,VictoriaGame.Presentation.CountryColors/Table) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:1769)
+VictoriaGame.Presentation.MapDisplaySystem:TryRenderGpuBackground (Unity.Entities.EntityManager) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:752)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:192)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs Line: 699)
+
+MapGpuRenderer: palette refusée — identifiant hors table : cell 1 → index -1163 (largeur 50)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+VictoriaGame.Presentation.MapDisplaySystem:TryRenderGpuBackground (Unity.Entities.EntityManager) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:756)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:192)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 756)
+
+PilotMapProvider: fleuves chargés segments=102 mouths=14 crs=EPSG:4326 bytes=164291
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.PilotMapProvider:EnsureRiversLoaded () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs:1800)
+VictoriaGame.Presentation.PilotMapProvider:ApplyRivers (UnityEngine.Color32[],bool[],int,int,single,single,single,single,VictoriaGame.Presentation.MapObservationLevel) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs:1886)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildPoliticalPixels (System.Collections.Generic.List`1<VictoriaGame.Presentation.MapSnapshotExporter/ProvinceView>,VictoriaGame.Presentation.MapSnapshotExporter/MapGeometry,VictoriaGame.Presentation.MapSnapshotExporter/LabelDensity,int,System.Action`1<UnityEngine.Color32[]>,VictoriaGame.Presentation.CountryColors/Table) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:657)
+VictoriaGame.Presentation.MapSnapshotExporter:RenderPoliticalPixels (Unity.Entities.EntityManager,VictoriaGame.Presentation.MapSnapshotExporter/MapGeometry,VictoriaGame.Presentation.MapSnapshotExporter/LabelDensity,int,System.Action`1<UnityEngine.Color32[]>) (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs:530)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:328)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/PilotMapProvider.cs Line: 1800)
+
+MapDisplaySystem: ZOOM_TRANSITION_MS raster=256,30 present=2,92 total=259,22 geometryRebuildMs=140,87 gpuUsed=False gpuMs=0,00 level=World window=[-4,4,5,7]x[-55,5,-42]
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:364)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 364)
+
+MapDisplaySystem: viewport rebuild level=Country prov=-1 country=0 ms=85,4 cacheHit=False GEOMETRY_BUILDS=3
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:EnsureGeometryForViewport () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:429)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:280)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 429)
+
+MapDisplaySystem: ZOOM_TRANSITION_MS raster=71,49 present=3,27 total=74,77 geometryRebuildMs=85,39 gpuUsed=True gpuMs=65,09 level=Country window=[-7,6,23,4]x[-61,4,-29,8]
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:364)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 364)
+
+MapDisplaySystem: viewport rebuild level=Province prov=1 country=0 ms=0,0 cacheHit=True GEOMETRY_BUILDS=3
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:EnsureGeometryForViewport () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:429)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:280)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 429)
+
+MapDisplaySystem: ZOOM_TRANSITION_MS raster=67,39 present=3,40 total=70,79 geometryRebuildMs=0,00 gpuUsed=True gpuMs=272,22 level=Province window=[-7,6,23,4]x[-61,4,-29,8]
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:364)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 364)
+
+MapDisplaySystem: ZOOM_TRANSITION_MS raster=218,67 present=2,44 total=221,12 geometryRebuildMs=0,00 gpuUsed=True gpuMs=1,04 level=World window=[-4,4,5,7]x[-55,5,-42]
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:364)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 364)
+
+MapDisplaySystem: viewport rebuild level=Country prov=-1 country=0 ms=0,0 cacheHit=True GEOMETRY_BUILDS=3
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:EnsureGeometryForViewport () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:429)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:280)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 429)
+
+MapDisplaySystem: ZOOM_TRANSITION_MS raster=61,00 present=3,14 total=64,14 geometryRebuildMs=0,00 gpuUsed=True gpuMs=0,43 level=Country window=[-7,6,23,4]x[-61,4,-29,8]
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:364)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 364)
+
+MapDisplaySystem: viewport rebuild level=Province prov=1 country=0 ms=109,1 cacheHit=False GEOMETRY_BUILDS=4
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:EnsureGeometryForViewport () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:429)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:280)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 429)
+
+MapDisplaySystem: ZOOM_TRANSITION_MS raster=62,22 present=4,24 total=66,46 geometryRebuildMs=109,06 gpuUsed=True gpuMs=0,27 level=Province window=[-7,6,23,4]x[-61,4,-29,8]
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.MapDisplaySystem:OnUpdate () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs:364)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:723)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+Unity.Entities.ScriptBehaviourUpdateOrder/DummyDelegateWrapper:TriggerUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ScriptBehaviourUpdateOrder.cs:523)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs Line: 364)
+
+UiStandaloneCaptureHarness v005 exit=0 log=D:\ForgeHistory\unity\game_unity\Captures\v005_zoom_gpu.log
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at C:/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:37)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.UiStandaloneCaptureHarness/<RunV005ZoomAndGpuSequence>d__23:MoveNext () (at D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/UiStandaloneCaptureHarness.cs:1013)
+UnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr) (at C:/build/output/unity/unity/Runtime/Export/Scripting/Coroutines.cs:17)
+
+(Filename: D:/ForgeHistory/unity/game_unity/Assets/Scripts/Presentation/UiStandaloneCaptureHarness.cs Line: 1013)
+
+[Physics::Module] Cleanup current backned.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+PlayerConnection::Cleanup##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1785596559791,"processId":21632,"allocatedMemory":78503756,"memoryLabels":[{"Default":256},{"NewDelete":848},{"Manager":1028891},{"VFX":-104},{"GfxDevice":72},{"Serialization":520},{"JobScheduler":42656},{"File":1929},{"String":296},{"DynamicArray":32},{"HashMap":6656},{"PoolAlloc":2544},{"VR":1784},{"NativeArray":77417160},{"Subsystems":96},{"CoreBusinessMetrics":120}]}
