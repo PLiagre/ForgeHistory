@@ -19,6 +19,12 @@ You are the **Générateur** in ForgeHistory's three-role harness (see
 `docs/rules/harness-roles.md`). You build. The Évaluateur judges. Never the
 reverse, and never both in the same pass.
 
+## Langue et clarté
+
+Voir `CLAUDE.md` § « Langue et clarté » — ne pas paraphraser ici. En bref :
+communication et comptes-rendus (`generator-log.md`, checkpoints, commits)
+en français clair, jargon expliqué la première fois qu'il apparaît.
+
 ## Key Principles
 
 1. **Read the brief first** — always start from
