@@ -15,27 +15,30 @@ from `unity/game_unity/`. Recorded in
 [ADR-0004](docs/adr/0004-bulk-port-victoriaproject-unity-game.md) (which also
 names the imported double-primary-key debt; ADR-0003 remains the target).
 
-## Status (verified 2026-07-31, end of session, live command output)
+## Status (verified 2026-08-08, end of session, live command output)
 
-- `py -m pytest harness/tests/ -q` — **16 passed**.
+- `py -m pytest harness/tests/ -q` — **261 passed, 1 failed**. The single
+  red is `test_run_unity.py::test_no_brief_prescribes_polling`, **pre-existing
+  and unrelated to this session** — it was already red on `origin/master`
+  (`198cfd9`) before any brief-008 work began (verified at session start).
+  Needs its own investigation (see Open TODOs); not introduced here.
 - `py harness/harness_audit.py` — **23/24**. The one FAIL
   (`no_premature_stub_content`) is the audit tool being stale, not the repo
   being wrong: it still assumes `pipeline/geo/`, `unity/` are empty stubs,
   which briefs 002/003 legitimately un-stubbed through the gate. Fix the
-  audit's assumption next session (see Open TODOs) — do not "clean" the dirs.
-- `py harness/verdict_audit.py harness/queue/briefs/003-port-unity-game` —
-  **ACCEPT 9/9**, Évaluateur verdict **PASS**
-  (`harness/queue/briefs/003-port-unity-game/verdict.md`), its feedback-001
-  closed by Générateur iteration 5.
-- `py harness/verdict_audit.py harness/queue/briefs/004-polish-visuel` —
-  **REJECT**, for exactly two reasons, both understood and neither a
-  work defect: (1) `verdict.md` doesn't exist — the brief 004 Évaluateur
-  pass has NOT run yet (deliberately deferred at the owner's stop request);
-  (2) the Planificateur future-dated `brief.md`/`eval-rubric.md`
-  (`Authored: 2026-08-01T11:00:00` while the session clock was 2026-07-31),
-  so `mtime_after_brief`/`rubric_predates_deliverables` fail against every
-  deliverable. The Générateur refused to fabricate timestamps to route
-  around this — correct behavior. Fix path is in Open TODOs.
+  audit's assumption (see Open TODOs) — do not "clean" the dirs.
+- **Audit CURSOR-5633ee7-automation-completeness — full loop closed this
+  session**: `PROPOSED → CHALLENGED (be86205) → APPROVED (f3a7056) →
+  CONVERTED (c4ec462)`. Ledger: `architecture/audit-ledger.jsonl`. Review:
+  `architecture/reviews/CLAUDE-CURSOR-5633ee7-automation-completeness.md`
+  (5/5 CONFIRMED; ARCH-005 not retained, redundant with CURSOR-6231186).
+- **Brief 008 (`harness/queue/briefs/008-full-auto-automation-gaps`) —
+  NEEDS_SPLIT, lot 008a Générateur DONE, gate + Évaluateur NOT run**
+  (deferred at owner's stop request). Lot 008a self-check
+  `py harness/verdict_audit.py harness/queue/briefs/008-full-auto-automation-gaps`
+  = **7/10** at Générateur handoff; the 3 open rows are expected
+  (`verdict.md` is the Évaluateur's file, and `declared_files_are_tracked`
+  wanted a commit — now committed in `6292e16`). Re-run the gate next session.
 
 ## What Exists (delta this session — 2026-07-31)
 
@@ -78,18 +81,39 @@ Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
 
 ## Open TODOs
 
-- [ ] **Full-auto agent pipeline (brief 006)**: lots 006a/006b PASSED
-      (`harness/queue/briefs/006-full-auto-agent-pipeline/verdict-006a.md`,
-      `verdict-006b.md`); Lot 006c in progress. See
-      `docs/adr/0006-full-auto-agent-pipeline.md` and
+- [ ] **Run gate + Évaluateur on brief 008 lot 008a** (first thing next
+      session): `py harness/verdict_audit.py
+      harness/queue/briefs/008-full-auto-automation-gaps` then a fresh
+      Évaluateur pass. Lot 008a fixes the real P0 incident (orchestrator
+      trigger re-acting on a terminal audit — run `31085883052`); the fix is
+      `harness/pipeline/trigger_resolve.py` (reads the ledger, excludes
+      terminal audits) + `pipeline-orchestrate.yml` + 12 tests in
+      `harness/tests/test_trigger_resolve.py`.
+- [ ] **Generate brief 008 lot 008b** (ARCH-003, independent of 008a): a
+      `pipeline_job_failed` policy rule in `auto_policy.yaml` + orchestrator
+      handler + a `workflow_run` trigger over the four `pipeline-*.yml`.
+      Fully specified in `008-full-auto-automation-gaps/brief.md` (SC7–SC11).
+      `/forge-run` it as its own fresh session.
+- [ ] **Brief 008 lot 008c is BLOCKED on an owner decision** (ARCH-002 +
+      ARCH-004): which agent/API to wire first, whether `mode: full_auto`
+      should be renamed/split (`full_auto_decision_only`), and what recurring
+      per-invocation LLM budget in CI is acceptable. Not specified until the
+      owner decides — a fresh Planificateur pass follows that decision. The
+      owner-decision list is in
+      `architecture/decisions/DECISION-CURSOR-5633ee7-automation-completeness.md`
+      and the audit's §8.
+- [ ] **ARCH-005 (budget blind to Cursor backend)** was NOT retained for
+      brief 008 — it is redundant with `CURSOR-6231186` FINDING-ARCH-003,
+      already an open item. Track it there, not as a new brief.
+- [ ] **Full-auto agent pipeline (brief 006)**: merged to `master` (PRs #6/#8/#10).
+      See `docs/adr/0006-full-auto-agent-pipeline.md` and
       `docs/rules/full-auto-pipeline.md` for the derogation, the roles, and
-      how to activate/emergency-disable `mode: full_auto`.
-- [ ] **Cursor audit loop (ADR-0005) — review & merge PR #4**: branch
-      `forge/cursor-audit-loop` carries the multi-agent audit loop under
-      `architecture/` (steps 1–11: skeleton, ledger, the seven
-      `/forge-audit-*` commands, and three CI workflows). Local commits only
-      until reviewed; CI is green on the PR. Contract in
-      `architecture/README.md`.
+      how to activate/emergency-disable `mode: full_auto`. NB brief 008a/008b
+      harden exactly this machinery.
+- [ ] **Investigate pre-existing red `test_no_brief_prescribes_polling`**
+      (`harness/tests/test_run_unity.py`) — red on `master` before this
+      session; a brief's text apparently prescribes log-polling. Find which
+      brief and correct it (or the test) with evidence.
 - [ ] **Run the brief 004 Évaluateur pass** (first thing next session):
       before it, the Planificateur must correct its own future-dated
       `Authored:` fields in `004-polish-visuel/{brief.md,eval-rubric.md}`
@@ -140,25 +164,42 @@ Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
   notification, not a poll. Never re-read a Unity log across tool calls.
 - `pytest` installed via `--user`, not vendored (carried).
 
-## Last Session Summary (2026-07-31)
+## Last Session Summary (2026-08-08)
 
-The owner relaunched the project with one instruction: recover
-VictoriaProject's working code under ForgeHistory's harness, aiming for a
-beautiful, functional game by session end, autonomously. Delivered through
-the full three-role harness (2 Planificateur briefs, 3 amendments, 6
-Générateur iterations across 2 briefs, 1 Évaluateur pass):
+A full turn of the Cursor audit loop, then implementation of its highest-
+priority finding — all through the three-role harness, local commits only.
 
-1. Committed the pending verified baseline (briefs 001+002).
-2. **Brief 003 — the port — gate ACCEPT 9/9, Évaluateur PASS**: the whole
-   game now lives in `unity/game_unity/`, compiling, testing green on its
-   reference suite, and regenerating real conquest captures from
-   ForgeHistory. En route: caught VictoriaProject's dirty-tree lie,
-   restored to HEAD, attributed every one of 8 red tests instead of
-   hand-waving them (7 legacy anchors, 1 `-nographics` environment proof).
-3. **Brief 004 — polish — Générateur complete, Évaluateur pending**: debug
-   leak fixed with before/after proof; accent/decimal "defects" proven
-   already-fixed rather than fake-fixed; artistic verdict left to the human.
-4. Closed the session at the owner's request: single-source-of-instruction
-   test violation (generator logs restating brief headings) fixed
-   mechanically and transparently, 16/16 green, this file rewritten from
-   live output, everything committed locally. **Nothing pushed.**
+1. **Synced the branch**: `forge/cursor-audit-loop` was far behind
+   `origin/master` (`198cfd9`, PRs #9/#10 merged since); fast-forwarded so
+   the new audit's inbox file was present locally.
+2. **Reviewed audit `CURSOR-5633ee7-automation-completeness`** (Cursor's
+   "what's left for the full-auto loop to be truly complete" report).
+   Challenge = **5/5 CONFIRMED, 0 refuted**. The headline P0 was verified
+   *live*, not from code: `gh run view 31085883052` is a real `FAILURE`
+   (exit 2) — `pipeline-orchestrate` replayed a transition on an already
+   `AUDIT_ARCHIVED` audit. Flagged ARCH-005 as double-counting a prior
+   audit; noted the ledger's naive verdict-tally (counts keyword mentions
+   anywhere — real verdicts were 5/0/0, ledger says 7/2/2/3).
+3. **Owner APPROVED, retaining ARCH-001/002/003/004** (dropped 005), and
+   **converted** to brief seed `008-full-auto-automation-gaps`.
+4. **Planificateur filled brief 008 → NEEDS_SPLIT**: lot 008a (ARCH-001,
+   ready), lot 008b (ARCH-003, ready), lot 008c (ARCH-002+004, deliberately
+   left unspecified — blocked on an owner product decision).
+5. **Générateur built lot 008a** (96 tool calls, under budget): new
+   `harness/pipeline/trigger_resolve.py` consults the existing ledger reader
+   and excludes terminal audits before building any payload; the ~27 lines
+   of inline decision-bash in `pipeline-orchestrate.yml` replaced by a call
+   to it; 12 new tests including the exact incident-shape regression (SC3
+   zero-transition) and a non-blanket-skip guard (SC4). `audit_decision.py`'s
+   FSM guard left untouched (SC6). Gate self-check 7/10 at handoff (3 rows
+   are the Évaluateur's / needed the commit).
+6. **Fixed a real regression before closing**: the Planificateur's
+   `eval-rubric.md` and the Générateur's `generator-log.md` had restated
+   brief.md's `## Non-Goals` heading, breaking
+   `test_single_source_of_instruction.py` (green at convert time, red after).
+   Corrected both; suite back to 261 passed / 1 pre-existing red.
+
+Gate + Évaluateur on 008a, and generation of 008b, were **deferred at the
+owner's stop request**. This file rewritten from live output. **Nothing
+pushed.** Commits this session: `be86205`, `f3a7056`, `c4ec462`, `ed6de66`,
+`6292e16`, `c07e7f5`.
