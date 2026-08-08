@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -216,6 +217,58 @@ namespace VictoriaGame.Presentation
                    a.xMax > b.xMin + OverlapEpsilon &&
                    a.yMin < b.yMax - OverlapEpsilon &&
                    a.yMax > b.yMin + OverlapEpsilon;
+        }
+
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte, Success Condition 6a : chevauchement
+        /// vérifié entre TOUTES les paires de panneaux HUD visibles, pas seulement la
+        /// paire Lois/Impôt nommée par le grief d'origine — <see cref="Measure"/> ne
+        /// vérifiait QUE TopBar↔panneau visible et TaxBar↔panneau visible (jamais
+        /// LawBar/WarBar↔TaxBar), donc son propre <c>CriticalOverlap</c> n'aurait
+        /// jamais détecté le chevauchement Lois/Impôt réel (hard-won rule 6 : un
+        /// contrôle trop grossier coûte aussi cher qu'un contrôle laxiste). Retourne
+        /// chaque paire (nom, nom) qui se chevauche réellement.
+        /// </summary>
+        public static List<(string a, string b)> MeasureAllPanelOverlaps(InGameHud hud, out int pairsChecked)
+        {
+            var overlaps = new List<(string, string)>(4);
+            pairsChecked = 0;
+            if (hud == null || !hud.UiReady)
+                return overlaps;
+
+            var named = new List<(string name, VisualElement el)>(8)
+            {
+                ("TopBar", hud.GetComponent<UIDocument>()?.rootVisualElement?.Q<VisualElement>("TopBar")),
+                ("CountryPanel", hud.CountryPanel),
+                ("ProvincePanel", hud.ProvincePanel),
+                ("TaxBar", hud.TaxBar),
+                ("LawBar", hud.LawBar),
+                ("WarBar", hud.WarBar),
+                ("InvestBar", hud.InvestBar)
+            };
+
+            var visible = new List<(string name, Rect rect)>(8);
+            foreach (var (name, el) in named)
+            {
+                if (el == null || IsEffectivelyHidden(el))
+                    continue;
+                var r = el.worldBound;
+                if (r.width < 1f || r.height < 1f)
+                    continue; // pas encore layouté
+                visible.Add((name, r));
+            }
+
+            for (var i = 0; i < visible.Count; i++)
+            {
+                for (var j = i + 1; j < visible.Count; j++)
+                {
+                    pairsChecked++;
+                    if (RectsOverlap(visible[i].rect, visible[j].rect))
+                        overlaps.Add((visible[i].name, visible[j].name));
+                }
+            }
+
+            return overlaps;
         }
 
         static bool SuspectTruncation(InGameHud hud)

@@ -1,0 +1,1101 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+[Licensing::IpcConnector] Connection attempt to the License Client on channel: "LicenseClient-liagr" failed because channel doesn't exist; code: "0x80000002"
+[Licensing::Module] Successfully launched the LicensingClient (PId: 31236)
+Starting IPC server.
+Waiting for clients to connect on \\.\pipe\Unity-LicenseClient-liagr, press Ctrl-C to exit.
+[Licensing::IpcConnector] Successfully connected to the License Client on channel: "LicenseClient-liagr" at "2026-08-02T17:45:07.1914447Z"
+[Licensing::Client] Error: Code 10 while verifying Licensing Client signature (process Id: 31236, path: "C:/Program Files/Unity/Hub/Editor/6000.0.43f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] Error: LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.16.2+bdef8f5
+  Session Id:              5b34f5966c2b495b814f196f09bbd8de
+  Correlation Id:          342635229e75bb6bd7828a35e1417536
+  External correlation Id: 8938206995497682818
+  Machine Id:              9FTAAhsVhYZeE49POa6lRpH8JWc=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-liagr" (connect: 0.56s, validation: 0.04s, handshake: 0.04s)
+[Licensing::IpcConnector] Successfully connected to the License Notification on channel: "LicenseClient-liagr-notifications" at "2026-08-02T17:45:07.2740464Z"
+[Licensing::Module] Connected to LicensingClient (PId: 31236, launch time: 0.00, total connection time: 0.65s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Error: Code 500 while processing request (status: Unable to update licenses. Errors: No ULF license found.,Token not found in cache)
+[Licensing::Client] Error: Code 500 while updating license in client (status: Unable to update licenses. Errors: No ULF license found.,Token not found in cache)
+Built from '6000.0/release' branch; Version is '6000.0.43f1 (97272b72f107) revision 9905963'; Using compiler version '193933523'; Build Type 'Release'
+OS: 'Windows 11  (10.0.26200) 64bit Professional' Language: 'fr' Physical Memory: 32522 MB
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Serial number assigned to: "9072251224238-UnityPersXXXX"
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1, IsPro: 0
+[Licensing::Client] Successfully resolved entitlement details
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Unity.exe
+-batchmode
+-quit
+-silent-crashes
+-projectPath
+D:/ForgeHistory/unity/game_unity
+-executeMethod
+VictoriaGame.Tests.V1095BatchRunner.Run
+-logFile
+D:/ForgeHistory/unity/game_unity/Logs/v005_v1095_diagnostic_no_nographics.log
+Successfully changed project path to: D:/ForgeHistory/unity/game_unity
+D:/ForgeHistory/unity/game_unity
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gfx=262144"
+Player connection [31116]  Target information:
+
+Player connection [31116]  * "[IP] 192.168.1.144 [Port] 55504 [Flags] 2 [Guid] 3191165077 [EditorId] 3191165077 [Version] 1048832 [Id] WindowsEditor(7,Pe) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [31116]  * "[IP] 192.168.56.1 [Port] 55504 [Flags] 2 [Guid] 3191165077 [EditorId] 3191165077 [Version] 1048832 [Id] WindowsEditor(7,Pe) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [31116] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [31116] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-35184" after 0.2 seconds.
+Library Redirect Path: Library/
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 44 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.test-framework@1.4.6 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.test-framework@5ac417e07314)
+    com.unity.entities@1.3.15 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.entities@3142232a0e7c)
+    com.unity.burst@1.8.19 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.burst@7a907cf5a459)
+    com.unity.mathematics@1.3.2 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.mathematics@8017b507cc74)
+    com.unity.test-framework.performance@3.0.3 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.test-framework.performance@fb0dc592af8b)
+    com.unity.collections@2.5.7 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.collections@d49facba0036)
+    com.unity.serialization@3.1.2 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.serialization@582cbf30bbfd)
+    com.unity.profiling.core@1.0.2 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.profiling.core@aac7b93912bc)
+    com.unity.nuget.mono-cecil@1.11.5 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.nuget.mono-cecil@d78732e851eb)
+    com.unity.scriptablebuildpipeline@2.1.4 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.scriptablebuildpipeline@101dcb4353ce)
+    com.unity.ext.nunit@2.0.5 (location: D:\ForgeHistory\unity\game_unity\Library\PackageCache\com.unity.ext.nunit@60ef35ffd3cd)
+  Built-in packages:
+    com.unity.modules.ai@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vehicles@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Resources\PackageManager\BuiltInPackages\com.unity.modules.hierarchycore)
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+[Subsystems] No new subsystems found in resolved package list.
+Package Manager log level set to [2]
+[Package Manager] Done registering packages in 0.14 seconds
+Refreshing native plugins compatible for Editor in 31.79 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.0.43f1 (97272b72f107)
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.0.43f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path D:/ForgeHistory/unity/game_unity/Assets
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 3070 Ti (ID=0x2482)
+    Vendor:   NVIDIA
+    VRAM:     8017 MB
+    Driver:   32.0.15.9174
+[Licensing::Client] Successfully resolved entitlement details
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.0.43f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.0.43f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.0.43f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56184
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.0.43f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.002385 seconds.
+- Loaded All Assemblies, in  0.258 seconds
+Native extension for WindowsStandalone target not found
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.215 seconds
+Domain Reload Profiling: 470ms
+	BeginReloadAssembly (89ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (1ms)
+	RebuildCommonClasses (26ms)
+	RebuildNativeTypeToScriptingClass (7ms)
+	initialDomainReloadingComplete (35ms)
+	LoadAllAssembliesAndSetupDomain (98ms)
+		LoadAssemblies (86ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (96ms)
+			TypeCache.Refresh (95ms)
+				TypeCache.ScanAssembly (86ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (215ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (193ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (17ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (32ms)
+			ProcessInitializeOnLoadAttributes (92ms)
+			ProcessInitializeOnLoadMethodAttributes (49ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+Assembly reference Packages/com.unity.entities/Unity.Scenes.Editor/Internals/Properties/Unity.Properties.Internals.asmref has no target assembly definition
+Assembly reference Packages/com.unity.entities/Unity.Scenes.Editor/Internals/Properties/Unity.Properties.Internals.asmref has no target assembly definition
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:80
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development*
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\ForgeHistory\unity\game_unity\
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 26.7226ms
+Starting: C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\bee_backend.exe --dont-print-to-structured-log --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: D:/ForgeHistory/unity/game_unity
+DisplayProgressbar: Compiling Scripts
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.runtime.interopservices.windowsruntime has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\Facades\System.Runtime.InteropServices.WindowsRuntime.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\NetStandard\Extensions\2.0.0\System.Runtime.InteropServices.WindowsRuntime.dll"
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.componentmodel.composition has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\System.ComponentModel.Composition.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\NetStandard\compat\2.1.0\shims\netfx\System.ComponentModel.Composition.dll"
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Unity.Burst.Cecil, Version=0.11.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.burst@7a907cf5a459\Unity.Burst.CodeGen\Unity.Burst.Cecil.dll
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Mono.Cecil, Version=0.11.5.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.nuget.mono-cecil@d78732e851eb\Mono.Cecil.dll
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 857.9978ms
+ExitCode: 0 Duration: 1s22ms
+[446/555    0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+*** Tundra build success (1.00 seconds), 1 items updated, 555 evaluated
+AssetDatabase: script compilation time: 1.355577s
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  4.425 seconds
+Refreshing native plugins compatible for Editor in 0.28 ms, found 1 plugins.
+Native extension for WindowsStandalone target not found
+Assembly reference Packages/com.unity.entities/Unity.Scenes.Editor/Internals/Properties/Unity.Properties.Internals.asmref has no target assembly definition
+TypeManager.Initialize took: 291ms
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  2.553 seconds
+Domain Reload Profiling: 6975ms
+	BeginReloadAssembly (222ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (7ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (124ms)
+	RebuildCommonClasses (23ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (23ms)
+	LoadAllAssembliesAndSetupDomain (4146ms)
+		LoadAssemblies (4098ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (116ms)
+			TypeCache.Refresh (104ms)
+				TypeCache.ScanAssembly (99ms)
+			BuildScriptInfoCaches (11ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (2553ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (2479ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (11ms)
+			SetLoadedEditorAssemblies (2ms)
+			BeforeProcessingInitializeOnLoad (76ms)
+			ProcessInitializeOnLoadAttributes (2312ms)
+			ProcessInitializeOnLoadMethodAttributes (72ms)
+			AfterProcessingInitializeOnLoad (5ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (10ms)
+Asset Pipeline Refresh (id=b71b587b950346943b1fa13ee5e63c16): Total: 10.887 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=0 (actual=0, local cache=0, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=5074 ms
+		Asset DB Callback time: managed=8 ms, native=0 ms
+		Scripting: domain reloads=1, domain reload time=4425 ms, compile time=1357 ms, other=20 ms
+		Project Asset Count: scripts=705, non-scripts=751
+		Asset File Changes: new=0, changed=0, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.001ms
+	InvokePackagesCallback: 1.655ms
+	ApplyChangesToAssetFolders: 0.255ms
+	Scan: 97.622ms
+	OnSourceAssetsModified: 0.001ms
+	CategorizeAssetsWithTransientArtifact: 1808.654ms
+	ProcessAssetsWithTransientArtifactChanges: 16.306ms
+	CategorizeAssets: 8.853ms
+	ImportOutOfDateAssets: 2556.173ms (1198.560ms without children)
+		CompileScripts: 1356.797ms
+		ReloadNativeAssets: 0.000ms
+		UnloadImportedAssets: 0.068ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.149ms
+		InitializingProgressBar: 0.000ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.000ms
+		OnDemandSchedulerStart: 0.599ms
+	PostProcessAllAssets: 8.979ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.000ms
+	UnloadStreamsBegin: 0.184ms
+	PersistCurrentRevisions: 0.034ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 0.834ms
+	Untracked: 6388.376ms
+
+Application.AssetDatabase Initial Refresh End
+Scanning for USB devices : 5.130ms
+Initializing Unity extensions:
+[Licensing::Client] Successfully resolved entitlement details
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-game_unity
+Unloading 4 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 2658 unused Assets / (1.8 MB). Loaded Objects now: 3140.
+Memory consumption went from 121.7 MB to 119.9 MB.
+Total: 7.494200 ms (FindLiveObjects: 0.168700 ms CreateObjectMapping: 0.073700 ms MarkObjects: 6.419800 ms  DeleteObjects: 0.831200 ms)
+
+PilotMapProvider: JSON chargé cells=237 unowned=43 tags=AUS=23,BUR=22,CAS=7,ENG=33,FRA=109 json_bytes=698636 (PNG paresseux par LOD) mapping→D:/ForgeHistory/unity/game_unity/Assets/StreamingAssets\data/map\cell_to_view_index.json
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Presentation.PilotMapProvider:LoadAll () (at Assets/Scripts/Presentation/PilotMapProvider.cs:699)
+VictoriaGame.Presentation.PilotMapProvider:EnsureLoaded () (at Assets/Scripts/Presentation/PilotMapProvider.cs:372)
+VictoriaGame.Presentation.PilotMapProvider:BuildMapGeometry (int,int,System.Nullable`1<VictoriaGame.Presentation.MapWindow>,int) (at Assets/Scripts/Presentation/PilotMapProvider.cs:1117)
+VictoriaGame.Presentation.PilotMapProvider:BuildMapGeometry (int,int,System.Nullable`1<VictoriaGame.Presentation.MapWindow>) (at Assets/Scripts/Presentation/PilotMapProvider.cs:1111)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int,VictoriaGame.Presentation.MapSnapshotExporter/LandMaskMode,System.Nullable`1<VictoriaGame.Presentation.MapWindow>) (at Assets/Scripts/Presentation/MapSnapshotExporter.cs:387)
+VictoriaGame.Presentation.MapSnapshotExporter:BuildMapGeometry (int,int) (at Assets/Scripts/Presentation/MapSnapshotExporter.cs:362)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:100)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Presentation/PilotMapProvider.cs Line: 699)
+
+PhysicalProductionSystem: outlet_cap_intensity=1 storage_months=3 (depuis JSON)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalProductionSystem:LoadFromJson (single,single) (at Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:162)
+VictoriaGame.Economy.PhysicalProductionSystem:ApplyJsonDefaultIfUnlocked () (at Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:123)
+VictoriaGame.Economy.PhysicalProductionSystem:OnCreate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:64)
+VictoriaGame.Economy.PhysicalProductionSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:AddSystemsToRootLevelSystemGroups (Unity.Entities.World,System.Collections.Generic.IReadOnlyList`1<System.Type>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:186)
+VictoriaGame.Tests.SimulationHarness:InstallProjectSystems () (at Assets/Tests/SimulationHarness.cs:50)
+VictoriaGame.Tests.SimulationHarness:.ctor (System.Nullable`1<uint>,bool) (at Assets/Tests/SimulationHarness.cs:37)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:116)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs Line: 162)
+
+PopGrowthSystem: response_continuity=0,5 (depuis JSON; justification=v1_026 redescente: c=1 (même à w=0.25) casse V1016/17 (armée t3000). ADOPTÉ c=0.5 w=0.25: grille pop=154437 ratio=0.985 army=24057. Palier w=0.5 sous c=1 prouvé mais non livré. c=0 = escalier bit-identique.)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Population.PopGrowthSystem:LoadContinuityFromJson (single) (at Assets/Scripts/Population/Systems/PopGrowthSystem.cs:238)
+VictoriaGame.Population.PopGrowthSystem:ApplyJsonDefaultIfUnlocked () (at Assets/Scripts/Population/Systems/PopGrowthSystem.cs:212)
+VictoriaGame.Population.PopGrowthSystem:OnCreate (Unity.Entities.SystemState&) (at Assets/Scripts/Population/Systems/PopGrowthSystem.cs:74)
+VictoriaGame.Population.PopGrowthSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:AddSystemsToRootLevelSystemGroups (Unity.Entities.World,System.Collections.Generic.IReadOnlyList`1<System.Type>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:186)
+VictoriaGame.Tests.SimulationHarness:InstallProjectSystems () (at Assets/Tests/SimulationHarness.cs:50)
+VictoriaGame.Tests.SimulationHarness:.ctor (System.Nullable`1<uint>,bool) (at Assets/Tests/SimulationHarness.cs:37)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:116)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Population/Systems/PopGrowthSystem.cs Line: 238)
+
+PhysicalSatisfactionBlendSystem: physical_blend_weight=0,25 (depuis JSON; justification=v1_026 redescente: w=0.5 et w=0.4 avec c=1 cassent V1016-18. Conservé w=0.25 (palier v1_022/v1_025) + ResponseContinuity=1. Grille: à c=1 w=0.25 popRatio=1.024 (sensibilité↑ sans rupture stabilité).)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalSatisfactionBlendSystem:LoadWeightFromJson (single) (at Assets/Scripts/Economy/Systems/PhysicalSatisfactionBlendSystem.cs:162)
+VictoriaGame.Economy.PhysicalSatisfactionBlendSystem:ApplyJsonDefaultIfUnlocked () (at Assets/Scripts/Economy/Systems/PhysicalSatisfactionBlendSystem.cs:136)
+VictoriaGame.Economy.PhysicalSatisfactionBlendSystem:OnCreate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/PhysicalSatisfactionBlendSystem.cs:46)
+VictoriaGame.Economy.PhysicalSatisfactionBlendSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:AddSystemsToRootLevelSystemGroups (Unity.Entities.World,System.Collections.Generic.IReadOnlyList`1<System.Type>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:186)
+VictoriaGame.Tests.SimulationHarness:InstallProjectSystems () (at Assets/Tests/SimulationHarness.cs:50)
+VictoriaGame.Tests.SimulationHarness:.ctor (System.Nullable`1<uint>,bool) (at Assets/Tests/SimulationHarness.cs:37)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:116)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/PhysicalSatisfactionBlendSystem.cs Line: 162)
+
+BuildingConstructionSystem: capacity_intensity=1 (depuis JSON)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.BuildingConstructionSystem:LoadFromJson (single) (at Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:132)
+VictoriaGame.Economy.BuildingConstructionSystem:ApplyJsonDefaultIfUnlocked () (at Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:106)
+VictoriaGame.Economy.BuildingConstructionSystem:OnCreate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:52)
+VictoriaGame.Economy.BuildingConstructionSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:AddSystemsToRootLevelSystemGroups (Unity.Entities.World,System.Collections.Generic.IReadOnlyList`1<System.Type>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:186)
+VictoriaGame.Tests.SimulationHarness:InstallProjectSystems () (at Assets/Tests/SimulationHarness.cs:50)
+VictoriaGame.Tests.SimulationHarness:.ctor (System.Nullable`1<uint>,bool) (at Assets/Tests/SimulationHarness.cs:37)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:116)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs Line: 132)
+
+BuildingAiSystem: mode=Active budget_reserve=0 (règle ByDeficitSeverity — gaps Food/Cloth + déficit bois observés ; émission si trésorerie OK ; stocks = juge chantier, pas pré-filtre IA)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.AI.BuildingAiSystem:ApplyJsonDefaultIfUnlocked () (at Assets/Scripts/AI/Systems/BuildingAiSystem.cs:286)
+VictoriaGame.AI.BuildingAiSystem:OnCreate (Unity.Entities.SystemState&) (at Assets/Scripts/AI/Systems/BuildingAiSystem.cs:48)
+VictoriaGame.AI.BuildingAiSystem:__codegen__OnCreate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnCreate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:370)
+Unity.Entities.WorldUnmanagedImpl:CallSystemOnCreateWithCleanup (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:614)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,int,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1282)
+Unity.Entities.World:GetOrCreateSystemsAndLogException (Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Collections.AllocatorManager/AllocatorHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/World.cs:1321)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal<Unity.Entities.DefaultWorldInitialization/DefaultRootGroups> (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>,Unity.Entities.ComponentSystemGroup,Unity.Entities.DefaultWorldInitialization/DefaultRootGroups) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:252)
+Unity.Entities.DefaultWorldInitialization:AddSystemToRootLevelSystemGroupsInternal (Unity.Entities.World,Unity.Collections.NativeList`1<Unity.Entities.SystemTypeIndex>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:291)
+Unity.Entities.DefaultWorldInitialization:AddSystemsToRootLevelSystemGroups (Unity.Entities.World,System.Collections.Generic.IReadOnlyList`1<System.Type>) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorldInitialization.cs:186)
+VictoriaGame.Tests.SimulationHarness:InstallProjectSystems () (at Assets/Tests/SimulationHarness.cs:50)
+VictoriaGame.Tests.SimulationHarness:.ctor (System.Nullable`1<uint>,bool) (at Assets/Tests/SimulationHarness.cs:37)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:116)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/AI/Systems/BuildingAiSystem.cs Line: 286)
+
+GoodInitSystem: 15 biens créés
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.GoodInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/GoodInitSystem.cs:43)
+VictoriaGame.Economy.GoodInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/GoodInitSystem.cs Line: 43)
+
+CountryInitSystem: 20 pays crees
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Core.CountryInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Core/Systems/CountryInitSystem.cs:96)
+VictoriaGame.Core.CountryInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Core/Systems/CountryInitSystem.cs Line: 96)
+
+CountryInitSystem: 20 capitales résolues et possédées à t0 (owner_tag).
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Core.CountryInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Core/Systems/CountryInitSystem.cs:106)
+VictoriaGame.Core.CountryInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Core/Systems/CountryInitSystem.cs Line: 106)
+
+MapInitSystem: 50 provinces créées
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.World.MapInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/World/Systems/MapInitSystem.cs:76)
+VictoriaGame.World.MapInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/World/Systems/MapInitSystem.cs Line: 76)
+
+MilitaryInitSystem: 20 gabarits, 20 dépôts, 20 armées
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Military.MilitaryInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Military/Systems/MilitaryInitSystem.cs:101)
+VictoriaGame.Military.MilitaryInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Military/Systems/MilitaryInitSystem.cs Line: 101)
+
+ProvinceOwnershipInitSystem: 50 provinces rattachées à leur pays
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.World.ProvinceOwnershipInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/World/Systems/ProvinceOwnershipInitSystem.cs:69)
+VictoriaGame.World.ProvinceOwnershipInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/World/Systems/ProvinceOwnershipInitSystem.cs Line: 69)
+
+ArmyGroupInitSystem: 20 groupes, 20 armées rattachées
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Military.ArmyGroupInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Military/Systems/ArmyGroupInitSystem.cs:87)
+VictoriaGame.Military.ArmyGroupInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Military/Systems/ArmyGroupInitSystem.cs Line: 87)
+
+SeaZoneInitSystem: 14 zones maritimes créées
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Navy.SeaZoneInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Navy/Systems/SeaZoneInitSystem.cs:53)
+VictoriaGame.Navy.SeaZoneInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Navy/Systems/SeaZoneInitSystem.cs Line: 53)
+
+FortInitSystem: 20 forts créés sur les capitales
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Military.FortInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Military/Systems/FortInitSystem.cs:64)
+VictoriaGame.Military.FortInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Military/Systems/FortInitSystem.cs Line: 64)
+
+ProductionSiteInitSystem: 50 sites de production créés
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.ProductionSiteInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/ProductionSiteInitSystem.cs:80)
+VictoriaGame.Economy.ProductionSiteInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/ProductionSiteInitSystem.cs Line: 80)
+
+PhysicalStockInitSystem: recettes de production physique:
+  cloth(id=8) <- 1 wool(id=6)
+  tools(id=9) <- 0,5 iron(id=5) + 0,5 wood(id=4)
+  weapons(id=10) <- 0,8 iron(id=5) + 0,4 coal(id=7)
+  paper(id=11) <- 1,2 wood(id=4)
+Justification ratios: Ratios early-modern plausibles (affinables): cloth 1:1 wool (masse filée/tissée); tools 0.5 iron + 0.5 wood (tête + manche); weapons 0.8 iron + 0.4 coal (forge); paper 1.2 wood (perte pulpe). Primaires (grain/fish/livestock/wood/iron/wool/coal) et luxes sans recette = extraction sans intrant transformé.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalStockInitSystem:LoadRecipes (Unity.Entities.DynamicBuffer`1<VictoriaGame.Economy.PhysicalRecipeEntry>) (at Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs:241)
+VictoriaGame.Economy.PhysicalStockInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs:91)
+VictoriaGame.Economy.PhysicalStockInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs Line: 241)
+
+PhysicalStockInitSystem: 50 provinces stockées, 3 isolée(s) du réseau terrestre (détroits exclus), capacity=500 perDev=2400,643 delay=1
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalStockInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs:103)
+VictoriaGame.Economy.PhysicalStockInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/PhysicalStockInitSystem.cs Line: 103)
+
+=== CityInitSystem v1_036 ===
+criterion=Villes d'importance politique, commerciale, religieuse ou démographique attestées vers 1400 dans le périmètre des 50 provinces. Une province qui porte déjà un nom de ville (London, Venice…) reçoit cette ville comme principale sans doublon fictif. Les provinces régionales (Île-de-France, Bourgogne…) reçoivent leurs sièges historiques (Paris, Dijon…). Populations en unités PopData (échelle sim), classées par importance relative historique — pas des effectifs d'historien.
+demographic_policy=included_in_provincial_pops
+choice=urban_population_INCLUDED_in_provincial_pops (CityData.Population is a share label; PopData untouched)
+cities_seeded=204 provinces_with_cities=50 missing_province=0 scaled_provinces=1
+urban_total=14445 world_pop_before=129200 world_pop_after=129200 delta_world_pop=0 urban_share=11,18%
+extensibility: buildings→CityId; growth→CityData.Population; new cities→CreateEntity+ProvinceCity; districts→buffer on City
+--- cities_per_province ---
+  province=1 cities=11
+  province=2 cities=4
+  province=3 cities=6
+  province=4 cities=5
+  province=5 cities=12
+  province=6 cities=9
+  province=7 cities=11
+  province=8 cities=15
+  province=9 cities=5
+  province=10 cities=9
+  province=11 cities=2
+  province=12 cities=2
+  province=13 cities=3
+  province=14 cities=2
+  province=15 cities=2
+  province=16 cities=3
+  province=17 cities=2
+  province=18 cities=25
+  province=19 cities=3
+  province=20 cities=3
+  province=21 cities=3
+  province=22 cities=3
+  province=23 cities=2
+  province=24 cities=2
+  province=25 cities=1
+  province=26 cities=3
+  province=27 cities=3
+  province=28 cities=3
+  province=29 cities=3
+  province=30 cities=2
+  province=31 cities=2
+  province=32 cities=2
+  province=33 cities=2
+  province=34 cities=2
+  province=35 cities=2
+  province=36 cities=2
+  province=37 cities=2
+  province=38 cities=2
+  province=39 cities=3
+  province=40 cities=3
+  province=41 cities=2
+  province=42 cities=2
+  province=43 cities=2
+  province=44 cities=3
+  province=45 cities=2
+  province=46 cities=2
+  province=47 cities=2
+  province=48 cities=3
+  province=49 cities=3
+  province=50 cities=2
+--- urban_per_owner_tag ---
+  owner=ARA urban=263
+  owner=AUS urban=2807
+  owner=BOH urban=209
+  owner=BUR urban=483
+  owner=BYZ urban=314
+  owner=CAS urban=714
+  owner=DAN urban=255
+  owner=ENG urban=1965
+  owner=FLO urban=393
+  owner=FRA urban=3608
+  owner=GEN urban=230
+  owner=HUN urban=412
+  owner=MIL urban=390
+  owner=NAP urban=616
+  owner=OTT urban=678
+  owner=POL urban=438
+  owner=POR urban=177
+  owner=SCO urban=108
+  owner=SWE urban=119
+  owner=VEN urban=266
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.World.CityInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/World/Systems/CityInitSystem.cs:173)
+VictoriaGame.World.CityInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/World/Systems/CityInitSystem.cs Line: 173)
+
+BuildingInitSystem seed: total=174 city_seed_coeff=0 Farm=94 Sawmill=4 Workshop=76
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.BuildingInitSystem:SeedHistoricalBuildings (Unity.Entities.EntityManager,System.Collections.Generic.List`1<VictoriaGame.Economy.BuildingCatalogEntry>) (at Assets/Scripts/Economy/Systems/BuildingInitSystem.cs:261)
+VictoriaGame.Economy.BuildingInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/BuildingInitSystem.cs:94)
+VictoriaGame.Economy.BuildingInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/BuildingInitSystem.cs Line: 261)
+
+BuildingInitSystem: catalogue=3 types, bâtiments semés=174 city_seed_coeff=0
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.BuildingInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/BuildingInitSystem.cs:99)
+VictoriaGame.Economy.BuildingInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/BuildingInitSystem.cs Line: 99)
+
+PhysicalEndowmentInitSystem: 50 provinces dotées, 96 activités, 19 multi-biens, scale=2000
+Découplage: activités hors GoodId du ProductionSite LOD produisent à BaseCapacity (pas de plafond LastOutput). Site LOD inchangé.
+Formule: v1_025: BaseCapacity = relative_intensity × climate_mod × DevScore × production_scale. DevScore = max(1, (Tax+Production+Manpower)/3) — même score que transport v1_024. production_scale=2000 aligné LOD. PAS de typeYield Food (évite inondation stocks / dérive float). Table = RawMaterial UNIQUEMENT (wool/iron/coal/wood) : les Food/Luxury/Manufactured restent au LOD. Objectif: capacité MONDIALE des intrants ≥ demande transformée, concentration GÉOGRAPHIQUE (laine=Hills+Arid, charbon=Mountains+Hills, bois=Cold/Forest/Hills).
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalEndowmentInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Economy/Systems/PhysicalEndowmentInitSystem.cs:85)
+VictoriaGame.Economy.PhysicalEndowmentInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/PhysicalEndowmentInitSystem.cs Line: 85)
+
+LawInitSystem: 23 lois créées (ordre LawId)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Politics.LawInitSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Politics/Systems/LawInitSystem.cs:59)
+VictoriaGame.Politics.LawInitSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.InitializationSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/DefaultWorld.cs:169)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:73)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Politics/Systems/LawInitSystem.cs Line: 59)
+
+'VictoriaGame.Population.PopGrowthSystem' creates a query during OnUpdate. Please create queries in OnCreate and store them in the system for use in OnUpdate instead. This is significantly faster.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+Unity.Debug:LogWarning (object) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/Stubs/Unity/Debug.cs:13)
+Unity.Entities.SystemState:CheckOnUpdate_Query () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemState.cs:552)
+Unity.Entities.SystemState:GetEntityQuery (Unity.Entities.ComponentType[]) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemState.cs:820)
+VictoriaGame.Population.PopGrowthSystem:OnUpdate (Unity.Entities.SystemState&) (at Assets/Scripts/Population/Systems/PopGrowthSystem.cs:92)
+VictoriaGame.Population.PopGrowthSystem:__codegen__OnUpdate (intptr,intptr)
+Unity.Entities.SystemBaseRegistry:ForwardToManaged (intptr,Unity.Entities.SystemState*,void*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:364)
+Unity.Entities.SystemBaseRegistry:CallForwardingFunction (Unity.Entities.SystemState*,Unity.Entities.UnmanagedSystemFunctionType) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:333)
+Unity.Entities.SystemBaseRegistry:CallOnUpdate (Unity.Entities.SystemState*) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBaseRegistry.cs:376)
+Unity.Entities.WorldUnmanagedImpl/Unity.Entities.UnmanagedUpdate_00001683$BurstDirectCall:Invoke (void*)
+Unity.Entities.WorldUnmanagedImpl:UnmanagedUpdate (void*)
+Unity.Entities.WorldUnmanagedImpl:UpdateSystem (Unity.Entities.SystemHandle) (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/WorldUnmanaged.cs:891)
+Unity.Entities.ComponentSystemGroup:UpdateAllSystems () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:717)
+Unity.Entities.ComponentSystemGroup:OnUpdate () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/ComponentSystemGroup.cs:681)
+Unity.Entities.SystemBase:Update () (at ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/SystemBase.cs:420)
+VictoriaGame.Tests.SimulationHarness:RunTicks (int) (at Assets/Tests/SimulationHarness.cs:77)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:118)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: ./Library/PackageCache/com.unity.entities@3142232a0e7c/Unity.Entities/Stubs/Unity/Debug.cs Line: 13)
+
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.03 seconds
+PhysicalProductionSystem: outlet_cap_intensity=1 storage_months=3 (depuis JSON)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.PhysicalProductionSystem:LoadFromJson (single,single) (at Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:162)
+VictoriaGame.Economy.PhysicalProductionSystem:ApplyJsonDefaultIfUnlocked () (at Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:123)
+VictoriaGame.Economy.PhysicalProductionSystem:UnlockOutletCap () (at Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs:104)
+VictoriaGame.Tests.SimulationHarness:Dispose () (at Assets/Tests/SimulationHarness.cs:93)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:357)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/PhysicalProductionSystem.cs Line: 162)
+
+BuildingConstructionSystem: capacity_intensity=1 (depuis JSON)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Economy.BuildingConstructionSystem:LoadFromJson (single) (at Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:132)
+VictoriaGame.Economy.BuildingConstructionSystem:ApplyJsonDefaultIfUnlocked () (at Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:106)
+VictoriaGame.Economy.BuildingConstructionSystem:UnlockCapacityIntensity () (at Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs:91)
+VictoriaGame.Tests.SimulationHarness:Dispose () (at Assets/Tests/SimulationHarness.cs:95)
+VictoriaGame.Tests.V1095GpuMapTests:RunAndWriteArtifacts () (at Assets/Tests/V1095GpuMapTests.cs:357)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:21)
+
+(Filename: Assets/Scripts/Economy/Systems/BuildingConstructionSystem.cs Line: 132)
+
+V1095BatchRunner: DONE
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+VictoriaGame.Tests.V1095BatchRunner:Run () (at Assets/Tests/V1095GpuMapTests.cs:22)
+
+(Filename: Assets/Tests/V1095GpuMapTests.cs Line: 22)
+
+Unloading 2 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 0 unused Assets / (0 B). Loaded Objects now: 3156.
+Memory consumption went from 188.5 MB to 188.5 MB.
+Total: 4.520800 ms (FindLiveObjects: 0.103200 ms CreateObjectMapping: 0.031000 ms MarkObjects: 4.379500 ms  DeleteObjects: 0.006400 ms)
+
+[Physics::Module] Cleanup current backned.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] License Notification channel disconnected successfully.
+[Licensing::IpcConnector] License Client channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+Shut down.
+Leak Detected : Persistent allocates 1 individual allocations. To find out more please enable 'Preferences > Jobs > Leak Detection Level > Enabled With Stack Trace' and reproduce the leak again.
+abort_threads: Failed aborting id: 0000000000007A58, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 000000000000159C, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 0000000000007A58, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 000000000000159C, mono_thread_manage will ignore it
+
+debugger-agent: Unable to listen on 4132
+Checking for leaked weakptr:
+  Found no leaked weakptrs.
+[Package Manager] Server process was shutdown
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1785692724087,"processId":35184,"allocatedMemory":15870576,"memoryLabels":[{"Default":26077},{"Permanent":15356},{"NewDelete":82265},{"Thread":4230384},{"Manager":3092306},{"VertexData":104},{"Geometry":816},{"VFX":-104},{"Texture":160},{"Shader":78795},{"Material":24},{"GfxDevice":55208},{"Animation":328},{"Audio":4040},{"FontEngine":256},{"Physics":1241},{"Serialization":1072},{"Input":14824},{"JobScheduler":33856},{"TextLib":32},{"Mono":32},{"ScriptingNativeRuntime":155060},{"BaseObject":1619920},{"Resource":1304},{"Renderer":2928},{"Transform":4646},{"File":1016},{"WebCam":752},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":11302},{"DynamicArray":97000},{"HashMap":84719},{"Utility":2667230},{"Curl":48},{"PoolAlloc":7048},{"AI":104},{"TypeTree":5005},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7888},{"Director":8240},{"CloudService":6632},{"WebRequest":845},{"VR":45961},{"SceneManager":496},{"Video":64},{"LazyScriptCache":32},{"NativeArray":132104},{"Camera":17},{"Secure":1},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":912},{"Hierarchy":272},{"Gui":80},{"EditorUtility":40134},{"VersionControl":4},{"Undo":947},{"AssetDatabase":2914801},{"EditorGi":328},{"UnityConnect":24184},{"Upm":1996},{"DrivenProperties":72},{"LocalIPC":260},{"ProfilerEditor":9738},{"CoreBusinessMetrics":14676},{"Licensing":3848},{"AssetReference":32},{"IPCStream":32}]}
+~StackAllocator(ALLOC_TEMP_MAIN) m_LastAlloc not NULL. Did you forget to call FreeAllStackAllocations()? To get more information, run app with -diag-temp-memory-leak-validation cmd line argument

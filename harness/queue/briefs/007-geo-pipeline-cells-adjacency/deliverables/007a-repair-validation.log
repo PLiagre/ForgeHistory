@@ -1,0 +1,179 @@
+PIPELINE G3-bis / v1_049 — maille jouable (espacement r(x) + Lloyd fixe)
+pipeline_version: 1.4.0-g3-v1_049
+projection: EPSG:3035
+projection_fallback: False
+land_source: {'coastline_1400': 'c5bb03c12cf09e5e5308afc4b9eb63e78070c4b363ab34e6e143d0a33081013e', 'cities': 'e2052ac855692316fbda19c9ae4a8d76bb9d7e196ccdf5702b43f672fbbcebfb', 'city_coordinates': '052f7f4bfcf0bf16caff2ee9ea6048bd89c9b4200430749918ea48a6e69e00aa'}
+parts_count: 212
+
+=== champ r(x) ===
+  name: urban_influence_to_min_spacing
+  formula: rho(x)=rho0+sum_c ln(1+pop_c)/(1+(d/R)^2) ; r(x)=r_ceil-(r_ceil-r_floor)*smoothstep(norm(rho))
+  r_floor_m: 18000.0  r_ceil_m: 95000.0  ratio: 5.277778
+  lloyd_iterations: 10 (FIXE)
+  rho_bounds: {'lo': 0.8586783335313628, 'hi': 21.523745235095515}
+  r_m_observed: {'min': 18000.0, 'median': 93375.302316, 'max': 95000.0}
+  justification: v1_048 empilait des germes près des villes (coincidence) → rosettes d'échardes. Ici la même influence urbaine pilote r(x) : plancher 18 km près des villes (hex≈280 km², borne la plus petite cellule continentale) ; plafond 95 km loin d'elles (hex≈7800 km², borne la plus grande). Rapport r_ceil/r_floor≈5.28 = vraie mesure de variation de densité. Poisson à rayon variable : deux germes jamais plus proches que (r(p)+r(q))/2. Lloyd à 10 itérations FIXES (déterminisme). Compacité plancher 0.18 : interdit les échardes (v1_048 min 0.105) ; les îles singleton restent exemptées (côte NE fractal). Raffinement montagne/forêt REGISTRÉ pour G6 — pas simulé.
+  count_justification: Nombre = résultat du Poisson r∈[18000.0,95000.0] m sur la terre, pas un quota. Bornes surface [200.0,15000.0] km² dérivées de hex(r).
+
+=== semis / cellules ===
+  seeds: 405
+  cells: 399
+  id_range: 1175 .. 1761
+  urban_anchors: 198
+  mandatory_masses: 212
+
+=== surfaces km2 (min / p10 / mediane / p90 / max) ===
+  1.444877 / 51.2664606 / 3688.764094 / 44099.334173799994 / 215449.175585
+  max/median=58.406873 ceil=8.0
+  bounds floor=200.0 ceil=15000.0 singleton_exempt=204
+=== compacite Polsby-Popper (min / mediane) ===
+  0.046045 / 0.455914  floor=0.18
+
+=== bassin parisien ===
+  cells_in_basin: 1
+  median_area_km2: 29471.650945
+  expected_uniform: 1.486
+  ratio_vs_uniform: 0.673
+  density_ratio_basin_vs_emptiest_quartile: 2.075
+
+=== registre (retraits / emissions) ===
+  retired_1000_1163: 0 (expected 164)
+  active_ids: 399 range={'min': 1175, 'max': 1761}
+  sample_supersedes: []
+
+=== timings (s, derniere execution) ===
+  adjacency: 2.195639
+  capture: 6.971290
+  cells: 10.980565
+  export: 0.082329
+  load_cities: 0.020481
+  load_land: 0.433800
+  seed: 48.129670
+  total: 70.986171
+  total_proof_wall: 134.365454
+
+=== controles verts (donnee saine) ===
+  Q1 green=True red_ok=True passed=True detail=tous valides red_proof=cells[0]_bowtie_self_intersection
+  Q2 green=True red_ok=True passed=True detail=missing_m2=554.304 extra_m2=0.000 eps=10000.0 red_proof=drop_first_cell_creates_hole
+  Q3 green=True red_ok=True passed=True detail=overlap_m2=-0.019 eps=10000.0 red_proof=duplicate_geometry_overlap
+  Q4 green=True red_ok=True passed=True detail=aucune isolee red_proof=empty_adjacency_all_isolated
+  Q10 green=True red_ok=True passed=True detail=match_on=6_files red_proof=forced_sha_mismatch_cells_g3
+  G3-A green=True red_ok=True passed=True detail=n=399_ok eps=10000.0 red_proof=cell_geometry_placed_in_sea
+  G3-B green=True red_ok=True passed=True detail=parts=212_covered red_proof=empty_cells_no_mass_covered
+  G3-C green=True red_ok=True passed=True detail=stable_on=399_keys red_proof=domain_key_rebinding_different_id
+  G3-D green=True red_ok=True passed=True detail=count=399 expected=[150,400] red_proof=cell_count_fifty_below_min
+  G3-E green=False red_ok=True passed=False detail=cell_1559:area=23860.8>ceil=15000.0; cell_1566:area=31772.0>ceil=15000.0; cell_1568:area=20925.7>ceil=15000.0; cell_1571:area=24420.5>ceil=15000.0; cell_1572:area=127265.5>ceil=15000.0; cell_1573:area=202479.4>ceil=15000.0; cell_1574:area=16345.2>ceil=15000.0; cell_1578:area=135710.1>ceil=15000.0 red_proof=cell_area_above_ceil_like_v1_048_giant
+  G3-F green=False red_ok=True passed=False detail=max=215449.2 median=3688.8 ratio=58.407 ceil=8.0 red_proof=max_median_ratio_728_like_v1_048
+  G3-G green=False red_ok=True passed=False detail=cell_1583:pp=0.143<0.18; cell_1586:pp=0.160<0.18; cell_1588:pp=0.121<0.18; cell_1589:pp=0.106<0.18; cell_1596:pp=0.148<0.18; cell_1597:pp=0.170<0.18; cell_1598:pp=0.112<0.18; cell_1606:pp=0.148<0.18 red_proof=shard_compactness_below_floor
+  G3-H green=True red_ok=True passed=True detail=retired=199 active=399 red_proof=retired_id_reissued_as_active
+  G2b-B green=True red_ok=True passed=True detail=match_on=7_files red_proof=forced_sha_mismatch_vs_g2_reference
+
+=== mutations rouges ===
+  G3-A: case=cell_geometry_placed_in_sea became_red=True
+  G3-B: case=empty_cells_no_mass_covered became_red=True
+  G3-C: case=domain_key_rebinding_different_id became_red=True
+  G3-D: case=cell_count_fifty_below_min became_red=True
+  G3-E: case=cell_area_above_ceil_like_v1_048_giant became_red=True
+  G3-F: case=max_median_ratio_728_like_v1_048 became_red=True
+  G3-G: case=shard_compactness_below_floor became_red=True
+  G3-H: case=retired_id_reissued_as_active became_red=True
+  Q1: case=cells[0]_bowtie_self_intersection became_red=True
+  Q10: case=forced_sha_mismatch_cells_g3 became_red=True
+  Q2: case=drop_first_cell_creates_hole became_red=True
+  Q3: case=duplicate_geometry_overlap became_red=True
+  Q4: case=empty_adjacency_all_isolated became_red=True
+
+=== determinisme SHA256 (run1 vs run2) ===
+  artifacts/MANIFEST_g3.json: match=True
+    run1=6bca6daa87daed90d9656413b8fe58ac89058850f417d358a7c9ba0295255ee4
+    run2=6bca6daa87daed90d9656413b8fe58ac89058850f417d358a7c9ba0295255ee4
+  artifacts/adjacency_g3.json: match=True
+    run1=08f53b6cae54a88f380e51252397c41a0480d5407a110c9842feee1527ff1a6d
+    run2=08f53b6cae54a88f380e51252397c41a0480d5407a110c9842feee1527ff1a6d
+  artifacts/cells_g3.json: match=True
+    run1=34dff7762d6cbc108075b2be93304b910a85889ff6a24877f8fc76a9d955e61a
+    run2=34dff7762d6cbc108075b2be93304b910a85889ff6a24877f8fc76a9d955e61a
+  artifacts/stats_g3.json: match=True
+    run1=7aaffd6e0a30b738927ca5c870e1ae0b272a252faf4eb9d7e26949d6e1bad975
+    run2=7aaffd6e0a30b738927ca5c870e1ae0b272a252faf4eb9d7e26949d6e1bad975
+  registry/cell_registry.json: match=True
+    run1=0b8da7de1e7d8d44855d1448e2235551f883c4b21a51398d52548e56312cb9c7
+    run2=0b8da7de1e7d8d44855d1448e2235551f883c4b21a51398d52548e56312cb9c7
+  registry/g6_density_refinement.json: match=True
+    run1=f7a9dfd5b315eecea4c7d932ab7bfc57d75a6976dd3296931dd1b33097f1aada
+    run2=f7a9dfd5b315eecea4c7d932ab7bfc57d75a6976dd3296931dd1b33097f1aada
+
+=== reversibilite G2b-B heritee: passed=True match_on=7_files ===
+captures: {'window': 'D:\\ForgeHistory\\pipeline\\geo\\capture\\v1_049_cells_window.png', 'coast_zoom': 'D:\\ForgeHistory\\pipeline\\geo\\capture\\v1_049_cells_coast_zoom.png', 'paris_basin': 'D:\\ForgeHistory\\pipeline\\geo\\capture\\v1_049_cells_paris_basin.png', 'paris_before_after': 'D:\\ForgeHistory\\pipeline\\geo\\capture\\v1_049_paris_basin_before_after.png'}
+g6_refinement_registered: registry/g6_density_refinement.json (densite montagne/foret — non simulee)
+FAIL — VERDICT MESURÉ: r(x) de 18 à 95 km (ratio 5.28), Lloyd 10 itérations, 399 cellules, identifiants 1175 à 1761, 1000-1163 retirés (0) avec supersedes ; surfaces 1 / 3689 / 215449 km² (min/médiane/max), rapport max/médiane 58.4 contre 728 avant ; compacité min 0.05 médiane 0.46 contre 0.105 et 0.541 ; 1 cellules dans le bassin parisien de surface médiane 29472 km² ; 212/212 masses couvertes ; 11/14 contrôles verts et rouges constatés ; deux exécutions identiques en SHA256=OK ; captures avant/après publiées
+
+================================================================================
+Above: full, unedited stdout of
+  cd pipeline/geo && .venv/Scripts/python.exe tests/run_proof_g3.py
+run as a single blocking call, this session, post-repair. Exit code: 1.
+================================================================================
+
+Counter-verification commands (each run this session, output shown):
+
+--- g3_check_definitions_byte_identical (target 3/3) ---
+$ .venv/Scripts/python.exe -c "import hashlib; sha=lambda p: hashlib.sha256(open(p,'rb').read()).hexdigest(); pairs=[('tests/run_proof_g3.py','C:/Users/liagr/VictoriaProject/sandbox/geo/tests/run_proof_g3.py'),('tests/test_qa_red_g3.py','C:/Users/liagr/VictoriaProject/sandbox/geo/tests/test_qa_red_g3.py'),('qa/checks.py','C:/Users/liagr/VictoriaProject/sandbox/geo/qa/checks.py')]; print(sum(1 for a,b in pairs if sha(a)==sha(b)))"
+3
+
+--- g3_bound_constants_unchanged (target 8/8) ---
+$ .venv/Scripts/python.exe -c "<value-comparison of the 8 named constants, this repo vs VictoriaProject constants.py>"
+G3_SEED_COUNT_MIN 150 150 True
+G3_SEED_COUNT_MAX 400 400 True
+G3_AREA_FLOOR_KM2 200.0 200.0 True
+G3_AREA_CEIL_KM2 15_000.0 15_000.0 True
+G3_AREA_MAX_MEDIAN_RATIO 8.0 8.0 True
+G3_COMPACTNESS_MIN 0.18 0.18 True
+G3_AREA_EPS_M2 10_000.0 10_000.0 True
+G3_OVERLAP_EPS_M2 10_000.0 10_000.0 True
+8 / 8
+
+--- g3_repair_marker_count / constants.py marker count / g3_unmarked_nonrepair_diff_line_count ---
+$ rg -c '# FORGEHISTORY-G3-REPAIR' pipeline/geo/steps/03_cells.py
+21
+$ rg -c '# FORGEHISTORY-G3-REPAIR' pipeline/geo/constants.py
+0   (no seeding-parameter constant changed)
+$ rg -c '# FORGEHISTORY-PATH-ADJUSTMENT' pipeline/geo/steps/03_cells.py
+2
+$ git diff --no-index harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/pre-port/03_cells.py.orig pipeline/geo/steps/03_cells.py | grep '^+' | grep -v '^+++' | grep -vc -e 'FORGEHISTORY-PATH-ADJUSTMENT' -e 'FORGEHISTORY-G3-REPAIR'
+0
+
+--- g3_determinism_sha_pairs_matched_count (target: total, total > 0) ---
+$ .venv/Scripts/python.exe -c "import json; d=json.load(open('logs/v1_049_qa.json'))['determinism']['sha256']; print(sum(1 for a,b in d.values() if a and b and a==b), len(d))"
+6 6
+
+--- g3_qa_checks_passed_count / g3_qa_checks_red_proof_count ---
+$ .venv/Scripts/python.exe -c "import json; cs=json.load(open('logs/v1_049_qa.json'))['checks']; print(sum(1 for c in cs if c['passed']), 'passed of', len(cs)); print(sum(1 for c in cs if c.get('red_proof')), 'red_proof of', len(cs))"
+11 passed of 14        (Q1,Q2,Q3,Q4,Q10,G3-A,G3-B,G3-C,G3-D,G3-H,G2b-B; G3-E/F/G false -- see generator-log.md R4 escalation)
+14 red_proof of 14      (every check's red-case fired, including the 3 still-failing ones)
+
+--- g3_cell_count_in_range (target: true) ---
+$ .venv/Scripts/python.exe -c "import json; c=json.load(open('artifacts/stats_g3.json'))['cell_count']; print(c, 150<=c<=400)"
+399 True
+
+--- Pigeonhole proof numbers (G3-E/F/G escalation, R4) ---
+$ .venv/Scripts/python.exe -c "
+import sys, importlib.util
+from pathlib import Path
+ROOT = Path('.').resolve(); sys.path.insert(0, str(ROOT))
+spec = importlib.util.spec_from_file_location('cells_g3', ROOT/'steps'/'03_cells.py')
+mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+from projection import Projector, detect_projection
+projector = Projector(detect_projection())
+land_pack = mod.load_corrected_land(rebuild=False, projector=projector)
+print('land_xy.area_km2', land_pack['land_xy'].area/1e6)
+print('400*15000', 400*15000)
+"
+land_xy.area_km2 6667146.530455904
+400*15000 6000000
+(6,000,000 < 6,667,146.53 -- pigeonhole shortfall 667,146.53 km2)
+
+================================================================================
+proof_script_exit_code_zero_count for this lot's own G3 proof: exit=1
+(non-zero -- see generator-log.md R4 for why this is an escalated,
+mathematically-proven-unsatisfiable state on G3-E/F/G, not a withheld fix)
+================================================================================

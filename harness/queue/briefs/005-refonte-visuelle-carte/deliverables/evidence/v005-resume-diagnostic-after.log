@@ -1,0 +1,82 @@
+﻿=== brief 005-refonte-visuelle-carte — diagnostic EditMode (phase=after) ===
+started_at=2026-08-02T18:04:47.0445468Z
+
+=== SUCCESS CONDITION 1 — orientation (buffer réel, même résolution que le jeu) ===
+file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\orientation_export_reference.png sha256=ea1e2c2f52ad7a34b12aa1e1c17f341a84f4635f554a9a8aba75ca22b0d94269
+file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\orientation_live_after_fix.png sha256=ea1e2c2f52ad7a34b12aa1e1c17f341a84f4635f554a9a8aba75ca22b0d94269
+file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\orientation_live_before_fix.png sha256=b6ade565026d569bb4de8ac0627e61a16f7c7f44a66d289882c67aeb54cf9c83
+export_equals_after_fix=True
+after_fix_differs_from_before_fix=True
+
+=== SUCCESS CONDITION 1 (GPU) — lecture directe RenderTexture ===
+gpu_readback_unavailable reason=palette_refusée:identifiant hors table : cell 1 → index -1163 (largeur 50)
+file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\orientation_export_provinces.png sha256=f63c49238fdbb771a453354bd74d12ff04b6517e19fdfe376026d547249321e8
+file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\orientation_live_after_fix_provinces.png sha256=f63c49238fdbb771a453354bd74d12ff04b6517e19fdfe376026d547249321e8
+file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\orientation_live_before_fix_provinces.png sha256=6b06d0c1beef5fb01b7d5d074387c39e96a32b40d91c9aef561fcc8868462f14
+province_export_equals_after_fix=True
+
+=== SUCCESS CONDITION 2 — cadrage initial (dérivation indépendante) ===
+total_provinces=50
+playable_provinces_count=50
+playable_extent_x=[-6,148,22,024] y=[-60,-31,2]
+full_world_extent_x=[-7,556,23,433] y=[-61,44,-29,76]
+playable_area=811,36 full_world_area=981,74 playable_smaller_than_full=True
+
+=== SUCCESS CONDITION 7 — coût réel par tick (>= 20 ticks, dédié) ===
+tick_index=0 ms=192,316
+tick_index=1 ms=10,001
+tick_index=2 ms=2,552
+tick_index=3 ms=2,772
+tick_index=4 ms=2,157
+tick_index=5 ms=2,309
+tick_index=6 ms=2,731
+tick_index=7 ms=2,065
+tick_index=8 ms=2,246
+tick_index=9 ms=2,127
+tick_index=10 ms=2,069
+tick_index=11 ms=20,203
+tick_index=12 ms=2,91
+tick_index=13 ms=2,264
+tick_index=14 ms=3,048
+tick_index=15 ms=2,329
+tick_index=16 ms=2,458
+tick_index=17 ms=2,301
+tick_index=18 ms=2,377
+tick_index=19 ms=2,286
+tick_index=20 ms=2,687
+tick_index=21 ms=3,335
+tick_index=22 ms=4,778
+tick_index=23 ms=3,068
+tick_index=24 ms=3,163
+tick_index=25 ms=2,313
+tick_index=26 ms=2,89
+tick_index=27 ms=2,408
+tick_index=28 ms=2,481
+tick_index=29 ms=2,62
+ms_per_tick_sample_size=30 avg=9,775 min=2,065 max=192,316
+current_seconds_per_tick=0,3 current_pacing_budget_ms=300 avg_tick_cost_fraction_of_budget=0,0326
+
+=== SUCCESS CONDITION 5 — front rouge (guerre déclarée, déterministe, phase=after) ===
+diag_code_marker=filterV3_639212906899625506
+player_country_id=0 target_neighbor_country_id=2
+declare_war_enqueued=True
+tick=1 front_pixel_count=3034 front_provinces=2
+capture file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\front_rim_present_after.png sha256=8582c7a8ac176267437650ba64db026856e059a2fd9e3defba303c9bebdf05c3
+front_rim_color_candidate_count phase=after label=before_rim r=210 g=36 b=36 a=255 count=0
+front_rim_color_candidate_count phase=after label=before_halo r=96 g=12 b=12 a=255 count=0
+front_rim_color_candidate_count phase=after label=after_rim r=150 g=60 b=60 a=255 count=2049
+front_rim_color_candidate_count phase=after label=after_halo r=70 g=26 b=26 a=255 count=985
+front_rim_reachable_within_tick_bound=True tick_bound=10
+
+=== SUCCESS CONDITION 4 — épaisseur de trait, 3 niveaux (phase=after) ===
+border_center_x=2,5 border_center_y=-48,05
+border_stroke level=min phase=after runs_found=911 median_px=9 min_px=1 max_px=59 window_width=30,989 file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\border_zoom_min_after.png sha256=7fb7b52688368fe1d51cb3d65707b569f907e683f12e7864b9325601cbd5278b
+border_stroke level=mid phase=after runs_found=451 median_px=9 min_px=1 max_px=43 window_width=7,747 file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\border_zoom_mid_after.png sha256=64ecb90c7e5889374547f5f471c3661cfe2070d8c3f60a0722d04bb9892990e7
+border_stroke level=max phase=after runs_found=412 median_px=7 min_px=1 max_px=43 window_width=1,937 file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\border_zoom_max_after.png sha256=663ef1cb4bf3b5b9e2f3b63ae401d59a532b9b32a89b7645160977b2747cc187
+
+=== SUCCESS CONDITION 2 — paire visuelle cadrage initial ===
+playable_provinces_count=50 playable_provinces_outside_full_world_window_before_count=0 (fenêtre AVANT = geometrie monde entière, structurellement un sur-ensemble des coordonnées jouables — outcome B attendu par construction, mesuré ici et non supposé)
+file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\initial_framing_before_fix.png sha256=ea1e2c2f52ad7a34b12aa1e1c17f341a84f4635f554a9a8aba75ca22b0d94269 window=[-7,556,23,433]x[-61,44,-29,76] area=981,74
+file=D:\ForgeHistory\unity\game_unity\Captures\v005_diagnostic\initial_framing_after_fix.png sha256=8179dedd4372067f5844aef645fbaf13a892f15c438686e9ff90ce0b66591ab9 window=[-7,275,23,151]x[-61,152,-30,048] area=946,37
+panes_differ=True
+finished_at=2026-08-02T18:05:01.4606928Z

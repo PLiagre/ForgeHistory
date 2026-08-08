@@ -1,0 +1,250 @@
+﻿=== ui_003 standalone visual proof (editorial FR) ===
+started_at=2026-08-01T09:10:13.3139080Z
+verdict_policy=A_REVOIR_HUMAINEMENT
+source=standalone framebuffer
+capture_target=1920x1080
+composer=NONE
+capture_dir=D:\ForgeHistory\unity\game_unity\Captures\v004_after2_debug
+debug_ids=True
+hud_state tag=01_world_neutral view='Monde · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1400' info='AN 1400  TICK 3  Trésor 166.0  Dette 0.0  Armée 101162  Population 130931  Guerres 2  ZOOM Monde  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=hidden country=hidden
+capture file=01_world_neutral.png bytes=761914 sha256=efb0928ee39226ed7158f55c31223128d6395acabc9f8ed42f553fd77b59d8be dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+hud_state tag=01_world_neutral_b view='Monde · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1400' info='AN 1400  TICK 3  Trésor 166.0  Dette 0.0  Armée 101162  Population 130931  Guerres 2  ZOOM Monde  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=hidden country=hidden
+capture file=01_world_neutral_b.png bytes=761914 sha256=efb0928ee39226ed7158f55c31223128d6395acabc9f8ed42f553fd77b59d8be dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+determinism_match sha=efb0928ee39226ed7158f55c31223128d6395acabc9f8ed42f553fd77b59d8be
+editorial_probe tag=02_country_selected chars=569
+--- editorial_text_begin ---
+Champagne
+Pays contrôlé
+Indicateurs
+Trésor
+14,3
+Dette
+0
+Taux d'intérêt
+0,02
+Revenu
+7,5
+Dépenses
+6,6
+Taux
+0,002 % · plage 0 % – 0,02 %
+Modificateur des lois
+0
+Taux effectif
+0,002 %
+Impôt
+Revenu fiscal
+7,5
+Armée
+Armée
+9830
+Guerres
+0
+État
+Stabilité
+0,57
+Légitimité
+0,87
+Prestige
+50
+Industrie
+0
+Production
+Île-de-France
+grain
+Normandie
+grain
+Bretagne
+poisson
+Gascogne
+vin
+Languedoc
+vin
+Champagne
+tissu
+Aragon
+laine
+Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 %
+Revenu 7,5  ·  Trésor 17,9  ·  Dette 0 (stable)
+Sat 0,813  ·  Affamés 0  ·  Prov. affamées 0
+Impôt −
+Impôt +
+--- editorial_text_end ---
+editorial_forbidden=PASS tag=02_country_selected
+hud_state tag=02_country_selected view='Pays C0 · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1400' info='AN 1400  TICK 6  Trésor 20.9  Dette 0.0  Armée 102363  Population 131516  Guerres 1  ZOOM Pays C0  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,5  ·  Trésor 18,8  ·  Dette 0 (stable) | Sat 0,798  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=hidden country=visible
+capture file=02_country_selected.png bytes=290234 sha256=2d9e7adda4572612c5b7d13f42421141c23c40b97e1f69f47e50aa0fae5b60b6 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+hud_state tag=07_hover_debug_leak view='Pays C0 · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1400' info='AN 1400  TICK 6  Trésor 15.9  Dette 0.0  Armée 102861  Population 131603  Guerres 1  ZOOM Pays C0  HOVER Île-de-France  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,6  ·  Trésor 39,2  ·  Dette 0 (stable) | Sat 0,826  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=hidden country=visible
+capture file=07_hover_debug_leak.png bytes=293186 sha256=0062d29e90043e64e4d0f5d812fb0a2d944cc5093dbf380ce54b233214318e20 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+editorial_probe tag=03_province_selected chars=472
+--- editorial_text_begin ---
+Île-de-France
+Propriétaire : France
+Indicateurs
+Paysans
+2529 · français catholique
+Artisans
+474 · français catholique
+Nobles
+158 · français catholique
+Activité
+bois (400)
+Stocks
+grain 531992
+Approvisionnement
+Aucun déficit d'intrants
+Bâtiments
+Ferme ×6
+achevé, capacité 2000
+Commerce
+Entrées
+Aucune
+Sorties
+Aucune
+Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 %
+Revenu 7,6  ·  Trésor 43,9  ·  Dette 0 (stable)
+Sat 0,801  ·  Affamés 0  ·  Prov. affamées 0
+Impôt −
+Impôt +
+--- editorial_text_end ---
+editorial_forbidden=PASS tag=03_province_selected
+hud_state tag=03_province_selected view='Province C0 P1 · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1400' info='AN 1400  TICK 7  Trésor -54.3  Dette 0.0  Armée 104141  Population 131978  Guerres 1  ZOOM Province C0 P1  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,6  ·  Trésor 43,9  ·  Dette 0 (stable) | Sat 0,801  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=visible country=hidden
+capture file=03_province_selected.png bytes=316865 sha256=564e96f69528306e6950a30c9a86e57b55b7ea15db610bb74bf0391901ebdc69 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+hud_state tag=04_pause_active view='Pays C0 · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1400' info='AN 1400  TICK 9  Trésor -126.3  Dette 0.0  Armée 102675  Population 132264  Guerres 1  ZOOM Pays C0  EN PAUSE' badge='EN PAUSE' pauseBtn='Lecture' tax='Vous  ·  Taux 0,002 %  ·  plage 0 % – 0,02 % | Revenu 7,6  ·  Trésor 65,5  ·  Dette 0 (stable) | Sat 0,822  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=hidden country=visible
+capture file=04_pause_active.png bytes=290826 sha256=e82d7f432eff811b3c6ea8bc1459ea3a204c4ca956afa27f65c2754aa95d335d dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+editorial_probe tag=05_tax_min chars=567
+--- editorial_text_begin ---
+Champagne
+Pays contrôlé
+Indicateurs
+Trésor
+66,5
+Dette
+0
+Taux d'intérêt
+0,02
+Revenu
+7,6
+Dépenses
+6,6
+Taux
+0,002 % · plage 0 % – 0,02 %
+Modificateur des lois
+0
+Taux effectif
+0,002 %
+Impôt
+Revenu fiscal
+7,6
+Armée
+Armée
+9682
+Guerres
+0
+État
+Stabilité
+0,66
+Légitimité
+0,92
+Prestige
+50
+Industrie
+0
+Production
+Île-de-France
+grain
+Normandie
+grain
+Bretagne
+poisson
+Gascogne
+vin
+Languedoc
+vin
+Champagne
+tissu
+Aragon
+laine
+Vous  ·  Taux 0 %  ·  plage 0 % – 0,02 %
+Revenu 2,1  ·  Trésor -336,9  ·  Dette 0 (stable)
+Sat 0,802  ·  Affamés 0  ·  Prov. affamées 0
+Impôt −
+Impôt +
+--- editorial_text_end ---
+editorial_forbidden=PASS tag=05_tax_min
+hud_state tag=05_tax_min view='Pays C0 · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1400' info='AN 1400  TICK 9  Trésor -127.1  Dette 0.0  Armée 102540  Population 132279  Guerres 1  ZOOM Pays C0  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0 %  ·  plage 0 % – 0,02 % | Revenu 2,1  ·  Trésor -341,2  ·  Dette 0 (stable) | Sat 0,826  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=hidden country=visible
+capture file=05_tax_min.png bytes=289915 sha256=157bf286b01e0e109f4ba8b11ca9a35450a70b20f9e4459469eb4feb6fc6d0c7 dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+editorial_probe tag=06_tax_max chars=598
+--- editorial_text_begin ---
+Champagne
+Pays contrôlé
+Indicateurs
+Trésor
+-27,9
+Dette
+0
+Taux d'intérêt
+0,02
+Revenu
+58,6
+Dépenses
+6,4
+Taux
+0,02 % · plage 0 % – 0,02 %
+Modificateur des lois
+0
+Taux effectif
+0,02 %
+Impôt
+Revenu fiscal
+58,6
+Armée
+Armée
+8347
+Guerres
+1
+ATK vs BUR CB
+Conquest SCR=0.0
+État
+Stabilité
+0,57
+Légitimité
+1
+Prestige
+50
+Industrie
+0
+Production
+Île-de-France
+grain
+Normandie
+grain
+Bretagne
+poisson
+Gascogne
+vin
+Languedoc
+vin
+Champagne
+tissu
+Aragon
+laine
+Vous  ·  Taux 0,02 %  ·  plage 0 % – 0,02 %
+Revenu 59,1  ·  Trésor 46,4  ·  Dette 0 (stable)
+Sat 0,706  ·  Affamés 0  ·  Prov. affamées 0
+Impôt −
+Impôt +
+--- editorial_text_end ---
+editorial_forbidden=PASS tag=06_tax_max
+hud_state tag=06_tax_max view='Pays C0 · Crédits relief — © DLR e.V. 2010-2014 et © Airbus Defence and Space GmbH 2014-2018 fournis dans le cadre de COPERNICUS par l'Union européenne et l'ESA · Coordonnées villes — GeoNames (www.geonames.org), licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)' date='An 1401' info='AN 1401  TICK 12  Trésor -565.9  Dette 0.0  Armée 97479  Population 133751  Guerres 6  ZOOM Pays C0  VITESSE x1' badge='VITESSE x1' pauseBtn='Pause' tax='Vous  ·  Taux 0,02 %  ·  plage 0 % – 0,02 % | Revenu 59,1  ·  Trésor 91,7  ·  Dette 0 (stable) | Sat 0,685  ·  Affamés 0  ·  Prov. affamées 0' taxBtnDown='Impôt −' taxBtnUp='Impôt +' prov=hidden country=visible
+capture file=06_tax_max.png bytes=270010 sha256=41d7fdf2a3c6cd4d10ed1df04f32480892a950ff454b2f2257086caf59e9193d dim=1920x1080 screen=1920x1080 source=standalone framebuffer hud_chrome=True map=True
+=== SHA256 captures ===
+01_world_neutral.png sha=efb0928ee39226ed7158f55c31223128d6395acabc9f8ed42f553fd77b59d8be dim=1920x1080 bytes=761914 source=standalone framebuffer hud=True map=True ok=True
+01_world_neutral_b.png sha=efb0928ee39226ed7158f55c31223128d6395acabc9f8ed42f553fd77b59d8be dim=1920x1080 bytes=761914 source=standalone framebuffer hud=True map=True ok=True
+02_country_selected.png sha=2d9e7adda4572612c5b7d13f42421141c23c40b97e1f69f47e50aa0fae5b60b6 dim=1920x1080 bytes=290234 source=standalone framebuffer hud=True map=True ok=True
+03_province_selected.png sha=0062d29e90043e64e4d0f5d812fb0a2d944cc5093dbf380ce54b233214318e20 dim=1920x1080 bytes=293186 source=standalone framebuffer hud=True map=True ok=True
+04_pause_active.png sha=564e96f69528306e6950a30c9a86e57b55b7ea15db610bb74bf0391901ebdc69 dim=1920x1080 bytes=316865 source=standalone framebuffer hud=True map=True ok=True
+05_tax_min.png sha=e82d7f432eff811b3c6ea8bc1459ea3a204c4ca956afa27f65c2754aa95d335d dim=1920x1080 bytes=290826 source=standalone framebuffer hud=True map=True ok=True
+06_tax_max.png sha=157bf286b01e0e109f4ba8b11ca9a35450a70b20f9e4459469eb4feb6fc6d0c7 dim=1920x1080 bytes=289915 source=standalone framebuffer hud=True map=True ok=True
+07_hover_debug_leak.png sha=41d7fdf2a3c6cd4d10ed1df04f32480892a950ff454b2f2257086caf59e9193d dim=1920x1080 bytes=270010 source=standalone framebuffer hud=True map=True ok=True
+VERDICT=A_REVOIR_HUMAINEMENT
+status=PASS_TECHNIQUE_EN_ATTENTE_REVUE_ARTISTIQUE

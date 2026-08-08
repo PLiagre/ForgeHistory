@@ -23,7 +23,12 @@ namespace VictoriaGame.Presentation
             "RATE", "EXP", "INDUS", "OWNER", "PEASANT", "ARTISAN", "NOBLE",
             "PHY", "LOD", "MIX", "ACT ", "STOCK ", "FARM id", "Tax-", "Tax+",
             "LOCKED", "not your country", "PLAYER —", "PLAYER -",
-            "LAWMOD", "STAB", "LEG", "EFF"
+            "LAWMOD", "STAB", "LEG", "EFF",
+            // brief 005-refonte-visuelle-carte, Success Condition 6b : garde-fou de
+            // régression pour le dump technique du bloc Investir (InGameHud.
+            // RefreshInvestControls) — plus jamais rendu brut hors mode debug après
+            // ce brief, mais interdit ici pour de bon, comme LAWMOD/STAB/LEG/EFF.
+            "DEV T", "score=", "coût T/P/M"
         };
 
         const string ClassTitle = "panel__title";

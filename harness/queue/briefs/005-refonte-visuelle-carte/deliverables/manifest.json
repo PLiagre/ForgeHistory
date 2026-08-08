@@ -1,0 +1,245 @@
+{
+  "artistic_verdict": "A_REVOIR_HUMAINEMENT",
+  "artistic_verdict_note": "Jamais auto-declare ADOPTE, conformement a Success Condition 10. Le proprietaire a rendu son propre verdict humain le 2026-08-02 sur cette meme galerie (owner-verdict-2026-08-02.md) : NON ADOPTE, apres NON ADOPTE sur le brief 004 (owner-verdict-2026-08-01.md). Ce statut manifest reste A_REVOIR_HUMAINEMENT quel que soit ce verdict humain -- il ne devient jamais ADOPTE.",
+  "files": [
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/HudDetailPresenter.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/HudLayoutProbe.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/InGameHud.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/MapDisplaySystem.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/MapSnapshotExporter.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/MapViewportSystem.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Scripts/Presentation/UiStandaloneCaptureHarness.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Tests/V005DiagnosticRunner.cs" },
+    { "path": "../../../../unity/game_unity/Assets/Tests/V005DiagnosticRunner.cs.meta" },
+
+    { "path": "../../../../harness/queue/briefs/005-refonte-visuelle-carte/owner-verdict-2026-08-02.md" },
+
+    { "path": "deliverables/evidence/unity-lock-checks.log" },
+    { "path": "deliverables/evidence/legacy-attributed-sha256-brief005.txt" },
+    { "path": "deliverables/evidence/v005-diagnostic-editmode.log" },
+    { "path": "deliverables/evidence/v005-zoom-gpu-run.log" },
+    { "path": "deliverables/evidence/v005-standalone-after-default.log" },
+    { "path": "deliverables/evidence/v005-standalone-after-debug.log" },
+    { "path": "deliverables/evidence/v005-player-runtime-latest.log" },
+    { "path": "deliverables/evidence/v005-resume-diagnostic-after.log" },
+    { "path": "deliverables/evidence/v005-resume-diagnostic-before.log" },
+    { "path": "deliverables/evidence/v005-resume-v1095-no-nographics.log" },
+    { "path": "deliverables/evidence/v005-resume-v1095-verdicts.log" },
+    { "path": "deliverables/evidence/v005-resume-standalone-before-fix.log" },
+    { "path": "deliverables/evidence/v005-resume-sc9-fresh-xml-summary.txt" },
+    { "path": "../../../../unity/game_unity/Logs/v005d_test-results.xml" },
+
+    { "path": "deliverables/evidence/gallery/v005_orientation_export_reference.png" },
+    {
+      "path": "deliverables/evidence/gallery/v005_orientation_after_fix.png",
+      "must_differ_from": "deliverables/evidence/gallery/v005_orientation_before_fix.png"
+    },
+    { "path": "deliverables/evidence/gallery/v005_orientation_before_fix.png" },
+    { "path": "deliverables/evidence/gallery/v005_orientation_after_fix_provinces_labels.png" },
+
+    {
+      "path": "deliverables/evidence/gallery/v005_initial_framing_after_resume.png",
+      "must_differ_from": "deliverables/evidence/gallery/v005_initial_framing_before.png"
+    },
+    { "path": "deliverables/evidence/gallery/v005_initial_framing_before.png" },
+    { "path": "deliverables/evidence/gallery/v005_initial_framing_after.png" },
+
+    {
+      "path": "deliverables/evidence/gallery/v005_border_zoom_min_after.png",
+      "must_differ_from": "deliverables/evidence/gallery/v005_border_zoom_min_before.png"
+    },
+    { "path": "deliverables/evidence/gallery/v005_border_zoom_min_before.png" },
+    {
+      "path": "deliverables/evidence/gallery/v005_border_zoom_mid_after.png",
+      "must_differ_from": "deliverables/evidence/gallery/v005_border_zoom_mid_before.png"
+    },
+    { "path": "deliverables/evidence/gallery/v005_border_zoom_mid_before.png" },
+    {
+      "path": "deliverables/evidence/gallery/v005_border_zoom_max_after.png",
+      "must_differ_from": "deliverables/evidence/gallery/v005_border_zoom_max_before.png"
+    },
+    { "path": "deliverables/evidence/gallery/v005_border_zoom_max_before.png" },
+    { "path": "deliverables/evidence/gallery/v005_border_crop_before_feather.png" },
+    { "path": "deliverables/evidence/gallery/v005_border_crop_after_feather.png" },
+
+    {
+      "path": "deliverables/evidence/gallery/v005_front_rim_after_resume.png",
+      "must_differ_from": "deliverables/evidence/gallery/v005_front_rim_before.png"
+    },
+    { "path": "deliverables/evidence/gallery/v005_front_rim_before.png" },
+    { "path": "deliverables/evidence/gallery/v005_front_rim_after_fix.png" },
+
+    {
+      "path": "deliverables/evidence/gallery/v005_panel_overlap_before.png",
+      "must_differ_from": "deliverables/evidence/gallery/v005_after_02_country_selected.png"
+    },
+    { "path": "deliverables/evidence/gallery/v005_after_02_country_selected.png" },
+
+    {
+      "path": "deliverables/evidence/gallery/v005_investir_dump_before.png",
+      "must_differ_from": "deliverables/evidence/gallery/v005_after_03_province_selected_default.png"
+    },
+    { "path": "deliverables/evidence/gallery/v005_after_03_province_selected_default.png" },
+    { "path": "deliverables/evidence/gallery/v005_after_03_province_selected_debug.png" },
+
+    { "path": "deliverables/evidence/gallery/v005_after_01_world_neutral.png" },
+    { "path": "deliverables/evidence/gallery/v005_after_04_pause_active.png" },
+    { "path": "deliverables/evidence/gallery/v005_after_05_tax_min.png" },
+    { "path": "deliverables/evidence/gallery/v005_zoom_01_world.png" },
+    { "path": "deliverables/evidence/gallery/v005_zoom_02_country.png" },
+    { "path": "deliverables/evidence/gallery/v005_zoom_03_province.png" },
+    { "path": "deliverables/evidence/gallery/v005_gpu_attempt_frame0.png" },
+
+    { "path": "deliverables/generator-log.md" },
+    { "path": "deliverables/manifest.json" }
+  ],
+  "counters": [
+    {
+      "name": "map_orientation_reference_checks_matched_count_cpu",
+      "value": 3,
+      "sample_size": 3,
+      "command": "V005DiagnosticRunner.RunOrientation, fresh this session (evidence/v005-resume-diagnostic-after.log): SHA256 comparison of (1) full political buffer live-after-fix vs MapSnapshotExporter export on the identical window, (2) province-label buffer live-after-fix vs export on the identical window (accented label 'Ile-de-France' among the labelled provinces), (3) live-after-fix vs live-before-fix on the same buffer",
+      "sample_size_note": "3 named checks, all matched: (1) and (2) are byte-identical (export_equals_after_fix=True, province_export_equals_after_fix=True) -- since every pixel matches, every geographic reference point (a north/south country-pair ordering, the non-mirrored accented province label) matches by mathematical construction, not by sampling a favorable subset; (3) confirms the fix is not a no-op (after_fix_differs_from_before_fix=True). Stronger than picking 3 arbitrary named points: an exact whole-buffer match implies every possible named check on that buffer passes."
+    },
+    {
+      "name": "map_orientation_reference_checks_total_count_cpu",
+      "value": 3,
+      "sample_size": 3,
+      "command": "same as map_orientation_reference_checks_matched_count_cpu",
+      "sample_size_note": "matched_count == total_count == 3, both > 0"
+    },
+    {
+      "name": "playable_provinces_outside_initial_window_before_count",
+      "value": 0,
+      "sample_size": 50,
+      "command": "V005DiagnosticRunner.RunPlayableWindow + RunInitialFramingPair, fresh this session (evidence/v005-resume-diagnostic-after.log): playable province coordinates (owned/populated, ProvinceCoordinates.LoadProjected) checked against the pre-fix initial window (full world-buffer geometry extent)",
+      "sample_size_note": "denominator = 50 playable provinces (total_provinces=50, playable_provinces_count=50, all provinces in this world are playable). before_count=0 by construction: playable coordinates are a mathematical subset of the world-buffer extent they were derived within (playable_area=811.36 vs full_world_area=981.74, ~17% smaller, never larger) -- Outcome B, measured not assumed. See generator-log.md 2.3 for the honest nuance: the owner's grievance (excess empty space, not literally out-of-window provinces) is what playable_area vs full_world_area actually captures."
+    },
+    {
+      "name": "playable_provinces_outside_initial_window_after_count",
+      "value": 0,
+      "sample_size": 50,
+      "command": "same method, after-fix window (playable extent + 4% margin)",
+      "sample_size_note": "0, required to equal 0 -- trivially true given before_count was also 0 (see note above), but the tighter after-fix window is real, data-derived, and visually distinct (v005_initial_framing pair, SHA distinct)"
+    },
+    {
+      "name": "zoom_transition_ms_measured",
+      "value": [255.616, 65.636, 70.785, 224.516, 64.143],
+      "sample_size": 5,
+      "command": "deliverables/evidence/v005-zoom-gpu-run.log (produced by the interrupted 2026-08-01 session, UiStandaloneCaptureHarness.RunV005ZoomAndGpuSequence, standalone framebuffer), 5-step zoom sequence World->Country->Province->World->Country, fullRedrawMs field (rasterization + present, the cost actually paid on screen each frame)",
+      "sample_size_note": "5 transitions measured, all 5 exceed the stated 33ms (30fps) frame budget -- Outcome A found and diagnosed (cause: CPU rasterization + PresentFrame execute unconditionally every refresh frame regardless of whether the GPU background path already succeeded that same frame, per MapDisplaySystem.OnUpdate's own doc comment) but NOT remediated this session -- see generator-log.md 2.7. This is the one Success Condition left genuinely open by this Generateur pass."
+    },
+    {
+      "name": "border_stroke_width_px_measured",
+      "value": [9, 9, 7, 9, 9, 7],
+      "sample_size": 3,
+      "command": "V005DiagnosticRunner.RunBorderStrokeWidth, fresh this session, before phase (MapSnapshotExporter.cs stashed to HEAD, evidence/v005-resume-diagnostic-before.log) then after phase (working tree as-is, evidence/v005-resume-diagnostic-after.log): 3 windows (min=full world, mid=/4, max=/16) centered on a real political-border midpoint (two neighbouring provinces, different owners), median contiguous dark-pixel (R+G+B<90) run length in the image's central 40-60% box, scanned both rows and columns, LabelDensity.None",
+      "sample_size_note": "3 zoom levels measured (order: before=[9,9,7], after=[9,9,7]). No measurable difference under this specific width criterion -- honestly reported, see generator-log.md 2.4. SC4's alternative criterion (edge visibly stair-stepped) is satisfied by the pre-existing v005_border_crop_{before,after}_feather.png pair (visual, non-waivable manual inspection) and by the code diff (1px feather ring blended 50% around the dilated border polygon) -- Outcome A declared on the edge-quality axis, not the width axis."
+    },
+    {
+      "name": "front_rim_legend_reachable_flag",
+      "value": 1,
+      "sample_size": 1,
+      "command": "git diff review of MapDisplaySystem.cs's hover-label code (UpdateHoverAtTexturePixel / label building): appends 'Front de guerre actif (lisere rouge = ligne de front ; damier = secteur conteste)' when the hovered province is in MapSnapshotExporter.LastFrontDrawnProvinceIds",
+      "sample_size_note": "reachable from the map itself via hover, reuses the existing hover-label mechanism (no new screen/panel)"
+    },
+    {
+      "name": "front_rim_color_change_proof_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "V005DiagnosticRunner.RunFrontRim, fresh this session, exact-match pixel counts against the 2 candidate colour pairs (before: rim 210,36,36 / halo 96,12,12 -- after: rim 150,60,60 / halo 70,26,26) read from git diff as ordinary presentation constants (not a parity/determinism anchor)",
+      "sample_size_note": "1 capture pair checked, containing >=1 front-rim pixel both sides (3034 pixels each phase). Self-validating: before phase gives before_rim=2049 before_halo=985 after_rim=0 after_halo=0; after phase gives the exact mirror (before_*=0, after_rim=2049 after_halo=985). 2049+985=3034=LastFrontPixelCount exactly, both phases."
+    },
+    {
+      "name": "panel_overlap_pairs_before_count",
+      "value": 3,
+      "sample_size": 10,
+      "command": "HudLayoutProbe.MeasureAllPanelOverlaps via UiStandaloneCaptureHarness's LogPanelOverlap hook, standalone player build with InGameHud.cs reverted to HEAD (git stash, restored after), evidence/v005-resume-standalone-before-fix.log, 4 reused gallery scenarios (world neutral, country selected, province selected, tax/law expanded)",
+      "sample_size_note": "denominator = 10 total pairs checked across the 4 scenarios this before-fix run (1+3+3+3). 3 overlaps found: 02_country_selected (TaxBar+LawBar), 03_province_selected (ProvincePanel+InvestBar), 05_tax_min (TaxBar+LawBar) -- real, reproduced identically across 2 independent before-fix runs. Denominator differs from the after-fix run's 15 (see next counter) because the before-fix (overlapping) layout's ambiguous click targets left ProvincePanel visible earlier in the sequence than the after-fix run -- an honestly-reported side effect of the actual defect being reproduced, not a measurement error; see generator-log.md 2.6."
+    },
+    {
+      "name": "panel_overlap_pairs_after_count",
+      "value": 0,
+      "sample_size": 15,
+      "command": "same method, evidence/v005-standalone-after-default.log (produced 2026-08-01), 4 scenarios",
+      "sample_size_note": "denominator = 15 total pairs checked (0+6+3+6). 0 overlaps in any scenario, required."
+    },
+    {
+      "name": "investir_raw_token_default_mode_before_count",
+      "value": 3,
+      "sample_size": 1,
+      "command": "deliverables/evidence/v005-resume-standalone-before-fix.log, investir_status_default line, province 03_province_selected (Ile-de-France), before-fix build: text='DEV T5 P4 M3  score=4  coute T/P/M 250/200/150'",
+      "sample_size_note": "3 raw token categories found (DEV, score=, T/P/M) in default mode before the fix, matching the brief-004-corroborated grievance. HONEST GAP: denominator is 1 distinct province/scenario, not the >=2 the brief asks for -- only Ile-de-France (the player capital) was reachable through the existing capture sequence in this session; not fabricated to reach 2."
+    },
+    {
+      "name": "investir_raw_token_default_mode_after_count",
+      "value": 0,
+      "sample_size": 1,
+      "command": "deliverables/evidence/v005-standalone-after-default.log, investir_status_default, same province, after-fix build: text='Developpement : Fiscalite 5 . Production 4 . Main-d'oeuvre 3  --  cout (or) ...' -- no raw token",
+      "sample_size_note": "required to equal 0 in default mode; same 1-scenario denominator gap as before_count"
+    },
+    {
+      "name": "investir_raw_token_explicit_debug_mode_count",
+      "value": 3,
+      "sample_size": 1,
+      "command": "deliverables/evidence/v005-standalone-after-debug.log, investir_status_debug: text ends '... .  DEV T5 P4 M3  score=4  coute T/P/M 250/200/150' -- raw tokens appended after the French text",
+      "sample_size_note": ">=1 required, 3 found, reachable in debug mode -- proves a gate (French by default, raw tokens still reachable on demand), not a deletion. Same 1-scenario denominator gap noted above."
+    },
+    {
+      "name": "ms_per_tick_measured",
+      "value": [191.091, 10.511, 2.847, 2.032, 2.226, 2.018, 2.373, 2.947, 2.549, 1.962, 2.428, 19.07, 2.476, 2.123, 2.391, 2.252, 2.12, 2.081, 2.091, 2.22, 2.336, 2.693, 3.207, 2.702, 2.986, 2.335, 2.253, 2.245, 2.198, 2.153],
+      "sample_size": 30,
+      "command": "V005DiagnosticRunner.RunTickCost, fresh this session (evidence/v005-resume-diagnostic-after.log), 30 consecutive ticks at x1 after a warmup tick",
+      "sample_size_note": ">=20 required, 30 measured. avg=9.497ms (first tick 191.091ms is JIT/Burst cold-start, expected, not a recurring cost -- steady-state after tick 1 is ~2ms). avg_tick_cost_fraction_of_budget=0.0317 (3.17% of the unchanged 300ms/tick budget) even counting the cold-start outlier -- Outcome B, TickControl.DefaultSecondsPerTick (0.3f) and MapDisplaySystem.RefreshIntervalTicks (10) confirmed unchanged (grep + git status, see generator-log.md 2.8)."
+    },
+    {
+      "name": "harness_tick_advance_unchanged_flag",
+      "value": 1,
+      "sample_size": 1,
+      "command": "git status --porcelain -- unity/game_unity/Assets/Tests/SimulationHarness.cs, this session",
+      "sample_size_note": "empty diff -- the harness/capture tick-advance mechanism was not touched, confirmed not merely asserted"
+    },
+    {
+      "name": "reference_suite_total_count",
+      "value": 266,
+      "sample_size": 266,
+      "command": "unity/game_unity/Logs/v005d_test-results.xml (fresh, start-time 2026-08-01 15:31:52Z, produced by the interrupted session but never attributed until this pass -- see evidence/v005-resume-sc9-fresh-xml-summary.txt), <test-run total=\"274\">, minus 7 (legacy-attributed Cluster-C, cluster_c_legacy_attributed_count, brief 003) minus 1 (V1015CollapseDiagnostic, Skipped, never counted, same as brief 003)",
+      "sample_size_note": "274 - 7 - 1 = 266, method cited by pointer to brief 003's own reconstructed reference-suite definition"
+    },
+    {
+      "name": "reference_suite_passed_count",
+      "value": 266,
+      "sample_size": 266,
+      "command": "same fresh XML: 265 passing directly (<test-run passed=\"265\">, all 266 reference-suite cases minus the 1 that fails only under -nographics) + 1 (V1095GpuMapTests, confirmed passing under its own documented correct invocation, fresh this session -- see evidence/v005-resume-v1095-no-nographics.log / v005-resume-v1095-verdicts.log, all 6 named verdicts VERT, 99.6%/61.2% matching brief 003's own cited baseline)",
+      "sample_size_note": "100% green (266/266). No new failure introduced by this brief's changes -- the 8th XML-failure (V1095) is the same -nographics invocation artifact brief 003 already attributed, re-confirmed non-regressed after this brief's SC1 orientation fix."
+    },
+    {
+      "name": "legacy_attributed_test_files_unchanged_count",
+      "value": 7,
+      "sample_size": 7,
+      "command": "Get-FileHash -Algorithm SHA256 on all 7 files this session, compared against evidence/legacy-attributed-sha256-brief005.txt (captured by the interrupted session before any of this brief's changes)",
+      "sample_size_note": "denominator = 7 (V1MapSnapshotTests.cs, V1bMapMaskTests.cs, V1cMapReadableTests.cs, V1dChronicleTests.cs, V1eMapLayerTests.cs, V1008MeasurementTests.cs, V1014MeasurementTests.cs). All 7 byte-identical, this session's fresh hash matches the recorded snapshot exactly for all 7."
+    },
+    {
+      "name": "visual_proof_pairs_distinct_count",
+      "value": 8,
+      "sample_size": 8,
+      "command": "Get-FileHash -Algorithm SHA256 on both members of all 8 declared must_differ_from pairs (P1a, P2, P4a, P4b, P4c, P5, P6a, P6b -- P1b waived, no pair required), this session -- see generator-log.md section 5 for the full table",
+      "sample_size_note": "8 pairs actually claimed (of 9 rows in brief.md's table, P1b is waived per Acceptable Waivers row 1), all 8 genuinely differ (SHA256 mismatched on every pair)"
+    },
+    {
+      "name": "carried_forward_map_width_fraction_measured",
+      "value": 0.4292,
+      "sample_size": 1,
+      "command": "py (Pillow), column-variety scan of evidence/gallery/v005_after_02_country_selected.png (existing capture, no Unity relaunch): columns with <=3 distinct colours in a 0.3-0.7 height band counted as background, longest low-variety run from the right edge gives the map/background boundary at x=824 of 1920",
+      "sample_size_note": "not a Required Counter from eval-rubric.md -- a real, independently-derived measurement requested by the coordinator (owner-verdict-2026-08-02.md finding 1) to corroborate the owner's 'environ 43%' estimate without re-running Unity. 0.4292 corroborates it closely. Carried forward as a finding for a future brief, not fixed here (Non-Goals)."
+    }
+  ],
+  "waivers": [
+    {
+      "claim": "the PresentRenderTexture (GPU) live path cannot be exercised/measured in this environment via direct RenderTexture readback",
+      "command": "Unity.exe -batchmode -quit -silent-crashes -projectPath D:/ForgeHistory/unity/game_unity -executeMethod VictoriaGame.Tests.V005DiagnosticRunner.Run -logFile <abs>/Logs/v005_diag_after5.log -- --v005-phase=after (SUCCESS CONDITION 1 (GPU) section: MapGpuRenderer.BuildPalette then MapGpuRenderer.Render then ReadbackLastFrame)",
+      "error": "gpu_readback_unavailable reason=palette_refusee:identifiant hors table : cell 1 -> index -1163 (largeur 50) -- reproduced fresh this session (evidence/v005-resume-diagnostic-after.log line 12), same failure the interrupted 2026-08-01 session already recorded. Success Condition 1's GPU-path proof is satisfied by the CPU (PresentFrame) path alone (map_orientation_reference_checks_matched_count_cpu=3/3), with the GPU-path gap explicitly declared here, not silently omitted. A DIFFERENT, real measurement of CPU/GPU orientation agreement exists via V1095GpuMapTests's own dedicated verdict suite (not the same reference-check method, but the same underlying fact): 99.6% agreement, unchanged from brief 003's baseline, see generator-log.md section 2.2."
+    }
+  ]
+}

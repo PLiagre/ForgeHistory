@@ -56,12 +56,20 @@ namespace VictoriaGame.Presentation
         string _visualLogPath;
         Vector2Int? _responsiveResFilter;
 
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte : séquence zoom (Success Condition 3),
+        /// traits de bordure à 3 niveaux (Success Condition 4), tentative chemin GPU
+        /// (Success Condition 1).
+        /// </summary>
+        public const string ArgV005Dir = "--v005-dir";
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void BootIfRequested()
         {
             var responsive = TryParseArg(ArgResponsiveDir, out var responsiveDir);
             var editorial = TryParseArg(ArgCaptureDir, out var captureDir);
-            if (!responsive && !editorial)
+            var v005 = TryParseArg(ArgV005Dir, out var v005Dir);
+            if (!responsive && !editorial && !v005)
                 return;
 
             var existing = UnityEngine.Object.FindFirstObjectByType<UiStandaloneCaptureHarness>();
@@ -82,13 +90,21 @@ namespace VictoriaGame.Presentation
                 // Append si plusieurs lancements (une résolution par process).
                 harness.StartCoroutine(harness.RunResponsiveSequence());
             }
-            else
+            else if (editorial)
             {
                 harness._captureDir = captureDir;
                 var captureFull = Path.GetFullPath(captureDir);
                 harness._visualLogPath = Path.GetFullPath(
                     Path.Combine(captureFull, "..", "ui_003_visual.log"));
                 harness.StartCoroutine(harness.RunCaptureSequence());
+            }
+            else
+            {
+                harness._captureDir = v005Dir;
+                var captureFull = Path.GetFullPath(v005Dir);
+                harness._visualLogPath = Path.GetFullPath(
+                    Path.Combine(captureFull, "..", "v005_zoom_gpu.log"));
+                harness.StartCoroutine(harness.RunV005ZoomAndGpuSequence());
             }
         }
 
@@ -542,6 +558,35 @@ namespace VictoriaGame.Presentation
             if (!MapDisplaySystem.HasPresentedFrame)
                 log.AppendLine("WARN HasPresentedFrame encore false — poursuite");
 
+            // brief 005-refonte-visuelle-carte, Success Condition 2 : capture de la fenêtre
+            // caméra AU DÉMARRAGE, avant tout ForceState/pan/zoom — la seule fenêtre qui
+            // compte pour ce Success Condition. Le ForceState(World(WorldWindow)) juste
+            // après existe pour stabiliser LE RESTE de cette séquence (01_world_neutral et
+            // tout ce qui suit sont un scénario délibérément recadré plein-monde, pas la
+            // preuve du cadrage initial) — donc capturé AVANT, jamais réutilisé pour ce qui
+            // suit.
+            // Culture-invariante EXPLICITE + champs séparés (jamais "[a,b]" avec un ToString
+            // par défaut qui, en build FR, rend la virgule ambiguë entre séparateur décimal
+            // et séparateur de liste — c'est exactement ce qui a rendu ce log illisible lors
+            // de la première passe de ce brief).
+            var initialWindow = MapViewport.State.Window;
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+            log.AppendLine(
+                "initial_window_at_boot" +
+                " INIT_MINX=" + initialWindow.MinX.ToString("0.###", ic) +
+                " INIT_MAXX=" + initialWindow.MaxX.ToString("0.###", ic) +
+                " INIT_MINY=" + initialWindow.MinY.ToString("0.###", ic) +
+                " INIT_MAXY=" + initialWindow.MaxY.ToString("0.###", ic) +
+                " playable_provinces_count=" + MapDisplaySystem.LastPlayableProvinceCount +
+                " WORLD_MINX=" + MapViewport.WorldWindow.MinX.ToString("0.###", ic) +
+                " WORLD_MAXX=" + MapViewport.WorldWindow.MaxX.ToString("0.###", ic) +
+                " WORLD_MINY=" + MapViewport.WorldWindow.MinY.ToString("0.###", ic) +
+                " WORLD_MAXY=" + MapViewport.WorldWindow.MaxY.ToString("0.###", ic));
+            var initialResults = new List<GameViewCapture.CaptureResult>(1);
+            yield return CaptureOne(
+                Path.Combine(_captureDir, "00_initial_framing.png"), initialResults, log, hud,
+                "00_initial_framing");
+
             SetPace(em, isPaused: false, speed: 1f);
             MapViewport.ForceState(MapViewportState.World(MapViewport.WorldWindow));
             MapDisplaySystem.RequestRefresh();
@@ -556,6 +601,7 @@ namespace VictoriaGame.Presentation
             var results = new List<GameViewCapture.CaptureResult>(CaptureFiles.Length);
             var allOk = true;
 
+            LogPanelOverlap(log, hud, "01_world_neutral");
             yield return CaptureOne(Path.Combine(_captureDir, CaptureFiles[0]), results, log, hud, "01_world_neutral");
             yield return CaptureOne(Path.Combine(_captureDir, CaptureFiles[1]), results, log, hud, "01_world_neutral_b");
 
@@ -597,6 +643,7 @@ namespace VictoriaGame.Presentation
             yield return null;
             if (!AssertEditorial(hud, log, "02_country_selected", expectCountry: true, expectProvince: false))
                 allOk = false;
+            LogPanelOverlap(log, hud, "02_country_selected");
             yield return CaptureOne(Path.Combine(_captureDir, CaptureFiles[2]), results, log, hud, "02_country_selected");
 
             var provinceId = -1;
@@ -673,7 +720,94 @@ namespace VictoriaGame.Presentation
             yield return null;
             if (!AssertEditorial(hud, log, "03_province_selected", expectCountry: false, expectProvince: true))
                 allOk = false;
+            LogPanelOverlap(log, hud, "03_province_selected");
+            log.AppendLine(
+                "investir_status_default tag=03_province_selected text='" +
+                (hud.InvestStatusLabel?.text ?? "(null)") + "'");
             yield return CaptureOne(Path.Combine(_captureDir, CaptureFiles[3]), results, log, hud, "03_province_selected");
+
+            // brief 005-refonte-visuelle-carte, Success Condition 6b : même scénario
+            // province, bascule --debug-ids EN COURS DE PROCESS (InGameHud.ShowDebugIds
+            // est un champ static mutable — pas besoin d'un second lancement du player) —
+            // preuve d'une vraie PORTE (jetons bruts réservés au debug), pas d'une simple
+            // suppression.
+            InGameHud.ShowDebugIds = true;
+            hud.RefreshProvincePanel(provinceDetail);
+            yield return null;
+            log.AppendLine(
+                "investir_status_debug tag=03_province_selected_debug text='" +
+                (hud.InvestStatusLabel?.text ?? "(null)") + "'");
+            var debugCaptureResults = new List<GameViewCapture.CaptureResult>(1);
+            yield return CaptureOne(
+                Path.Combine(_captureDir, "03_province_selected_debug.png"), debugCaptureResults, log, hud,
+                "03_province_selected_debug");
+            InGameHud.ShowDebugIds = HasFlag(ArgDebugIds);
+            hud.RefreshProvincePanel(provinceDetail);
+            yield return null;
+
+            // brief 005-refonte-visuelle-carte, itération de correction du feedback
+            // (Issue 5, SC6b) : le dénominateur investir_raw_token_* de l'itération
+            // précédente ne portait que sur UNE province (Île-de-France, la capitale) --
+            // la rubrique exige >= 2 provinces/scénarios distincts. Seconde sélection
+            // réelle (n'importe quelle autre province que la capitale), rejouée pour les
+            // deux builds défaut/debug -- le mécanisme de porte (InGameHud.ShowDebugIds)
+            // est déjà prouvé, rien à réinventer, seulement un second scénario à ajouter.
+            var secondProvinceId = -1;
+            var secondProvinceDetail = "";
+            using (var q2 = em.CreateEntityQuery(ComponentType.ReadOnly<ProvinceData>()))
+            using (var pdata2 = q2.ToComponentDataArray<ProvinceData>(Unity.Collections.Allocator.Temp))
+            {
+                for (var i = 0; i < pdata2.Length; i++)
+                {
+                    var id = pdata2[i].ProvinceId;
+                    if (id == provinceId)
+                        continue;
+                    if (!ProvinceObservation.TryCapture(em, id, ProvinceCoordinates.NameOf(id), out var snap2))
+                        continue;
+                    secondProvinceId = id;
+                    secondProvinceDetail = snap2.DetailBlock;
+                    break;
+                }
+            }
+
+            if (secondProvinceId < 0)
+            {
+                log.AppendLine("WARN 03b_province_selected_second skipped -- aucune seconde province trouvée");
+            }
+            else
+            {
+                MapViewport.SelectProvince(
+                    countryEntity, PlayerControl.DefaultControlledCountryId,
+                    Entity.Null, secondProvinceId, MapViewport.WorldWindow);
+                MapDisplaySystem.RequestRefresh();
+                for (var i = 0; i < SettleFrames; i++)
+                    yield return null;
+                hud.RefreshCountryPanel("");
+                hud.RefreshProvincePanel(secondProvinceDetail);
+                hud.RefreshInfoBar(MapDisplaySystem.LastMetricsLine);
+                yield return null;
+                log.AppendLine(
+                    "investir_status_default tag=03b_province_selected_second province_id=" + secondProvinceId +
+                    " text='" + (hud.InvestStatusLabel?.text ?? "(null)") + "'");
+                var secondDefaultResults = new List<GameViewCapture.CaptureResult>(1);
+                yield return CaptureOne(
+                    Path.Combine(_captureDir, "03b_province_selected_second.png"), secondDefaultResults, log, hud,
+                    "03b_province_selected_second");
+
+                InGameHud.ShowDebugIds = true;
+                hud.RefreshProvincePanel(secondProvinceDetail);
+                yield return null;
+                log.AppendLine(
+                    "investir_status_debug tag=03b_province_selected_second_debug province_id=" + secondProvinceId +
+                    " text='" + (hud.InvestStatusLabel?.text ?? "(null)") + "'");
+                var secondDebugResults = new List<GameViewCapture.CaptureResult>(1);
+                yield return CaptureOne(
+                    Path.Combine(_captureDir, "03b_province_selected_second_debug.png"), secondDebugResults, log, hud,
+                    "03b_province_selected_second_debug");
+                InGameHud.ShowDebugIds = HasFlag(ArgDebugIds);
+                hud.RefreshProvincePanel(provinceDetail);
+                yield return null;
+            }
 
             MapViewport.ForceState(new MapViewportState
             {
@@ -712,6 +846,7 @@ namespace VictoriaGame.Presentation
             yield return null;
             if (!AssertEditorial(hud, log, "05_tax_min", expectCountry: true, expectProvince: false))
                 allOk = false;
+            LogPanelOverlap(log, hud, "05_tax_min");
             yield return CaptureOne(Path.Combine(_captureDir, CaptureFiles[5]), results, log, hud, "05_tax_min");
 
             PlayerIntentionSubmit.EnqueueSetProductionTaxRate(
@@ -767,6 +902,191 @@ namespace VictoriaGame.Presentation
             Application.Quit(exitCode);
         }
 
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte : séquence >= 5 transitions de zoom
+        /// (Success Condition 3), capture aux 3 niveaux monde/pays/province pour la
+        /// mesure d'épaisseur de trait en pixels écran (Success Condition 4), et
+        /// tentative réelle du chemin GPU (Success Condition 1 / Acceptable Waivers 1).
+        /// </summary>
+        IEnumerator RunV005ZoomAndGpuSequence()
+        {
+            var log = new StringBuilder(16384);
+            log.AppendLine("=== v005 zoom + GPU-path attempt ===");
+            log.AppendLine("started_at=" + DateTime.UtcNow.ToString("o"));
+            log.AppendLine("source=" + GameViewCapture.SourceStandaloneFramebuffer);
+            log.AppendLine("capture_target=" + GameViewCapture.Width + "x" + GameViewCapture.Height);
+
+            GameViewCapture.ResetExpectedResolution();
+            Screen.SetResolution(GameViewCapture.Width, GameViewCapture.Height, FullScreenMode.Windowed);
+            Application.runInBackground = true;
+            QualitySettings.vSyncCount = 0;
+
+            for (var i = 0; i < 10; i++)
+                yield return null;
+
+            InGameHud.ForceProgrammaticFallback = false;
+            InGameHud.ShowDebugIds = false;
+            if (InGameHud.Instance == null)
+            {
+                var go = new GameObject("InGameHud");
+                go.AddComponent<InGameHud>();
+            }
+
+            for (var f = 0; f < WarmupFrames; f++)
+                yield return null;
+
+            var hud = InGameHud.Instance;
+            if (hud == null || !hud.UiReady)
+            {
+                log.AppendLine("FAIL InGameHud non prêt");
+                FailAndQuit(log, 3);
+                yield break;
+            }
+
+            var dotsWorld = Unity.Entities.World.DefaultGameObjectInjectionWorld;
+            if (dotsWorld == null || !dotsWorld.IsCreated)
+            {
+                log.AppendLine("FAIL World DOTS absent");
+                FailAndQuit(log, 4);
+                yield break;
+            }
+
+            var em = dotsWorld.EntityManager;
+            Directory.CreateDirectory(_captureDir);
+
+            var waitPresent = 0;
+            while (!MapDisplaySystem.HasPresentedFrame && waitPresent < 300)
+            {
+                waitPresent++;
+                yield return null;
+            }
+
+            SetPace(em, isPaused: false, speed: 1f);
+
+            Entity countryEntity = Entity.Null;
+            using (var q = em.CreateEntityQuery(ComponentType.ReadOnly<CountryData>()))
+            using (var entities = q.ToEntityArray(Unity.Collections.Allocator.Temp))
+            using (var data = q.ToComponentDataArray<CountryData>(Unity.Collections.Allocator.Temp))
+            {
+                for (var i = 0; i < data.Length; i++)
+                {
+                    if (data[i].CountryId != PlayerControl.DefaultControlledCountryId)
+                        continue;
+                    countryEntity = entities[i];
+                    break;
+                }
+            }
+
+            var provinceId = -1;
+            using (var q = em.CreateEntityQuery(ComponentType.ReadOnly<CountryData>()))
+            using (var data = q.ToComponentDataArray<CountryData>(Unity.Collections.Allocator.Temp))
+            {
+                for (var i = 0; i < data.Length; i++)
+                {
+                    if (data[i].CountryId != PlayerControl.DefaultControlledCountryId)
+                        continue;
+                    if (data[i].CapitalProvinceId >= 0)
+                        provinceId = data[i].CapitalProvinceId;
+                    break;
+                }
+            }
+
+            var results = new List<GameViewCapture.CaptureResult>(8);
+            var transitionIndex = 0;
+
+            IEnumerator DoTransition(string tag, string zoomLevel, Action apply)
+            {
+                transitionIndex++;
+                apply();
+                MapDisplaySystem.RequestRefresh();
+                for (var i = 0; i < SettleFrames; i++)
+                    yield return null;
+                hud.RefreshInfoBar(MapDisplaySystem.LastMetricsLine);
+                yield return null;
+                log.AppendLine(
+                    "zoom_transition index=" + transitionIndex + " tag=" + tag + " zoom_level=" + zoomLevel +
+                    " geometryRebuildMs=" + MapDisplaySystem.LastWindowRebuildMilliseconds.ToString("0.###") +
+                    " cpuRasterMs=" + MapDisplaySystem.LastCpuRasterMilliseconds.ToString("0.###") +
+                    " presentFrameMs=" + MapDisplaySystem.LastPresentFrameMilliseconds.ToString("0.###") +
+                    " fullRedrawMs=" + MapDisplaySystem.LastFullRedrawMilliseconds.ToString("0.###") +
+                    " gpuUsed=" + MapDisplaySystem.GpuBackgroundUsedThisFrame +
+                    " gpuMs=" + MapDisplaySystem.LastGpuBackgroundMilliseconds.ToString("0.###") +
+                    " geometryBuilds=" + MapDisplaySystem.GeometryBuilds);
+                yield return CaptureOne(Path.Combine(_captureDir, tag + ".png"), results, log, hud, tag);
+            }
+
+            // 5 transitions : Monde -> Pays -> Province -> Monde -> Pays (mêmes niveaux
+            // que Success Condition 4 réutilise pour min/mid/max).
+            yield return DoTransition(
+                "zoom_01_world", "min",
+                () => MapViewport.ForceState(MapViewportState.World(MapViewport.WorldWindow)));
+            yield return DoTransition(
+                "zoom_02_country", "mid",
+                () => MapViewport.SelectCountry(
+                    countryEntity, PlayerControl.DefaultControlledCountryId, MapViewport.WorldWindow));
+            yield return DoTransition(
+                "zoom_03_province", "max",
+                () => MapViewport.SelectProvince(
+                    countryEntity, PlayerControl.DefaultControlledCountryId,
+                    Entity.Null, provinceId, MapViewport.WorldWindow));
+            yield return DoTransition(
+                "zoom_04_world_back", "min",
+                () => MapViewport.ForceState(MapViewportState.World(MapViewport.WorldWindow)));
+            yield return DoTransition(
+                "zoom_05_country_back", "mid",
+                () => MapViewport.SelectCountry(
+                    countryEntity, PlayerControl.DefaultControlledCountryId, MapViewport.WorldWindow));
+
+            // --- tentative réelle du chemin GPU (Success Condition 1 / Acceptable Waivers row 1) ---
+            log.AppendLine("=== GPU path attempt ===");
+            var prevPilot = PilotMapProvider.Enabled;
+            PilotMapProvider.SetEnabled(true, clearCache: true);
+            MapViewport.SelectProvince(
+                countryEntity, PlayerControl.DefaultControlledCountryId,
+                Entity.Null, provinceId, MapViewport.WorldWindow);
+            MapDisplaySystem.RequestRefresh();
+            yield return null; // frame où PresentRenderTexture est censé s'exécuter
+            log.AppendLine(
+                "gpu_attempt_frame0 gpuUsed=" + MapDisplaySystem.GpuBackgroundUsedThisFrame +
+                " gpuFrames=" + MapDisplaySystem.GpuBackgroundFrames +
+                " gpuMs=" + MapDisplaySystem.LastGpuBackgroundMilliseconds.ToString("0.###") +
+                " pilotEnabled=" + PilotMapProvider.Enabled +
+                " gpuRendererAvailable=" + MapGpuRenderer.IsAvailable);
+            yield return CaptureOne(
+                Path.Combine(_captureDir, "gpu_attempt_frame0.png"), results, log, hud, "gpu_attempt_frame0");
+            for (var i = 0; i < 3; i++)
+                yield return null;
+            log.AppendLine(
+                "gpu_attempt_settled gpuUsed=" + MapDisplaySystem.GpuBackgroundUsedThisFrame +
+                " gpuFrames=" + MapDisplaySystem.GpuBackgroundFrames +
+                " — brief 005-refonte-visuelle-carte, Success Condition 3, itération de " +
+                "correction du feedback : CETTE PHRASE DÉCRIVAIT LE DÉFAUT AVANT CORRECTIF, " +
+                "PAS LE COMPORTEMENT ACTUEL. Depuis le court-circuit ajouté dans " +
+                "MapDisplaySystem.OnUpdate, quand TryRenderGpuBackground réussit sur une frame " +
+                "de changement de viewport, PresentFrame (CPU) et la rastérisation CPU pleine " +
+                "sont sautées CETTE frame-là — la RenderTexture GPU présentée via " +
+                "PresentRenderTexture est alors bien ce que l'écran affiche à la fin de cette " +
+                "frame, tant qu'un autre déclencheur indépendant du viewport (dueByOwner — " +
+                "changement de possession de province par la guerre en cours, dueByTick, " +
+                "hoverChanged) ne force pas un redessin CPU complet séparé avant que ce log ne " +
+                "soit lu (gpuUsed/gpuFrames ci-dessus restent la seule preuve directement " +
+                "vérifiable dans CE log ; voir generator-log.md Success Condition 3 pour la " +
+                "mesure complète des 5 transitions, avant/après ce correctif).");
+            yield return CaptureOne(
+                Path.Combine(_captureDir, "gpu_attempt_settled.png"), results, log, hud, "gpu_attempt_settled");
+            PilotMapProvider.SetEnabled(prevPilot, clearCache: true);
+            MapDisplaySystem.RequestRefresh();
+            for (var i = 0; i < SettleFrames; i++)
+                yield return null;
+
+            var exitCode = 0;
+            log.AppendLine("VERDICT=A_REVOIR_HUMAINEMENT");
+            log.AppendLine("status=PASS_TECHNIQUE_EN_ATTENTE_REVUE_ARTISTIQUE");
+            WriteLog(log);
+            Debug.Log($"UiStandaloneCaptureHarness v005 exit={exitCode} log={_visualLogPath}");
+            Application.Quit(exitCode);
+        }
+
         IEnumerator CaptureOne(
             string path, List<GameViewCapture.CaptureResult> results, StringBuilder log,
             InGameHud hud, string tag, bool preferPanelRt = false)
@@ -799,6 +1119,21 @@ namespace VictoriaGame.Presentation
                     $"dim={cap.Width}x{cap.Height} screen={cap.ScreenWidth}x{cap.ScreenHeight} " +
                     $"source={cap.Source} hud_chrome={cap.HasHudChrome} map={cap.HasMapContent}");
             }
+        }
+
+        /// <summary>
+        /// brief 005-refonte-visuelle-carte, Success Condition 6a : chevauchement mesuré
+        /// entre TOUTES les paires de panneaux HUD visibles (pas seulement Lois/Impôt) —
+        /// voir HudLayoutProbe.MeasureAllPanelOverlaps.
+        /// </summary>
+        static void LogPanelOverlap(StringBuilder log, InGameHud hud, string tag)
+        {
+            var overlaps = HudLayoutProbe.MeasureAllPanelOverlaps(hud, out var pairsChecked);
+            log.AppendLine(
+                "panel_overlap tag=" + tag + " pairs_checked=" + pairsChecked +
+                " overlaps=" + overlaps.Count);
+            foreach (var (a, b) in overlaps)
+                log.AppendLine("  overlap tag=" + tag + " pair=" + a + "+" + b);
         }
 
         static void LogHudState(InGameHud hud, StringBuilder log, string tag)
