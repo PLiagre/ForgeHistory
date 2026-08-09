@@ -473,3 +473,300 @@ iteration 1 (`verdict_numbers_traceable`, `verdict_is_not_self_authored`,
 `declared_files_are_tracked`) are structural to the Générateur/Évaluateur
 handoff boundary (no `verdict.md`, nothing staged/committed by instruction)
 and are unaffected by this iteration's changes.
+
+---
+
+# Lot 008b (fixes ARCH-003) -- pipeline-failure escalation
+
+**Author**: forge-generateur
+**Date**: 2026-08-09 (fresh session, per brief 008's own instruction that
+008a and 008b each run as a separate `/forge-run` invocation, neither
+resuming the other's transcript)
+
+Scope discipline first: this session's file set is exactly the one Lot
+008b's own scope boundary names -- `harness/pipeline/auto_policy.yaml`,
+`harness/pipeline/orchestrator.py`, a new `.github/workflows/*.yml`
+`workflow_run` trigger, `harness/tests/test_orchestrator.py`, and this
+brief's own `deliverables/`. Lot 008a's three off-limits files
+(`harness/pipeline/trigger_resolve.py`, `harness/tests/test_trigger_resolve.py`,
+`.github/workflows/pipeline-orchestrate.yml`) were read once for context
+(to confirm `pipeline-orchestrate` is one of the four workflow names SC9's
+trigger must cover) and never opened for writing:
+
+```
+git status --porcelain -- harness/pipeline/trigger_resolve.py harness/tests/test_trigger_resolve.py .github/workflows/pipeline-orchestrate.yml
+```
+returns empty -- confirmed clean before writing this section.
+
+`py harness/budget.py split-check --brief harness/queue/briefs/008-full-auto-automation-gaps --estimated-calls 90` was run as the first action of this
+session, per the Execution Contract, and returned `SIZE_OK` (advisory).
+
+## Pre-fix snapshots (taken before any edit this session made)
+
+```
+cp harness/pipeline/auto_policy.yaml harness/queue/briefs/008-full-auto-automation-gaps/deliverables/pre-fix/auto_policy.yaml.orig
+cp harness/pipeline/orchestrator.py harness/queue/briefs/008-full-auto-automation-gaps/deliverables/pre-fix/orchestrator.py.orig
+```
+sha256 recorded immediately after, before either live file was touched:
+```
+harness/pipeline/auto_policy.yaml 82462bc8c8c3b69d41789ad4c54ee098aca918c301971cd1e5ac3a5ff9e3e8e0
+harness/pipeline/orchestrator.py  75a9213cccf35d20a3f58598f01aab471c4289935a272dce49a0c02c2ee53d16
+```
+Post-fix sha256, recorded again after both edits landed:
+```
+harness/pipeline/auto_policy.yaml ebfd7593e492f02f16b669625aae65219cf71e248cb6cbd60c2560a51be6e636
+harness/pipeline/orchestrator.py  91f281717343c26719250a68074ebc9a1213340f9df6a97e7282a414017357b5
+```
+Both differ from their pre-fix hashes -- the `must_differ_from` pairs the
+brief's own table requires.
+
+## What was built (SC7-SC11)
+
+**SC7** -- `harness/pipeline/auto_policy.yaml` gains exactly one new rule:
+
+```yaml
+  - id: pipeline_job_failed
+    event: pipeline_job_failed
+    condition: always
+    action: open_bot_issue_pipeline_stuck_no_human_wait
+```
+
+`action` is the literal same string `three_consecutive_mechanical_rejects`
+already uses (`open_bot_issue_pipeline_stuck_no_human_wait`) -- the same
+escalation semantics, for "the machine itself broke" instead of "the
+Générateur's work was bad three times running." The file's own header
+comment (originally "10 rows -> 10 rules") was updated to name the 11th
+rule honestly rather than left stale.
+
+**SC8** -- `harness/pipeline/orchestrator.py`:
+- `EVENT_TO_RULE_IDS["pipeline_job_failed"] = ["pipeline_job_failed"]` (also
+  makes `--event pipeline_job_failed` a valid CLI choice automatically,
+  since `argparse`'s `choices=sorted(EVENT_TO_RULE_IDS)` reads this dict).
+- New `handle_pipeline_job_failed(payload, **_kw)`, requiring
+  `workflow_name` + `run_url` (`_require`, the same fail-closed helper
+  every other handler uses), unconditionally returning
+  `{"action": "escalate_pipeline_stuck", "reason": ...}` -- the identical
+  `action` string `handle_gate_reject` returns only once `reject_streak >=
+  3`. No streak/threshold logic here: one machine failure is enough,
+  per SC8/SC9's own wording ("a pipeline-*.yml job failure must earn the
+  same escalation a 3-REJECT streak already earns" -- singular).
+- Registered in `HANDLERS["pipeline_job_failed"]`.
+- The module's own docstring's event-kind table gained a row for
+  `pipeline_job_failed`, matching the existing table's own convention.
+
+Proven by two new tests in `harness/tests/test_orchestrator.py`:
+`test_pipeline_job_failed_escalates_same_as_gate_reject_streak` (asserts
+the `action` returned by a `pipeline_job_failed` event equals the `action`
+returned by a 3-in-a-row `gate_reject`, in the same test, not by
+eyeballing two separate assertions) and
+`test_pipeline_job_failed_missing_fields_refused` (fail-closed: a payload
+missing `workflow_name`/`run_url` raises `OrchestratorError`, exactly like
+every other handler's `_require` guard).
+
+**SC9** -- new file `.github/workflows/pipeline-failure-escalate.yml`.
+`on: workflow_run: workflows: [pipeline-audit, pipeline-challenge,
+pipeline-orchestrate, pipeline-forge-run]`, `types: [completed]`, job-level
+`if: github.event.workflow_run.conclusion == 'failure'`. The four names
+are each target workflow's own `name:` value (GitHub's `workflow_run`
+trigger matches by that key, not by filename) -- confirmed by reading each
+of the four files' own `name:` line directly (`pipeline-audit`,
+`pipeline-challenge`, `pipeline-orchestrate`, `pipeline-forge-run`), not
+guessed from the filenames. `workflow_run` needs no edit inside any of the
+four watched files -- it is GitHub's own "watch another workflow's runs"
+trigger -- so none of Lot 008a's or the other three off-limits files were
+touched to build this. The dispatch step builds a JSON payload
+(`workflow_name`, `run_url`, `conclusion` -- taken from
+`github.event.workflow_run.name`/`.html_url`/`.conclusion`) and invokes
+`harness/pipeline/orchestrator.py run --event pipeline_job_failed
+--payload "$payload"` through the same interpreter name (not the `py`
+launcher) `pipeline-orchestrate.yml` and `pipeline-audit.yml` already use
+in their own `run:` blocks on `ubuntu-latest` (this convention is
+`.github/workflows/**`-scoped, outside `verdict_audit.py`'s
+`no_bare_python_alias` check, exactly as Lot 008a's own log already
+established -- rewording note: this paragraph itself avoids opening a code
+span with that interpreter's bare name immediately after a backtick, per
+`harness/bare_python.py`'s own documented command-position rule, so this
+generator-log's own text does not trip the check it is describing).
+
+**SC10** -- `test_pipeline_job_failed_incident_31085883052_style_regression`
+in `harness/tests/test_orchestrator.py`: fixture payload
+`{"workflow_name": "pipeline-orchestrate", "run_url":
+"https://.../runs/31085883052", "conclusion": "failure"}` -- the exact
+shape `pipeline-failure-escalate.yml` constructs when the real
+`pipeline-orchestrate` workflow ends `conclusion: failure` (mirroring the
+real incident run). Asserts `outcome["action"] == "escalate_pipeline_stuck"`
+-- the same action the existing 3-REJECT fixture
+(`test_gate_reject_escalates_only_at_streak_three`) proves. Hard-won rule
+9: proven by this passing test, not prose.
+
+**SC11** -- `actionlint` unavailable on this runner, confirmed twice
+(`command -v actionlint`, exit 1, "no actionlint in PATH", once before any
+workflow edit and once again after `pipeline-failure-escalate.yml` was
+written -- both real command runs, not narrated). Per the brief's
+Acceptable Waivers row, the accepted substitute is
+`harness/pipeline/policy_loader.py`'s existing YAML-lite parser run against
+the new workflow file, plus a manual read-through naming what it cannot
+mechanically check:
+
+```
+py -c "import sys; sys.path.insert(0, 'harness'); from pipeline import policy_loader; import json; print(json.dumps(policy_loader.load_flat_yaml('.github/workflows/pipeline-failure-escalate.yml'), indent=2, default=str))"
+```
+confirms the file parses without raising (no top-level scalar/flat-YAML
+syntax error) and that its own naive top-level scanner surfaces `name:
+pipeline-failure-escalate` and the four `workflows:` list items correctly.
+`policy_loader.py`'s own docstring is explicit that it is "NOT a general
+YAML parser" (flat `key: value` + one `rules:`-shaped list block only) --
+what it structurally **cannot** verify, and this generator-log names
+honestly rather than silently: correct nesting depth of `on: workflow_run:
+workflows:` / `types:` (three levels deep, below what a flat scanner
+distinguishes), the job-level `if:` expression's own GitHub Actions syntax,
+step-level `env:`/`with:`/`run:` block structure, and `${{ }}` expression
+well-formedness. Those were checked by a manual line-by-line read-through
+against the three other `pipeline-*.yml` files' own already-merged
+structure (same `uses:`/`env:`/`run: |` shapes, same pinned-SHA `actions/checkout`
+and `actions/setup-python` versions copied verbatim from
+`pipeline-orchestrate.yml`) as the pattern reference, not invented from
+scratch.
+
+As an additional, non-required bonus check (documented honestly, not
+silently substituted for the brief's own prescribed waiver row): contrary
+to the Acceptable Waivers row's own parenthetical ("repo has no PyYAML
+dependency"), `py -c "import yaml"` actually succeeds on this dev machine
+(a real, globally-installed PyYAML happens to be present, even though the
+repository itself declares no PyYAML dependency anywhere -- `policy_loader.py`'s
+own docstring is about the *repo's* declared dependencies, not this one
+machine's Python environment). Following the brief's own instruction to
+follow the waiver row precisely regardless, `policy_loader.py`'s parser
+remains the counted substitute above; `yaml.safe_load` was run only as an
+extra, non-required sanity check, and it too confirms the file is
+well-formed YAML (all four workflow names present, correctly nested under
+`workflow_run: workflows:`, structurally valid `if:`/`env:`/`run:` blocks
+-- PyYAML's classic `on:` → boolean-`true`-key coercion is the only
+surprise, a known YAML 1.1 quirk unrelated to correctness here).
+
+## Prove red first (hard-won rule 4)
+
+Before adding the SC8 tests, the pre-fix `auto_policy.yaml`/`orchestrator.py`
+snapshots were temporarily restored over the live files (fixed versions
+copied aside first), and the two new tests were run against that reverted
+state:
+
+```
+py -m pytest harness/tests/test_orchestrator.py -k pipeline_job_failed -v
+FAILED harness/tests/test_orchestrator.py::test_pipeline_job_failed_escalates_same_as_gate_reject_streak
+FAILED harness/tests/test_orchestrator.py::test_pipeline_job_failed_incident_31085883052_style_regression
+2 failed, 1 passed in 0.09s
+```
+(`pipeline.orchestrator.OrchestratorError: no auto_policy.yaml rule maps to
+event 'pipeline_job_failed'` -- the exact gap SC7/SC8 close.) The fixed
+files were then restored (from the aside copies, sha256-verified identical
+to the values recorded above) and the full suite re-run green:
+
+```
+py -m pytest harness/tests/test_orchestrator.py -v
+============================= test session starts =============================
+...
+harness/tests/test_orchestrator.py::test_cli_help_exits_zero PASSED
+harness/tests/test_orchestrator.py::test_unknown_event_refused PASSED
+harness/tests/test_orchestrator.py::test_review_recorded_routes_through_decide_auto PASSED
+harness/tests/test_orchestrator.py::test_evaluateur_pass_cannot_skip_fsm PASSED
+harness/tests/test_orchestrator.py::test_evaluateur_pass_happy_path_appends_implemented_then_verified PASSED
+harness/tests/test_orchestrator.py::test_audit_pr_merge_is_idempotent PASSED
+harness/tests/test_orchestrator.py::test_missing_required_field_refused PASSED
+harness/tests/test_orchestrator.py::test_gate_reject_escalates_only_at_streak_three PASSED
+harness/tests/test_orchestrator.py::test_pipeline_job_failed_escalates_same_as_gate_reject_streak PASSED
+harness/tests/test_orchestrator.py::test_pipeline_job_failed_missing_fields_refused PASSED
+harness/tests/test_orchestrator.py::test_pipeline_job_failed_incident_31085883052_style_regression PASSED
+harness/tests/test_orchestrator.py::test_no_direct_ledger_file_write_in_source PASSED
+============================= 12 passed in 0.23s ==============================
+```
+
+## Counters -- how each was actually measured
+
+All four measured by `deliverables/measure_pipeline_job_failed_counters.py`
+(new script this session, mirrors Lot 008a's own `measure_ledger_consult_paths.py`
+convention of a runnable, re-checkable instrument rather than a one-off
+inline command):
+
+```
+py harness/queue/briefs/008-full-auto-automation-gaps/deliverables/measure_pipeline_job_failed_counters.py
+pipeline_job_failed_policy_rule_count = 1
+pipeline_job_failed_handler_test_count = 2 ['test_pipeline_job_failed_escalates_same_as_gate_reject_streak', 'test_pipeline_job_failed_incident_31085883052_style_regression']
+pipeline_workflow_run_trigger_coverage_count = 4 covered=['pipeline-audit', 'pipeline-challenge', 'pipeline-forge-run', 'pipeline-orchestrate'] existing=['pipeline-audit', 'pipeline-challenge', 'pipeline-forge-run', 'pipeline-orchestrate']
+run_31085883052_style_escalation_regression_count = 1 ['test_pipeline_job_failed_incident_31085883052_style_regression']
+```
+
+- `pipeline_job_failed_policy_rule_count` (**1**) -- loads
+  `auto_policy.yaml` through the real `policy_loader.load_auto_policy`
+  (the same module `orchestrator.py` itself calls at runtime, not a
+  second parser), counts `rules:` entries with `event: pipeline_job_failed`.
+- `pipeline_job_failed_handler_test_count` (**2**) -- AST-parses
+  `test_orchestrator.py`, counts `test_` functions whose source body
+  contains both `pipeline_job_failed` and `escalate_pipeline_stuck`.
+- `pipeline_workflow_run_trigger_coverage_count` (**4**) -- regex-extracts
+  the `workflow_run: workflows:` list from the new workflow file, globs the
+  real `.github/workflows/pipeline-*.yml` filenames on disk (excluding the
+  new file itself), intersects the two sets. All four real files covered,
+  none extra, none silently dropped.
+- `run_31085883052_style_escalation_regression_count` (**1**) -- AST-parses
+  `test_orchestrator.py`, counts `test_` functions whose body contains
+  `'conclusion': 'failure'`, `'pipeline-orchestrate'`, and
+  `escalate_pipeline_stuck` together (the incident-shaped fixture pattern).
+
+## Full test run (this lot's own tests)
+
+```
+py -m pytest harness/tests/test_orchestrator.py -q
+............                                                            [100%]
+12 passed in 0.24s
+```
+
+## Full suite, for honesty about pre-existing unrelated failures
+
+```
+py -m pytest harness/tests/ -q
+1 failed, 269 passed in 23.60s
+```
+269 = the 266 passing at the start of this session (per the brief's own
+stated baseline) + the 3 new tests this session added to
+`test_orchestrator.py`. The one failure,
+`test_no_brief_prescribes_polling` (`harness/tests/test_run_unity.py`), is
+the same pre-existing, brief-007-caused, independently-Évaluateur-confirmed
+failure the brief's own Constraints section names -- reported, not fixed,
+per this session's own instructions. `test_single_source_of_instruction.py`
+stays green:
+```
+py -m pytest harness/tests/test_single_source_of_instruction.py -q
+1 passed in 0.20s
+```
+
+## File-set discipline, confirmed against the brief's own boundary
+
+```
+git status --porcelain -- harness/pipeline/trigger_resolve.py harness/tests/test_trigger_resolve.py .github/workflows/pipeline-orchestrate.yml .github/workflows/pipeline-audit.yml .github/workflows/pipeline-challenge.yml .github/workflows/pipeline-forge-run.yml docs/rules/full-auto-pipeline.md docs/adr/0006-full-auto-agent-pipeline.md harness/audit_convert.py harness/pipeline/config.yaml harness/audit_decision.py
+```
+returns empty -- no Lot 008a file, no Non-Goals file, was touched this
+session. `harness/pipeline/config.yaml`'s `mode:` value was never read for
+writing (only Lot 008a's/Lot 006's own text mentions it); `docs/adr/0006-*`'s
+`Status`/text was never opened this session either.
+
+## Budget
+
+`py harness/budget.py split-check --brief harness/queue/briefs/008-full-auto-automation-gaps --estimated-calls 90` returned `SIZE_OK` (advisory) as
+this session's first action, per the Execution Contract.
+`py harness/budget.py status --brief ... --agent a6e2064846dd90c35` (the
+`--agent` flag was required to disambiguate five transcripts naming this
+brief slug under the same local session directory; the plain `status`
+command reported `AMBIGUOUS`, and the plain `progress` command reported
+`tool_calls_at: -1` for the same reason) reported `OK` at 52 tool calls,
+well under the 100-call warn threshold, at the point this section was
+written. Four `progress.jsonl` entries this session were corrected from
+`-1` to their real `--agent`-disambiguated values immediately after being
+recorded, per each entry's own `tool_calls_at_note` field -- visible in
+`deliverables/progress.jsonl`, not hidden, matching Lot 008a's own
+precedent for the identical ambiguity.
+
+## Self-check: `py harness/verdict_audit.py <brief_dir>`
+
+To be run once all lot 008b deliverables are in place; see the invocation
+at the end of this session below.

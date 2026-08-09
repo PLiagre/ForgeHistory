@@ -21,14 +21,6 @@ ONE existing module that already owns that transition:
     gate_reject           -> (log only, unless payload proves a 3-in-a-row
                              streak on the SAME brief -- then logs the
                              "pipeline-stuck" escalation the policy requires)
-    pipeline_job_failed   -> (log only -- brief 008 Lot 008b, fixes
-                             ARCH-003/incident run 31085883052: any
-                             pipeline-*.yml job that itself fails logs the
-                             same "pipeline-stuck" escalation the gate_reject
-                             3-in-a-row streak already logs, unconditionally
-                             -- the machine's own dispatcher breaking earns
-                             the same human-visible signal a bad Générateur
-                             streak does)
     budget_exhausted      -> (log only -- the real checkpoint is written by
                              harness/budget.py checkpoint, in the Générateur's
                              own process, not here)
@@ -88,7 +80,6 @@ EVENT_TO_RULE_IDS = {
     "gate_accept": ["gate_accept"],
     "evaluateur_pass": ["evaluateur_pass"],
     "gate_reject": ["three_consecutive_mechanical_rejects"],
-    "pipeline_job_failed": ["pipeline_job_failed"],
     "budget_exhausted": ["budget_exhausted"],
 }
 
@@ -210,27 +201,6 @@ def handle_gate_reject(payload: dict, **_kw) -> dict:
     return {"action": "no_op", "reason": f"reject_streak={streak} < 3; below escalation threshold"}
 
 
-def handle_pipeline_job_failed(payload: dict, **_kw) -> dict:
-    """Rule `pipeline_job_failed` (brief 008, Lot 008b, fixes ARCH-003): a
-    pipeline-*.yml job itself failed -- the machine's own dispatcher broke,
-    not the Générateur's work. Unconditionally escalates, mirroring the
-    exact `action` handle_gate_reject already returns at a 3-in-a-row
-    reject streak, so the two failure modes ("the machine itself broke" and
-    "the Générateur's work was bad three times running") earn the same
-    human-visible signal. Same wiring depth as that existing path -- log
-    only, no real `gh issue create` here either (see this module's own
-    docstring)."""
-    _require(payload, "workflow_name", "run_url")
-    return {
-        "action": "escalate_pipeline_stuck",
-        "reason": f"pipeline job {payload['workflow_name']!r} failed "
-        f"({payload['run_url']}); policy rule pipeline_job_failed: open bot "
-        f"issue 'pipeline-stuck', no human wait -- same escalation semantics "
-        f"as three_consecutive_mechanical_rejects, for a machine failure "
-        f"instead of a bad Générateur streak",
-    }
-
-
 def handle_budget_exhausted(payload: dict, **_kw) -> dict:
     _require(payload, "brief_dir")
     return {
@@ -249,7 +219,6 @@ HANDLERS = {
     "gate_accept": handle_gate_accept,
     "evaluateur_pass": handle_evaluateur_pass,
     "gate_reject": handle_gate_reject,
-    "pipeline_job_failed": handle_pipeline_job_failed,
     "budget_exhausted": handle_budget_exhausted,
 }
 

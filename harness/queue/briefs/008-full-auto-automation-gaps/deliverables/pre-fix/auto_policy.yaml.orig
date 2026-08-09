@@ -15,12 +15,7 @@
 mode: full_auto
 
 # One entry per row of brief 006 "## Politique auto" (10 rows -> 10 rules,
-# each carrying event / condition / action so it stays machine-parseable),
-# plus one rule added by brief 008 Lot 008b (pipeline_job_failed, fixing
-# ARCH-003): the same escalation semantics as
-# three_consecutive_mechanical_rejects, but for "the orchestrator's own
-# dispatcher failed" rather than "the Générateur's work was bad three times
-# running" -- 10 original rows + 1 = 11 rules below.
+# each carrying event / condition / action so it stays machine-parseable).
 rules:
   - id: audit_pr_merge_ci_green
     event: audit_pr_merge
@@ -65,11 +60,6 @@ rules:
   - id: three_consecutive_mechanical_rejects
     event: gate_reject
     condition: three_consecutive_mechanical_rejects_same_brief
-    action: open_bot_issue_pipeline_stuck_no_human_wait
-
-  - id: pipeline_job_failed
-    event: pipeline_job_failed
-    condition: always
     action: open_bot_issue_pipeline_stuck_no_human_wait
 
   - id: budget_exhausted

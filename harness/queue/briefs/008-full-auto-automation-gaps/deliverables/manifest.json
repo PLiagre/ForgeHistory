@@ -7,7 +7,14 @@
     { "path": "deliverables/measure_ledger_consult_paths.py" },
     { "path": "deliverables/progress.jsonl" },
     { "path": "deliverables/generator-log.md" },
-    { "path": "deliverables/checkpoint-001.md" }
+    { "path": "deliverables/checkpoint-001.md" },
+    { "path": "../../../../harness/pipeline/auto_policy.yaml", "must_differ_from": "deliverables/pre-fix/auto_policy.yaml.orig" },
+    { "path": "deliverables/pre-fix/auto_policy.yaml.orig" },
+    { "path": "../../../../harness/pipeline/orchestrator.py", "must_differ_from": "deliverables/pre-fix/orchestrator.py.orig" },
+    { "path": "deliverables/pre-fix/orchestrator.py.orig" },
+    { "path": "../../../../.github/workflows/pipeline-failure-escalate.yml" },
+    { "path": "../../../../harness/tests/test_orchestrator.py" },
+    { "path": "deliverables/measure_pipeline_job_failed_counters.py" }
   ],
   "counters": [
     {
@@ -33,7 +40,37 @@
       "value": 0,
       "sample_size": 1,
       "command": "py -c \"import pathlib, re; t = pathlib.Path('.github/workflows/pipeline-orchestrate.yml').read_text(encoding='utf-8'); step = t.split('- name: Resolve event + payload', 1)[1].split('- name: Run orchestrator', 1)[0]; run_block = step.split('run: |', 1)[1]; hits = re.findall(r'echo \\\"event=|printf .payload=|if \\[ -n \\\"\\\\$\\{?IN_|elif \\[|if \\[ \\\"\\\\$count\\\"', run_block); print(len(hits), hits, 'calls_entry_point=' + str('trigger_resolve.py resolve' in run_block))\" -- prints '0 [] calls_entry_point=True' (workflow file unedited this iteration -- iteration 1 already routed all decision logic, including both workflow_dispatch branches, through the single trigger_resolve.py resolve subcommand; only resolve()'s own Python body needed the BLOCKER-1 fix)"
+    },
+    {
+      "name": "pipeline_job_failed_policy_rule_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py harness/queue/briefs/008-full-auto-automation-gaps/deliverables/measure_pipeline_job_failed_counters.py -- prints 'pipeline_job_failed_policy_rule_count = 1' (loads harness/pipeline/auto_policy.yaml via harness/pipeline/policy_loader.py's real parser -- the same module orchestrator.py itself uses at runtime -- and counts top-level rules: entries whose event == 'pipeline_job_failed'; equals 1, matching SC7)"
+    },
+    {
+      "name": "pipeline_job_failed_handler_test_count",
+      "value": 2,
+      "sample_size": 1,
+      "command": "py harness/queue/briefs/008-full-auto-automation-gaps/deliverables/measure_pipeline_job_failed_counters.py -- prints \"pipeline_job_failed_handler_test_count = 2 ['test_pipeline_job_failed_escalates_same_as_gate_reject_streak', 'test_pipeline_job_failed_incident_31085883052_style_regression']\" (AST-parses harness/tests/test_orchestrator.py, counts top-level test_ functions whose source body contains both the literal string 'pipeline_job_failed' and 'escalate_pipeline_stuck'; both pass under py -m pytest harness/tests/test_orchestrator.py -v, see generator-log.md)"
+    },
+    {
+      "name": "pipeline_workflow_run_trigger_coverage_count",
+      "value": 4,
+      "sample_size": 4,
+      "command": "py harness/queue/briefs/008-full-auto-automation-gaps/deliverables/measure_pipeline_job_failed_counters.py -- prints \"pipeline_workflow_run_trigger_coverage_count = 4 covered=['pipeline-audit', 'pipeline-challenge', 'pipeline-forge-run', 'pipeline-orchestrate'] existing=['pipeline-audit', 'pipeline-challenge', 'pipeline-forge-run', 'pipeline-orchestrate']\" (regex-extracts the workflow_run: workflows: list from .github/workflows/pipeline-failure-escalate.yml, globs the real .github/workflows/pipeline-*.yml filenames on disk minus this new file itself, and intersects; all 4 real filenames are covered, none silently left out, none extra)"
+    },
+    {
+      "name": "run_31085883052_style_escalation_regression_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py harness/queue/briefs/008-full-auto-automation-gaps/deliverables/measure_pipeline_job_failed_counters.py -- prints \"run_31085883052_style_escalation_regression_count = 1 ['test_pipeline_job_failed_incident_31085883052_style_regression']\" (AST-parses harness/tests/test_orchestrator.py, counts test_ functions whose body contains 'conclusion': 'failure', 'pipeline-orchestrate', and escalate_pipeline_stuck together -- the incident-shaped fixture; passes under py -m pytest harness/tests/test_orchestrator.py -v)"
     }
   ],
-  "waivers": []
+  "waivers": [
+    {
+      "claim": "actionlint is not installable/runnable on this runner (Lot 008b, SC11)",
+      "command": "command -v actionlint",
+      "error": "exit 1, no actionlint in PATH (verified twice this session: once before any workflow edit, once again after .github/workflows/pipeline-failure-escalate.yml was written)"
+    }
+  ]
 }
