@@ -1,0 +1,14 @@
+# verdict_audit report for harness\queue\briefs\008-full-auto-automation-gaps
+# generated_at: 2026-08-09T21:02:59.511934
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator=forge-generateur, evaluator=forge-evaluateur
+[PASS] rubric_predates_deliverables: rubric (2026-08-08 23:15:00) predates earliest deliverable (2026-08-08 23:15:22.106167)
+[PASS] declared_files_are_tracked: all 3 in-brief declared files are tracked; 3 declared outside the brief dir, not checked: ['../../../../.github/workflows/pipeline-orchestrate.yml', '../../../../harness/pipeline/trigger_resolve.py', '../../../../harness/tests/test_trigger_resolve.py']
+
+VERDICT: ACCEPT

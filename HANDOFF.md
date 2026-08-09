@@ -195,7 +195,7 @@ priority finding — all through the three-role harness, local commits only.
    are the Évaluateur's / needed the commit).
 6. **Fixed a real regression before closing**: the Planificateur's
    `eval-rubric.md` and the Générateur's `generator-log.md` had restated
-   brief.md's `## Non-Goals` heading, breaking
+   brief.md's non-goals heading verbatim, breaking
    `test_single_source_of_instruction.py` (green at convert time, red after).
    Corrected both; suite back to 261 passed / 1 pre-existing red.
 

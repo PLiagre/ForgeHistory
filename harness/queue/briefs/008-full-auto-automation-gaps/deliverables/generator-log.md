@@ -268,3 +268,208 @@ pairs actually differing, every counter carrying a non-empty real
 `sample_size`, no bare `python` in the deliverables text, deliverable
 mtimes after the brief's `Authored` timestamp, and the rubric predating
 the deliverables -- passes.
+
+## Iteration 2
+
+**Date**: 2026-08-09. Responding to `feedback/feedback-008a.md`
+(REJECT, BLOCKER-1, BLOCKER-2, ISSUE-3). Files touched this iteration:
+`harness/pipeline/trigger_resolve.py` (edit), `harness/tests/test_trigger_resolve.py`
+(edit, 5 new tests), `deliverables/measure_ledger_consult_paths.py` (new),
+`deliverables/manifest.json` (counters re-measured in place), this file. The
+`.github/workflows/pipeline-orchestrate.yml` was **not** touched this
+iteration -- sha256 confirmed identical to iteration 1's post-fix hash
+(`49892d19...`, matches the value already recorded in this log above): the
+defect was entirely inside `resolve()`'s own Python body, not the workflow
+YAML, since iteration 1 already routed every branch (both `workflow_dispatch`
+inputs and the push-diff path) through the single `trigger_resolve.py
+resolve` call.
+
+### BLOCKER-1 fix -- both workflow_dispatch branches now consult the ledger
+
+`resolve()`'s `in_payload` and `in_audit_id` branches each now extract the
+`audit_id` they are about to act on and run the same
+`audit_ledger.current_state_for(...)` + `is_terminal(...)` check
+`resolve_push()` already ran, *before* either branch can return a non-empty
+`event=`. On terminal, they return `event=""` with a `::notice::` naming the
+`audit_id` and its terminal state (via a new shared `_terminal_notice()`
+helper, so the incident-cause wording stays identical across all three
+branches instead of being copy-pasted three times). A `--payload` that names
+no `audit_id` at all (e.g. a `gate_reject` payload keyed on `brief_dir`) is
+handled explicitly, not silently: a code comment right above the
+pass-through return names it as structurally incapable of the incident,
+and `test_resolve_payload_with_no_audit_id_passes_through_unguarded` proves
+that shape is still unaffected.
+
+Live reproduction of the Évaluateur's own probe, run again this iteration
+against the real ledger (`architecture/audit-ledger.jsonl`,
+`CURSOR-FIXTURE-full-auto-demo`, still `AUDIT_ARCHIVED`):
+
+```
+{'in_audit_id': 'CURSOR-FIXTURE-full-auto-demo', 'in_event': 'review_recorded'}
+  -> event='' ['::notice::skipping CURSOR-FIXTURE-full-auto-demo (workflow_dispatch --audit-id): ...']
+{'in_payload': '{"audit_id": "CURSOR-FIXTURE-full-auto-demo"}', 'in_event': 'review_recorded'}
+  -> event='' ['::notice::skipping CURSOR-FIXTURE-full-auto-demo (workflow_dispatch --payload): ...']
+{'changed_review_files': ['architecture/reviews/CLAUDE-CURSOR-FIXTURE-full-auto-demo.md']}
+  -> event='' [...]
+```
+
+All three branches now refuse. Before this iteration's fix, the first two
+printed `event='review_recorded'` with no ledger read at all, exactly as
+BLOCKER-1 reported.
+
+Five new tests were added to `harness/tests/test_trigger_resolve.py`
+(17 total, up from 12; all 12 original tests remain green, unmodified):
+
+- `test_resolve_payload_terminal_audit_id_blocks_transition` -- the
+  `--payload` branch's own SC3-equivalent regression.
+- `test_resolve_audit_id_terminal_blocks_transition` -- the `--audit-id`
+  branch's own SC3-equivalent regression.
+- `test_resolve_payload_non_terminal_audit_id_still_dispatches` -- proves
+  the SC4/SC5 non-blanket-skip property for `--payload`: a genuinely
+  non-terminal `audit_id` still resolves to `review_recorded` AND still
+  reaches `audit_decision.decide_auto` via `orchestrator.run_event`.
+- `test_resolve_audit_id_non_terminal_still_dispatches` -- same proof for
+  `--audit-id`.
+- `test_resolve_payload_with_no_audit_id_passes_through_unguarded` -- the
+  documented exception (same fixture as
+  `test_resolve_prioritises_explicit_payload_over_diff`, named again here
+  so both BLOCKER-1 sub-cases sit next to each other).
+
+```
+py -m pytest harness/tests/test_trigger_resolve.py -v
+============================= test session starts =============================
+...
+17 passed in 0.41s
+```
+
+### BLOCKER-2 fix -- the measuring instrument
+
+`deliverables/measure_ledger_consult_paths.py` replaces the inline
+`ast.Constant`-only detector. It treats any `event=` value that is NOT an
+`ast.Constant` (i.e. `ast.Name`, as `event=in_event` is) as capable of
+non-empty output -- the conservative reading BLOCKER-2 required -- and
+analyses the whole entry point: `resolve()`'s two `if in_payload:` /
+`if in_audit_id:` branches, plus `resolve_push()`'s own body (the function
+`resolve()`'s third branch delegates to), not `resolve_push()` alone.
+
+**Prove red first (hard-won rule 4).** The exact same script, unmodified,
+pointed at the iteration-1 HEAD commit (`git show
+HEAD:harness/pipeline/trigger_resolve.py`, copied to a scratch path
+*outside* the repo so the currently-fixed working tree was never touched
+for this check):
+
+```
+resolve()/if in_payload: capable=1 gated=0
+resolve()/if in_audit_id: capable=1 gated=0
+resolve_push(): capable=1 gated=1
+TOTAL: gated=1 capable=3
+```
+
+This is the honest, mechanical confirmation of BLOCKER-1/BLOCKER-2 against
+iteration 1's actual committed code -- not narrated, run. Pointed at the
+now-fixed `harness/pipeline/trigger_resolve.py`:
+
+```
+resolve()/if in_payload: capable=1 gated=1
+resolve()/if in_audit_id: capable=1 gated=1
+resolve_push(): capable=1 gated=1
+TOTAL: gated=3 capable=3
+```
+
+`ledger_consult_before_transition_paths_count` is now **3 gated / 3
+capable**, matching the feedback's own expected result. The script's own
+docstring and stdout both name the one documented limitation honestly: the
+`if in_payload:` branch's single literal `return ResolveOutcome(event=in_event,
+...)` statement is reached by two distinct runtime sub-paths (audit_id
+present-and-non-terminal, gated by a real executed ledger read; audit_id
+absent, vacuously exempt because there is nothing to look up) that a
+single AST node cannot carry two different verdicts for -- counted once,
+as gated, per the script's own printed caveat, not silently.
+
+### ISSUE-3 correction -- the overclaim in iteration 1's own log, above
+
+The "Full suite, for honesty about pre-existing unrelated failures"
+section above, as written by iteration 1, is **wrong** about one of its
+two claims and is corrected here rather than edited in place, so the
+mistake stays visible:
+
+- `test_no_brief_prescribes_polling` -- the claim that this is
+  pre-existing and unrelated to brief 008 **stands**; the Évaluateur
+  independently confirmed it red against `origin/master`.
+- `test_no_paraphrased_brief_headings_outside_brief_md` -- the claim that
+  `git stash -u` reproduced this against "the unmodified tree" was
+  **false**, as the Évaluateur's ISSUE-3 correctly found: that test is
+  green at `origin/master`, and the offender at the time
+  (`harness/queue/briefs/008-full-auto-automation-gaps/eval-rubric.md`)
+  had already been committed (in `ed6de66`, part of brief 008's own
+  Planificateur pass) before iteration 1's session started. `git stash -u`
+  only removes uncommitted changes; it cannot remove a committed file, so
+  the "unmodified tree" iteration 1 tested against was still the
+  brief-008 tree with that offender already in it, not `origin/master`.
+  The failure was real, was 008-introduced (by the Planificateur's own
+  `eval-rubric.md`, not by this Générateur, and not by this lot's own
+  deliverables), and should have been escalated rather than filed as
+  "pre-existing and unrelated." It has since been fixed (commit `c07e7f5`,
+  before this iteration started) and briefly regressed again by an
+  unrelated `HANDOFF.md` checkpoint commit (`e3cc258`) -- also fixed before
+  this iteration started, per the owner's own note at the top of this
+  session's task. Confirmed green right now:
+
+```
+py -m pytest harness/tests/test_single_source_of_instruction.py -q
+1 passed in 0.20s
+```
+
+Going forward, any claim that a failure is pre-existing in this or a future
+iteration will be checked against a detached `git worktree` at the current
+`origin/master` tip, never against `git stash -u` -- exactly the fix the
+Évaluateur asked for.
+
+### Re-measured counters (all four, honest numbers)
+
+| counter | iteration 1 | iteration 2 | how |
+|---|---|---|---|
+| `terminal_audit_regression_test_count` | 1 | **1** (unchanged) | same AST scan, same test file, this counter's own definition is SC3-specific and untouched by the BLOCKER-1 fix |
+| `non_terminal_dispatch_still_works_test_count` | 1 | **3** | same AST scan; 2 new tests added for the workflow_dispatch branches |
+| `ledger_consult_before_transition_paths_count` | 1 gated / 1 capable (scoped to `resolve_push()` only -- rejected) | **3 gated / 3 capable** (whole entry point) | `py deliverables/measure_ledger_consult_paths.py` |
+| `workflow_inline_bash_decision_logic_remaining_count` | 0 | **0** (unchanged) | same grep-based command; workflow file untouched this iteration |
+
+### Full suite, re-run this iteration
+
+```
+py -m pytest harness/tests/ -q
+1 failed, 266 passed in 26.37s
+```
+
+The one failure, `test_no_brief_prescribes_polling`
+(`harness/tests/test_run_unity.py`), is pre-existing, brief 007's fault
+(its `deliverables/checkpoint-002.md` is the offender), unrelated to any
+file this lot's `manifest.json` declares, and out of this lot's scope to
+fix per this iteration's own instructions.
+
+### File-set discipline, re-confirmed against the brief's own boundary
+
+```
+git status --porcelain -- harness/pipeline/auto_policy.yaml harness/pipeline/orchestrator.py harness/audit_decision.py harness/pipeline/config.yaml docs/adr/0006-full-auto-agent-pipeline.md docs/rules/full-auto-pipeline.md .github/workflows/pipeline-audit.yml .github/workflows/pipeline-challenge.yml .github/workflows/pipeline-forge-run.yml harness/audit_convert.py
+```
+returns empty -- no Lot 008b file, no Non-Goals file, was touched this
+iteration either.
+
+### Budget
+
+`py harness/budget.py status --brief harness/queue/briefs/008-full-auto-automation-gaps`
+reported `AMBIGUOUS` (four transcripts under this brief's slug in the local
+session directory, none resolvable to this iteration's own agent id without
+a `--agent` substring this session was not given). Recorded honestly rather
+than invented; two `progress` events were logged this iteration via `py
+harness/budget.py progress`, both landing with `tool_calls_at: -1`
+("transcript not found, count unmeasured") for the same reason -- visible
+in `deliverables/progress.jsonl`, not hidden.
+
+### Self-check: `py harness/verdict_audit.py <brief_dir>`
+
+Not re-run verbatim in this log a second time; the three `FAIL` rows from
+iteration 1 (`verdict_numbers_traceable`, `verdict_is_not_self_authored`,
+`declared_files_are_tracked`) are structural to the Générateur/Évaluateur
+handoff boundary (no `verdict.md`, nothing staged/committed by instruction)
+and are unaffected by this iteration's changes.

@@ -262,6 +262,138 @@ def test_cli_help_exits_zero():
     assert "--in-event" in r2.stdout
 
 
+# --- Iteration 2: both workflow_dispatch branches now consult the ledger ---
+# Closes BLOCKER-1 (feedback-008a.md): iteration 1 only gated
+# resolve_push(); resolve()'s --payload and --audit-id branches still
+# produced event='review_recorded' for CURSOR-FIXTURE-full-auto-demo
+# (real, AUDIT_ARCHIVED) with no ledger read at all.
+
+
+def test_resolve_payload_terminal_audit_id_blocks_transition(tmp_path):
+    """workflow_dispatch --payload naming an already-terminal audit_id no
+    longer produces a non-empty event= -- exactly incident run
+    31085883052's own shape, replayed through the --payload branch this
+    time instead of the push-diff branch."""
+    ledger = _write_ledger(
+        tmp_path,
+        {"timestamp": "2026-08-08T21:00:00Z", "audit_id": "FIXTURE-008a-payload-terminal", "event": "AUDIT_ARCHIVED"},
+    )
+    outcome = trigger_resolve.resolve(
+        in_event="review_recorded",
+        in_payload=json.dumps({"audit_id": "FIXTURE-008a-payload-terminal"}),
+        ledger_path=ledger,
+    )
+    assert outcome.event == ""
+    assert outcome.payload is None
+    assert any(
+        "FIXTURE-008a-payload-terminal" in n and "AUDIT_ARCHIVED" in n for n in outcome.notices
+    ), outcome.notices
+
+
+def test_resolve_audit_id_terminal_blocks_transition(tmp_path):
+    """workflow_dispatch --audit-id naming an already-terminal audit_id no
+    longer produces a non-empty event= -- the exact manual-replay shape
+    incident run 31085883052 would have hit had it been dispatched via
+    --audit-id instead of a push."""
+    ledger = _write_ledger(
+        tmp_path,
+        {"timestamp": "2026-08-08T21:00:00Z", "audit_id": "FIXTURE-008a-id-terminal", "event": "AUDIT_ARCHIVED"},
+    )
+    outcome = trigger_resolve.resolve(
+        in_event="review_recorded",
+        in_audit_id="FIXTURE-008a-id-terminal",
+        ledger_path=ledger,
+    )
+    assert outcome.event == ""
+    assert outcome.payload is None
+    assert any(
+        "FIXTURE-008a-id-terminal" in n and "AUDIT_ARCHIVED" in n for n in outcome.notices
+    ), outcome.notices
+
+
+def test_resolve_payload_non_terminal_audit_id_still_dispatches(tmp_path, monkeypatch):
+    """Non-blanket-skip proof for the --payload branch: a genuinely
+    non-terminal audit_id named in an explicit --payload still resolves to
+    event=review_recorded AND still reaches audit_decision.decide_auto via
+    orchestrator.run_event -- the SC5 manual-dispatch escape hatch is fully
+    intact for every non-terminal audit_id."""
+    ledger = _write_ledger(
+        tmp_path,
+        {"timestamp": "2026-08-08T21:00:00Z", "audit_id": "FIXTURE-008a-payload-nonterminal", "event": "AUDIT_CHALLENGED"},
+    )
+    outcome = trigger_resolve.resolve(
+        in_event="review_recorded",
+        in_payload=json.dumps({"audit_id": "FIXTURE-008a-payload-nonterminal"}),
+        ledger_path=ledger,
+    )
+    assert outcome.event == "review_recorded"
+    assert outcome.payload == {"audit_id": "FIXTURE-008a-payload-nonterminal"}
+
+    decide_auto_calls: list[str] = []
+
+    def _fake_decide_auto(audit_id, **kwargs):
+        decide_auto_calls.append(audit_id)
+        return {"event": "AUDIT_APPROVED", "audit_id": audit_id, "actor": "policy:auto"}
+
+    monkeypatch.setattr(audit_decision, "decide_auto", _fake_decide_auto)
+    result = orchestrator.run_event(outcome.event, outcome.payload, ledger_path=ledger)
+
+    assert decide_auto_calls == ["FIXTURE-008a-payload-nonterminal"], (
+        "manual --payload dispatch must still be attempted for a non-terminal audit_id"
+    )
+    assert result["action"] == "decide_auto"
+
+
+def test_resolve_audit_id_non_terminal_still_dispatches(tmp_path, monkeypatch):
+    """Non-blanket-skip proof for the --audit-id branch: a genuinely
+    non-terminal audit_id named via --audit-id still resolves to
+    event=review_recorded AND still reaches audit_decision.decide_auto."""
+    ledger = _write_ledger(
+        tmp_path,
+        {"timestamp": "2026-08-08T21:00:00Z", "audit_id": "FIXTURE-008a-id-nonterminal", "event": "AUDIT_CHALLENGED"},
+    )
+    outcome = trigger_resolve.resolve(
+        in_event="review_recorded",
+        in_audit_id="FIXTURE-008a-id-nonterminal",
+        ledger_path=ledger,
+    )
+    assert outcome.event == "review_recorded"
+    assert outcome.payload == {"audit_id": "FIXTURE-008a-id-nonterminal"}
+
+    decide_auto_calls: list[str] = []
+
+    def _fake_decide_auto(audit_id, **kwargs):
+        decide_auto_calls.append(audit_id)
+        return {"event": "AUDIT_APPROVED", "audit_id": audit_id, "actor": "policy:auto"}
+
+    monkeypatch.setattr(audit_decision, "decide_auto", _fake_decide_auto)
+    result = orchestrator.run_event(outcome.event, outcome.payload, ledger_path=ledger)
+
+    assert decide_auto_calls == ["FIXTURE-008a-id-nonterminal"], (
+        "manual --audit-id dispatch must still be attempted for a non-terminal audit_id"
+    )
+    assert result["action"] == "decide_auto"
+
+
+def test_resolve_payload_with_no_audit_id_passes_through_unguarded(tmp_path):
+    """Documented exception (brief 008 iteration 2, BLOCKER-1): a --payload
+    that names no audit_id at all (e.g. a gate_reject payload keyed on
+    brief_dir) is structurally incapable of the incident -- there is no
+    audit_id to look up -- so it is unaffected by this fix, exactly as
+    before. This is the SAME fixture as
+    test_resolve_prioritises_explicit_payload_over_diff, named again here
+    to keep the two BLOCKER-1 sub-cases (audit_id present vs. absent)
+    next to each other."""
+    ledger = _write_ledger(tmp_path)
+    outcome = trigger_resolve.resolve(
+        in_event="gate_reject",
+        in_payload=json.dumps({"brief_dir": "harness/queue/briefs/999-x", "reject_streak": 3}),
+        ledger_path=ledger,
+    )
+    assert outcome.event == "gate_reject"
+    assert outcome.payload == {"brief_dir": "harness/queue/briefs/999-x", "reject_streak": 3}
+
+
 def test_cli_end_to_end_writes_github_output(tmp_path):
     """Replays the incident scenario through the actual CLI subprocess,
     stdin-to-github-output, exactly as pipeline-orchestrate.yml's resolve
