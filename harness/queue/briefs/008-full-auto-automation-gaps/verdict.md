@@ -1,147 +1,216 @@
 # Verdict — Brief `008`, **LOT 008a ONLY** (orchestrator ledger guard)
 
-**Authored**: 2026-08-09T21:10:00Z
+**Authored**: 2026-08-09T22:05:00Z
 **Author**: forge-evaluateur
 
 > **Scope of this verdict.** Brief `008` is `NEEDS_SPLIT`. Only Lot 008a has
 > been generated. This document judges Success Conditions SC1–SC6 and the
 > four 008a counters. SC7–SC11 and the four 008b counters are recorded
-> below as `NOT_IN_SCOPE_THIS_LOT` — they are neither passed nor failed
-> here, they have simply not been attempted yet. Lot 008c carries no
-> Success Conditions by the Planificateur's deliberate choice.
-> **Brief `008` as a whole is NOT complete.** A per-lot ACCEPT on 008a would
-> not close brief `008`; a per-lot REJECT on 008a does not touch 008b.
+> below as `NOT_IN_SCOPE_THIS_LOT` — neither passed nor failed here, simply
+> not attempted yet. Lot 008c carries no Success Conditions by the
+> Planificateur's deliberate choice.
+> **Brief `008` as a whole is NOT complete.** An ACCEPT on 008a does not
+> close brief `008`.
 
-## Mechanical Gate Result
+## Iteration history — kept visible, not overwritten
+
+| iteration | commit | verdict | why |
+|---|---|---|---|
+| 1 | `6292e16` | **REJECT** | SC2 failed. `ledger_consult_before_transition_paths_count` was scoped to `resolve_push()` alone; measured over the real entry point it was `1` gated / `3` capable. Two of `resolve()`'s three branches emitted a non-empty `event=` on a genuinely `AUDIT_ARCHIVED` audit with no ledger read — I demonstrated this live against the real ledger. |
+| 2 | `1beaa6d` | **ACCEPT** | SC2 now genuinely holds across the whole entry point, verified end-to-end through the real CLI subprocess. See below. |
+
+The iteration-1 finding is preserved in full in the "Iteration 1 —
+the rejected submission" section at the end. It is not edited away.
+
+## Mechanical Gate Result — iteration 2
 
 Command: `py harness/verdict_audit.py harness/queue/briefs/008-full-auto-automation-gaps`
 
-Pre-verdict run (before this file existed): exit `1`, `VERDICT: REJECT`,
-with two red rows — `verdict_numbers_traceable` and
-`verdict_is_not_self_authored`. I confirmed both were red **solely**
-because `verdict.md` did not exist, and not as cover for anything else:
-`check_verdict_numbers_traceable` returns early with the literal evidence
-string "verdict.md missing" when the file is absent, and
-`check_verdict_not_self_authored` returns early when either `Author`
-frontmatter is unreadable — `generator-log.md`'s `Author` field is present
-and reads `forge-generateur`, so the missing side was mine. Every other
-row was green in that same run, including `declared_files_are_tracked`
-(the Générateur's own self-check recorded that row red because it was
-forbidden to commit; the owner has since committed, and the row is now
-green — that is a genuine improvement, not a re-scoping).
-
-Post-verdict re-run output is captured verbatim at
+All ten rows green, `VERDICT: ACCEPT`, exit `0`. Output captured verbatim at
 `harness/queue/briefs/008-full-auto-automation-gaps/deliverables/evaluateur-gate-rerun.txt`
-(a `.txt`, not a `.log`, so the Execution Contract's "any proof artifact
-must be a committed copy under `deliverables/`" rule can hold — `.gitignore`
-excludes `*.log`)
-(cited by path, not re-typed — hard-won rule `12`).
+(cited by path, not re-typed — hard-won rule `12`; a `.txt` not a `.log`, so
+the Execution Contract's "any proof artifact must be a committed copy under
+`deliverables/`" rule can hold, since `.gitignore` excludes `*.log`).
 
-With this file present, that re-run turns all ten rows green and the gate
-now prints `VERDICT: ACCEPT`, exit `0`. **That does not make this lot a
-PASS.** The mechanical gate is necessary but not sufficient (hard-won
-rule 7, "presence is not function"): it checks that a verdict exists, is
-foreign-authored, and cites only traceable numbers — it does not and
-cannot check whether the counter those numbers describe was measured over
-the scope the brief defined. Rubric row 2 is judged below on
-independently reconstructed evidence, and it fails. A green gate is not
-an override.
+**The gate remains necessary but not sufficient** (hard-won rule 7,
+"presence is not function"). It was *also* green on iteration 1, which I
+rejected. Everything below is independently reconstructed from source, not
+read off the manifest.
 
-## Per-Rubric-Line Verdict — Lot 008a
+## Per-Rubric-Line Verdict — Lot 008a, iteration 2
 
 | # | Success Condition | PASS/FAIL | Evidence I personally ran |
 |---|---|---|---|
-| 1 | Resolution logic lives in a unit-testable Python entry point, invoked by the resolve step | **PASS** | I read `.github/workflows/pipeline-orchestrate.yml` myself: the "Resolve event + payload" step's `run:` block is now `set -euo pipefail`, one `git diff --name-only` for `architecture/reviews/*.md`, and a pipe of those filenames into `trigger_resolve.py resolve` with the three `workflow_dispatch` inputs as flags. No duplicated logic inline. I ran `py -m pytest harness/tests/test_trigger_resolve.py -v`: `12` collected, `12` passed, with no GitHub Actions context — including `test_cli_end_to_end_writes_github_output`, which drives the real subprocess. |
-| 2 | Ledger consulted for **every** path before any non-empty `event=`/`payload=` | **FAIL** | See "SC2 — the finding" below. Measured over the SC1 entry point (`resolve()`), gated paths = `1`, capable paths = `3`. The required equality does not hold; it holds only under the Générateur's own re-scoping of the denominator to `resolve_push()`. |
-| 3 | Exact incident shape → zero transition attempts, proven by a new regression test | **PASS** | `test_terminal_audit_regression_zero_transition_attempts` genuinely asserts `decide_auto_calls == []` **and** `append_event_calls == []` after monkeypatching `audit_decision.decide_auto` and `audit_ledger.append_event` — it is not merely an empty-`event=` string assertion. I verified it is not vacuous by neutralising the guard from outside the repo (an Évaluateur-only pytest plugin in my scratchpad forcing `trigger_resolve.is_terminal` to return `False`, editing no repo file): exactly the two SC3 tests flip red, with `AssertionError: assert 'review_recorded' == ''`. Red-first is real, independently reproduced, not taken from the log. |
-| 4 | Not a blanket skip — non-terminal fixture still dispatches | **PASS** | `test_non_terminal_dispatch_still_reaches_decide_auto` asserts `decide_auto_calls == ["FIXTURE-008a-nonterminal"]` and `result["action"] == "decide_auto"` — the transition **is** attempted, through the real `orchestrator.run_event`. Under my neutralising plugin this test stays green (correctly — the non-terminal path is unaffected), which is what distinguishes it from a fixture that would pass for the wrong reason. |
-| 5 | Conservative ambiguous-diff fallback unchanged | **PASS** | I diffed `deliverables/pre-fix/pipeline-orchestrate.yml.orig` against the live workflow. Pre-fix: `else` branch emits `event=` plus a `::notice::` naming the count and "Use workflow_dispatch with an explicit audit_id." Post-fix `resolve_push()` emits the same shape (`event=""`, same `::notice::` wording, same manual-dispatch instruction) for both the zero-candidate and the more-than-one-candidate case. The counting basis changes from "changed files" to "non-terminal candidates" — but SC5's own text defines the fallback as "0, or more than one, *non-terminal* candidate ... after the SC2 exclusion", so that shift is what the brief asked for, not a deviation. Covered by `test_zero_changed_files_falls_back_to_skip` and `test_two_non_terminal_changed_files_falls_back_to_skip`. |
-| 6 | `audit_decision.py`'s FSM guard unchanged | **PASS** | Verified against git, not against the log: `git show 'origin/master:harness/audit_decision.py' \| git hash-object --stdin` and `git hash-object harness/audit_decision.py` both yield blob `6d89f113e2a52429d1002699d950be27ea214642`. Byte-identical. `git diff --name-only origin/master...HEAD` does not list the file. |
-| — | `must_differ_from` pair | **PASS** | I recomputed both digests myself: pre-fix `d0f474745109642f23fae250e76a2e798a9d381f5704bd94ee49248578e2d23a`, post-fix `49892d194072871175d0ef15a48e41f41d85365b2bdc87308f0ec7d2e52ab305`, differ `True`. I additionally verified the snapshot is an *honest* pre-fix capture: its git blob (`8cb5cc311ef2b38df4f3c91e68d922513f63754f`) is identical to `origin/master`'s version of the workflow. It was not reconstructed after the fact. |
-| — | `workflow_inline_bash_decision_logic_remaining_count` == `0` | **PASS** | Re-measured with my own detector, not the Générateur's regex: I extracted the resolve step's `run:` block and looked for any bash line emitting `event=`/`payload=` without going through the entry point (`0` found) and for any branching construct (`1` found: the `\|\| true` guard on `git diff`, which decides nothing about `event=`). Entry-point call present. |
+| 1 | Resolution logic lives in a unit-testable Python entry point, invoked by the resolve step | **PASS** | `.github/workflows/pipeline-orchestrate.yml` is byte-identical to iteration 1 (blob `9c9dfb4fdda1285aa8df32e1f4ce7bd171194c77` at both `HEAD` and `HEAD~1`), and I verified its resolve step calls `trigger_resolve.py resolve` with no duplicated inline logic. `py -m pytest harness/tests/test_trigger_resolve.py -v`: `17` collected, `17` passed, no GitHub Actions context. |
+| 2 | Ledger consulted for **every** path before any non-empty `event=`/`payload=` | **PASS** | The iteration-1 defect is closed. My own whole-module AST scan finds exactly `3` capable non-empty-`event=` returns (lines `180`, `245`, `253`) and exactly `3` `current_state_for` calls (lines `165`, `233`, `247`), each preceding its branch's capable return. Confirmed end-to-end through the real CLI subprocess against the live ledger, not only through the Python function — see the probe table below. The one declared exception is a genuine structural exemption, proved so by exhaustive probe, not a re-scoping — see the ruling below. |
+| 3 | Exact incident shape → zero transition attempts, proven by a new regression test | **PASS** | `test_terminal_audit_regression_zero_transition_attempts` still asserts `decide_auto_calls == []` **and** `append_event_calls == []` against monkeypatched `audit_decision.decide_auto` / `audit_ledger.append_event`. Unmodified since iteration 1 (`git diff HEAD~1 HEAD` on the test file shows zero deleted lines). Re-proved red by neutralising the guard from outside the repo. |
+| 4 | Not a blanket skip — non-terminal fixture still dispatches | **PASS** | Now proven for all three branches, not just the push path. `test_non_terminal_dispatch_still_reaches_decide_auto`, `test_resolve_payload_non_terminal_audit_id_still_dispatches`, `test_resolve_audit_id_non_terminal_still_dispatches` each assert `decide_auto` **was** called with the right `audit_id` through the real `orchestrator.run_event`. Confirmed live: a `workflow_dispatch --audit-id` naming the non-terminal `CURSOR-5633ee7-automation-completeness` still emits `event=review_recorded`. |
+| 5 | Conservative ambiguous-diff fallback unchanged | **PASS** | `resolve_push()`'s fallback body is unchanged from iteration 1, which I had already diffed against the pre-fix snapshot and found equivalent in substance to the pre-fix bash `else` branch. The new `workflow_dispatch` guards do **not** damage SC5's escape hatch: I verified live that every *non-terminal* `audit_id` manually dispatched still resolves and still dispatches. The only capability removed is manually replaying a transition on an audit whose life is already over — which never worked anyway (it produced the `TransitionError` / exit `2` of the origin incident). Nothing that previously succeeded now fails. |
+| 6 | `audit_decision.py`'s FSM guard unchanged | **PASS** | Verified against git, not the log: blob `6d89f113e2a52429d1002699d950be27ea214642` at `origin/master`, at `HEAD`, and in the worktree. Byte-identical across all three. |
+| — | `must_differ_from` pair | **PASS** | Recomputed: pre-fix snapshot and live workflow differ. The snapshot remains an honest pre-fix capture — its blob `8cb5cc311ef2b38df4f3c91e68d922513f63754f` equals `origin/master`'s version of the workflow. |
+| — | `workflow_inline_bash_decision_logic_remaining_count` == `0` | **PASS** | Re-measured with my own detector, not the Générateur's regex: `0` bash lines emit `event=`/`payload=` outside the entry point; the sole branching construct is a `\|\| true` guard on `git diff`, which decides nothing. |
 
-## Reconstructed counters — mine vs. claimed
+## Reconstructed counters — mine vs. claimed (iteration 2)
+
+Each re-derived by my own command, not by re-running theirs.
 
 | counter | claimed | my reconstruction | agree? |
 |---|---|---|---|
 | `terminal_audit_regression_test_count` | 1 | 1 (`test_terminal_audit_regression_zero_transition_attempts`) | yes |
-| `non_terminal_dispatch_still_works_test_count` | 1 | 1 (`test_non_terminal_dispatch_still_reaches_decide_auto`) | yes |
-| `ledger_consult_before_transition_paths_count` | 1 gated / 1 capable | **1 gated / 3 capable** over the SC1 entry point | **NO** |
+| `non_terminal_dispatch_still_works_test_count` | 3 | 3 (push-diff + both `workflow_dispatch` branches) | yes |
+| `ledger_consult_before_transition_paths_count` | 3 gated / 3 capable | 3 gated / 3 capable | yes |
 | `workflow_inline_bash_decision_logic_remaining_count` | 0 | 0 | yes |
 
-## SC2 — the finding (why this lot is rejected)
+For contrast, iteration 1's third counter claimed 1 gated / 1 capable and I
+reconstructed 1 gated / 3 capable. That disagreement is what the REJECT
+rested on; it is now resolved by fixing the code, not the measurement.
 
-The Générateur scoped `ledger_consult_before_transition_paths_count` to
-`resolve_push()` and disclosed that scoping openly, in the manifest's own
-command string, in the generator-log, and in a "Scope note" in the module
-docstring. The disclosure is honest. **The scoping is not.**
+## Ruling 1 — the declared exception: **honest structural exemption**, not iteration 1's narrowing in a new coat
 
-The counter's denominator, as the brief writes it, is "the total count of
-code paths in **that function** capable of producing a non-empty
-`event=`/`payload=`", where "that function" refers back to "the
-new/modified trigger-resolution **entry point**". SC1 names that entry
-point as the thing `pipeline-orchestrate.yml`'s resolve step invokes —
-which is `resolve()` (via the `resolve` subcommand), not `resolve_push()`.
-The eval-rubric's row 2 repeats the requirement with no scoping at all.
+You were right to flag this as the move I rejected last time. It is not the
+same move, and I can say why in terms of what the code can actually do.
 
-My own AST walk of `harness/pipeline/trigger_resolve.py`:
+**Iteration 1's narrowing** excluded from the denominator two branches that
+carried a real `audit_id` and that I demonstrated, live, producing
+`event=review_recorded` on a genuinely `AUDIT_ARCHIVED` audit. The excluded
+paths were *incident-capable*. Excluding them hid a live defect.
 
-- `resolve_push()` — one `current_state_for` call at line `152`; one
-  return capable of a non-empty `event=` at line `167`; that return is
-  line-gated by the ledger read. `1` / `1`.
-- `resolve()` — **zero** `current_state_for` calls; **two** returns capable
-  of a non-empty `event=` at lines `198` and `200`, neither gated by any
-  ledger read; plus the delegation to `resolve_push()` at line `201`.
+**Iteration 2's exemption** covers the complementary sub-path: a `--payload`
+that carries no `audit_id` at all. To decide whether that is incident-capable
+I did not take the docstring's word for it — I probed the orchestrator
+directly, dispatching every one of the `8` event kinds it accepts against
+`4` adversarial payload shapes (no `audit_id` key; a terminal id smuggled
+into other keys such as `audit`/`id`/`name`; empty-string `audit_id`; null
+`audit_id`), with `decide_auto` and `append_event` both instrumented.
 
-So over the entry point: `1` gated, `3` capable. The equality the brief
-requires — "every one of them reads the ledger first — none bypasses it" —
-is false.
+**Result: `0` transitions reached, across all `32` dispatches.** A control
+dispatch with a truthy terminal `audit_id` did reach `decide_auto`, proving
+the probe detects a transition when one occurs.
 
-This is not a definitional quibble. I probed it against the live ledger:
+The reason is structural and I read it in `orchestrator.py`: every handler
+capable of a ledger transition (`handle_review_recorded`,
+`handle_audit_approved`, `handle_evaluateur_pass`) opens with
+`_require(payload, "audit_id")`, and `_require` tests `not payload.get(k)` —
+so absent, empty-string and null all fail closed. `handle_audit_pr_merge`
+returns `no_op` on a falsy `audit_id`, and when truthy only appends if
+`current_state_for` returns `None`, which is never true of a terminal audit.
+The remaining four handlers never touch the ledger.
 
-- Push-diff path, `CURSOR-FIXTURE-full-auto-demo` (real current state
-  `AUDIT_ARCHIVED`, the *actual* audit from incident run `31085883052`):
-  `resolve()` returns `event=''`, `payload=None`. Fixed. Good.
-- `workflow_dispatch` with `--audit-id CURSOR-FIXTURE-full-auto-demo`:
-  `resolve()` returns `event='review_recorded'`,
-  `payload={'audit_id': 'CURSOR-FIXTURE-full-auto-demo'}`, `notices=[]`,
-  and writes both lines to `$GITHUB_OUTPUT`. **Not fixed.**
-- `workflow_dispatch` with an explicit `--payload` naming the same
-  terminal audit: same result. **Not fixed.**
+So the exempted sub-path names no audit, and cannot be made to name one.
+The guard's domain is `audit_id`s; this sub-path has none. There is nothing
+to bypass. **Honest exemption.** It is also disclosed in three places
+(script docstring, script stdout, counter command string) rather than
+buried, and it does not change the counter's value under either counting
+convention — even counting runtime sub-paths (`4` capable, `3` executing a
+read) the fourth is provably incapable of the outcome SC2 exists to prevent.
 
-Two of the entry point's three branches will still hand the orchestrator a
-transition on an already-terminal audit, with no ledger read, which is the
-precise mechanism that produced `TransitionError` / exit `2` / a silently
-red job in the origin incident. The workflow's own header comment calls
-`workflow_dispatch` "the reliable path", so the surviving hole is on the
-route the file itself advertises as primary.
+One qualification I record rather than waive: the Générateur asserted this
+structural incapability in prose and docstrings; it did **not** prove it
+with a test. `test_resolve_payload_with_no_audit_id_passes_through_unguarded`
+only asserts the pass-through, never that no transition is reachable. I
+proved the claim; they did not. The claim is true, so this is not a FAIL —
+but per hard-won rule 9 the proof should live in the suite, not in my
+verdict. See feedback item 1.
 
-A second, independent narrowing compounds this: the Générateur's detector
-only counts returns whose `event=` keyword is an `ast.Constant` truthy
-literal. The two `resolve()` branches pass `event=in_event`, an
-`ast.Name`. Even if the detector had been pointed at `resolve()`, it would
-have reported `1` / `1` and shown nothing. The measurement instrument
-cannot see the paths in question.
+## Ruling 2 — red-first integrity of the committed detector: **sound, no special-casing**
 
-I record the counter-argument fairly, because it has force: SC2's
-subordinate clause says "for every `audit_id` implied by the push's
-`architecture/reviews/*.md` diff", the `workflow_dispatch` branches are an
-explicit human/CI invocation, SC5 preserves manual `workflow_dispatch` as
-the escape hatch, and this behaviour is unchanged from the pre-fix bash
-(so it is a *surviving* hole, not a newly introduced one). But SC2's
-governing clause is "**Before that entry point ever produces a non-empty
-`event=`/`payload=` pair** ... and excludes ... **before constructing any
-payload**" — unqualified, over the entry point. The brief's own
-World-Terms section states the world-fact as "The trigger that decides
-*which* audit to act on does not consult the one ledger that already knows
-an audit's status." Half the trigger still doesn't. The rubric is applied
-as written (its own preamble insists on that), and as written the equality
-fails.
+The detector is now a committed deliverable and therefore gameable, so I
+checked it three ways.
+
+- **Reproduced the red/green split myself.** I extracted iteration 1's
+  `trigger_resolve.py` (`git show 'HEAD~1:...'`) and iteration 2's
+  (`git show 'HEAD:...'`) into two scratch trees outside the repo and ran
+  the *committed, unmodified* script against each. Iteration 1:
+  `TOTAL: gated=1 capable=3`. Iteration 2: `TOTAL: gated=3 capable=3`. The
+  claim holds exactly, and `1`/`3` matches the number I derived by hand in
+  iteration 1 before this script existed.
+- **Read it for special-casing: none.** `is_capable_return` and
+  `is_ledger_call` are generic AST predicates. No function name, variable
+  name, or line number is special-cased to force a result. The BLOCKER-2
+  rule is implemented conservatively as required: a `Constant` `event=` is
+  capable iff truthy, and **any** non-`Constant` value is treated as
+  capable.
+- **Cross-checked its coverage with my own independent scan.** I walked the
+  whole module for capable returns and confirmed the script's three
+  hardcoded scopes cover all `3` of them, with none missed. The sole
+  non-covered return in `resolve()`'s top-level body is
+  `return resolve_push(...)`, correctly not counted as capable because it
+  delegates to a scope analysed separately.
+
+One real fragility, not a defect today: the script locates its scopes by
+matching `ast.unparse(s.test) == "in_payload"` / `"in_audit_id"`. A future
+fourth branch in `resolve()`, or a renamed parameter, would be silently
+skipped rather than flagged. See feedback item 2.
+
+## Ruling 3 — does the guard hold end-to-end through the real CLI? **Yes**
+
+Not only through the Python function. I drove the actual subprocess the
+workflow invokes — stdin for the diff, `--in-event`/`--in-audit-id`/`--in-payload`
+flags, `--ledger architecture/audit-ledger.jsonl`, `--github-output` to a
+file — against the **live** ledger, where `CURSOR-FIXTURE-full-auto-demo`
+is genuinely `AUDIT_ARCHIVED` (the actual audit from the origin incident)
+and `CURSOR-5633ee7-automation-completeness` is `AUDIT_CONVERTED`.
+
+| probe | `$GITHUB_OUTPUT` written | notice? |
+|---|---|---|
+| push-diff naming the terminal audit (exact incident shape) | `event=` only | yes, names the audit and `AUDIT_ARCHIVED` |
+| `--audit-id` naming the terminal audit | `event=` only | yes, names the branch as `workflow_dispatch --audit-id` |
+| `--payload` naming the terminal audit | `event=` only | yes, names the branch as `workflow_dispatch --payload` |
+| `--audit-id` naming a non-terminal audit | `event=review_recorded` + payload | none — dispatches, as it must |
+| `--payload` with no `audit_id` (the exemption) | `event=gate_reject` + payload | none — pass-through, proved harmless above |
+
+All three branches that were reachable-and-dangerous in iteration 1 now
+write a bare `event=` and a `::notice::`. The downstream "Run orchestrator"
+step is gated on `steps.resolve.outputs.event != ''`, so it does not run.
+The incident is closed on every route into the workflow, not just the one
+the incident happened to arrive by.
+
+I also probed one adversarial shape the tests do not cover: a `--payload`
+of `{"audit_id": ""}` passes through with a non-empty `event=`. It cannot
+cause the incident (`_require` fails closed on the empty string, exit `2`,
+no transition), and this is pre-existing orchestrator behaviour untouched
+by this lot — recorded for completeness, not as a finding.
+
+## Suite state — confirmed for the record
+
+- `py -m pytest harness/tests/ -q` → **`1` failed, `266` passed**, exactly
+  as you stated.
+- The single red is `test_run_unity.py::test_no_brief_prescribes_polling`,
+  offender `harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/checkpoint-002.md`.
+  I verified last iteration that this is red on `origin/master` in a
+  detached worktree, with the identical offender. Pre-existing, brief `007`'s,
+  not 008a's.
+- `py -m pytest harness/tests/test_single_source_of_instruction.py -q` →
+  **green**. The `HANDOFF.md` offender I found is fixed, and the two
+  offenders my own `verdict.md` and `feedback-008a.md` had introduced are
+  fixed too. I re-read the rewording: it renames headings and rephrases
+  mentions; no finding, number, or judgment of mine was removed. Noted
+  without complaint — my own artifacts caused two of the three, which is a
+  fair catch against me.
+- Rubric replay `py -m pytest harness/tests/ -k "trigger or terminal or orchestrat" -q`
+  → `26` passed.
+
+## Red-first, independently reproduced (hard-won rule 9)
+
+I did not accept "`17` passed" as proof the new tests are load-bearing. Two
+neutralisation probes, both from outside the repo, editing no repo file:
+
+- **Guard removed entirely** (`is_terminal` forced to `False`): `4` failed,
+  `13` passed — the `2` original SC3 tests plus the `2` new
+  terminal-blocking tests.
+- **Iteration 1's `resolve()` restored, everything else at iteration 2**:
+  **exactly** the `2` new terminal-blocking tests fail, with
+  `AssertionError: assert 'review_recorded' == ''`. `2` failed, `15` passed.
+
+The second probe is the decisive one: it isolates the new tests to the
+BLOCKER-1 fix specifically. The two "still dispatches" tests correctly stay
+green (they do not depend on the guard), and the exemption test correctly
+stays green. The new tests are neither vacuous nor over-broad.
 
 ## SC7–SC11 and 008b counters — NOT_IN_SCOPE_THIS_LOT
 
-Recorded so they cannot silently vanish. None of these is judged here;
-none of these contributes to the 008a verdict.
+Recorded so they cannot silently vanish. None is judged here; none
+contributes to the 008a verdict.
 
 | # / counter | status |
 |---|---|
@@ -157,182 +226,201 @@ none of these contributes to the 008a verdict.
 | `must_differ_from`: `auto_policy.yaml.orig`, `orchestrator.py.orig` | `NOT_IN_SCOPE_THIS_LOT` (neither snapshot exists yet, correctly) |
 | Lot 008c (`ARCH-002` / `ARCH-004`) | Blocked on an owner product decision; no Success Conditions exist by design |
 
-## Overall Verdict: **LOT_008a: REJECT**
+## Overall Verdict: **LOT_008a: ACCEPT**
 
-Rubric row 2 fails. The rubric's own Overall Verdict Rule requires rows
-1–6 to pass. Five of six pass, and pass well; one does not.
+Without hedging. SC1–SC6 all pass on evidence I reconstructed myself, the
+four 008a counters all reconcile with my own independent measurements, the
+mechanical gate is green, the origin incident is closed on every route into
+the workflow rather than only the one it arrived by, and the fix is proven
+by tests I verified are load-bearing by breaking the code from outside and
+watching precisely the right ones fail.
 
-**Brief `008` remains open regardless**: Lot 008b is un-started and Lot 008c
-is un-specified.
+The single blocking finding from iteration 1 is genuinely fixed — fixed in
+the code, not fixed in the description of the code, which is the
+distinction that mattered.
+
+**Brief `008` remains open**: Lot 008b is un-started, Lot 008c
+un-specified. This ACCEPT closes Lot 008a only.
 
 ## Boundary Violations
 
-None. Every boundary I checked is clean, verified against `origin/master`
-(`32640da`) rather than against the log's claim:
+None. Verified against `origin/master` (`32640da`), path by path, not
+against the log's claim.
 
 - `git diff --name-only origin/master...HEAD` restricted to each forbidden
-  path returns empty for all of: `pipeline-audit.yml`,
-  `pipeline-challenge.yml`, `pipeline-forge-run.yml`,
-  `docs/rules/full-auto-pipeline.md`, `harness/audit_convert.py`,
-  `harness/pipeline/auto_policy.yaml`, `harness/pipeline/orchestrator.py`,
-  `harness/pipeline/config.yaml`, `harness/audit_decision.py`,
-  `docs/adr/0006-full-auto-agent-pipeline.md`, `sim/`, `pipeline/geo/`,
-  `unity/`.
-- The three `TODO(operator` markers still occur once each in the three
-  agent-invocation workflows, unchanged in count from `origin/master`.
-  The `<<TODO>>` marker in `docs/rules/full-auto-pipeline.md` likewise
-  unchanged.
-- Lot 008a's generator commit touched exactly its own declared file set
-  plus this brief's `deliverables/` and the cost ledger. No 008b file.
+  path is empty for all of: `pipeline-audit.yml`, `pipeline-challenge.yml`,
+  `pipeline-forge-run.yml`, `docs/rules/full-auto-pipeline.md`,
+  `harness/audit_convert.py`, `harness/pipeline/auto_policy.yaml`,
+  `harness/pipeline/orchestrator.py`, `harness/pipeline/config.yaml`,
+  `harness/audit_decision.py`, `docs/adr/0006-full-auto-agent-pipeline.md`,
+  `sim/`, `pipeline/geo/`, `unity/`.
+- `orchestrator.py` and `audit_decision.py` are *imported and called* by
+  the new tests and by my own probes — never edited. Blob-verified.
 - No claim of a real `gh issue create` anywhere in the deliverables.
+- The workflow YAML was not touched this iteration at all.
 
-## What Improved Since Last Iteration
+## What Improved Since Iteration 1
 
-Genuine improvements, stated so the feedback loop stays calibrated rather
-than uniformly negative:
+- **The blocking defect was fixed in the code, not argued away.** All three
+  `resolve()` branches now consult the ledger. This is the response I asked
+  for and the one I would not have accepted a rationalisation in place of.
+- **The escalation path was respected.** I told them that if they believed
+  the `workflow_dispatch` branches should stay ungated, that was a
+  Planificateur amendment and not theirs to make. They chose the other
+  branch of that instruction — fix the code — rather than filing a
+  counter-argument. Either was legitimate; this one is better.
+- **The measuring instrument was rebuilt and committed**, so the counter is
+  now reproducible by anyone rather than living in a one-off `py -c` string,
+  and its red-first behaviour is verifiable against history. I verified it.
+- **The overclaim was corrected additively.** The wrong iteration-1 claim is
+  still on the page, marked wrong, with the reasoning; it was not edited
+  into looking correct. That is the honest way to carry a mistake forward.
+- **The `git stash -u` methodology error was named and replaced** with the
+  detached-worktree method, as a stated forward commitment.
+- **All `12` original tests are unmodified** — `git diff HEAD~1 HEAD` on the
+  test file shows zero deletions. The suite grew by addition, never by
+  loosening an existing assertion to make room.
+- **The shared `_terminal_notice()` helper** keeps the incident-cause
+  wording identical across all three branches instead of three drifting
+  copies.
+- **Budget ambiguity was reported honestly** (`AMBIGUOUS`, `tool_calls_at:
+  -1`) rather than invented.
 
-- **Red-first is real and independently reproducible.** I neutralised the
-  guard from outside the repo and got exactly the two failures the log
-  claimed, with the same assertion text. This is the strongest form of
-  hard-won rule 9 compliance I can verify without trusting the author.
-- **SC3's test meets the strict reading.** It asserts zero *calls* into
-  both `audit_decision.decide_auto` and `audit_ledger.append_event`, not
-  merely an empty `event=` string. The earlier `assert outcome.event == ""`
-  does short-circuit ahead of the mock assertions, but the mock assertions
-  are load-bearing: with the guard neutralised and that line relaxed, the
-  workflow-mirroring `if outcome.event:` branch would fire and both lists
-  would be non-empty.
-- **The pre-fix snapshot is honest.** Its blob is byte-identical to
-  `origin/master`'s workflow — captured before the edit, as claimed.
-- **SC6 proven structurally, not narratively.** Blob-identical.
-- **`is_terminal()` derives terminality from the live
-  `audit_ledger.TRANSITIONS` table** rather than hardcoding
-  `AUDIT_ARCHIVED`. That is the right instinct (hard-won rule `12`) and it
-  is what will keep this correct if a second terminal state appears.
-- **No second ledger reader was written.** SC2's explicit "not a second,
-  competing ledger-state reconstruction" instruction was respected —
-  `audit_ledger.current_state_for` is imported and used directly.
-- **`declared_files_are_tracked` is now green**, having been red at
-  Générateur handoff for a stated, legitimate reason.
+## What Regressed Since Iteration 1
 
-## What Regressed Since Last Iteration
-
-- **`test_single_source_of_instruction.py::test_no_paraphrased_brief_headings_outside_brief_md` is RED at HEAD, and it did not stay fixed.**
-  Commit `c07e7f5` fixed the `eval-rubric.md` offender. Commit `e3cc258`
-  (the `HANDOFF.md` checkpoint, written *after* that fix) reintroduced the
-  same violation in a different file: the offender is now
-  `('HANDOFF.md', '<the non-goals heading>')`. I confirmed the culprit with
-  `git log -S'<the non-goals heading>' -- HANDOFF.md`, which names `e3cc258` alone.
-  This test is **green** on `origin/master`, so it is a branch regression,
-  not a pre-existing failure. It is not a Lot 008a deliverable — no file
-  in `manifest.json` is the offender — so it does not by itself sink the
-  lot, but the branch is red and must not be pushed in this state.
+Nothing. The workflow is byte-identical, `audit_decision.py` is
+byte-identical, no original test was weakened, no Non-Goal was crossed, and
+the suite improved from `2` red to `1` red (the remaining one pre-existing
+and not this lot's).
 
 ## Feedback for Next Iteration
 
-Each item states how to fix it, specifically.
+Not blocking. Lot 008a is accepted; these are for whoever touches this code
+next, most likely the 008b session.
 
-1. **SC2 / `ledger_consult_before_transition_paths_count` — the blocking
-   item.** Move the terminal-state exclusion up into `resolve()` so that
-   *all three* branches are gated, not one. Concretely: after the
-   `in_payload` branch parses its JSON and after the `in_audit_id` branch
-   forms `{"audit_id": ...}`, extract the `audit_id` from the payload and
-   run the same `audit_ledger.current_state_for` +
-   `is_terminal` check `resolve_push()` already runs; on terminal, return
-   `ResolveOutcome(event="", notices=[...])` with the same `::notice::`
-   wording naming the `audit_id` and its terminal state. If a payload
-   carries no `audit_id` (e.g. the `gate_reject` shape used in
-   `test_resolve_prioritises_explicit_payload_over_diff`), that branch has
-   no audit to look up and should be documented as structurally incapable
-   of the incident — but document it in the brief-facing counter, not only
-   in a docstring. Then re-measure the counter over `resolve()` and expect
-   `3` gated / `3` capable.
-   **If you believe the `workflow_dispatch` branches must stay ungated**
-   (a defensible product position — a human explicitly overriding), that
-   is a change to the brief's counter definition, which only the
-   Planificateur may make. Escalate it as a brief-amendment request; do
-   not resolve it by narrowing the denominator in the generator-log.
+1. **Put the exemption's justification in the suite, not in a docstring.**
+   The claim "a `--payload` with no `audit_id` is structurally incapable of
+   the incident" is load-bearing for the counter and is currently proved
+   only in prose. I proved it with a `32`-dispatch probe; that probe should
+   be a test. Add one that dispatches a no-`audit_id` payload through every
+   `orchestrator.EVENT_TO_RULE_IDS` key with `decide_auto` and
+   `append_event` instrumented, asserting zero calls — and include a control
+   dispatch with a truthy terminal `audit_id` that *does* reach
+   `decide_auto`, so the test cannot pass vacuously.
 
-2. **Fix the measurement instrument, not just the code.** The current AST
-   detector only recognises `event=` keywords that are `ast.Constant`
-   literals. Extend it to treat any non-`Constant` `event=` value (an
-   `ast.Name`, an f-string, a call) as *capable of non-empty* — the
-   conservative reading — otherwise the counter will keep reporting a
-   clean equality over paths it structurally cannot see. Re-run it over
-   `resolve()` and paste both the gated and the capable count.
+2. **Pin the invariant the exemption depends on.** The exemption is true
+   only because every transition-capable handler in `orchestrator.py` opens
+   with `_require(payload, "audit_id")`. Lot 008b edits that file's handler
+   table. If a future handler derives an `audit_id` by any other route, the
+   exemption silently becomes false and no test will notice. Add an
+   assertion that every handler reachable from a ledger transition requires
+   a truthy `audit_id`.
 
-3. **Close the `HANDOFF.md` single-source regression.** Rename the
-   verbatim non-goals heading in `HANDOFF.md` to something that points at
-   brief `008` rather than restating its structure (the same remedy
-   `c07e7f5` applied to `eval-rubric.md`), then confirm
-   `py -m pytest harness/tests/test_single_source_of_instruction.py -q`
-   is green before any push. Add this file to whatever check runs at
-   checkpoint time — the fix was applied once and immediately undone by
-   the next commit, which means the loop is not catching it.
+3. **Harden the detector's scope discovery.** It finds its scopes by
+   `ast.unparse(s.test) == "in_payload"` / `"in_audit_id"`. Make it
+   enumerate every capable return in the module first and assert that its
+   analysed scopes cover all of them — failing loudly if one is
+   unaccounted for — rather than analysing three hardcoded branches. That
+   is the check I had to run by hand to trust the number.
 
-4. **Correct one overclaim in `generator-log.md` (small, but real).** The
-   log states that *both* full-suite failures are "pre-existing" and were
-   "reproduced via `git stash -u` ... both fail identically on the
-   unmodified tree." That is true for
-   `test_no_brief_prescribes_polling` — I confirmed it independently, red
-   on `origin/master` (`32640da`) with the identical offender
-   (`harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/checkpoint-002.md`),
-   and it is *not* caused by anything 008a did. It is **false** for
-   `test_no_paraphrased_brief_headings_outside_brief_md`: that test is
-   green on `origin/master`, and the offender at the time
-   (`eval-rubric.md`) was committed in `ed6de66` as part of brief `008`
-   itself. `git stash -u` cannot remove an already-committed file, so the
-   "unmodified tree" the Générateur tested was still the brief-`008` tree.
-   The failure was `008`-introduced (by the Planificateur, not by this
-   Générateur) — but it was not pre-existing, and it should have been
-   escalated rather than filed under "unrelated". When claiming a failure
-   is pre-existing, reproduce it against `origin/master` in a detached
-   worktree, not against a stash.
+4. **Consider a fixture for the mixed-diff case.** A push touching two
+   review files, one terminal and one not, now resolves to
+   `event=review_recorded` where the pre-fix bash skipped. SC5 explicitly
+   authorises this, so it is not a defect, but it is the one genuinely new
+   dispatch behaviour this lot introduced and it still has no test. Carried
+   over from iteration 1's feedback, still open, still optional.
 
-5. **Note, not a failure: the task brief's baseline commit reference is
-   stale.** `origin/master` is `32640da` (merge of PR `#11`), not
-   `198cfd9` (merge of PR `#10`). Both are red for
-   `test_no_brief_prescribes_polling`, so the conclusion holds, but cite
-   the current tip next time.
+5. **Note, unchanged from iteration 1:** the resolve step launches the
+   module with the bare interpreter alias hard-won rule 1 forbids locally
+   (`py` is the required launcher here). This matches the pre-existing
+   convention in `audit-guard.yml`, `harness-ci.yml`,
+   `pipeline-challenge.yml`, `pipeline-forge-run.yml` and this same file's
+   "Run orchestrator" step, and these jobs run on `ubuntu-latest` where the
+   Store-alias hazard does not exist. Consistent, not a defect. Recorded so
+   the count stays on the books.
 
-6. **Note, not a failure: the new workflow line introduces one more
-   invocation through the bare interpreter alias** that hard-won rule 1
-   forbids locally (`py` is the required launcher here). I checked the
-   precedent before flagging it: `audit-guard.yml`, `harness-ci.yml`,
-   `pipeline-challenge.yml`, `pipeline-forge-run.yml` and this same
-   workflow's pre-existing "Run orchestrator" step all already use it, and
-   these jobs run on `ubuntu-latest` where the Store-alias hazard does not
-   exist. So this is consistent with the repo's own convention and the
-   gate does not scan workflow files. Flagged only so the count is
-   recorded, not as a defect of this lot.
+---
 
-7. **Optional coverage gap worth one more test.** SC5's new counting basis
-   means a push touching two review files, one of them terminal, now
-   resolves to `event=review_recorded` where the pre-fix bash would have
-   skipped. The brief authorises that broadening explicitly, so it is not
-   a defect — but it is the one genuinely new dispatch behaviour this lot
-   introduces and it currently has no test. Add a fixture with one
-   terminal and one non-terminal changed file asserting
-   `event == "review_recorded"` for the non-terminal one.
+# Iteration 1 — the rejected submission (preserved)
 
-## Verification commands I ran (for replay)
+Commit `6292e16`. **Verdict at the time: LOT_008a REJECT.** Retained in
+full so the loop's history is not sanitised into a clean-looking pass.
+
+**The blocking finding.** `ledger_consult_before_transition_paths_count`
+was measured over `resolve_push()` and reported 1 gated / 1 capable. The
+brief's denominator is "code paths in **that function**", where "that
+function" refers to "the new/modified trigger-resolution **entry point**" —
+which SC1 defines as what the workflow invokes, i.e. `resolve()`. Measured
+there: **1 gated / 3 capable**. `resolve()` made zero `current_state_for`
+calls; its two `workflow_dispatch` returns were ungated.
+
+**Demonstrated live, not argued.** Against the real ledger with
+`CURSOR-FIXTURE-full-auto-demo` at `AUDIT_ARCHIVED` — the actual audit from
+incident run `31085883052`:
+
+- push-diff path → `event=''` (fixed at iteration 1)
+- `--audit-id CURSOR-FIXTURE-full-auto-demo` → `event='review_recorded'`,
+  payload built, no ledger read, no notice — **not fixed**
+- `--payload` naming the same terminal audit → same — **not fixed**
+
+Two of three branches still handed the orchestrator a transition on an
+already-terminal audit, on the route the workflow's own header calls "the
+reliable path".
+
+**Compounding defect (BLOCKER-2).** The iteration-1 detector only
+recognised `event=` keywords that were `ast.Constant` literals; the two
+bypass branches pass `event=in_event`, an `ast.Name`. Pointed at
+`resolve()` unchanged it would still have printed 1/1. The instrument could
+not see the paths in question.
+
+**What passed at iteration 1** (and still passes): SC1, SC3, SC4, SC5, SC6,
+the `must_differ_from` pair, and
+`workflow_inline_bash_decision_logic_remaining_count` == 0. The pre-fix
+snapshot was verified an honest capture (blob-identical to `origin/master`),
+`audit_decision.py` blob-identical, red-first independently reproduced, and
+every Non-Goal boundary clean.
+
+**ISSUE-3, the overclaim.** The iteration-1 log claimed both full-suite
+failures were "pre-existing", reproduced via `git stash -u`. True for
+`test_no_brief_prescribes_polling` (I confirmed it red on `origin/master`).
+False for `test_no_paraphrased_brief_headings_outside_brief_md`: green on
+`origin/master`, and its offender (`eval-rubric.md`) was committed in
+`ed6de66` as part of brief `008` itself — `git stash -u` cannot remove a
+committed file, so the "unmodified tree" tested was still the brief-`008`
+tree. Corrected additively by iteration 2.
+
+**ISSUE-4, a regression I found outside the deliverables.**
+`test_single_source_of_instruction.py` was red at `e3cc258`: commit
+`c07e7f5` fixed the `eval-rubric.md` offender and the very next commit
+reintroduced the same violation in `HANDOFF.md`. Fixed since; green now.
+Two further offenders in that same class were introduced by my own
+iteration-1 `verdict.md` and `feedback-008a.md`, and were fixed by the
+owner. Recorded against myself as well as against the loop.
+
+## Verification commands I ran (iteration 2, for replay)
 
 - `py harness/verdict_audit.py harness/queue/briefs/008-full-auto-automation-gaps`
 - `py -m pytest harness/tests/ -q`
 - `py -m pytest harness/tests/ -k "trigger or terminal or orchestrat" -q`
 - `py -m pytest harness/tests/test_trigger_resolve.py -v`
+- `py -m pytest harness/tests/test_single_source_of_instruction.py -q`
 - `py -m pytest harness/tests/test_trigger_resolve.py -p plugin_prefix -q`
-  with a scratchpad-only plugin forcing `trigger_resolve.is_terminal` to
-  `False` (no repo file edited)
-- `git worktree add --detach <scratchpad> origin/master` then
-  `py -m pytest <worktree>/harness/tests/test_run_unity.py::test_no_brief_prescribes_polling <worktree>/harness/tests/test_single_source_of_instruction.py -q`
-- `git hash-object` / `git show 'origin/master:<path>' \| git hash-object --stdin`
-  for `harness/audit_decision.py` and the workflow snapshot
+  (scratchpad plugin forcing `trigger_resolve.is_terminal` to `False`)
+- `py -m pytest harness/tests/test_trigger_resolve.py -p plugin_it1 -q`
+  (scratchpad plugin restoring iteration 1's `resolve()` body only)
+- the committed `deliverables/measure_ledger_consult_paths.py`, run
+  unmodified against `git show 'HEAD~1:harness/pipeline/trigger_resolve.py'`
+  and `git show 'HEAD:...'` in two scratch trees outside the repo
+- my own whole-module AST scan of `trigger_resolve.py`, cross-checking the
+  detector's scope coverage against every capable return
+- direct CLI-subprocess probes of all `5` branch shapes against the live
+  `architecture/audit-ledger.jsonl`
+- an exhaustive `orchestrator.run_event` probe: every event kind × `4`
+  adversarial no/falsy-`audit_id` payloads, with `decide_auto` and
+  `append_event` instrumented, plus a positive control
+- `git hash-object` / `git show '<rev>:<path>' \| git hash-object --stdin`
+  for `harness/audit_decision.py` and the workflow, across
+  `origin/master`, `HEAD~1`, `HEAD`
 - `git diff --name-only origin/master...HEAD -- <each Non-Goal path>`
-- `git grep -c 'TODO(operator' origin/master -- .github/workflows/` and the
-  same at `HEAD`
-- my own AST walk of `harness/pipeline/trigger_resolve.py` counting
-  `current_state_for` calls and non-empty-`event=`-capable returns per
-  function
-- direct probes of `trigger_resolve.resolve()` on all three branches
-  against the real `architecture/audit-ledger.jsonl`
+- `git diff HEAD~1 HEAD -- harness/tests/test_trigger_resolve.py` to confirm
+  zero deletions from the original `12` tests
