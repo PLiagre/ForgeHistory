@@ -1,0 +1,40 @@
+name: hermes-observer
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+  workflow_run:
+    workflows:
+      - audit-guard
+      - harness-ci
+      - merge-bot
+      - pipeline-audit
+      - pipeline-challenge
+      - pipeline-failure-escalate
+      - pipeline-forge-run
+      - pipeline-orchestrate
+      - security
+    types: [completed]
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: hermes-observer-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.workflow_run.id || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  reconcile:
+    name: Reconcile local Hermes state
+    runs-on: [self-hosted, Windows, X64, hermes-observer]
+    timeout-minutes: 30
+    steps:
+      - name: Forward event to the read-only observer
+        shell: powershell
+        run: >-
+          & 'C:\Users\liagr\Documents\ChatGPT\hermes\scripts\runner-event.ps1'
+          -EventName '${{ github.event_name }}'
+          -EventPath '${{ github.event_path }}'
