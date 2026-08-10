@@ -32,6 +32,26 @@ prose): an unreadable/missing workflow file, or any mode value this module
 does not recognise, is refused -- never silently accepted as if it were
 `manual`.
 
+Iteration-2 correction (feedback-009a.md blocker B2): iteration 1 accepted
+`full_auto` on ANY workflow file that merely lacked the stub marker,
+including an empty file, a whitespace-only file, or a file truncated
+before the marker's own position -- because "the marker string is absent"
+is not the same claim as "this file positively proves forge-run is
+wired". Absence of a bad sign is not presence of a good one. The check
+below is inverted accordingly: `full_auto` is accepted only when the file
+(a) has non-whitespace content, (b) contains positive structural evidence
+it is a real, complete GitHub Actions workflow (`jobs:` and `runs-on:`
+both present -- a minimal, dependency-free proxy for "this is a real
+workflow body", chosen instead of a YAML parse per this brief's own
+Non-Goal against adding PyYAML to any production import), AND (c) does not
+still carry the stub marker. Any one of the three failing is a refusal,
+in the same "cannot prove forge-run is wired" family as the pre-existing
+I/O refusal below -- there is no fourth, silently-permissive outcome.
+`UnicodeDecodeError` (a non-UTF-8 workflow file) is now caught alongside
+`OSError` so every refusal reaches a caller as the module's own published
+`ModeGuardError` contract, never a raw traceback of an unrelated exception
+type.
+
 Usage:
   from harness.pipeline.full_auto_mode_guard import validate_mode, ModeGuardError
   validate_mode("full_auto_decision_only")  # returns None, no raise
@@ -47,6 +67,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_FORGE_RUN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pipeline-forge-run.yml"
 
 FORGE_RUN_STUB_MARKER = "TODO(operator"
+
+# Minimal, dependency-free (no PyYAML) positive evidence that a file is a
+# real, complete GitHub Actions workflow body, not merely a file that
+# happens not to contain the stub marker (empty/whitespace/truncated
+# files all satisfy "does not contain the marker" without proving
+# anything -- see the iteration-2 module docstring correction above).
+REQUIRED_WORKFLOW_STRUCTURE_MARKERS = ("jobs:", "runs-on:")
 
 VALID_ALWAYS = {"manual", "full_auto_decision_only"}
 CONDITIONALLY_VALID = {"full_auto"}
@@ -75,13 +102,40 @@ def validate_mode(mode: str, forge_run_workflow: Path | str | None = None) -> No
         path = Path(forge_run_workflow) if forge_run_workflow is not None else DEFAULT_FORGE_RUN_WORKFLOW
         try:
             text = path.read_text(encoding="utf-8")
-        except OSError as exc:
-            # Unreadable/missing workflow file: cannot prove forge-run is
-            # wired, so refuse -- fail closed, never assume "must be fine".
+        except (OSError, UnicodeDecodeError) as exc:
+            # Unreadable/missing/undecodable workflow file: cannot prove
+            # forge-run is wired, so refuse -- fail closed, never assume
+            # "must be fine". UnicodeDecodeError is caught alongside
+            # OSError (iteration-2 fix) so this reaches the caller as the
+            # module's own published ModeGuardError contract, not a raw
+            # traceback of an unrelated exception type.
             raise ModeGuardError(
                 f"mode: full_auto refused -- could not read {path} to verify "
                 f"forge-run's wiring state ({exc}); fail-closed."
             ) from exc
+
+        # Positive-evidence checks, in order, each its own distinct refusal
+        # reason -- absence of the stub marker alone proves nothing (an
+        # empty file, a whitespace-only file, and a file truncated before
+        # the marker's own position ALL "lack the marker" without proving
+        # forge-run is wired; iteration-2 fix for feedback-009a.md B2).
+        if not text.strip():
+            raise ModeGuardError(
+                f"mode: full_auto refused -- {path} is empty or has no "
+                "content: cannot prove forge-run is wired from a file with "
+                "nothing in it; fail-closed."
+            )
+        missing_structure = [
+            marker for marker in REQUIRED_WORKFLOW_STRUCTURE_MARKERS if marker not in text
+        ]
+        if missing_structure:
+            raise ModeGuardError(
+                f"mode: full_auto refused -- {path} does not look like a "
+                f"complete GitHub Actions workflow (missing "
+                f"{missing_structure!r}): cannot prove forge-run is wired "
+                "from a file that is not evidently a real, complete "
+                "workflow body; fail-closed."
+            )
         if FORGE_RUN_STUB_MARKER in text:
             raise ModeGuardError(
                 f"mode: full_auto refused -- {path} still contains "

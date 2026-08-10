@@ -312,3 +312,279 @@ handing back: still 280 passed, 0 failed (see the unchanged full log at
 session before the commit; the suite itself was not touched by this
 addendum, only `manifest.json` and this file were edited, per the
 orchestrator's own instruction not to modify anything else).
+
+## Iteration 2 (2026-08-10) -- correcting iteration 1's REJECT (feedback-009a.md, verdict.md)
+
+The Évaluateur's REJECT of iteration 1 (commits `244a4f2` + `1f83231`,
+`verdict.md`) is correct on all three blockers it names. Per this repo's
+own append-only-history discipline (the same one `verdict.md`'s own text
+invokes for brief 008), the false sentences written above during iteration
+1 are **not deleted or rewritten** -- this section states plainly which
+ones were false, why the original verification did not catch it, and what
+was actually done to fix each one. Nothing in "What was built", "Prove red
+first", the counter sections, or the first addendum above was edited by
+this pass.
+
+### B2 -- the guard's central defect, fixed by inverting the check's polarity
+
+**What iteration 1's text claimed, and why it was false.** Two sentences
+asserted the guard "refuses on every degraded path ... including a path
+pointing at an empty file" (`244a4f2`'s own commit message) and was
+"probed against four degraded workflow-file inputs ... and refused on all
+four" (this file's first addendum, relayed from the orchestrator and
+explicitly flagged there as not self-certifying -- a flag that turned out
+to be exactly the right caution, since the sentence it was attached to was
+wrong). Both are false: `validate_mode("full_auto", forge_run_workflow=
+<empty file>)` returned `None` (silent acceptance), and the same held for
+a whitespace-only file. I reproduced this myself, red, before touching the
+module -- see the exact commands and output below.
+
+**Why the original check missed it.** The iteration-1 guard's only
+positive check was "does the text still contain `TODO(operator`?" --
+absence of that marker was treated as proof forge-run is wired. An empty
+file, a whitespace-only file, and a file truncated before the marker's own
+position all "lack the marker" too, without proving anything. The bug was
+structural (an absence-based check standing in for a presence-based
+proof), not a missed edge case, exactly as this iteration's own framing
+named it.
+
+**Reproduction, run against the unmodified iteration-1 module before any
+fix in this iteration**, `harness/pipeline/full_auto_mode_guard.py` at
+`de6db4b` (the Évaluateur's REJECT commit, code unchanged since
+`244a4f2`):
+
+```
+EMPTY FILE RESULT: ACCEPTED, returned None
+WHITESPACE FILE RESULT: ACCEPTED, returned None
+BAD ENCODING RESULT: UNCAUGHT UnicodeDecodeError 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+```
+
+**Four new tests added to `harness/tests/test_mode_guard.py`, each proved
+red first against the SAME unmodified module, before the fix landed:**
+
+```
+FAILED harness/tests/test_mode_guard.py::test_empty_forge_run_workflow_refuses_full_auto_fail_closed
+FAILED harness/tests/test_mode_guard.py::test_whitespace_only_forge_run_workflow_refuses_full_auto_fail_closed
+FAILED harness/tests/test_mode_guard.py::test_truncated_forge_run_workflow_before_jobs_section_refuses_full_auto_fail_closed
+FAILED harness/tests/test_mode_guard.py::test_non_utf8_forge_run_workflow_raises_mode_guard_error_not_uncaught_exception
+4 failed, 1 passed, 8 deselected in 0.18s
+```
+
+(the fifth new test's assertion did not accidentally already pass for
+some other reason -- 4 of the 4 new assertions failed, and each failure
+message is the specific one expected: `DID NOT RAISE ModeGuardError` for
+the three fail-closed cases, `UnicodeDecodeError` escaping uncaught for
+the fourth.)
+
+**The fix, in `harness/pipeline/full_auto_mode_guard.py`.** After
+`read_text` succeeds, the guard now refuses in three added steps before it
+ever checks for the stub marker: (1) empty-or-whitespace-only content is
+refused outright ("cannot prove forge-run is wired from a file with
+nothing in it"); (2) content missing either `jobs:` or `runs-on:` --
+`REQUIRED_WORKFLOW_STRUCTURE_MARKERS` -- is refused as "does not look like
+a complete GitHub Actions workflow" (a minimal, dependency-free proxy for
+"this is a real workflow body", chosen over a YAML parse specifically
+because this brief's own Non-Goals forbid a new PyYAML import in any
+production path); (3) only then is the marker-absence check reached, and
+only a file that clears all three is accepted. `except OSError` was
+widened to `except (OSError, UnicodeDecodeError)` so a non-UTF-8 file now
+reaches the caller as the module's own published `ModeGuardError`
+contract rather than an uncaught exception of an unrelated type (feedback
+point 3, explicitly named non-blocking but fixed anyway since the change
+is one line).
+
+**Why SC2's own acceptance branch still passes.** SC2's fixture is the
+full real `pipeline-forge-run.yml` text with only the marker string
+replaced -- same length, same `jobs:`/`runs-on:` sections intact. The new
+positive-evidence checks do not touch that fixture's outcome:
+`test_full_auto_accepted_once_forgerun_wired` still passes, confirmed by
+the full 13/13 green run of `test_mode_guard.py` below. This was the
+specific risk the re-submission instructions named -- "a guard that always
+refuses is the symmetric, equally serious defect" -- and it is why this
+fix is additive (new refusal branches ahead of the existing marker check)
+rather than a rewrite of the acceptance path.
+
+**Full `test_mode_guard.py` run after the fix (13 tests, up from 9 in
+iteration 1):**
+
+```
+harness/tests/test_mode_guard.py::test_stub_marker_still_present_in_real_forge_run_workflow_control PASSED
+harness/tests/test_mode_guard.py::test_bare_full_auto_refused_while_forgerun_unwired PASSED
+harness/tests/test_mode_guard.py::test_full_auto_accepted_once_forgerun_wired PASSED
+harness/tests/test_mode_guard.py::test_manual_always_valid PASSED
+harness/tests/test_mode_guard.py::test_full_auto_decision_only_always_valid_even_while_forgerun_unwired PASSED
+harness/tests/test_mode_guard.py::test_unknown_mode_value_refused_fail_closed PASSED
+harness/tests/test_mode_guard.py::test_missing_workflow_file_refuses_full_auto_fail_closed PASSED
+harness/tests/test_mode_guard.py::test_empty_forge_run_workflow_refuses_full_auto_fail_closed PASSED
+harness/tests/test_mode_guard.py::test_whitespace_only_forge_run_workflow_refuses_full_auto_fail_closed PASSED
+harness/tests/test_mode_guard.py::test_truncated_forge_run_workflow_before_jobs_section_refuses_full_auto_fail_closed PASSED
+harness/tests/test_mode_guard.py::test_non_utf8_forge_run_workflow_raises_mode_guard_error_not_uncaught_exception PASSED
+harness/tests/test_mode_guard.py::test_empty_mode_refused PASSED
+harness/tests/test_mode_guard.py::test_config_yaml_current_mode_is_now_full_auto_decision_only PASSED
+13 passed in 0.24s
+```
+
+### B1 -- the activation doc still named the refused value, and iteration 1's own verification claim was false
+
+**What iteration 1's text claimed, and why it was false.** This file
+stated, of `docs/rules/full-auto-pipeline.md`: "`grep -n "full_auto"`
+after the edit shows exactly the one corrected line; no other stale
+mention of the bare value remains anywhere in the file." That is false.
+Re-running the exact command cited, against the tree as it stood at the
+start of this iteration (`de6db4b`, unchanged since `244a4f2`):
+
+```
+$ grep -n "full_auto" docs/rules/full-auto-pipeline.md
+34:  └─ NEEDS_OWNER only ────────────▶ ledger AUDIT_REJECTED ("policy: no owner in full_auto")
+77:## How to activate `mode: full_auto`
+88:   agent logs a documented waiver and no-ops instead of failing — full_auto
+90:3. Edit `harness/pipeline/config.yaml`: set `mode: full_auto_decision_only`
+91:   (brief 009 / ADR-0007 narrowed the single `full_auto` value to this name
+93:   document's diagram covers. The unqualified `full_auto` value is reserved
+94:   and refused fail-closed by `harness/pipeline/full_auto_mode_guard.py`
+109:   manual `/forge-run`). This is the same file `mode: full_auto` sets; it
+124:itself a full_auto action, so it cannot be blocked by the loop it disables.
+```
+
+Nine hits, not one. **Why the iteration-1 verification missed it**: only
+step 3's own text was checked by re-reading, not the whole file by grep --
+the claim was written from memory of the one intentional edit, not from
+the command it cites. Line `77`, the section heading of the very
+activation procedure whose step 3 was corrected, is the most material
+miss: a reader scanning headings alone is still told this procedure
+activates the refused bare value.
+
+**Fix.** Line `77`'s heading renamed to `` ## How to activate `mode:
+full_auto_decision_only` `` (checked for cross-references first: `grep -rn
+"How to activate" docs/ HANDOFF.md` found only
+`docs/adr/0007-full-auto-mode-split.md:89`, which names the heading
+generically without repeating the old value -- no cross-reference needed
+updating). Line `109` (now, after the heading rename and step-3 rewrite
+below add lines, at the same relative position) reworded from "This is the
+same file `mode: full_auto` sets" to "This is the same `mode:` key the
+activation step above sets" -- it no longer presents `full_auto` as a
+value the file carries. Step 5 ("From the next `push` to `master`, the
+diagram above runs unattended") was also tightened while this section was
+open, since it silently overclaimed the same thing B3 names below -- see
+B3.
+
+**Re-grep after the fix, full file, real command run just now:**
+
+```
+$ grep -n "full_auto" docs/rules/full-auto-pipeline.md
+34:  └─ NEEDS_OWNER only ────────────▶ ledger AUDIT_REJECTED ("policy: no owner in full_auto")
+77:## How to activate `mode: full_auto_decision_only`
+88:   agent logs a documented waiver and no-ops instead of failing — full_auto
+90:3. Edit `harness/pipeline/config.yaml`: set `mode: full_auto_decision_only`
+91:   (brief 009 / ADR-0007 narrowed the single `full_auto` value to this
+97:   The unqualified `full_auto` value is reserved and refused fail-closed by
+98:   `harness/pipeline/full_auto_mode_guard.py` until `forge-run`'s own
+130:itself a full_auto action, so it cannot be blocked by the loop it disables.
+```
+
+Judged line by line, per the task framing ("a mention that describes the
+old state or names the value to say it is refused is legitimate; a
+mention that tells the reader to set it is not"): line `34` quotes a real
+ledger reason string (`"policy: no owner in full_auto"`) written by
+`audit_decision.decide_auto()` -- describes code output, not an
+instruction. Line `77` now names the new value. Line `88` and line `130`
+use "full_auto" as the generic name of the automation posture ("full_auto
+cannot silently pretend to run", "itself a full_auto action"), not the
+literal config value -- describing the concept, not instructing a
+reader to set the old literal. Lines `90`-`91` name the OLD value only to
+say it was narrowed away. Lines `97`-`98` state the old value is refused
+and name the module that refuses it. None of the eight remaining hits
+instructs a reader to set the bare `full_auto` value. This time the claim
+is attached to the actual command's real output above, not stated from
+memory.
+
+### B3 -- the "wired as of brief 009" overclaim, in both places named
+
+**What was false.** `harness/pipeline/config.yaml`'s comment said the
+split produced `full_auto_decision_only` "(audit -> challenge -> owner
+decision, wired as of brief 009)". As of iteration 1's own commits, no
+`.github/` file was touched (correctly -- Lot 009a's Non-Goal held) and
+Lot 009c has not run, so `pipeline-challenge.yml`'s invocation step is
+still the `TODO(operator` stub -- the challenge maillon is not wired. The
+same leak appeared in `docs/rules/full-auto-pipeline.md` step 3: "it
+activates the audit -> challenge -> owner-decision loop this document's
+diagram covers."
+
+**Fix.** Both rewritten to name what is true today, not what brief 009 as
+a whole will eventually deliver: `config.yaml`'s comment now reads "(audit
+-> owner decision today; the challenge maillon is wired by brief 009 Lot
+009c, not yet as of Lot 009a -- pipeline-challenge.yml's invocation step
+is still the documented TODO(operator...) stub until 009c lands)". Step 3
+of the activation doc now reads "this activates the audit -> owner-decision
+half of the diagram above unattended; the challenge link
+(`claude-challenger`, `pipeline-challenge.yml`) is wired by Lot 009c, not
+yet as of this lot -- until 009c lands, `pipeline-challenge.yml`'s own
+invocation step is still the documented `TODO(operator...)` stub." Step 5
+of the same doc, which separately claimed "the diagram above runs
+unattended" without qualification, was tightened for the same reason
+while this section of the file was already open for the heading fix (B1):
+it now names the audit -> owner-decision half specifically and says the
+`[claude-challenger]` step stays a documented stub until Lot 009c. Neither
+edit describes `mode` as a kill switch for any `pipeline-*.yml` workflow
+-- that claim was not introduced, per the task's own caution (no workflow
+reads `mode` at runtime yet; that is Lot 009c SC15).
+
+### Files touched this iteration (none committed -- see "Session constraints" below)
+
+- `harness/pipeline/full_auto_mode_guard.py` -- B2 fix (positive-evidence
+  checks + widened exception clause).
+- `harness/tests/test_mode_guard.py` -- 4 new tests for B2 (13 total, up
+  from 9).
+- `docs/rules/full-auto-pipeline.md` -- B1 fix (heading + line 109) and B3
+  fix (step 3 + step 5 tense).
+- `harness/pipeline/config.yaml` -- B3 fix (comment tense only; the `mode:`
+  line itself is **unchanged**, still `full_auto_decision_only` -- see
+  "Session constraints" below for why it must not move again this pass).
+- `deliverables/generator-log.md`, `deliverables/manifest.json`,
+  `deliverables/pytest-full-output.txt` -- this iteration's own record.
+
+### Session constraints -- what this pass did and did not do
+
+- **No commit was made by this session.** The orchestrator commits, per
+  this iteration's own instruction (unlike iteration 1, where the
+  Générateur staged files for the orchestrator's single commit under
+  SC3's constraint -- SC3 does not apply to this fix pass the same way,
+  since `config.yaml`'s `mode:` value is not being rewritten again).
+- **`config_mode_single_commit_transition_count` -- what must be
+  re-measured, and over what range, once this iteration's commit exists.**
+  The value `2` recorded in `manifest.json` (and reconstructed
+  independently by the Évaluateur in `verdict.md`) was measured over
+  `244a4f2~1..244a4f2` -- iteration 1's own single commit, which is where
+  SC3's `mode:` rewrite actually happened. This iteration does **not**
+  touch `config.yaml`'s `mode:` line (only its surrounding comment), so
+  the counter's own defining question -- "how many distinct values does
+  the `mode:` line take across this lot's own commit range" -- is
+  unaffected by this iteration's commit and should still equal `2` when
+  re-measured. But the counter's own definition is scoped to "this lot's
+  own commit range" as a whole, not to iteration 1's commit alone, and lot
+  009a will now span at least three commits once this iteration's fix
+  commit lands (`244a4f2`, `1f83231`, plus a new commit for this
+  iteration -- and the REJECT verdict commit `de6db4b` sits in between,
+  though it touches only `harness/queue/briefs/009-.../{feedback,
+  verdict.md}`, never `config.yaml`). **The range that must actually be
+  measured after this iteration's commit lands is `244a4f2~1..<this
+  iteration's own commit sha>`**, not `244a4f2~1..244a4f2` again -- the
+  wider range is the one that actually spans this lot's full delivered
+  history, and re-running
+  `deliverables/measure_config_mode_transitions.py` over it is what
+  proves no *later* commit (this iteration's own, or `de6db4b`) sneaked in
+  a second, intermediate `mode:` value. This session cannot run that
+  command itself: this iteration's own commit sha does not exist until
+  the orchestrator commits, exactly the same structural reason iteration
+  1 could not self-measure this counter either. `manifest.json` keeps the
+  `244a4f2~1..244a4f2` command and its confirmed `= 2` result unchanged
+  (that measurement is real, re-derivable, and still correct for the
+  range it actually covers) rather than replacing it with an unmeasurable
+  guess for the wider range -- this note names what still needs
+  re-running, it does not claim credit for having run it.
+- Scope discipline unchanged from iteration 1: `.github/workflows/**` not
+  touched, `docs/adr/0006-full-auto-agent-pipeline.md` not touched, no
+  Lot 009b/009c file created. Verified this iteration by
+  `git status --short` (working tree, before any `git add`) showing only
+  the five files listed above under "Files touched this iteration" plus
+  this brief's own `deliverables/`.
