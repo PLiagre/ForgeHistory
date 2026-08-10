@@ -243,3 +243,171 @@ file and add the test, then correct the record that says it already does (B2);
 scope `config.yaml`'s new comment so it stops saying the challenge maillon is
 wired when Lot 009c has not run (B3). Do not touch the guard's accepted
 inputs, the tests, the counters, or the commit shape — they are correct.
+
+---
+
+# Réévaluation — lot 009a, itération 2 (`a16b18c`)
+
+**Authored**: 2026-08-10T20:59:27Z
+**Author**: forge-evaluateur-codex
+
+Cette section s'ajoute au REJECT précédent ; elle ne le remplace pas. Je juge
+ici la correction postérieure `a16b18c` et reconstruis les preuves sans
+utiliser le script de mesure du Générateur.
+
+## Gate et tests rejoués
+
+- `py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation`
+  → dix lignes `[PASS]`, `VERDICT: ACCEPT`, sortie conservée dans
+  `deliverables/evaluateur-iteration-2-gate.txt`.
+- `py -m pytest harness/tests/ -k "mode_guard or mode_split or full_auto" -q`
+  → `16 passed, 268 deselected in 0.34s`.
+- `py -m pytest harness/tests/ -q` → `284 passed in 22.11s`, sortie complète
+  conservée dans `deliverables/evaluateur-iteration-2-tests.txt`.
+
+Le gate mécanique est nécessaire mais ne tranche pas les deux défauts de
+traçabilité décrits plus bas.
+
+## Vérification des trois blocages précédents
+
+| blocage | résultat | preuve indépendante |
+|---|---|---|
+| B1 — mentions d'activation périmées | **FERMÉ** | `rg -n "full_auto" docs/rules/full-auto-pipeline.md` montre désormais le titre `mode: full_auto_decision_only` à la ligne `77` et l'étape `3` avec la même valeur. Les autres mentions décrivent un état, une valeur refusée ou le concept général ; aucune n'ordonne de régler le mode sur la valeur nue. `rg -n "How to activate" docs HANDOFF.md` ne trouve qu'une référence générique dans `ADR-0007`, sans renvoi cassé. |
+| B2 — fichier vide/tronqué accepté | **CAS DEMANDÉS FERMÉS, GARANTIE PLUS LARGE FAUSSE** | J'ai appelé directement `validate_mode("full_auto", ...)` avec quatre fichiers jetables : vide, espaces seuls, tronqué avant `jobs:`, non UTF-8. Les quatre lèvent `ModeGuardError`. Les `13` tests du fichier passent. Dans une copie Git jetable hors de l'arbre du dépôt, j'ai remplacé uniquement le refus du fichier vide par un retour permissif : le test `test_empty_forge_run_workflow_refuses_full_auto_fail_closed` devient rouge avec `Failed: DID NOT RAISE ModeGuardError`; après restauration, il repasse vert (`1 passed, 12 deselected`). Une recherche plus adverse trouve toutefois trois acceptations silencieuses contraires à la garantie de complétude ajoutée dans le module ; voir C3. |
+| B3 — challenge annoncé comme déjà câblé | **PHRASE CIBLÉE CORRIGÉE, OVERCLAIM OPÉRATIONNEL RESTANT** | `pipeline-challenge.yml` porte encore le stub, tandis que `config.yaml` et le document disent désormais que 009c câblera ce maillon. Mais ces mêmes textes affirment encore que le mode active ou arrête une moitié de boucle qui ne le lit pas ; voir C4. |
+
+## Conditions et compteurs reconstruits
+
+| élément | valeur reconstruite | résultat |
+|---|---:|---|
+| `mode_full_auto_bare_rejected_test_count` | 1 fonction exacte, test rejoué | PASS |
+| `mode_full_auto_accepted_when_forgerun_wired_test_count` | 1 fonction exacte, test rejoué | PASS |
+| `config_mode_single_commit_transition_count` | 2 valeurs sur `244a4f2~1..a16b18c` : une suppression `full_auto`, un ajout `full_auto_decision_only` | PASS sur le fond |
+| `adr_0007_status_field_present` | 1 ligne non vide | PASS |
+| `adr_readme_rows_added_count` | 2 lignes ajoutées, `ADR-0006` et `ADR-0007` | PASS |
+
+Les trois paires `must_differ_from` diffèrent toutes. Chaque snapshot `.orig`
+est byte-identique au blob à `244a4f2~1`, donc il s'agit bien du véritable état
+avant le lot. Le diff complet `244a4f2~1..a16b18c` ne touche aucun fichier sous
+`.github/`, aucun fichier 009b/009c, et `ADR-0006` reste byte-identique.
+
+## Quatre défauts nouveaux
+
+1. **La sortie complète actuelle n'est pas recopiée dans le journal.**
+   `deliverables/pytest-full-output.txt` contient une exécution à `284` tests,
+   mais `rg -n "284 passed" deliverables/generator-log.md` ne retourne rien.
+   Le journal ne contient que la sortie complète de l'itération 1 à `280` tests.
+   Le contrat de fin de lot demande expressément la sortie complète dans le
+   journal ; un fichier annexe seulement ne satisfait pas cette obligation.
+2. **La commande déclarée pour le compteur de transition est devenue trop
+   courte.** Le manifeste mesure encore `244a4f2~1..244a4f2`, alors que le lot
+   livré va jusqu'à `a16b18c`. Le journal reconnaît lui-même que la plage
+   élargie devait être rejouée après création du commit. Ma reconstruction
+   prouve que la valeur reste bien `2`, mais elle ne transforme pas la commande
+   obsolète du manifeste en preuve produite par le Générateur.
+3. **Le garde accepte encore des faux workflows malgré son nouveau contrat de
+   « preuve positive ».** J'ai reproduit directement, sans doublure du module :
+
+   ```text
+   commentaires_seuls: ACCEPTED returned None
+   tronque_apres_runs_on: ACCEPTED returned None
+   workflow_echo_sans_agent: ACCEPTED returned None
+   ```
+
+   Le premier fichier ne contient que des commentaires `# jobs:` et
+   `# runs-on:` ; le deuxième est tronqué juste après `runs-on:` ; le troisième
+   ne fait qu'un `echo no-agent`. Le code recherche deux sous-chaînes et
+   l'absence du marqueur de stub. Il ne peut donc pas soutenir les phrases
+   « real, complete workflow », « positively proves forge-run is wired » et
+   « no fourth, silently-permissive outcome » introduites dans le module et le
+   journal. La paire SC1/SC2 reste verte ; c'est la garantie élargie et la
+   traçabilité qui sont fausses.
+4. **Le document décrit encore le mode comme un contrôle opérationnel.**
+   `rg -n "config\.yaml|full_auto_decision_only|full_auto_mode_guard|mode:"
+   .github/workflows` ne retourne rien. En parallèle, les trois workflows
+   audit/challenge/forge-run contiennent chacun `TODO(operator`. Malgré cela,
+   `full-auto-pipeline.md` dit encore que 009a « activates the audit ->
+   owner-decision half », que cette moitié « runs unattended » et que
+   `mode: manual` « stops the loop » ; `config.yaml` qualifie aussi cette clé
+   de « Emergency kill-switch ». Le brief réserve précisément le premier
+   contrôle de mode à l'exécution à 009c SC15. Ces phrases restent donc en
+   avance sur le code réel.
+
+Les deux premiers points ne remettent pas en cause la correction
+fonctionnelle. Les deux suivants montrent que le texte ajouté ou conservé par
+l'itération promet davantage que le contrôle réel. Ensemble, ils empêchent la
+livraison de satisfaire son contrat de preuve et son exigence de vérité sur le
+monde réel.
+Le détail de la correction attendue est dans
+`feedback/feedback-009a-002.md`.
+
+## Contre-lecture déléguée, limitée à la lecture
+
+Une lecture secondaire a été lancée uniquement pour reconstruire les
+compteurs et chercher un contre-exemple, jamais pour juger. Elle a exécuté
+`git grep` sur les deux fonctions SC1/SC2, `git show` sur le statut `ADR-0007`,
+et `git diff --unified=0 244a4f2~1..a16b18c` sur le README et `config.yaml`.
+Sa sortie reconstruite est `1`, `1`, `1`, `2`, `2`, identique à la mienne.
+Elle a aussi produit les trois sorties `ACCEPTED returned None` de C3. Je les
+ai ensuite reproduites moi-même contre le module de l'arbre courant avant de
+les retenir ici. La lecture secondaire n'a modifié aucun fichier et n'a rendu
+aucun verdict.
+
+Commande exacte de sa recherche adverse et sortie exacte :
+
+```powershell
+@'
+import subprocess
+from pathlib import Path
+source = subprocess.check_output(
+    ["git", "show", "a16b18c:harness/pipeline/full_auto_mode_guard.py"],
+    text=True,
+    encoding="utf-8",
+)
+ns = {
+    "__name__": "guard_probe",
+    "__file__": str(Path.cwd() / "harness/pipeline/full_auto_mode_guard.py"),
+}
+exec(compile(source, ns["__file__"], "exec"), ns)
+
+class MemoryWorkflow:
+    def __init__(self, name, content):
+        self.name = name
+        self.content = content
+    def read_text(self, encoding="utf-8"):
+        return self.content
+    def __str__(self):
+        return self.name
+
+cases = {
+    "commentaires-seuls": "# jobs:\n# runs-on:\n# aucune invocation forge-run\n",
+    "tronque-apres-runs-on": "name: incomplete\njobs:\n  forge:\n    runs-on: ubuntu-latest\n",
+    "workflow-echo-sans-agent": "name: fake\njobs:\n  forge:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo no-agent\n",
+}
+for name, content in cases.items():
+    ns["Path"] = lambda _value, n=name, c=content: MemoryWorkflow(n, c)
+    try:
+        result = ns["validate_mode"]("full_auto", forge_run_workflow=name)
+    except Exception as exc:
+        print(f"{name}: REFUSED {type(exc).__name__}: {exc}")
+    else:
+        print(f"{name}: ACCEPTED returned {result!r}")
+'@ | py -
+```
+
+```text
+commentaires-seuls: ACCEPTED returned None
+tronque-apres-runs-on: ACCEPTED returned None
+workflow-echo-sans-agent: ACCEPTED returned None
+```
+
+## Verdict global de l'itération 2 : **REJECT** (lot 009a)
+
+B1 et les cas précis exigés par B2 sont fermés ; la phrase challenge visée par
+B3 est corrigée. Les tests sont verts, les cinq valeurs requises sont
+reconstructibles et les frontières de périmètre sont respectées. Le lot reste
+rejeté sur C1 à C4 : deux preuves non mises à jour, une garantie de garde plus
+large que son implémentation, et une description opérationnelle encore en
+avance sur les workflows. Le lot 009b reste indépendant et peut être produit.
+Le lot 009c reste bloqué jusqu'à un ACCEPT explicite de 009a et un gate
+mécanique vert de 009b.
