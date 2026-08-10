@@ -135,6 +135,71 @@ officiel demande un wrapper conforme au contrat de
 c'est le brief proposé BRIEF-PROP-002 ci-dessous, pas un détail
 d'implémentation à improviser en séance.
 
+## 4.1 Un sous-agent Codex peut-il juger le travail de Codex ?
+
+Question posée par le propriétaire le 2026-08-10. Réponse en trois
+temps, parce que « techniquement possible » et « structurellement
+valable » ne sont pas la même chose.
+
+**Techniquement, oui.** Codex dispose de sous-agents en disponibilité
+générale depuis mars 2026 : rôles intégrés (explorateur en lecture
+seule, worker en lecture-écriture, défaut), agents personnalisés
+déclarés en TOML sous `.codex/agents/`, plafond de fils simultanés
+réglable, et une session parente qui répartit puis consolide. La
+documentation OpenAI recommande d'ailleurs ces sous-agents en priorité
+pour du travail majoritairement en lecture — ce qu'est précisément une
+évaluation.
+
+**Contractuellement, non — pas aujourd'hui.**
+`docs/rules/harness-roles.md` écrit noir sur blanc que seul le
+Générateur est délégable à un autre backend, et que Planificateur et
+Évaluateur restent sur Claude, en donnant la raison : c'est ce qui
+garde le contrôle `verdict_is_not_self_authored` porteur de sens. Faire
+juger un lot Codex par un sous-agent Codex sans changer cette règle,
+c'est violer le contrat en silence — la faute exacte que le harnais
+existe pour empêcher.
+
+**Structurellement, un sous-agent seul ne suffit pas.** Dans le modèle
+Codex, c'est la session **parente** qui engendre l'enfant, rédige son
+instruction, choisit ce qu'elle lui montre et consolide sa réponse.
+Si le parent est le Générateur, alors le producteur choisit son juge,
+écrit la question posée au juge, et récrit la réponse du juge. Le
+contexte de l'enfant est neuf, mais son cadrage ne l'est pas. Trois
+faiblesses concrètes en découlent :
+
+1. **Sélection des preuves** — le juge ne voit que ce que le parent lui
+   transmet ; un compteur gênant peut simplement ne pas être mentionné.
+2. **Angles morts partagés** — même famille de modèle, mêmes erreurs de
+   raisonnement probables ; si le producteur croit à tort qu'une
+   commande prouve quelque chose, l'enfant a de bonnes chances d'y
+   croire aussi.
+3. **Consolidation** — le parent reformule la sortie de l'enfant avant
+   qu'elle n'atteigne le dépôt ; un REJECT peut devenir une réserve.
+
+**Le montage qui tient.** L'indépendance ne vient pas du fait d'être un
+processus séparé, elle vient de **qui déclenche le juge**. Un juge
+engendré par le producteur reste sous son contrôle ; un juge déclenché
+par un tiers ne l'est pas. Trois options, par ordre de solidité :
+
+| option | montage | indépendance | coût de mise en place |
+|---|---|---|---|
+| A | L'Évaluateur reste sur Claude (règle actuelle) | Forte | Nulle — c'est le statu quo |
+| B | Session Codex **distincte**, lancée par la CI ou le propriétaire sur la branche poussée, jamais par le Générateur | Forte, si le juge part du brief + de la grille + de l'arbre git, et **pas** du journal du Générateur | Un ADR + une modification de règle |
+| C | Sous-agent Codex engendré par le Générateur | Faible — le producteur cadre son juge | Faible, mais ne referme pas le risque |
+
+Recommandation : **A pour le brief 009** (ne pas changer les règles au
+milieu d'un brief déjà rejeté une fois), puis **B** si le propriétaire
+veut que Codex se suffise à lui-même — avec les garde-fous suivants
+inscrits dans l'ADR : le juge ne reçoit jamais `generator-log.md`
+comme source de vérité, il reconstruit chaque compteur par ses propres
+commandes, il cite ses propres sorties, et son verdict est écrit dans
+le dépôt sans passer par une reformulation du producteur.
+
+L'option C reste utile ailleurs : pour paralléliser de la lecture
+(reconstruction de compteurs, exploration, recherche de contre-exemples)
+**à l'intérieur** du travail du Générateur. Cela accélère la production
+de preuves ; cela ne remplace pas le juge.
+
 # 5. Risques nommés
 
 | # | risque | sévérité | conséquence si ignoré |
@@ -207,7 +272,9 @@ Terminer proprement une étape vaut infiniment mieux qu'en entamer trois.
     d'un garde, et prouve que le test échoue avant ta correction.
   - Chaque affirmation chiffrée que tu produis doit venir d'une commande
     réellement exécutée, avec sa sortie collée dans le journal.
-  - Tu n'écris PAS verdict.md pour ce lot. Tu produis, tu ne juges pas.
+  - Tu n'écris PAS verdict.md pour ce lot. Tu produis, tu ne juges pas —
+    y compris via un sous-agent que tu aurais toi-même lancé (voir la
+    section 3, « Sous-agents »).
 
 ÉTAPE C — Produire le lot 009c (tu es ici GÉNÉRATEUR).
   À n'entreprendre que si A est conclu et B est passé au gate mécanique.
@@ -250,6 +317,36 @@ Terminer proprement une étape vaut infiniment mieux qu'en entamer trois.
   formulation vague ne l'est pas.
 - Ne fabrique jamais un horodatage, un hash, un chiffre ou une sortie de
   commande. Si tu ne l'as pas exécuté, tu ne l'as pas mesuré.
+
+### Sous-agents : ce que tu peux et ne peux pas déléguer
+
+Tu sais lancer des sous-agents en parallèle. Utilise-les, mais pas pour
+te juger toi-même.
+
+AUTORISÉ — déléguer du travail de lecture, dont tu restes responsable :
+  - explorer le dépôt, cartographier des dépendances, chercher des
+    précédents dans les briefs et les audits déjà écrits ;
+  - reconstruire un compteur par une commande indépendante, pour
+    vérifier le tien avant de l'écrire ;
+  - chercher activement un contre-exemple à ta propre conclusion ;
+  - relire un diff à la recherche d'un effet de bord hors périmètre.
+  Dans tous ces cas, tu recopies la commande et la sortie réelles du
+  sous-agent dans ton journal, et tu restes l'auteur unique du résultat.
+
+INTERDIT — déléguer le jugement de ton propre travail :
+  - faire écrire verdict.md par un sous-agent que tu as lancé. Ce
+    sous-agent n'est pas indépendant : c'est toi qui rédiges son
+    instruction, qui choisis ce que tu lui montres, et qui consolides sa
+    réponse. Un juge que le producteur cadre n'est pas un juge.
+  - présenter la conclusion d'un sous-agent comme une validation
+    externe. Si tu écris que ton travail est recevable, quelle qu'en
+    soit la source interne, tu violes le principe fondateur du dépôt.
+
+Le seul jugement recevable vient d'une session que tu n'as pas lancée :
+l'Évaluateur historique du dépôt, ou une session distincte déclenchée
+par le propriétaire ou la CI sur ta branche poussée. Si personne ne l'a
+lancée à la fin de ta session, tu le signales dans ton compte-rendu — tu
+ne combles pas le vide toi-même.
 
 ## 4. Preuves à produire pour chaque lot que tu génères
 
@@ -355,7 +452,11 @@ Trois au maximum, conformément à la discipline de l'auditeur.
 # 8. Décisions humaines requises
 
 1. **Qui évalue le travail de Codex ?** Sans réponse, les lots 009b et
-   009c seront produits mais jamais recevables.
+   009c seront produits mais jamais recevables. Trois options chiffrées
+   en section 4.1 : garder l'Évaluateur sur Claude (aucune règle à
+   changer), ouvrir la place à une session Codex distincte déclenchée
+   par un tiers (demande un ADR), ou accepter un sous-agent engendré par
+   le Générateur (déconseillé — le producteur cadre son juge).
 2. **Codex devient-il un backend officiel** (BRIEF-PROP-002) ou reste-t-il
    un outil utilisé hors contrat ?
 3. **Hermes doit-il écrire dans le dépôt** (BRIEF-PROP-003), ou rester un
