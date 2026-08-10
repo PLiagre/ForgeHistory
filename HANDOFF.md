@@ -15,16 +15,14 @@ from `unity/game_unity/`. Recorded in
 [ADR-0004](docs/adr/0004-bulk-port-victoriaproject-unity-game.md) (which also
 names the imported double-primary-key debt; ADR-0003 remains the target).
 
-## Status (verified 2026-08-09, end of session, live command output)
+## Status (verified 2026-08-10, end of session, live command output)
 
-- `py -m pytest harness/tests/ -q` — **269 passed, 1 failed**. The single
-  red is `test_run_unity.py::test_no_brief_prescribes_polling`, **pre-existing
-  and unrelated to this session** — red on `origin/master` before any
-  brief-008 work began, verified twice by the Évaluateur (once in a detached
-  worktree at `origin/master`). Offender is brief 007's
-  `deliverables/checkpoint-002.md:291`. Needs its own investigation (see Open
-  TODOs); not introduced here. NB `origin/master` is now `32640da` (PR #11),
-  not `198cfd9` as the previous checkpoint said.
+- `py -m pytest harness/tests/ -q` — **271 passed, 0 failed**. The tree is
+  green for the first time in four sessions: the long-standing red
+  (`test_run_unity.py::test_no_brief_prescribes_polling`) turned out to be a
+  **false positive in the detector**, not an offending brief — fixed in
+  `3b1262a`, see Last Session Summary. NB `origin/master` is `32640da`
+  (PR #11); nothing pushed since.
 - `py harness/harness_audit.py` — **23/24**. The one FAIL
   (`no_premature_stub_content`) is the audit tool being stale, not the repo
   being wrong: it still assumes `pipeline/geo/`, `unity/` are empty stubs,
@@ -32,14 +30,16 @@ names the imported double-primary-key debt; ADR-0003 remains the target).
   audit's assumption (see Open TODOs) — do not "clean" the dirs.
 - `py harness/verdict_audit.py harness/queue/briefs/008-full-auto-automation-gaps`
   — **10/10, VERDICT: ACCEPT**.
-- **Brief 008 — lot 008a ACCEPTED, lot 008b generated (Évaluateur not yet
-  run), lot 008c unblocked but not yet specified.**
+- **Brief 008 — lots 008a and 008b both ACCEPTED, lot 008c unblocked but not
+  yet specified. The brief as a whole is NOT closed.**
   - **008a**: `LOT_008a: ACCEPT` after one REJECT→fix→re-accept cycle. The
     iteration-1 REJECT is preserved in `verdict.md`, not sanitized away.
-  - **008b**: Générateur DONE this session, **gate ACCEPT, Évaluateur NOT
-    run** — that is the first thing next session.
+  - **008b**: `LOT_008b: ACCEPT`, first pass, no REJECT cycle. The 008b
+    verdict was **appended** to `verdict.md` (238 insertions, 0 deletions —
+    checked, so 008a's record including its REJECT is byte-intact).
   - **008c**: the three owner questions that blocked it are **answered**
-    (see below). A fresh Planificateur pass converts them into a real lot.
+    (see below). A fresh Planificateur pass converts them into a real lot —
+    that is the first thing next session.
 - **Audit CURSOR-5633ee7-automation-completeness** — loop closed in the
   previous session: `PROPOSED → CHALLENGED (be86205) → APPROVED (f3a7056) →
   CONVERTED (c4ec462)`. Ledger: `architecture/audit-ledger.jsonl`.
@@ -108,16 +108,25 @@ Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
 
 ## Open TODOs
 
-- [ ] **Run the Évaluateur on brief 008 lot 008b** (first thing next
-      session). The mechanical gate is already ACCEPT (10/10) — that is
-      necessary, not sufficient; it cannot see whether the four 008b counters
-      are honest. Judge SC7–SC11 and the four `pipeline_job_failed_*` /
-      `pipeline_workflow_run_trigger_coverage_count` /
-      `run_31085883052_style_escalation_regression_count` counters only; SC1–SC6
-      are lot 008a and already accepted. Scrutinise in particular the
-      `actionlint` waiver (the tool is genuinely absent — the Générateur
-      applied the brief's prescribed substitute and noted, honestly, that
-      PyYAML *is* importable here contrary to the waiver row's own claim).
+- [ ] **The 008b escalation is real but inert until this branch reaches
+      `master`.** GitHub honours a `workflow_run` trigger only from the
+      default-branch copy of the workflow file, so
+      `.github/workflows/pipeline-failure-escalate.yml` watches nothing today.
+      SC9 is genuinely satisfied (file, trigger and call all correct) — this
+      is a deployment fact, not a defect, and the Évaluateur ACCEPTed knowing
+      it. But the loop does not yet watch itself: do not describe ARCH-003 as
+      closed in production until the merge lands.
+- [ ] **008b follow-up recorded by the Évaluateur** (not blocking, it
+      ACCEPTed): `deliverables/measure_pipeline_job_failed_counters.py`
+      matches the trigger list against each workflow's filename stem, while
+      GitHub matches `workflow_run` on the `name:` key. Today every `name:`
+      happens to equal its stem, so the counter's `4` is right **by
+      coincidence, not by construction** — rename one `name:` without
+      renaming its file and the counter keeps reporting 4 while the trigger
+      silently matches nothing. Same failure class as the 008a counter-script
+      note below. The deliverable itself is deliberately left as-committed:
+      the accepted verdict cites its output, so a future brief fixes the
+      pattern rather than a retro-edit falsifying the record.
 - [ ] **Convert the owner's 008c decision into a real lot** — a fresh
       **Planificateur** pass (never a Générateur straight away). Read the
       decision at the end of
@@ -146,10 +155,6 @@ Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
       `docs/rules/full-auto-pipeline.md` for the derogation, the roles, and
       how to activate/emergency-disable `mode: full_auto`. NB brief 008a/008b
       harden exactly this machinery.
-- [ ] **Investigate pre-existing red `test_no_brief_prescribes_polling`**
-      (`harness/tests/test_run_unity.py`) — red on `master` before this
-      session; a brief's text apparently prescribes log-polling. Find which
-      brief and correct it (or the test) with evidence.
 - [ ] **Run the brief 004 Évaluateur pass** (first thing next session):
       before it, the Planificateur must correct its own future-dated
       `Authored:` fields in `004-polish-visuel/{brief.md,eval-rubric.md}`
@@ -200,7 +205,62 @@ Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
   notification, not a poll. Never re-read a Unity log across tool calls.
 - `pytest` installed via `--user`, not vendored (carried).
 
-## Last Session Summary (2026-08-09)
+## Last Session Summary (2026-08-10)
+
+Ran the Évaluateur on lot 008b (**ACCEPT**, first pass) and cleared the
+long-standing red test, which turned out to be a detector bug rather than an
+offending brief. Two commits, `3ed547d` and `3b1262a`. Local only, nothing
+pushed. The suite is green: **271 passed, 0 failed**.
+
+1. **`LOT_008b: ACCEPT`** — SC7–SC11 plus the four 008b counters, each
+   reconstructed by the Évaluateur's own commands rather than by re-running
+   the Générateur's instrument. What actually decided it, given the gate was
+   green here and was *also* green on the 008a submission it rejected:
+   - **SC7** — policy loaded through the real `policy_loader`, not read as
+     text: `pipeline_job_failed` and `three_consecutive_mechanical_rejects`
+     carry the identical action string
+     `open_bot_issue_pipeline_stuck_no_human_wait`. Not a weaker action
+     wearing the same name.
+   - **SC8** — the real CLI run in a subprocess, not merely the test:
+     `escalate_pipeline_stuck`, exit 0, `matched_rules: ["pipeline_job_failed"]`.
+     The tests monkeypatch nothing; they hit the live policy file.
+   - **SC9** — workflows globbed independently, then checked against each
+     file's `name:` key (what `workflow_run` actually matches) rather than its
+     filename — stricter than the Générateur's own script, and the source of
+     the follow-up above. MISSING=[], PHANTOM=[].
+   - **SC10** — parity proven by AST-extracting both asserted action
+     constants and comparing them literally, not by impression.
+   - **Red-first, run by the Évaluateur from outside the repo** (scratch copy,
+     working tree never mutated): deleting the policy rule fails exactly the
+     two new tests; separately weakening the handler to `no_op` fails the same
+     two. Both halves are independently load-bearing — the cheat class that
+     sank 008a iteration 1 is absent here.
+   - Boundaries re-checked against `origin/master`: the 008a and 008b file
+     sets are disjoint, the 008c-scope files are byte-unchanged, and no real
+     `gh issue` / `GH_TOKEN` / `issues: write` appears anywhere in the diff
+     (parity with the log-only `handle_gate_reject` was the bar).
+2. **The four-session-old red test was a false positive, and the worst kind.**
+   `test_no_brief_prescribes_polling` was flagging brief 007's
+   `deliverables/checkpoint-002.md:290-291`, whose sentence *forbids* the
+   practice — the negation and the verb it negates sit on either side of a
+   markdown hard wrap, and the detector judged one raw line at a time. It was
+   firing on the very prose enforcing the rule, while a real prescription
+   wrapping the same way would have been excused by nothing at all. The
+   negation is now sought over the marker's line plus the last 24 characters
+   of the line above: a strict superset of the old same-line rule, long enough
+   to span one wrap, far too short to reach an unrelated earlier sentence.
+   Red-first against the *old* rule before changing it: the wrapped fixture
+   flagged at line 2 (false positive reproduced), the adversarial fixture
+   still caught at line 3. The new test asserts **both** halves — that the
+   wrap is excused, and that a negation merely nearby does not excuse a
+   genuine prescription three lines later. Without that second half the
+   lookbehind would be a hole rather than a fix. No brief text was edited to
+   make a test pass.
+3. **Brief 008 is still not closed.** 008a and 008b are accepted; 008c is
+   unblocked by the owner decision below but has no lot yet. A Planificateur
+   pass — never a Générateur straight away — is the next step.
+
+## Previous Session Summary (2026-08-09)
 
 Closed lot 008a through a real REJECT→fix→ACCEPT cycle, generated lot 008b,
 and took the owner decision that unblocks 008c. Local commits only.
@@ -247,5 +307,6 @@ and took the owner decision that unblocks 008c. Local commits only.
    Évaluateur's own two new files then added two more offenders. All three
    reworded; the test is green and no finding or number was removed.
 
-Suite: **269 passed, 1 pre-existing red**. **Nothing pushed.** Commits this
-session: `1beaa6d`, `c5f35ea`, `9a6ce32`, plus this checkpoint.
+Suite at the time: **269 passed, 1 red** (the false positive cleared on
+2026-08-10). **Nothing pushed.** Commits that session: `1beaa6d`, `c5f35ea`,
+`9a6ce32`, plus its checkpoint.
