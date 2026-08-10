@@ -424,3 +424,241 @@ owner. Recorded against myself as well as against the loop.
 - `git diff --name-only origin/master...HEAD -- <each Non-Goal path>`
 - `git diff HEAD~1 HEAD -- harness/tests/test_trigger_resolve.py` to confirm
   zero deletions from the original `12` tests
+
+---
+
+# Verdict — Brief `008`, **LOT 008b ONLY** (pipeline job-failure escalation)
+
+**Authored**: 2026-08-10T20:05:00Z
+**Author**: forge-evaluateur
+
+Appended, not overwritten: everything above this line is the Lot 008a
+verdict (ACCEPT at iteration 2) and its preserved iteration-1 REJECT
+history. Nothing above was edited by this pass. My jurisdiction here is
+SC7–SC11, the two 008b `must_differ_from` rows, and the four 008b
+counters. **SC1–SC6 are not re-judged** — they are neither PASS nor FAIL
+in this section; they were closed above.
+
+Work under evaluation: commit `9a6ce32`.
+
+## Mechanical Gate Result
+
+`py harness/verdict_audit.py harness/queue/briefs/008-full-auto-automation-gaps`
+— captured verbatim, exit code included, at
+`deliverables/evaluateur-gate-rerun-008b.txt` (a distinct file; the 008a
+capture `evaluateur-gate-rerun.txt` was not overwritten). Cited by path,
+not retyped, per hard-won rule `12`.
+
+The gate is **necessary but not sufficient**. It was green on Lot 008a
+iteration 1, which this same role nevertheless REJECTed. Everything below
+is therefore reconstructed independently — I did not run
+`deliverables/measure_pipeline_job_failed_counters.py` as evidence. I read
+it to learn its definitions, then wrote my own detector, deliberately
+stricter in two places (noted in the counter table).
+
+## Per-Rubric-Line Verdict — Lot 008b
+
+| # | Success Condition | PASS/FAIL | Evidence I personally executed |
+|---|---|---|---|
+| 7 | New `pipeline_job_failed` rule, action mirrors `three_consecutive_mechanical_rejects` | **PASS** | Loaded `auto_policy.yaml` through the real `policy_loader.load_auto_policy` (the same parser `orchestrator.py` uses at runtime), not by eyeballing text. `11` rules parsed; exactly 1 has `event: pipeline_job_failed`. Its `action` is `open_bot_issue_pipeline_stuck_no_human_wait` — **byte-identical** to the `three_consecutive_mechanical_rejects` action, not a weaker cosmetic sibling. `condition: always` is correct, not a loophole: the world-fact is "the machine itself broke," which has no streak to accumulate. |
+| 8 | `orchestrator.py --event pipeline_job_failed` returns `action == "escalate_pipeline_stuck"` | **PASS** | I did not trust the test. I ran the **real CLI in a subprocess**: `py harness/pipeline/orchestrator.py run --event pipeline_job_failed --payload '{"workflow_name":"pipeline-orchestrate","run_url":".../31085883052","conclusion":"failure"}'` → `{"action": "escalate_pipeline_stuck", ..., "matched_rules": ["pipeline_job_failed"]}`, exit 0. Ran the 3-REJECT path the same way (`--event gate_reject`, `reject_streak: 3`) → same `action` string. Also confirmed the guard is real, not decorative: a payload missing `workflow_name`/`run_url` exits 2 with `refusing to guess`. The tests themselves monkeypatch **nothing** — they call `orchestrator.run_event` against the live on-disk policy file. |
+| 9 | `workflow_run` trigger covers all four `pipeline-*.yml` | **PASS** | I globbed `.github/workflows/pipeline-*.yml` myself rather than trusting any hard-coded list. Stricter than the Générateur's own script: it compares the trigger list against filename **stems**, which would silently pass even if a workflow's `name:` key diverged from its filename — and `workflow_run` matches on `name:`, not filename. I therefore read each of the four files' actual `name:` key and matched against those. All four match, coverage = 4, **MISSING = [] and PHANTOM = []**. Excluding `pipeline-failure-escalate.yml` itself from the denominator is legitimate — SC9 enumerates the four target files by name. `types: [completed]` plus job-level `if: github.event.workflow_run.conclusion == 'failure'` is the correct GitHub pattern (`workflow_run` has no `failure` activity type; `completed` fires and the `if` narrows) — so a failure genuinely is captured, not silently un-triggerable. I then **replayed the workflow's own `run:` block end-to-end**: built the payload with its exact one-liner, piped it into the real orchestrator → `escalate_pipeline_stuck`, exit 0. The name and URL are in the payload as SC9 requires. |
+| `10` | Incident-shaped fixture resolves to the **same** escalation action (parity) | **PASS** | Extracted the asserted string constants from each fixture by AST, and compared literally rather than by impression. `test_gate_reject_escalates_only_at_streak_three` asserts `"escalate_pipeline_stuck"`; `test_pipeline_job_failed_incident_31085883052_style_regression` asserts `"escalate_pipeline_stuck"` — the **same literal**, plus `matched_rules == ["pipeline_job_failed"]`. `test_pipeline_job_failed_escalates_same_as_gate_reject_streak` goes further and asserts dynamic equality against the gate_reject outcome, so the parity cannot drift silently. This is parity, not "an" escalation. Red-first proven independently — see below. |
+| `11` | `actionlint`, or the named substitute, used **and documented** | **PASS** | `actionlint` is genuinely absent here — I verified twice myself (`command -v actionlint` → not found; `Get-Command actionlint` → NOT FOUND). The waiver path is therefore legitimately open. I reproduced the declared substitute (`policy_loader.load_flat_yaml` on the new workflow) myself: parses without raising, surfaces the four `workflows:` entries. The documentation is **specific, not a hollow formula**: `generator-log.md` names exactly four things the flat parser structurally cannot verify (3-level nesting of `on:`/`workflow_run:`/`workflows:`/`types:`, the job-level `if:` expression syntax, step-level `env:`/`with:`/`run:` structure, and GitHub expression well-formedness) and states what compensating manual read-through covered them. Not a silent skip. Credit where due: it also volunteers, against its own interest, that PyYAML happens to be installed on this machine contrary to the brief's own parenthetical, while still counting the brief-prescribed substitute as the substitute. I independently ran `yaml.safe_load` on the file and confirm the structure. |
+| — | `must_differ_from`: `pre-fix/auto_policy.yaml.orig` vs `harness/pipeline/auto_policy.yaml` | **PASS** | Not just "they differ." I compared git blob hashes: the snapshot is **byte-identical to the `origin/master` version** (`242a9ee…`) and differs from the worktree copy. A genuine pre-fix capture, not a post-hoc reconstruction. |
+| — | `must_differ_from`: `pre-fix/orchestrator.py.orig` vs `harness/pipeline/orchestrator.py` | **PASS** | Same method, same result: snapshot blob `e27b076…` identical to `origin/master`, differs from the worktree copy. |
+
+## Reconstructed counters — mine vs. claimed
+
+I re-derived all four from source with my own detector. Where my method
+differs from the Générateur's, it is stricter, and I say so.
+
+| counter | claimed | my reconstruction | agree? | how mine differs |
+|---|---|---|---|---|
+| `pipeline_job_failed_policy_rule_count` | 1 | **1** | yes | Same parser, independently invoked; I additionally diffed the two rules' `action` values for semantic parity rather than just counting the rule. |
+| `pipeline_job_failed_handler_test_count` | 2 | **2** | yes | Stricter: the Générateur's detector accepts any test whose source merely *contains* the substrings `pipeline_job_failed` and `escalate_pipeline_stuck`. Mine requires a real AST **call** to `run_event`/`main` with `"pipeline_job_failed"` as an argument **and** a real `assert <...>["action"] == "escalate_pipeline_stuck"` comparison node. Both claimed tests survive the stricter test; the count is not inflated by prose or docstrings. |
+| `pipeline_workflow_run_trigger_coverage_count` | 4 | **4** | yes | Stricter: matched against each target workflow's real `name:` key, not its filename stem. MISSING=[], PHANTOM=[]. |
+| `run_31085883052_style_escalation_regression_count` | 1 | **1** | yes | Required the same AST call+assert proof as above **plus** the incident constants (`conclusion`/`failure`/`pipeline-orchestrate`/`31085883052`), so a test that merely mentions the run number cannot count. |
+
+All four reconcile. No number in `manifest.json` was taken on trust.
+
+## Red-first, independently reproduced (hard-won rule 4 / rule 7)
+
+A passing test proves nothing until you have watched it fail. I did this
+**from outside the repository** — I copied `harness/` and `architecture/`
+into a scratch tree outside `D:\ForgeHistory`, so the repo working copy was
+never mutated and nothing had to be un-done afterwards.
+
+- Baseline in the copy: `12 passed`.
+- **Neutralization A** — deleted the `pipeline_job_failed` rule block from
+  the copy's `auto_policy.yaml`, leaving all code intact:
+  `2 failed, 10 passed`, failing with
+  `OrchestratorError: event 'pipeline_job_failed' names rule id(s) [...] but none are present ... policy file and dispatcher have drifted`.
+  Exactly and only the two new tests fell.
+- **Neutralization B** — restored the policy, then weakened
+  `handle_pipeline_job_failed`'s returned action to `"no_op"`:
+  `2 failed, 10 passed`, failing on `- escalate_pipeline_stuck / + no_op`.
+  Again exactly and only the two new tests fell.
+
+So the rule **and** the handler are each independently load-bearing, and
+the tests are neither vacuous (they fail when the fix is removed) nor
+over-broad (nothing else fails). This is the specific class of cheat that
+sank Lot 008a's iteration 1 — a counter/test that would have stayed green
+without the fix. It is not present here.
+
+## Suite state — confirmed for the record
+
+- Rubric's prescribed 008b replay, `py -m pytest harness/tests/test_orchestrator.py -q`: **`12` passed**.
+- Full `py -m pytest harness/tests/ -q`: **`269` passed, `1` failed**. The one
+  failure is `test_run_unity.py::test_no_brief_prescribes_polling`, tripping
+  on `harness/queue/briefs/007-geo-pipeline-cells-adjacency/deliverables/checkpoint-002.md`
+  — a brief-`007` artifact last touched at `766ce39` (`2026-08-06`). Commit
+  `9a6ce32` touches zero files under brief `007`. **Pre-existing, not a 008b
+  regression**, and outside this lot's rubric — but recorded here so it is
+  not lost, because it is a real red test in the tree.
+
+## Boundary Violations
+
+**None.** Verified path-by-path against `origin/master`, not against the
+generator-log's claim.
+
+- **Lot independence, both directions.** `9a6ce32` touches
+  `pipeline-failure-escalate.yml` (new), `auto_policy.yaml`,
+  `orchestrator.py`, `test_orchestrator.py`, its own deliverables and the
+  cost-ledger. Lot 008a's commits touch `trigger_resolve.py`,
+  `test_trigger_resolve.py`, `pipeline-orchestrate.yml`. The two sets are
+  **disjoint**; neither lot reached into the other's files.
+- **Lot 008c scope intact.** `docs/rules/full-auto-pipeline.md` (its
+  `<<TODO>>` marker) and `harness/audit_convert.py` (its seed text) are both
+  unchanged versus `origin/master`.
+- **Agent-invocation step bodies untouched.** `pipeline-audit.yml`,
+  `pipeline-challenge.yml`, `pipeline-forge-run.yml` are unchanged versus
+  `origin/master` — not merely "the TODO lines survived": the whole files
+  are byte-unchanged. `workflow_run` is the right mechanism precisely
+  because it required no edit inside the watched workflows.
+- **No `gh issue create` overclaim.** The 008b diff introduces no
+  `gh issue`, no `gh api`, no `GH_TOKEN`, no `issues: write` permission. The
+  new workflow declares `permissions: contents: read` only, and the handler
+  returns a log-only outcome — the exact wiring depth `handle_gate_reject`
+  already has. The docstring and workflow comment both say so explicitly
+  rather than implying a notification that does not exist. This is the
+  honest parity the Non-Goals demanded.
+- **`mode: full_auto` untouched.** `harness/pipeline/config.yaml` unchanged
+  versus `origin/master`. `docs/adr/0006-full-auto-agent-pipeline.md`
+  unchanged. `harness/audit_decision.py` (SC6's guard) unchanged.
+
+## Advisory observations — not blockers, recorded so they are not lost
+
+Neither of these fails a rubric row; I am not smuggling in criteria the
+Planificateur did not write.
+
+1. **The escalation is inert until merged to `master`.** GitHub only
+   honours a `workflow_run` trigger from the workflow file as it exists on
+   the repository's **default branch**. `pipeline-failure-escalate.yml`
+   currently lives only on `forge/cursor-audit-loop`. SC9 asks for the file,
+   the trigger, and the call — all three are present and correct, so this
+   is a PASS — but nobody should read this ACCEPT as "the loop is watching
+   itself today." It will watch itself the moment this branch reaches
+   `master`, and not one commit before.
+2. **The new workflow's `run:` block calls the `python` alias, not `py`.**
+   This is correct and consistent, not a rule-1 violation: the existing
+   `pipeline-orchestrate.yml` does the same on the same Ubuntu runner after
+   `actions/setup-python`, and hard-won rule 1's `py` requirement is about
+   *this Windows machine's* fake Store alias. The gate's
+   `no_bare_python_alias` check agrees.
+3. **Budget is unmeasured for this lot.** `py harness/budget.py status`
+   reports `AMBIGUOUS` — six transcripts name this brief, the largest at `96`
+   tool calls, all under the `160` stop. Nothing was exceeded as far as can be
+   seen, but "as far as can be seen" is the honest phrasing; the tool's own
+   output says "Nothing is being enforced. This is not OK — it is
+   unmeasured." Not a rubric row for 008b.
+
+## Overall Verdict: **LOT_008b: ACCEPT**
+
+Without hedging, and without generosity. SC7–SC11 all pass on evidence I
+produced myself: the policy action compared for literal parity through the
+real loader, the escalation confirmed through the real CLI in a subprocess
+rather than through a test's word, the four-file coverage recomputed against
+actual `name:` keys instead of the filename stems the Générateur's own
+script compares, the parity of the two asserted action strings extracted by
+AST and compared literally, and the whole fix broken twice from outside the
+repository to watch precisely the two right tests turn red.
+
+The pre-fix snapshots are honest — byte-identical to `origin/master`, so
+they are captures, not reconstructions. The waiver is a real waiver: the
+tool is genuinely missing, the substitute was genuinely run, and the log
+names the four specific things the substitute cannot check instead of
+waving at them.
+
+Acknowledged as genuine improvement over the 008a experience: this lot
+arrived with its red-first proof already done and documented, its Non-Goal
+boundaries respected without being reminded, and a disclosure that worked
+against its own convenience (PyYAML being present). That is the behaviour
+the iteration-1 REJECT was meant to produce.
+
+**Brief `008` remains open.** This ACCEPT closes Lot 008b only. Lot 008a is
+accepted above; **Lot 008c is still unspecified and blocked** on the owner's
+product decision — no Success Conditions exist for it by design, and an
+Évaluateur must reject any 008c submission against this brief outright. Two
+of three lots accepted is not a finished brief.
+
+## What Improved Since Last Iteration
+
+This is Lot 008b's **first** iteration — there is no prior 008b submission
+to compare against, so this section is about carry-over from the 008a
+REJECT, not about 008b regressions:
+
+- The counter-measurement script is scoped to the whole artifact it claims
+  to measure, and the manifest states each counter's definition explicitly.
+  BLOCKER-1 of `feedback-008a.md` was exactly the opposite failure.
+- Red-first was performed and recorded **before** the tests were declared
+  passing, with the actual failure message quoted — not asserted in prose.
+- The waiver carries its command and its error, and names what could not be
+  checked.
+
+## What Regressed Since Last Iteration
+
+Nothing attributable to this lot. The single red test in the full suite
+(`test_no_brief_prescribes_polling`) predates `9a6ce32` and belongs to
+brief `007`.
+
+## Feedback for Next Iteration
+
+No blockers. Two items, neither of which changes this ACCEPT:
+
+1. **Tighten `measure_pipeline_job_failed_counters.py`'s coverage check
+   before it is reused.** `pipeline_workflow_run_trigger_coverage_count()`
+   compares the `workflow_run: workflows:` list against `p.stem` of each
+   `pipeline-*.yml`. `workflow_run` matches on the target's `name:` key.
+   Today every file's `name:` equals its stem, so the number is right by
+   coincidence, not by construction — the day someone renames a workflow's
+   `name:` without renaming the file, this counter will report 4 while the
+   trigger silently matches nothing. Fix: read each target file's `^name:`
+   value and intersect against that, as I did.
+2. **Record the default-branch caveat wherever the full-auto loop's status
+   is summarised** (`HANDOFF.md`, not the brief): the escalation SC9 adds
+   does not fire until `pipeline-failure-escalate.yml` is on `master`. This
+   is not a defect in the deliverable; it is a fact about `workflow_run`
+   that should not be discovered by a future reader assuming coverage
+   already exists in production.
+
+## Verification commands I ran (Lot 008b, for replay)
+
+```
+py harness/verdict_audit.py <this-brief-dir>
+py harness/pipeline/orchestrator.py run --event pipeline_job_failed --payload '{"workflow_name":"pipeline-orchestrate","run_url":".../runs/<incident-run-id>","conclusion":"failure"}'
+py harness/pipeline/orchestrator.py run --event gate_reject --payload '{"brief_dir":"...","reject_streak":3}'
+py harness/pipeline/orchestrator.py run --event pipeline_job_failed --payload '{"conclusion":"failure"}'   # expect exit 2
+py -m pytest harness/tests/test_orchestrator.py -q
+py -m pytest harness/tests/ -q
+git show --stat <the-008b-commit>
+git diff --quiet origin/master -- <each Non-Goal path>
+git show origin/master:<file> | git hash-object --stdin   # vs. git hash-object <pre-fix snapshot>
+command -v actionlint   /   Get-Command actionlint
+py -c "...policy_loader.load_flat_yaml('.github/workflows/pipeline-failure-escalate.yml')..."
+```
+
+Plus my own counter-reconstruction script and the two out-of-repo
+neutralization runs described above, both executed in the session
+scratchpad so that the repository working tree was never modified by this
+evaluation.
