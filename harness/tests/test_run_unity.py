@@ -302,6 +302,14 @@ POLL_MARKERS = (
 # else is a prescription, whatever the surrounding prose intends.
 NEGATIONS = ("do not", "don't", "never", "rather than", "instead of",
              "not a poll", "no polling", "stop ")
+# Markdown prose is hard-wrapped, so a negation and the verb it negates can
+# land on either side of a line break ("... notification, do" / "not poll the
+# log file ..."). Judging one raw line at a time made the check blind to
+# exactly the sentences that forbid polling most explicitly. The negation is
+# therefore sought over the marker's line plus this many trailing characters
+# of the line above -- enough to span one wrap, far too short to reach an
+# unrelated earlier sentence.
+NEGATION_WRAP_LOOKBEHIND = 24
 
 
 def _normalize(text: str) -> str:
@@ -323,19 +331,61 @@ GRANDFATHERED_POLLING = {
 def _polling_offenders(paths) -> list[str]:
     offenders = []
     for path in paths:
-        rel = path.relative_to(REPO_ROOT).as_posix()
+        # Tolerant so the detector itself can be unit-tested on a tmp fixture
+        # outside the repo -- an in-repo-only helper can only ever be proved
+        # by the repo's own prose, which is what let the wrap bug survive.
+        try:
+            rel = path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            rel = path.as_posix()
         if rel in GRANDFATHERED_POLLING:
             continue
+        previous = ""
         for lineno, raw in enumerate(
             path.read_text(encoding="utf-8", errors="replace").splitlines(), 1
         ):
             line = _normalize(raw)
             if not any(marker in line for marker in POLL_MARKERS):
+                previous = line
                 continue
-            if any(neg in line for neg in NEGATIONS):
+            # Superset of the old same-line rule: `line` is still searched in
+            # full, plus the tail of the line above to survive a hard wrap.
+            window = previous[-NEGATION_WRAP_LOOKBEHIND:] + " " + line
+            if any(neg in window for neg in NEGATIONS):
+                previous = line
                 continue
             offenders.append(f"{rel}:{lineno}: {raw.strip()[:90]}")
+            previous = line
     return offenders
+
+
+def test_negation_split_by_a_hard_wrap_is_still_a_negation(tmp_path: Path):
+    """The detector used to read one raw line at a time, so a sentence that
+    forbids polling but wraps mid-phrase ("... notification, do" / "not poll
+    the log file ...") was reported as if it *prescribed* polling. That is
+    the worst possible false positive: the check fired on the very text
+    enforcing the rule, and brief 007's checkpoint-002.md tripped it for real.
+
+    The second half is what keeps the fix honest: a negation that is merely
+    somewhere nearby, rather than attached to the marker, must NOT excuse a
+    genuine prescription -- otherwise the lookbehind is a hole, not a fix."""
+    excused = tmp_path / "wrapped.md"
+    excused.write_text(
+        "use run_in_background and wait for the one notification, do\n"
+        "not poll the log file across many separate tool calls.\n",
+        encoding="utf-8",
+    )
+    assert _polling_offenders([excused]) == []
+
+    caught = tmp_path / "hole.md"
+    caught.write_text(
+        "Never launch Unity from the raw CLI; the wrapper exists precisely so\n"
+        "that nobody has to reinvent it, and it also handles log rotation.\n"
+        "Then poll the log file every few seconds until the build finishes.\n",
+        encoding="utf-8",
+    )
+    offenders = _polling_offenders([caught])
+    assert len(offenders) == 1 and ":3:" in offenders[0], offenders
 
 
 def test_no_brief_prescribes_polling():
@@ -374,7 +424,8 @@ def test_no_instruction_file_still_prescribes_polling():
     Deliberately not a bare substring ban -- HANDOFF, unity/README.md and
     the Planificateur all have to *name* the pattern in order to forbid it.
     The mechanical rule is therefore: a line that mentions polling must also
-    carry a negation on that same line."""
+    carry a negation on that same line, or immediately before it across a
+    hard wrap (see NEGATION_WRAP_LOOKBEHIND)."""
     targets = [REPO_ROOT / "HANDOFF.md", REPO_ROOT / "CLAUDE.md",
                REPO_ROOT / "unity" / "README.md"]
     targets += sorted((REPO_ROOT / ".claude" / "agents").glob("*.md"))

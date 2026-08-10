@@ -7,3 +7,5 @@
 | [0003](0003-single-spatial-primary-key.md) | The geographic cell as the single spatial primary key (Province as derived aggregation) | accepted | 2026-07-29 |
 | [0004](0004-bulk-port-victoriaproject-unity-game.md) | Bulk-port VictoriaProject's Unity game into `unity/game_unity/`, automation layer excluded | accepted | 2026-07-31 |
 | [0005](0005-cursor-as-independent-auditor.md) | Cursor Cloud as independent auditor (repositioned from Générateur backend) | accepted | 2026-08-05 |
+| [0006](0006-full-auto-agent-pipeline.md) | Full-auto agent pipeline (derogation to ADR-0005's owner step) | accepted | 2026-08-05 |
+| [0007](0007-full-auto-mode-split.md) | Split `mode: full_auto` into `full_auto_decision_only` and a reserved, fail-closed `full_auto` | accepted | 2026-08-10 |

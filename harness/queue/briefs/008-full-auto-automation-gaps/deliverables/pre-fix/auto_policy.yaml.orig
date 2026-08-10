@@ -8,20 +8,14 @@
 # apply it mechanically. Parsed by harness/pipeline/policy_loader.py (no
 # PyYAML dependency -- see generator-log.md for why).
 #
-# `mode: full_auto_decision_only` is the value this policy documents (brief
-# 009 ADR-0007 split the single `full_auto` value in two -- this scalar is
-# documentation only, not a parsed enforcement key, per this file's own
-# header comment; it must not silently disagree with the LIVE switch in
-# harness/pipeline/config.yaml (`mode:`), which carries the real value).
-mode: full_auto_decision_only
+# `mode: full_auto` is the value this policy documents/activates; the LIVE
+# switch lives in harness/pipeline/config.yaml (`mode:`), which stays
+# `manual` until Lot 006c's demo has proven the loop end-to-end (see brief
+# 006 "Lots atomiques" -- "Après 006c: activer mode: full_auto").
+mode: full_auto
 
 # One entry per row of brief 006 "## Politique auto" (10 rows -> 10 rules,
-# each carrying event / condition / action so it stays machine-parseable),
-# plus one rule added by brief 008 Lot 008b (pipeline_job_failed, fixing
-# ARCH-003): the same escalation semantics as
-# three_consecutive_mechanical_rejects, but for "the orchestrator's own
-# dispatcher failed" rather than "the Générateur's work was bad three times
-# running" -- 10 original rows + 1 = 11 rules below.
+# each carrying event / condition / action so it stays machine-parseable).
 rules:
   - id: audit_pr_merge_ci_green
     event: audit_pr_merge
@@ -66,11 +60,6 @@ rules:
   - id: three_consecutive_mechanical_rejects
     event: gate_reject
     condition: three_consecutive_mechanical_rejects_same_brief
-    action: open_bot_issue_pipeline_stuck_no_human_wait
-
-  - id: pipeline_job_failed
-    event: pipeline_job_failed
-    condition: always
     action: open_bot_issue_pipeline_stuck_no_human_wait
 
   - id: budget_exhausted

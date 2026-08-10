@@ -1,0 +1,57 @@
+{
+  "files": [
+    { "path": "../../../../harness/pipeline/config.yaml", "must_differ_from": "deliverables/pre-fix/config.yaml.orig" },
+    { "path": "deliverables/pre-fix/config.yaml.orig" },
+    { "path": "../../../../harness/pipeline/auto_policy.yaml", "must_differ_from": "deliverables/pre-fix/auto_policy.yaml.orig" },
+    { "path": "deliverables/pre-fix/auto_policy.yaml.orig" },
+    { "path": "../../../../docs/rules/full-auto-pipeline.md", "must_differ_from": "deliverables/pre-fix/full-auto-pipeline.md.orig" },
+    { "path": "deliverables/pre-fix/full-auto-pipeline.md.orig" },
+    { "path": "../../../../harness/pipeline/full_auto_mode_guard.py" },
+    { "path": "../../../../harness/tests/test_mode_guard.py" },
+    { "path": "../../../../docs/adr/0007-full-auto-mode-split.md" },
+    { "path": "../../../../docs/adr/README.md" },
+    { "path": "deliverables/measure_config_mode_transitions.py" },
+    { "path": "deliverables/pytest-full-output.txt" },
+    { "path": "deliverables/progress.jsonl" },
+    { "path": "deliverables/generator-log.md" }
+  ],
+  "counters": [
+    {
+      "name": "mode_full_auto_bare_rejected_test_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py -m pytest harness/tests/test_mode_guard.py -k test_bare_full_auto_refused_while_forgerun_unwired -v -- prints '1 passed'; the test calls validate_mode(\"full_auto\", forge_run_workflow=REAL .github/workflows/pipeline-forge-run.yml) and asserts ModeGuardError is raised, against the real repository file (which still contains 'TODO(operator' -- confirmed by the sibling control test test_stub_marker_still_present_in_real_forge_run_workflow_control in the same file)"
+    },
+    {
+      "name": "mode_full_auto_accepted_when_forgerun_wired_test_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py -m pytest harness/tests/test_mode_guard.py -k test_full_auto_accepted_once_forgerun_wired -v -- prints '1 passed'; the test builds a tmp_path FIXTURE copy of the real pipeline-forge-run.yml text with 'TODO(operator' replaced by 'DONE(operator', asserts the fixture no longer contains the marker, then asserts validate_mode(\"full_auto\", forge_run_workflow=<fixture>) does NOT raise -- the same guard function as the row above, opposite branch, proving both branches of the SC1/SC2 pair are exercised, not only the refusal"
+    },
+    {
+      "name": "adr_0007_status_field_present",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py -c \"from pathlib import Path; text = Path('docs/adr/0007-full-auto-mode-split.md').read_text(encoding='utf-8'); print(sum(1 for line in text.splitlines() if line.strip().startswith('**Status**:') and line.strip() != '**Status**:'))\" -- prints '1' (the line reads '**Status**: accepted')"
+    },
+    {
+      "name": "adr_readme_rows_added_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "git diff HEAD -- docs/adr/README.md -- shows exactly two added lines, one row for [0006](0006-full-auto-agent-pipeline.md) (the pre-existing missing row, found stale and fixed in this lot per SC5) and one row for [0007](0007-full-auto-mode-split.md); zero rows removed"
+    },
+    {
+      "name": "config_mode_single_commit_transition_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "py harness/queue/briefs/009-full-auto-agent-invocation/deliverables/measure_config_mode_transitions.py 244a4f2~1..244a4f2 -- prints 'config_mode_single_commit_transition_count = 2' / \"distinct values seen: ['full_auto', 'full_auto_decision_only']\" (old value removed once, new value added once, no third/intermediate bare value in the commit's own diff of harness/pipeline/config.yaml). MEASURED BY THE ORCHESTRATOR AFTER commit 244a4f2 landed, not by this Generateur session -- this counter's own definition requires a real commit range that did not exist while the Generateur session ran (see deliverables/generator-log.md). The Generateur session independently re-ran the identical command against the same commit range after being given the sha and confirmed byte-identical output before writing this entry. NOTE (iteration 2, 2026-08-10): this value/range is for iteration 1's own commit only. This iteration 2 (fix for feedback-009a.md B1/B2/B3) does NOT rewrite harness/pipeline/config.yaml's `mode:` line (only its surrounding comment), so the count should still equal 2 across the whole lot -- but the range that must actually be re-measured, once this iteration's own fix commit exists, is `244a4f2~1..<iteration-2 commit sha>`, wider than the range this entry's command covers. See deliverables/generator-log.md 'Iteration 2' > 'Session constraints' for why this session cannot run that wider-range command itself (the sha does not exist yet) and what must be re-run once it does."
+    },
+    {
+      "name": "mode_guard_empty_or_truncated_workflow_refusal_test_count",
+      "value": 4,
+      "sample_size": 4,
+      "command": "py -m pytest harness/tests/test_mode_guard.py -k \"empty or whitespace_only or truncated or non_utf8\" -v -- prints '4 passed' (test_empty_forge_run_workflow_refuses_full_auto_fail_closed, test_whitespace_only_forge_run_workflow_refuses_full_auto_fail_closed, test_truncated_forge_run_workflow_before_jobs_section_refuses_full_auto_fail_closed, test_non_utf8_forge_run_workflow_raises_mode_guard_error_not_uncaught_exception). Not a brief-required counter row (feedback-009a.md B2 named these as required NEW tests, not a new named counter in brief.md's own table) -- recorded here for traceability of the fix's own coverage, proved red first against the iteration-1 module (see generator-log.md 'Iteration 2' section for the exact red output)."
+    }
+  ],
+  "waivers": []
+}

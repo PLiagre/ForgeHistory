@@ -146,6 +146,52 @@ def test_gate_reject_escalates_only_at_streak_three(tmp_path):
     assert at_threshold["action"] == "escalate_pipeline_stuck"
 
 
+def test_pipeline_job_failed_escalates_same_as_gate_reject_streak():
+    """Brief 008, Lot 008b, SC8 (fixes ARCH-003): a `pipeline_job_failed`
+    event, unconditionally (no streak needed -- the machine itself broke),
+    dispatches to the SAME `action` the 3-in-a-row `gate_reject` streak
+    already returns above, proving the two escalation paths converge on one
+    human-visible outcome."""
+    outcome = orchestrator.run_event(
+        "pipeline_job_failed",
+        {
+            "workflow_name": "pipeline-challenge",
+            "run_url": "https://github.com/example/ForgeHistory/actions/runs/12345",
+        },
+    )
+    assert outcome["action"] == "escalate_pipeline_stuck"
+    at_threshold = orchestrator.run_event(
+        "gate_reject", {"brief_dir": "harness/queue/briefs/x", "reject_streak": 3},
+    )
+    assert outcome["action"] == at_threshold["action"]
+
+
+def test_pipeline_job_failed_missing_fields_refused():
+    with pytest.raises(orchestrator.OrchestratorError):
+        orchestrator.run_event("pipeline_job_failed", {"workflow_name": "pipeline-audit"})
+    with pytest.raises(orchestrator.OrchestratorError):
+        orchestrator.run_event("pipeline_job_failed", {})
+
+
+def test_pipeline_job_failed_incident_31085883052_style_regression():
+    """Brief 008, Lot 008b, SC10: reproduces the exact shape of the real
+    incident -- a `pipeline-orchestrate` run ending `conclusion: failure`
+    (run 31085883052, FAILURE, exit 2) -- as the `workflow_run`-triggered
+    payload `.github/workflows/pipeline-failure-escalate.yml` constructs,
+    and asserts it resolves to the same `escalate_pipeline_stuck` action
+    the existing 3-REJECT fixture (`test_gate_reject_escalates_only_at_streak_three`
+    above) produces. Hard-won rule 9: proven by this passing test, not
+    prose."""
+    incident_payload = {
+        "workflow_name": "pipeline-orchestrate",
+        "run_url": "https://github.com/example/ForgeHistory/actions/runs/31085883052",
+        "conclusion": "failure",
+    }
+    outcome = orchestrator.run_event("pipeline_job_failed", incident_payload)
+    assert outcome["action"] == "escalate_pipeline_stuck"
+    assert outcome["matched_rules"] == ["pipeline_job_failed"]
+
+
 def test_no_direct_ledger_file_write_in_source():
     """Static proof, cheap and durable: the module's own source never opens
     LEDGER_PATH (or any local `ledger` variable) for writing -- every mutation
