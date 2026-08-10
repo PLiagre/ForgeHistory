@@ -1,312 +1,127 @@
 # HANDOFF.md
 
-State-of-play. Rewritten at the end of every session (via `/forge-checkpoint`)
-— not a changelog, but "what a new agent needs to pick up exactly where the
-last session left off."
+État de reprise vérifié le 2026-08-10. Ce fichier décrit l'état réel utile à
+la prochaine session ; l'historique détaillé reste dans Git.
 
-## Current Milestone
+## Point de départ
 
-F0 done (see git history for its proof trail). **F1 in progress, and the
-repository is no longer stubs**: the owner arbitrated the `FORGE-HISTORY-BRIEF.md`
-§9 question on 2026-07-31 — "récupérer le code existant fonctionnel de
-VictoriaProject ; les harnais et contrôles sont ceux de ForgeHistory" — and
-VictoriaProject's working Unity game now lives, compiles, tests and captures
-from `unity/game_unity/`. Recorded in
-[ADR-0004](docs/adr/0004-bulk-port-victoriaproject-unity-game.md) (which also
-names the imported double-primary-key debt; ADR-0003 remains the target).
+- Branche par défaut : `master`, commit `1d973d9` au début et à la fin de la
+  session. Aucun merge n'a été effectué.
+- Jalon général : F0 terminé ; F1 en cours. Le jeu Unity porté, le pipeline
+  géographique et les travaux visuels antérieurs n'ont pas été modifiés dans
+  cette session.
+- Source d'instruction du travail full-auto :
+  `harness/queue/briefs/009-full-auto-agent-invocation/brief.md`.
+- `py -m pytest harness/tests/ -q` sur `master` : **284 passed**, zéro échec.
+- `py harness/audit_schema.py` : les sept audits sont valides.
+- `py harness/harness_audit.py` : un seul contrôle reste rouge,
+  `no_premature_stub_content`. Le contrôle suppose encore que `pipeline/geo/`
+  est un stub vide alors que ce répertoire a été rempli par des lots acceptés ;
+  ne pas supprimer son contenu pour satisfaire l'audit.
 
-## Status (verified 2026-08-10, end of session, live command output)
+## Brief 009 : état exact
 
-- `py -m pytest harness/tests/ -q` — **271 passed, 0 failed**. The tree is
-  green for the first time in four sessions: the long-standing red
-  (`test_run_unity.py::test_no_brief_prescribes_polling`) turned out to be a
-  **false positive in the detector**, not an offending brief — fixed in
-  `3b1262a`, see Last Session Summary. NB `origin/master` is `32640da`
-  (PR #11); nothing pushed since.
-- `py harness/harness_audit.py` — **23/24**. The one FAIL
-  (`no_premature_stub_content`) is the audit tool being stale, not the repo
-  being wrong: it still assumes `pipeline/geo/`, `unity/` are empty stubs,
-  which briefs 002/003 legitimately un-stubbed through the gate. Fix the
-  audit's assumption (see Open TODOs) — do not "clean" the dirs.
-- `py harness/verdict_audit.py harness/queue/briefs/008-full-auto-automation-gaps`
-  — **10/10, VERDICT: ACCEPT**.
-- **Brief 008 — lots 008a and 008b both ACCEPTED, lot 008c unblocked but not
-  yet specified. The brief as a whole is NOT closed.**
-  - **008a**: `LOT_008a: ACCEPT` after one REJECT→fix→re-accept cycle. The
-    iteration-1 REJECT is preserved in `verdict.md`, not sanitized away.
-  - **008b**: `LOT_008b: ACCEPT`, first pass, no REJECT cycle. The 008b
-    verdict was **appended** to `verdict.md` (238 insertions, 0 deletions —
-    checked, so 008a's record including its REJECT is byte-intact).
-  - **008c**: the three owner questions that blocked it are **answered**
-    (see below). A fresh Planificateur pass converts them into a real lot —
-    that is the first thing next session.
-- **Audit CURSOR-5633ee7-automation-completeness** — loop closed in the
-  previous session: `PROPOSED → CHALLENGED (be86205) → APPROVED (f3a7056) →
-  CONVERTED (c4ec462)`. Ledger: `architecture/audit-ledger.jsonl`.
+| lot | état | preuve / blocage |
+|---|---|---|
+| 009a — séparation du mode | **REJECT, itération 2 rejugée** | PR brouillon [#16](https://github.com/PLiagre/ForgeHistory/pull/16), commit `c9e9291`, CI verte. Gate mécanique vert et 284 tests verts. Le nouveau jugement est ajouté à `verdict.md`, sans effacer le premier REJECT. Quatre corrections C1-C4 sont demandées dans `feedback/feedback-009a-002.md`. |
+| 009b — plafond budgétaire CI | **produit, non jugé** | PR brouillon [#17](https://github.com/PLiagre/ForgeHistory/pull/17), commit `cd89141`, CI verte. Dix tests ciblés, 294 tests complets et gate mécanique vert. Aucun Évaluateur indépendant n'a encore écrit de verdict pour ce lot. |
+| 009c — invocation réelle de challenge | **non commencé, bloqué** | Ne pas commencer tant que 009a n'a pas un ACCEPT explicite et que 009b n'a pas franchi son jugement indépendant. |
 
-## Owner product decision (2026-08-09) — lot 008c is no longer blocked
+Le `VERDICT: ACCEPT` du gate mécanique de 009b ne vaut pas jugement humain :
+le `verdict.md` actuellement sur `master` concerne 009a. Le Générateur de 009b
+n'a pas écrit son propre verdict.
 
-Recorded in full, with rationale, at the end of
-`architecture/decisions/DECISION-CURSOR-5633ee7-automation-completeness.md`.
-Do not paraphrase it into a brief — a fresh Planificateur pass reads it there
-and writes the lot. Summary of what was decided:
+## Ce qui a été fait dans cette session
 
-1. **First agent to wire: `claude-challenger`** (`pipeline-challenge.yml`),
-   then cursor-auditor, then forge-run last.
-2. **`mode: full_auto` gets split** into `full_auto_decision_only` (audit →
-   challenge → owner decides) and `full_auto` (reserved until forge-run is
-   really wired), with a fail-closed migration.
-3. **Recurring CI budget accepted**: 5 $/invocation for challenge,
-   50 $/invocation for forge-run, 200 $/month cumulative; on breach the CI
-   flips itself to `mode: manual` via the existing kill-switch.
+### Réévaluation de 009a
 
-Calibrated on measured cost, not estimates (`py harness/backends/ledger.py
-tokens`): full brief-008 loop = 13.37 $; Générateur median ≈ 20–45 $; worst
-observed Générateur = 119.96 $ over 982 calls (the brief-003 Unity port —
-atypical in scope and hit by the since-fixed log-polling bug). The measured
-cost lever is **mean context per call** (371 K on that outlier), not call
-count.
+Le garde, les compteurs, les frontières de périmètre et la suite ont été
+reconstruits indépendamment. Une preuve red-first a été faite dans une copie
+Git jetable hors du dépôt : rendre permissif le cas du workflow vide fait
+échouer exactement le test attendu, puis la restauration le remet au vert.
 
-## What Exists (delta this session — 2026-07-31)
+Les corrections précédentes ont fermé la mention d'activation périmée et les
+cas vide/espaces/non-UTF-8. La recherche adverse a cependant trouvé :
 
-Four commits: `fce1d82` (brief 002 baseline), `8fb4bef` (brief 003 port),
-`0f05936` (brief 003 iteration 5), plus this session's closing commit.
+- trois faux workflows encore acceptés parce que le garde cherche seulement
+  les sous-chaînes `jobs:` et `runs-on:` ;
+- une documentation qui dit encore que le mode active ou arrête une boucle,
+  alors qu'aucun workflow ne lit ce mode ;
+- une sortie complète de l'itération 2 absente du journal ;
+- une commande de compteur restée limitée à l'ancien intervalle Git.
 
-- **`unity/game_unity/`** — the full VictoriaProject game at its HEAD
-  (v1_095b): 6 player verbs, GPU map, medieval-dark UI (v1_053–055),
-  855 files + 77 dirty-working-tree files restored to HEAD + 9
-  PresentationCache tracked files (4 unit sprites) restored after Évaluateur
-  feedback. Compile green from this location; conquest capture pair
-  regenerated fresh here. Whole tree verified blob-by-blob against
-  VictoriaProject HEAD: 0 missing. VictoriaProject itself proven untouched
-  (sentinel hashes, 3 checkpoints). Launcher: `unity/open-game.ps1`,
-  Unity 6000.0.43f1.
-- **Test truth for the ported game** (full detail:
-  `harness/queue/briefs/003-port-unity-game/deliverables/generator-log.md`):
-  reference suite green; full EditMode suite 274 cases with **7 legacy reds,
-  individually attributed** (hardcoded anchors predating the v1_090 rebase,
-  files untouched since 2026-07-23, same 7 red in VictoriaProject's own
-  `testresults_full.xml`) — left as-is, never weakened. `V1095GpuMapTests`
-  needs an invocation **without `-nographics`** (proven: 99.6% CPU/GPU
-  agreement with graphics, blind without).
-- **Two read-only bridges** from VictoriaProject local disk, SHA256-declared:
-  `unity/sandbox/geo/artifacts/coordinate_correction_proposal_v1_072.json`
-  and 2 XML baselines in `unity/game_unity/Logs/` — temporary until
-  `pipeline/geo/` catches up (geo port plan briefs 003–005).
-- **Brief 004 (polish visuel) — Générateur DONE, Évaluateur NOT run.**
-  Real fix delivered: debug-token leak (`HOVER Île-de-France` in the normal
-  banner) now hidden by default, reachable via `--debug-ids`, proof pairs
-  SHA256-distinct. Accents and French decimals investigated honestly:
-  already fixed upstream (v1_073 `FoldDiacriticsToAscii`), sample_size=11,
-  no fake fix applied. Reference suite still green after changes. Artistic
-  verdict recorded as `A_REVOIR_HUMAINEMENT` — the owner judges "beau".
-  Galleries: `unity/game_unity/Captures/v004_*/`.
-- **Brief 003 ran with 3 brief amendments + 1 feedback cycle** — including
-  amendment-003 explicitly correcting amendment-002's wrong diagnosis. The
-  drift found on the way: VictoriaProject's working tree was dirty
-  (uncommitted, non-compiling v1_096 work) while its HANDOFF claimed clean.
+Le détail exact et les commandes sont dans la PR #16. 009b étant indépendant,
+sa génération a pu continuer ; 009c ne l'est pas.
 
-## Open TODOs
+### Génération de 009b
 
-- [ ] **The 008b escalation is real but inert until this branch reaches
-      `master`.** GitHub honours a `workflow_run` trigger only from the
-      default-branch copy of the workflow file, so
-      `.github/workflows/pipeline-failure-escalate.yml` watches nothing today.
-      SC9 is genuinely satisfied (file, trigger and call all correct) — this
-      is a deployment fact, not a defect, and the Évaluateur ACCEPTed knowing
-      it. But the loop does not yet watch itself: do not describe ARCH-003 as
-      closed in production until the merge lands.
-- [ ] **008b follow-up recorded by the Évaluateur** (not blocking, it
-      ACCEPTed): `deliverables/measure_pipeline_job_failed_counters.py`
-      matches the trigger list against each workflow's filename stem, while
-      GitHub matches `workflow_run` on the `name:` key. Today every `name:`
-      happens to equal its stem, so the counter's `4` is right **by
-      coincidence, not by construction** — rename one `name:` without
-      renaming its file and the counter keeps reporting 4 while the trigger
-      silently matches nothing. Same failure class as the 008a counter-script
-      note below. The deliverable itself is deliberately left as-committed:
-      the accepted verdict cites its output, so a future brief fixes the
-      pattern rather than a retro-edit falsifying the record.
-- [ ] **Convert the owner's 008c decision into a real lot** — a fresh
-      **Planificateur** pass (never a Générateur straight away). Read the
-      decision at the end of
-      `architecture/decisions/DECISION-CURSOR-5633ee7-automation-completeness.md`.
-      Scope for the first lot: wire `claude-challenger` in
-      `pipeline-challenge.yml`, split `mode: full_auto` into
-      `full_auto_decision_only` + `full_auto` with a fail-closed
-      `policy_loader` migration, and enforce the 5 $ / 50 $ / 200 $ caps.
-      Note this lot legitimately touches `config.yaml` and ADR-0006, which
-      brief 008's own non-goals forbid — so it is a **new brief**, not an
-      amendment to 008.
-- [ ] **008a follow-up recorded by the Évaluateur** (not blocking, it
-      ACCEPTed): `test_resolve_payload_with_no_audit_id_passes_through_unguarded`
-      asserts pass-through but not that *no transition is reachable* for a
-      payload carrying no `audit_id`. The Évaluateur proved that property
-      itself (32 adversarial dispatches, zero transitions); per hard-won rule
-      9 the proof belongs in the suite, not in a verdict. Also: the counter
-      script `deliverables/measure_ledger_consult_paths.py` finds branches by
-      `ast.unparse(...) == "in_payload"`/`"in_audit_id"`, so a future fourth
-      branch would be silently skipped rather than flagged.
-- [ ] **ARCH-005 (budget blind to Cursor backend)** was NOT retained for
-      brief 008 — it is redundant with `CURSOR-6231186` FINDING-ARCH-003,
-      already an open item. Track it there, not as a new brief.
-- [ ] **Full-auto agent pipeline (brief 006)**: merged to `master` (PRs #6/#8/#10).
-      See `docs/adr/0006-full-auto-agent-pipeline.md` and
-      `docs/rules/full-auto-pipeline.md` for the derogation, the roles, and
-      how to activate/emergency-disable `mode: full_auto`. NB brief 008a/008b
-      harden exactly this machinery.
-- [ ] **Run the brief 004 Évaluateur pass** (first thing next session):
-      before it, the Planificateur must correct its own future-dated
-      `Authored:` fields in `004-polish-visuel/{brief.md,eval-rubric.md}`
-      to the true authoring time (real file mtimes were 2026-07-31 ~20:3x —
-      cite evidence, don't invent), via an explicit amendment note, then
-      gate + Évaluateur normally.
-- [ ] **Owner judges the visual polish**: look at
-      `unity/game_unity/Captures/v004_after_default/` and pronounce on
-      `A_REVOIR_HUMAINEMENT` (the harness never self-adopts "beau").
-- [ ] **Fix `harness_audit.py`'s stale stub assumption** (23/24) — it must
-      learn that `pipeline/geo/` and `unity/` are legitimately populated.
-- [ ] **Map label upside-down orientation bug** — found by the brief 004
-      Générateur, deliberately left untouched as out-of-scope; documented in
-      `004-polish-visuel/deliverables/generator-log.md`. Needs its own brief.
-- [ ] Geo pipeline port continues: briefs 003–005 of
-      `harness/queue/geo-pipeline-port-plan.md` (G3 cells onward); the two
-      read-only bridges above get retired when it lands.
-- [ ] `forge-run.md` phase-order doc mismatch (carried from previous
-      session, still true).
-- [ ] VISION.md dead internal links (carried, still true; ADR needed).
-- [ ] No human-facing README.md (carried, still true).
-- [ ] Tier-3 adversarial gate not built (carried, intentional).
+La PR #17 ajoute un module autonome de budget CI, un ledger JSONL suivi par
+Git et dix tests. Le module :
 
-## Known Risks
+- additionne le coût du mois civil UTC et refuse dès le plafond atteint ;
+- remet uniquement la ligne `mode:` de la configuration à `manual` lors de ce
+  refus ;
+- réutilise `harness/backends/ledger.py` pour le prix et la lecture des
+  transcripts ;
+- ajoute les mesures au ledger sans réécrire l'historique ;
+- marque les dépassements par invocation après coup avec `over_cap: true`.
 
-- Never fabricate VictoriaProject content beyond what was actually read.
-  VictoriaProject is read-only for this repo — proven untouched this
-  session; keep it that way.
-- **VictoriaProject's own HANDOFF lies about its tree state** (says clean,
-  tree is dirty with non-compiling v1_096 work). Any future re-sync must
-  target HEAD, never the working tree.
-- The 7 attributed legacy reds must stay red-and-attributed until someone
-  deliberately retires or rebases them with the three-part proof
-  (understood / documented / proven-deliberate). Never "fix" them casually.
-- Générateur subagents must never git commit (rule held this session; one
-  Générateur even correctly reported the orchestrator's own mid-brief
-  commit rather than hiding it).
-- Sonnet subagents running long Unity batchmode jobs tend to end their turn
-  "to wait" (had to be re-prompted twice on 2026-07-31). The old fix —
-  telling them to re-check the `-logFile` every 30-60 s — cured the symptom
-  and created the bill: each re-check is a separate API request carrying the
-  agent's whole accumulated context, and one measured Générateur spent 586
-  tool calls on `wc -l` of a single log file. **Use `unity/run-unity.ps1`
-  instead**: it waits inside one PowerShell process and returns exactly once
-  (see `unity/README.md`). Short jobs go in the foreground with
-  `-TimeoutSec`; long ones (a first `Library/` rebuild) go through the Bash
-  tool's `run_in_background`, which re-invokes the agent on exit — a
-  notification, not a poll. Never re-read a Unity log across tool calls.
-- `pytest` installed via `--user`, not vendored (carried).
+La production a respecté le red-first. Le ledger n'est pas ignoré par Git.
+Le périmètre 009b ne touche aucun workflow, aucun ADR et aucune valeur de
+configuration.
 
-## Last Session Summary (2026-08-10)
+## Fait nouveau à arbitrer avant 009c
 
-Ran the Évaluateur on lot 008b (**ACCEPT**, first pass) and cleared the
-long-standing red test, which turned out to be a detector bug rather than an
-offending brief. Two commits, `3ed547d` and `3b1262a`. Local only, nothing
-pushed. The suite is green: **271 passed, 0 failed**.
+La commande réellement exécutée `claude --help` expose maintenant :
 
-1. **`LOT_008b: ACCEPT`** — SC7–SC11 plus the four 008b counters, each
-   reconstructed by the Évaluateur's own commands rather than by re-running
-   the Générateur's instrument. What actually decided it, given the gate was
-   green here and was *also* green on the 008a submission it rejected:
-   - **SC7** — policy loaded through the real `policy_loader`, not read as
-     text: `pipeline_job_failed` and `three_consecutive_mechanical_rejects`
-     carry the identical action string
-     `open_bot_issue_pipeline_stuck_no_human_wait`. Not a weaker action
-     wearing the same name.
-   - **SC8** — the real CLI run in a subprocess, not merely the test:
-     `escalate_pipeline_stuck`, exit 0, `matched_rules: ["pipeline_job_failed"]`.
-     The tests monkeypatch nothing; they hit the live policy file.
-   - **SC9** — workflows globbed independently, then checked against each
-     file's `name:` key (what `workflow_run` actually matches) rather than its
-     filename — stricter than the Générateur's own script, and the source of
-     the follow-up above. MISSING=[], PHANTOM=[].
-   - **SC10** — parity proven by AST-extracting both asserted action
-     constants and comparing them literally, not by impression.
-   - **Red-first, run by the Évaluateur from outside the repo** (scratch copy,
-     working tree never mutated): deleting the policy rule fails exactly the
-     two new tests; separately weakening the handler to `no_op` fails the same
-     two. Both halves are independently load-bearing — the cheat class that
-     sank 008a iteration 1 is absent here.
-   - Boundaries re-checked against `origin/master`: the 008a and 008b file
-     sets are disjoint, the 008c-scope files are byte-unchanged, and no real
-     `gh issue` / `GH_TOKEN` / `issues: write` appears anywhere in the diff
-     (parity with the log-only `handle_gate_reject` was the bar).
-2. **The four-session-old red test was a false positive, and the worst kind.**
-   `test_no_brief_prescribes_polling` was flagging brief 007's
-   `deliverables/checkpoint-002.md:290-291`, whose sentence *forbids* the
-   practice — the negation and the verb it negates sit on either side of a
-   markdown hard wrap, and the detector judged one raw line at a time. It was
-   firing on the very prose enforcing the rule, while a real prescription
-   wrapping the same way would have been excused by nothing at all. The
-   negation is now sought over the marker's line plus the last 24 characters
-   of the line above: a strict superset of the old same-line rule, long enough
-   to span one wrap, far too short to reach an unrelated earlier sentence.
-   Red-first against the *old* rule before changing it: the wrapped fixture
-   flagged at line 2 (false positive reproduced), the adversarial fixture
-   still caught at line 3. The new test asserts **both** halves — that the
-   wrap is excused, and that a negation merely nearby does not excuse a
-   genuine prescription three lines later. Without that second half the
-   lookbehind would be a hole rather than a fix. No brief text was edited to
-   make a test pass.
-3. **Brief 008 is still not closed.** 008a and 008b are accepted; 008c is
-   unblocked by the owner decision below but has no lot yet. A Planificateur
-   pass — never a Générateur straight away — is the next step.
+```text
+--max-budget-usd <amount>  Maximum dollar amount to spend on API calls
+                           (only works with --print)
+```
 
-## Previous Session Summary (2026-08-09)
+L'hypothèse de planification selon laquelle aucun plafond natif n'existait est
+donc devenue fausse dans l'environnement actuel. 009b conserve le marquage
+post-hoc demandé. Avant de rédiger ou produire 009c, décider explicitement si
+l'appel headless doit aussi utiliser `--max-budget-usd 5`. Ne pas présenter
+ce choix comme déjà autorisé par un texte qui disait l'option inexistante.
 
-Closed lot 008a through a real REJECT→fix→ACCEPT cycle, generated lot 008b,
-and took the owner decision that unblocks 008c. Local commits only.
+## Full automatisation : ne pas surannoncer
 
-1. **Gate + Évaluateur on lot 008a → REJECT, on a real defect.** The
-   Générateur had scoped the counter `ledger_consult_before_transition_paths_count`
-   to `resolve_push()` alone and disclosed the narrowing honestly. The
-   Évaluateur refused it anyway, and was right: `resolve()`'s two
-   `workflow_dispatch` branches (`--payload`, `--audit-id`) returned a
-   non-empty `event=` with **no ledger read at all**. Proven live, not by
-   reading code — `--audit-id CURSOR-FIXTURE-full-auto-demo` (the actual
-   `AUDIT_ARCHIVED` audit from incident `31085883052`) still produced
-   `event=review_recorded`. Two of three routes still handed the orchestrator
-   the incident's exact mechanism. Its own detector was blind to this: it
-   only recognised `ast.Constant` event values, and those branches pass an
-   `ast.Name`.
-2. **Iteration 2 fixed the code, not the description of the code.** All three
-   `resolve()` branches now consult `audit_ledger.current_state_for` and skip
-   terminal audits with a `::notice::`; the detector was rewritten as a
-   committed script that treats any non-Constant value as capable. Red-first
-   proof: pointed at iteration 1's committed code it prints `gated=1
-   capable=3`, at iteration 2 `gated=3 capable=3`. 5 new tests, 17 total, all
-   12 originals unmodified.
-3. **Évaluateur re-pass → `LOT_008a: ACCEPT`**, verified independently: 32
-   adversarial dispatches across 8 event kinds × 4 payload shapes (zero
-   transitions), end-to-end through the real CLI subprocess against the live
-   ledger, and a second red-first probe isolating the two new tests precisely
-   to the fix. It accepted the remaining "no `audit_id`" exemption as a
-   genuine structural one — `_require()` fails closed on absent/empty/null —
-   while noting the Générateur asserted that in prose and the Évaluateur is
-   the one who proved it.
-4. **Lot 008b generated** (SC7–SC11): `pipeline_job_failed` rule in
-   `auto_policy.yaml`, `handle_pipeline_job_failed` in `orchestrator.py`, and
-   a new `pipeline-failure-escalate.yml` triggering on `workflow_run`
-   `conclusion: failure` across all four `pipeline-*.yml`. 3 new tests
-   including the incident-shaped SC10 regression. Gate **10/10 ACCEPT**;
-   **Évaluateur not yet run**.
-5. **Owner decided the three 008c product questions** — challenger first,
-   `full_auto` split in two, and a 5 $ / 50 $ / 200 $ CI budget calibrated on
-   the ledger's real measured costs rather than a guess.
-6. **Fixed a live regression inherited from the last checkpoint**: `e3cc258`
-   (the HANDOFF rewrite itself) had reintroduced a verbatim brief heading and
-   turned `test_single_source_of_instruction.py` red on this branch. The
-   Évaluateur's own two new files then added two more offenders. All three
-   reworded; the test is green and no finding or number was removed.
+Les trois occurrences réelles suivantes existent toujours sur `master` :
 
-Suite at the time: **269 passed, 1 red** (the false positive cleared on
-2026-08-10). **Nothing pushed.** Commits that session: `1beaa6d`, `c5f35ea`,
-`9a6ce32`, plus its checkpoint.
+```text
+.github/workflows/pipeline-audit.yml       TODO(operator...)
+.github/workflows/pipeline-challenge.yml   TODO(operator...)
+.github/workflows/pipeline-forge-run.yml   TODO(operator...)
+```
+
+La full automatisation n'est donc pas terminée. Hermes reste branché en
+lecture seule via `hermes-observer.yml` ; aucun droit d'écriture ne lui a été
+ajouté. `pipeline-audit.yml` et `pipeline-forge-run.yml` n'ont toujours aucun
+brief d'implémentation autorisé.
+
+## Prochaines actions recommandées, dans l'ordre
+
+1. Faire corriger 009a par un Générateur distinct à partir de
+   `feedback/feedback-009a-002.md`, puis le faire rejuger par une session qui
+   n'a pas produit la correction.
+2. Faire juger 009b indépendamment à partir de la PR #17 et de la grille déjà
+   écrite ; ne pas réutiliser le Générateur comme Évaluateur.
+3. Arbitrer l'usage de `--max-budget-usd 5` pour l'appel challenge.
+4. Seulement après ACCEPT de 009a et 009b, reprendre 009c. Son estimation reste
+   proche du seuil de checkpoint ; respecter le point d'arrêt prévu.
+5. Après 009c, une passe Planificateur peut écrire de nouveaux briefs pour
+   `pipeline-audit.yml` et `pipeline-forge-run.yml`. Ne pas les câbler sans
+   brief.
+
+## Risques connus
+
+- Le suivi `budget.py status` est ambigu pour le brief 009 : quatre anciens
+  transcripts portent le même nom. La session n'a choisi aucun journal au
+  hasard ; cette limite est consignée dans le journal 009b.
+- La protection de branche GitHub reste indisponible sur le plan actuel ; les
+  contrôles locaux de chemins interdits restent la barrière effective.
+- Le contrôle `no_premature_stub_content` de `harness_audit.py` est obsolète ;
+  corriger son hypothèse dans un futur brief, pas les répertoires légitimes.
+- Les décisions produit encore ouvertes (Évaluateur des lots Codex, backend
+  Codex officiel, contrat d'écriture Hermes) restent humaines.
