@@ -87,12 +87,7 @@ harness loop.
    secrets. Until they exist, every workflow that would call an external
    agent logs a documented waiver and no-ops instead of failing — full_auto
    cannot silently pretend to run without them.
-3. Edit `harness/pipeline/config.yaml`: set `mode: full_auto_decision_only`
-   (brief 009 / ADR-0007 narrowed the single `full_auto` value to this name
-   -- it activates the audit -> challenge -> owner-decision loop this
-   document's diagram covers. The unqualified `full_auto` value is reserved
-   and refused fail-closed by `harness/pipeline/full_auto_mode_guard.py`
-   until `forge-run`'s own invocation is wired for real).
+3. Edit `harness/pipeline/config.yaml`: set `mode: full_auto`.
 4. Commit and merge that single-line change (this file IS allowed to be
    part of a normal, human-reviewed PR — flipping the switch is not itself
    a bot action).

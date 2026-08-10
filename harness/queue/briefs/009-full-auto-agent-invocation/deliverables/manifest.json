@@ -1,0 +1,45 @@
+{
+  "files": [
+    { "path": "../../../../harness/pipeline/config.yaml", "must_differ_from": "deliverables/pre-fix/config.yaml.orig" },
+    { "path": "deliverables/pre-fix/config.yaml.orig" },
+    { "path": "../../../../harness/pipeline/auto_policy.yaml", "must_differ_from": "deliverables/pre-fix/auto_policy.yaml.orig" },
+    { "path": "deliverables/pre-fix/auto_policy.yaml.orig" },
+    { "path": "../../../../docs/rules/full-auto-pipeline.md", "must_differ_from": "deliverables/pre-fix/full-auto-pipeline.md.orig" },
+    { "path": "deliverables/pre-fix/full-auto-pipeline.md.orig" },
+    { "path": "../../../../harness/pipeline/full_auto_mode_guard.py" },
+    { "path": "../../../../harness/tests/test_mode_guard.py" },
+    { "path": "../../../../docs/adr/0007-full-auto-mode-split.md" },
+    { "path": "../../../../docs/adr/README.md" },
+    { "path": "deliverables/measure_config_mode_transitions.py" },
+    { "path": "deliverables/pytest-full-output.txt" },
+    { "path": "deliverables/progress.jsonl" },
+    { "path": "deliverables/generator-log.md" }
+  ],
+  "counters": [
+    {
+      "name": "mode_full_auto_bare_rejected_test_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py -m pytest harness/tests/test_mode_guard.py -k test_bare_full_auto_refused_while_forgerun_unwired -v -- prints '1 passed'; the test calls validate_mode(\"full_auto\", forge_run_workflow=REAL .github/workflows/pipeline-forge-run.yml) and asserts ModeGuardError is raised, against the real repository file (which still contains 'TODO(operator' -- confirmed by the sibling control test test_stub_marker_still_present_in_real_forge_run_workflow_control in the same file)"
+    },
+    {
+      "name": "mode_full_auto_accepted_when_forgerun_wired_test_count",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py -m pytest harness/tests/test_mode_guard.py -k test_full_auto_accepted_once_forgerun_wired -v -- prints '1 passed'; the test builds a tmp_path FIXTURE copy of the real pipeline-forge-run.yml text with 'TODO(operator' replaced by 'DONE(operator', asserts the fixture no longer contains the marker, then asserts validate_mode(\"full_auto\", forge_run_workflow=<fixture>) does NOT raise -- the same guard function as the row above, opposite branch, proving both branches of the SC1/SC2 pair are exercised, not only the refusal"
+    },
+    {
+      "name": "adr_0007_status_field_present",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py -c \"from pathlib import Path; text = Path('docs/adr/0007-full-auto-mode-split.md').read_text(encoding='utf-8'); print(sum(1 for line in text.splitlines() if line.strip().startswith('**Status**:') and line.strip() != '**Status**:'))\" -- prints '1' (the line reads '**Status**: accepted')"
+    },
+    {
+      "name": "adr_readme_rows_added_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "git diff HEAD -- docs/adr/README.md -- shows exactly two added lines, one row for [0006](0006-full-auto-agent-pipeline.md) (the pre-existing missing row, found stale and fixed in this lot per SC5) and one row for [0007](0007-full-auto-mode-split.md); zero rows removed"
+    }
+  ],
+  "waivers": []
+}

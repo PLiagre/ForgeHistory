@@ -26,3 +26,4 @@
 {"timestamp": "2026-08-08T23:04:51.787713", "backend": "claude", "brief": "harness/queue/briefs/008-full-auto-automation-gaps", "event": "generator-run"}
 {"timestamp": "2026-08-09T21:14:54.283172", "backend": "claude", "brief": "harness/queue/briefs/008-full-auto-automation-gaps", "event": "generator-run"}
 {"timestamp": "2026-08-09T22:59:19.769314", "backend": "claude", "brief": "harness/queue/briefs/008-full-auto-automation-gaps", "event": "generator-run"}
+{"timestamp": "2026-08-10T21:43:47.607770", "backend": "claude", "brief": "harness/queue/briefs/009-full-auto-agent-invocation", "event": "generator-run"}

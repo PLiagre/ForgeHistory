@@ -10,18 +10,12 @@
 # the `pipeline/pause` label to a PR/issue that the workflows read. Full
 # activation/deactivation steps: docs/rules/full-auto-pipeline.md
 #
-# `mode: full_auto_decision_only` activated after Lot 006c: the brief's
-# "Lots atomiques" ordering gated this flip on 006c's end-to-end demo
-# proving the loop closes without a human (idempotent demo, exit 0,
-# IMPLEMENTED->VERIFIED->ARCHIVED) and the budget supervisor (006c) being in
-# place to catch runaway cost. ADR-0007 (docs/adr/0007-full-auto-mode-split.md)
-# split the single `full_auto` value into `full_auto_decision_only` (audit ->
-# challenge -> owner decision, wired as of brief 009) and a reserved,
-# fail-closed `full_auto` (refused by harness/pipeline/full_auto_mode_guard.py
-# until forge-run's own invocation is wired for real -- see that module's
-# docstring). To deactivate, revert this to `manual` -- the ADR-0005 human
-# loop is unchanged.
-mode: full_auto_decision_only
+# `mode: full_auto` activated after Lot 006c: the brief's "Lots atomiques"
+# ordering gates this flip on 006c's end-to-end demo proving the loop closes
+# without a human (idempotent demo, exit 0, IMPLEMENTED->VERIFIED->ARCHIVED)
+# and the budget supervisor (006c) being in place to catch runaway cost. To
+# deactivate, revert this to `manual` -- the ADR-0005 human loop is unchanged.
+mode: full_auto
 
 # Ceiling on how many times the orchestrator (Lot 006b) may re-invoke
 # claude-developer on the SAME brief after a REJECT/plateau before it must
