@@ -159,7 +159,7 @@ coincidence (the two brief-008 lessons this session was warned against: a
 detector matching by exact string when the real signal differs, and a
 counter that happens to be right for the wrong reason).
 
-## `config_mode_single_commit_transition_count` -- NOT YET MEASURABLE, disclosed, not fabricated
+## `config_mode_single_commit_transition_count` -- NOT YET MEASURABLE, disclosed, not fabricated (at the time this section was first written; see "Addendum -- post-commit measurement" at the end of this file for the value once a real commit range existed)
 
 This is the one counter this lot's own Required Counters row cannot be
 computed by the Générateur role: its definition is `git log -p` restricted
@@ -228,11 +228,15 @@ this run is 280 passed / 0 failed -- the 9 new tests in
 
 ## Deviations / doubts, stated explicitly
 
-- `config_mode_single_commit_transition_count` not measured this session --
-  see the dedicated section above. This is the one deviation from the
-  brief's Required Counters table this lot's own architecture makes
-  unavoidable (the Générateur role does not commit, SC3's own definition
-  needs a commit range to exist), not a silent adjustment.
+- `config_mode_single_commit_transition_count` was not measured during the
+  session that wrote this log (no commit existed yet to restrict `git log
+  -p` to) -- see the dedicated section above and "Addendum -- post-commit
+  measurement" below for the resolved value, measured by the orchestrator
+  after the single commit landed. This was the one deviation from the
+  brief's Required Counters table this lot's own architecture made
+  unavoidable at first-write time (the Générateur role does not commit,
+  SC3's own definition needs a commit range to exist), not a silent
+  adjustment -- now closed.
 - The `deliverables/pre-fix/*.orig` snapshots are verified byte-identical
   to this branch's own `HEAD`, not to `origin/master` -- see "First
   action" above for why a direct `origin/master` comparison would give a
@@ -243,3 +247,68 @@ this run is 280 passed / 0 failed -- the 9 new tests in
 - No waiver was needed for this lot (both Acceptable Waivers rows in
   brief.md are scoped to Lot 009c only); `manifest.json`'s `waivers` array
   is empty, not omitted.
+
+## Addendum -- post-commit measurement, external verification, gate-row note
+
+Written after the orchestrator committed this lot as a single commit,
+`244a4f2` (`harness: Generateur lot 009a -- split mode: full_auto into
+full_auto_decision_only, fail-closed guard, ADR-0007`). This section only
+adds what became measurable/knowable after that commit; nothing above it
+was changed, and no counter already recorded above (`mode_full_auto_bare_
+rejected_test_count`, `mode_full_auto_accepted_when_forgerun_wired_test_
+count`, `adr_0007_status_field_present`, `adr_readme_rows_added_count`)
+was re-measured or altered.
+
+**`config_mode_single_commit_transition_count` -- MEASURED BY THE
+ORCHESTRATOR, not by this Générateur session.** The orchestrator ran, after
+commit `244a4f2` existed:
+
+```
+py harness/queue/briefs/009-full-auto-agent-invocation/deliverables/measure_config_mode_transitions.py 244a4f2~1..244a4f2
+config_mode_single_commit_transition_count = 2
+distinct values seen: ['full_auto', 'full_auto_decision_only']
+```
+
+This Générateur session did not run this command against the real commit
+range itself while the range existed -- the orchestrator's message supplied
+both the sha and the output. Before recording the value in
+`manifest.json`, this session re-ran the identical command
+(`py harness/queue/briefs/009-full-auto-agent-invocation/deliverables/
+measure_config_mode_transitions.py 244a4f2~1..244a4f2`) against the same,
+now-real commit range and got byte-identical output -- so the number
+entered into `manifest.json` (`value: 2`, `sample_size: 2`) is confirmed by
+this session's own re-run, not merely copied from the orchestrator's
+report. `= 2` (old value `full_auto` removed once, new value
+`full_auto_decision_only` added once) is exactly the threshold SC3's own
+counter definition requires -- no third, intermediate bare value appears
+in the commit's own diff of `harness/pipeline/config.yaml`.
+
+**External adversarial verification of `full_auto_mode_guard.py`,
+performed by the orchestrator, not by this session or claimed as this
+session's own verdict.** Reported to this session, recorded here for
+traceability only: `validate_mode("full_auto", ...)` was probed against
+four degraded workflow-file inputs (real on-disk state, a missing file, a
+path pointing at a directory, a path pointing at an empty file) and refused
+on all four; and against `mode` values `manual` and
+`full_auto_decision_only` (both accepted), plus `None`, `"FULL_AUTO"`
+(confirming no case-insensitive leniency), and a value with a trailing
+space (all three refused). This is an outside check reported for the
+record -- it does not substitute for the Évaluateur's own independent
+verdict, and this session does not treat it as self-certifying its own
+work.
+
+**Gate-row note, so a future reader does not misattribute it.** As of this
+addendum, `py harness/verdict_audit.py harness/queue/briefs/
+009-full-auto-agent-invocation` still reports `REJECT` overall, driven by
+exactly two rows: `verdict_numbers_traceable` and `verdict_is_not_self_
+authored`, both because `verdict.md` does not exist yet. `verdict.md` is
+the Évaluateur's own artifact, not the Générateur's -- its absence at this
+stage is expected, not a defect in this lot's delivery, and should not be
+read by a future pass as a judgment on the work itself.
+
+`py -m pytest harness/tests/ -q` was re-run after this addendum, before
+handing back: still 280 passed, 0 failed (see the unchanged full log at
+`deliverables/pytest-full-output.txt`, captured earlier in this same
+session before the commit; the suite itself was not touched by this
+addendum, only `manifest.json` and this file were edited, per the
+orchestrator's own instruction not to modify anything else).

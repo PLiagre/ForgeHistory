@@ -39,6 +39,12 @@
       "value": 2,
       "sample_size": 2,
       "command": "git diff HEAD -- docs/adr/README.md -- shows exactly two added lines, one row for [0006](0006-full-auto-agent-pipeline.md) (the pre-existing missing row, found stale and fixed in this lot per SC5) and one row for [0007](0007-full-auto-mode-split.md); zero rows removed"
+    },
+    {
+      "name": "config_mode_single_commit_transition_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "py harness/queue/briefs/009-full-auto-agent-invocation/deliverables/measure_config_mode_transitions.py 244a4f2~1..244a4f2 -- prints 'config_mode_single_commit_transition_count = 2' / \"distinct values seen: ['full_auto', 'full_auto_decision_only']\" (old value removed once, new value added once, no third/intermediate bare value in the commit's own diff of harness/pipeline/config.yaml). MEASURED BY THE ORCHESTRATOR AFTER commit 244a4f2 landed, not by this Generateur session -- this counter's own definition requires a real commit range that did not exist while the Generateur session ran (see deliverables/generator-log.md). The Generateur session independently re-ran the identical command against the same commit range after being given the sha and confirmed byte-identical output before writing this entry."
     }
   ],
   "waivers": []
