@@ -360,3 +360,285 @@ verdicts, feedbacks), `VISION.md` non touché.
   puisse être vérifié sans qu'un commit soit nécessaire de ma part.
 - Je n'ai pas touché aux lots 010b/010c (pas de `run_codex_generator.sh`, pas
   d'ADR 0009, pas de test sur `merge-bot.yml`).
+
+---
+
+## Itération 2 — correctif D1/D2 (le contrôle était devenu plus permissif)
+
+**Author**: forge-generateur
+
+**Date**: 2026-08-11T14:05:00
+
+### Ce que le feedback a trouvé
+
+`feedback/feedback-010a.md` a rejeté l'itération 1 sur un seul défaut
+bloquant, D1 : la règle d'appariement « fenêtre des k derniers auteurs »
+introduite pour SC3/SC3b avait rendu `verdict_is_not_self_authored`
+**plus permissif** que le code d'avant sur une classe de cas — exactement
+ce que le non-objectif 7 du brief et la grille interdisent en toutes
+lettres. D2 en découlait : SC3b annonce examiner « chaque couple », mais un
+couple auto-jugé placé hors de la fenêtre `k` restait invisible.
+
+Le feedback donnait les deux cas D1 à reproduire tels quels, la cause
+précise (troncature `gen_authors[:-k]` jetée sans être comparée), et le
+correctif attendu en deux ajouts, **sans toucher à la règle d'appariement
+existante** (confirmée juste par le feedback lui-même).
+
+### Preuve rouge, d'abord — les deux cas D1
+
+Copie jetable, hors dépôt, du code tel qu'il était **avant cette
+itération** (`harness/verdict_audit.py` au commit `b054b66`, capturé dans
+`C:\Users\...\scratchpad\prefix-copy\verdict_audit.py`, committée dans le
+dépôt sous `deliverables/proofs/pre-fix/verdict_audit.py.iter1-pre-d1fix.orig`
+pour que la preuve reste vérifiable après coup) :
+
+**D1, cas 1** — journal : Lot 1 par `forge-generateur`, Lot 2 (pas encore
+jugé) par `forge-generateur-korrigan` ; verdict : `forge-generateur` (le
+producteur du Lot 1 signe son propre verdict de son propre nom de rôle).
+
+```
+$ py <copie-pre-fix>/verdict_audit.py <fixture d1-case1>
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur-korrigan<->forge-generateur
+VERDICT: ACCEPT
+exit=0
+```
+
+**D1, cas 2** (symétrique — l'acteur suffixé en tête) — journal : Lot 1 par
+`forge-generateur-korrigan`, Lot 2 (pas encore jugé) par `forge-generateur` ;
+verdict : `forge-generateur-korrigan`.
+
+```
+$ py <copie-pre-fix>/verdict_audit.py <fixture d1-case2>
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur<->forge-generateur-korrigan
+VERDICT: ACCEPT
+exit=0
+```
+
+Les deux cas répondent `ACCEPT` avec le code d'avant, exactement comme
+décrit dans le feedback. Sorties intégrales committées :
+`deliverables/proofs/proof-d1-case1-red.txt`,
+`deliverables/proofs/proof-d1-case2-red.txt`. Fixtures committées sous
+`deliverables/proofs/fixtures/fx_d1_case1/` et `fx_d1_case2/`.
+
+Reproduit aussi le cas D2 (couple auto-jugé hors fenêtre `k`, rôles
+différents) : journal `forge-generateur-korrigan` (Lot 1) puis
+`forge-generateur` (Lot 2) ; verdict `forge-evaluateur-korrigan` (Korrigan
+juge son propre Lot 1) :
+
+```
+$ py <copie-pre-fix>/verdict_audit.py <fixture d2>
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur<->forge-evaluateur-korrigan
+VERDICT: ACCEPT
+exit=0
+```
+
+Sortie committée : `deliverables/proofs/proof-d2-red.txt` ; fixture sous
+`deliverables/proofs/fixtures/fx_d2/`.
+
+### Le correctif — deux ajouts dans `check_verdict_not_self_authored`, rien d'autre
+
+Sans toucher à la règle des `k` derniers auteurs par position (confirmée
+correcte par le feedback pour SC3/SC3b/SC6) :
+
+1. **Invariant d'ensemble, toute position.** Si une même chaîne d'auteur
+   figure à la fois dans `generator-log.md` et dans `verdict.md`
+   (`set(gen_authors) & set(ver_authors)`), refus immédiat — c'est
+   l'invariant que l'ancien contrôle assurait déjà (comparaison des deux
+   premières entrées), rétabli sur les listes entières plutôt que sur la
+   seule fenêtre `k`. Il ne peut produire aucun faux refus : la même
+   signature des deux côtés est par construction la même personne.
+
+2. **Confrontation des entrées écartées par la troncature.** Le côté le
+   plus long a des entrées hors fenêtre (`gen_authors[:-k]` ou
+   `ver_authors[:-k]`, selon lequel des deux fichiers est le plus long).
+   Chacune de ces entrées écartées est confrontée à **tous** les auteurs de
+   l'autre fichier (pas seulement son vis-à-vis positionnel) via
+   `_same_actor` — inchangée, ré-employée telle quelle. Ferme D2 : un couple
+   auto-jugé dont les deux rôles diffèrent (`forge-generateur-korrigan` /
+   `forge-evaluateur-korrigan`) mais qui partage le même acteur est trouvé
+   même hors fenêtre.
+
+### Preuve verte — les mêmes trois fixtures, code corrigé du dépôt
+
+```
+$ py harness/verdict_audit.py <fixture d1-case1>
+[FAIL] verdict_is_not_self_authored: identical author string appears in both generator-log.md and verdict.md: forge-generateur
+VERDICT: REJECT
+exit=1
+
+$ py harness/verdict_audit.py <fixture d1-case2>
+[FAIL] verdict_is_not_self_authored: identical author string appears in both generator-log.md and verdict.md: forge-generateur-korrigan
+VERDICT: REJECT
+exit=1
+
+$ py harness/verdict_audit.py <fixture d2>
+[FAIL] verdict_is_not_self_authored: same actor on 1 dropped-entry pair(s) outside the k-window: forge-generateur-korrigan==forge-evaluateur-korrigan (positionally examined: forge-generateur<->forge-evaluateur-korrigan)
+VERDICT: REJECT
+exit=1
+```
+
+Sorties intégrales committées : `deliverables/proofs/proof-d1-case1-green.txt`,
+`deliverables/proofs/proof-d1-case2-green.txt`, `deliverables/proofs/proof-d2-green.txt`.
+
+### Le brief 009 reste ACCEPT
+
+Vérifié par exécution réelle du gate (pas seulement relu, comme le feedback
+l'avait fait par avance) :
+
+```
+$ py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 2 examined pair(s): forge-generateur<->forge-evaluateur-codex; forge-generateur-codex<->forge-evaluateur
+[PASS] rubric_predates_deliverables: rubric (2026-08-10 11:00:00) predates earliest deliverable (2026-08-10 22:52:36.524133)
+[PASS] declared_files_are_tracked: all 14 in-brief declared files are tracked; 10 declared outside the brief dir, not checked: [...]
+
+VERDICT: ACCEPT
+```
+
+Sortie intégrale committée : `deliverables/proofs/sc6-brief009-after-d1fix.txt`.
+Les deux ajouts sont inertes sur ce brief exactement pour les raisons que le
+feedback avait anticipées : l'intersection brute des chaînes d'auteur y est
+vide (journal = `forge-generateur`, `forge-generateur-codex` ; verdict =
+`forge-evaluateur`, `forge-evaluateur-codex`, `forge-evaluateur`, aucun
+recouvrement), et la seule entrée écartée par la troncature (le premier
+`forge-evaluateur` du verdict — le REJECT initial du Lot 009a) ne partage
+son acteur avec aucun auteur du journal.
+
+### SC5 rejoué sur les 11 répertoires, dans les deux sens
+
+`sc5_bidirectional_regression_check.py` (nouveau, complète
+`sc5_regression_check.py` de l'itération 1 qui ne regardait que le sens
+PASS→FAIL — exactement le sens que D1 n'aurait pas révélé, puisque D1 est
+un FAIL→PASS) :
+
+```
+$ py deliverables/proofs/sc5_bidirectional_regression_check.py deliverables/proofs/sc5-gate-before-d1fix-all-briefs.txt deliverables/proofs/sc5-gate-after-d1fix-all-briefs.txt
+briefs compared: 11
+PASS->FAIL regressions (non-goal 7): 0 []
+FAIL->PASS regressions (D1 direction): 0 []
+  001-spatial-primary-key-adr: PASS -> PASS
+  002-geo-pipeline-coastline-1400: PASS -> PASS
+  003-port-unity-game: PASS -> PASS
+  004-polish-visuel: PASS -> PASS
+  005-refonte-visuelle-carte: PASS -> PASS
+  006-full-auto-agent-pipeline: PASS -> PASS
+  007-geo-pipeline-cells-adjacency: PASS -> PASS
+  008-contexte-opus5-right-sizing: FAIL -> FAIL
+  008-full-auto-automation-gaps: PASS -> PASS
+  009-full-auto-agent-invocation: PASS -> PASS
+  010-repartition-roles-full-auto: PASS -> PASS
+```
+
+11 répertoires comparés (tous ceux que compte
+`harness/queue/briefs/*/` à ce jour), aucun PASS→FAIL, aucun FAIL→PASS.
+`008-contexte-opus5-right-sizing` reste `FAIL` des deux côtés (pour une
+autre raison — Author manquant — sans rapport avec ce correctif). Sortie
+intégrale committée :
+`deliverables/proofs/sc5-bidirectional-regression-check-output.txt` ;
+rapports complets avant/après :
+`deliverables/proofs/sc5-gate-before-d1fix-all-briefs.txt` et
+`deliverables/proofs/sc5-gate-after-d1fix-all-briefs.txt`.
+
+### Les deux cas deviennent des tests committés
+
+Ajoutés à `harness/tests/test_verdict_audit_actor_identity.py` (fichier
+existant de l'itération 1, rien retiré) :
+`test_self_signed_verdict_masked_by_unjudged_later_lot_is_refused` (D1 cas
+1), `test_self_signed_verdict_masked_by_unjudged_later_lot_is_refused_symmetric`
+(D1 cas 2), `test_self_judged_pair_dropped_by_k_window_is_refused` (D2).
+
+### D3 (mineur) — l'acteur du test SC4 apparaissait déjà ailleurs dans le dépôt
+
+`test_unseen_actor_name_is_refused_without_naming_it_in_the_control`
+utilisait `gemini`, qui figure dans
+`docs/adr/0002-pluggable-generator-backend.md` — SC4 demande un nom absent
+de **tout le dépôt**, pas seulement du contrôle. Corrigé : acteur renommé
+`ptarmigana` (inventé), et l'assertion d'absence porte maintenant sur
+`git grep -il ptarmigana` exécuté sur tout le dépôt depuis le test
+lui-même, pas seulement sur le texte de `verdict_audit.py` :
+
+```
+$ git grep -il ptarmigana
+(aucune sortie avant l'écriture du test — confirmé séparément par
+ `git grep -il "ptarmigana" -- .` avant l'édition, exit=0 sans sortie)
+```
+
+Le test exclut de son propre scan uniquement les deux fichiers qui doivent
+légitimement nommer le mot (lui-même, et cette section du journal) ; toute
+autre occurrence ferait échouer le test.
+
+### D4 (mineur) — le compteur `author_pairs_examined_per_brief` rendu honnête
+
+Le dénominateur exigé par le brief est « le nombre réel de couples présents
+dans ces deux fichiers », pas seulement ceux appariés par la fenêtre `k`.
+Mesuré à la source sur le brief 009 réel :
+
+```
+$ py -c "import sys; sys.path.insert(0,'harness'); import verdict_audit as va; from pathlib import Path; bd=Path('harness/queue/briefs/009-full-auto-agent-invocation'); gen=va.read_all_fields(bd/'deliverables'/'generator-log.md','Author'); ver=va.read_all_fields(bd/'verdict.md','Author'); k=min(len(gen),len(ver)); print(len((gen[:-k] if k<len(gen) else []))+len((ver[:-k] if k<len(ver) else [])))"
+1
+```
+
+Un nouveau compteur `author_pairs_unpaired_signatures_count` = 1 (la
+signature `forge-evaluateur` du REJECT initial du Lot 009a, écartée par la
+fenêtre positionnelle mais désormais confrontée par le point 2 du correctif
+D1 ci-dessus) rend explicite ce que `author_pairs_examined_per_brief` = 2 ne
+disait pas : une signature d'évaluateur sur trois n'est jamais appariée
+positionnellement — sans changer la valeur du compteur existant, comme
+demandé.
+
+### D5 — non traité, hors périmètre (rappel)
+
+Le cas du backend natif (`forge-generateur` / `forge-evaluateur`, rôles nus,
+sans suffixe d'acteur, indétectable comme auto-jugement même quand c'est le
+même acteur des deux côtés) n'a pas été touché. Ce n'est un échec d'aucune
+Success Condition de ce lot ; le feedback le nomme explicitement hors
+périmètre de cette itération et lui réserve un brief à soi.
+
+### Gate mécanique final et suite de tests, sorties réelles recopiées
+
+```
+$ py harness/verdict_audit.py harness/queue/briefs/010-repartition-roles-full-auto
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur<->forge-evaluateur
+[PASS] rubric_predates_deliverables: rubric (2026-08-11 10:16:38) predates earliest deliverable (2026-08-11 13:51:47.812779)
+[PASS] declared_files_are_tracked: all 43 in-brief declared files are tracked; 5 declared outside the brief dir, not checked: [...]
+
+VERDICT: ACCEPT
+```
+
+```
+$ py -m pytest harness/tests/ -q
+........................................................................ [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 70%]
+........................................................................ [ 94%]
+.................                                                        [100%]
+305 passed in 24.36s
+```
+
+302 tests au départ de cette itération (vérifié par `git stash` +
+`py -m pytest harness/tests/ -q` avant tout changement), 305 à la fin — les
+3 nouveaux tests de refus D1/D2, aucun test retiré ni affaibli.
+
+### Ce que je n'ai pas fait (itération 2)
+
+- Je n'ai pas touché à la règle d'appariement par les `k` derniers auteurs :
+  le feedback la déclare correcte pour SC3/SC3b/SC6, et les deux règles
+  alternatives qu'il écarte (par ensembles d'acteurs, par l'avant)
+  refuseraient le brief 009 à tort.
+- Je n'ai pas touché à D5 (backend natif) : hors périmètre explicite de
+  cette itération.
+- Je n'ai pas commité : `git add` seulement, comme à l'itération 1.
+- Je n'ai pas modifié `verdict.md` ni `feedback/feedback-010a.md`.

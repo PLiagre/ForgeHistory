@@ -1,0 +1,14 @@
+# verdict_audit report for harness\queue\briefs\010-repartition-roles-full-auto\deliverables\proofs\fixtures\fx_d1_case1
+# generated_at: 2026-08-11T14:00:03.284945
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur-korrigan<->forge-generateur
+[N/A] rubric_predates_deliverables: no deliverables to compare against
+[PASS] declared_files_are_tracked: no files declared
+
+VERDICT: ACCEPT

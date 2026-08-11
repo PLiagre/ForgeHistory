@@ -139,27 +139,57 @@ def test_two_honest_lots_both_examined_and_both_pass(tmp_path):
 # --- SC4: generalizes to an unseen actor, no code change ------------------
 
 def test_unseen_actor_name_is_refused_without_naming_it_in_the_control(tmp_path):
-    """'gemini' appears nowhere in verdict_audit.py, harness/backends/, or
-    any ADR naming a known backend -- the refusal must still fire, proving
-    the check derives actors generically rather than matching a hardcoded
-    list of known backend names."""
-    src = SCRIPT.read_text(encoding="utf-8")
-    assert "gemini" not in src.lower(), \
-        "fixture actor must not already be named in the control under test"
+    """The refusal must fire for an actor the control has never seen,
+    proving it derives actors generically rather than matching a hardcoded
+    list of known backend names.
+
+    D3 (brief 010 feedback, iteration 1): the fixture used to be 'gemini',
+    checked absent only from verdict_audit.py -- but SC4 asks for a name
+    absent from the whole repository, and 'gemini' already appears in
+    docs/adr/0002-pluggable-generator-backend.md. The Évaluateur established
+    generality independently with a different name ('korrigan') and did not
+    count this against the lot, but flagged it as a one-line fix. Fixed by
+    (a) using an actor name invented for this test alone
+    ('ptarmigana' -- chosen for having no plausible collision with a real
+    backend or tool name) and (b) checking its absence across every tracked
+    file in the repository via `git grep`, not only verdict_audit.py.
+    Excluded from that repo-wide scan: this test file itself (which must
+    name the fixture to use it) and this brief's own generator-log.md
+    (which documents the fixture in prose, as this docstring does)."""
+    actor = "ptarmigana"
+    repo_root = SCRIPT.resolve().parent.parent
+    exempt_suffixes = (
+        "harness/tests/test_verdict_audit_actor_identity.py",
+        "harness/queue/briefs/010-repartition-roles-full-auto/deliverables/generator-log.md",
+    )
+    grep = subprocess.run(
+        ["git", "grep", "-il", actor],
+        cwd=repo_root, capture_output=True, text=True,
+    )
+    # returncode 1 == no match anywhere (git grep's own convention); 0 means
+    # it found the string somewhere and every hit must be one of the two
+    # files above documenting the fixture, never the control under test.
+    assert grep.returncode in (0, 1), grep.stderr
+    hits = [h.strip() for h in grep.stdout.splitlines() if h.strip()]
+    unexpected = [h for h in hits if not h.replace("\\", "/").endswith(exempt_suffixes)]
+    assert not unexpected, (
+        f"fixture actor '{actor}' must not already appear elsewhere in the "
+        f"repo (found in: {unexpected})"
+    )
 
     bd = tmp_path / "sc4"
     _write_minimal_brief(bd)
     (bd / "deliverables" / "generator-log.md").write_text(
-        "# Generator Log\n\n**Author**: forge-generateur-gemini\n\nGemini produced this alone.\n",
+        f"# Generator Log\n\n**Author**: forge-generateur-{actor}\n\n{actor} produced this alone.\n",
         encoding="utf-8",
     )
     (bd / "verdict.md").write_text(
-        "# Verdict\n\n**Author**: forge-evaluateur-gemini\n\nGemini also wrote this verdict.\n",
+        f"# Verdict\n\n**Author**: forge-evaluateur-{actor}\n\n{actor} also wrote this verdict.\n",
         encoding="utf-8",
     )
     result = run_audit(bd)
     assert "[FAIL] verdict_is_not_self_authored" in result.stdout, result.stdout
-    assert "forge-generateur-gemini==forge-evaluateur-gemini" in result.stdout
+    assert f"forge-generateur-{actor}==forge-evaluateur-{actor}" in result.stdout
     assert result.returncode == 1
 
 
@@ -184,6 +214,114 @@ def test_cross_actor_judgment_still_passes(tmp_path):
     result = run_audit(bd)
     assert "[PASS] verdict_is_not_self_authored" in result.stdout, result.stdout
     assert result.returncode == 0
+
+
+# --- D1 (iteration 2): whole-list identity, regardless of position -------
+#
+# Found by the Évaluateur on iteration 1 (feedback-010a.md, D1): the k-window
+# pairing rule above, introduced to fix SC3/SC3b, made the check STRICTLY
+# MORE PERMISSIVE than the single-pair code it replaced on this class of
+# case -- disqualifying under this brief's own non-goal 7 ("toute
+# modification qui ferait passer un cas aujourd'hui refusé est
+# disqualifiante"). Appending an unjudged, not-yet-reviewed lot to
+# generator-log.md was enough to push a plain self-signed verdict (the
+# producer signs verdict.md with their own generator-log author string) out
+# of the k-window and silence the refusal.
+#
+# Both cases below were run against the pre-iteration-2 code (a copy of
+# harness/verdict_audit.py as it stood at commit 62a0fe2, captured outside
+# the repo) and produced [PASS] / VERDICT: ACCEPT -- the red proof is
+# reproduced verbatim in deliverables/generator-log.md. They are written
+# here, after the fix, only because the red proof already exists elsewhere
+# and duplicating a red run inside a green test suite is not meaningful --
+# the point of this file is to make the fixed behaviour permanent, so the
+# next rewrite of the pairing rule cannot reopen the same door silently.
+
+def test_self_signed_verdict_masked_by_unjudged_later_lot_is_refused(tmp_path):
+    """D1, case 1. Journal: Lot 1 by forge-generateur, Lot 2 (not yet
+    judged) by forge-generateur-korrigan. Verdict: signed forge-generateur --
+    the producer of Lot 1 signing their own verdict with their own
+    generator-log author string. The k-window (k=1) used to pair only
+    ('forge-generateur-korrigan', 'forge-generateur') and see two different
+    actors ('korrigan' vs. none) -- ACCEPT. The raw-string-identity check
+    (independent of position) must catch it."""
+    bd = tmp_path / "d1_case1"
+    _write_minimal_brief(bd)
+    (bd / "deliverables" / "generator-log.md").write_text(
+        "# Journal\n\n**Author**: forge-generateur\n\nLot 1 par Claude.\n\n"
+        "## Lot 2\n\n**Author**: forge-generateur-korrigan\n\n"
+        "Lot 2 par Korrigan, pas encore juge.\n",
+        encoding="utf-8",
+    )
+    (bd / "verdict.md").write_text(
+        "# Verdict lot 1\n\n**Author**: forge-generateur\n\n"
+        "Le producteur signe son propre verdict.\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert "[FAIL] verdict_is_not_self_authored" in result.stdout, result.stdout
+    assert "identical author string appears in both generator-log.md and verdict.md" in result.stdout
+    assert "forge-generateur" in result.stdout
+    assert result.returncode == 1
+
+
+def test_self_signed_verdict_masked_by_unjudged_later_lot_is_refused_symmetric(tmp_path):
+    """D1, case 2 -- the mirror shape: the suffixed actor is first in the
+    journal instead of second. Journal: Lot 1 by forge-generateur-korrigan,
+    Lot 2 (not yet judged) by forge-generateur. Verdict: signed
+    forge-generateur-korrigan -- Korrigan signing their own verdict. Same
+    bug, opposite ordering -- must be caught the same way."""
+    bd = tmp_path / "d1_case2"
+    _write_minimal_brief(bd)
+    (bd / "deliverables" / "generator-log.md").write_text(
+        "# Journal\n\n**Author**: forge-generateur-korrigan\n\nLot 1 par Korrigan.\n\n"
+        "## Lot 2\n\n**Author**: forge-generateur\n\n"
+        "Lot 2 par Claude, pas encore juge.\n",
+        encoding="utf-8",
+    )
+    (bd / "verdict.md").write_text(
+        "# Verdict lot 1\n\n**Author**: forge-generateur-korrigan\n\n"
+        "Le producteur (Korrigan) signe son propre verdict.\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert "[FAIL] verdict_is_not_self_authored" in result.stdout, result.stdout
+    assert "identical author string appears in both generator-log.md and verdict.md" in result.stdout
+    assert "forge-generateur-korrigan" in result.stdout
+    assert result.returncode == 1
+
+
+# --- D2 (iteration 2): dropped-entry same-actor pair, differing role strings
+
+def test_self_judged_pair_dropped_by_k_window_is_refused(tmp_path):
+    """D2. Journal: Lot 1 by forge-generateur-korrigan, Lot 2 by
+    forge-generateur. Verdict: a single entry, forge-evaluateur-korrigan --
+    Korrigan judging the very Lot 1 they produced. Because the journal has
+    2 authors and the verdict has 1, k=1 pairs only
+    ('forge-generateur', 'forge-evaluateur-korrigan') -- different actors,
+    PASS -- while the actual self-judged pair
+    (forge-generateur-korrigan / forge-evaluateur-korrigan) is dropped from
+    the journal side and never looked at. Unlike D1, the two role strings
+    differ ('forge-generateur-korrigan' vs. 'forge-evaluateur-korrigan'), so
+    the raw-string-identity check does not fire here -- only the
+    dropped-entry cross-check (confronting the dropped author against every
+    verdict author, by actor) can catch it."""
+    bd = tmp_path / "d2"
+    _write_minimal_brief(bd)
+    (bd / "deliverables" / "generator-log.md").write_text(
+        "# Journal\n\n**Author**: forge-generateur-korrigan\n\nLot 1 par Korrigan.\n\n"
+        "## Lot 2\n\n**Author**: forge-generateur\n\nLot 2 par Claude.\n",
+        encoding="utf-8",
+    )
+    (bd / "verdict.md").write_text(
+        "# Verdict lot 1\n\n**Author**: forge-evaluateur-korrigan\n\n"
+        "Korrigan juge son propre lot 1.\n",
+        encoding="utf-8",
+    )
+    result = run_audit(bd)
+    assert "[FAIL] verdict_is_not_self_authored" in result.stdout, result.stdout
+    assert "forge-generateur-korrigan==forge-evaluateur-korrigan" in result.stdout
+    assert result.returncode == 1
 
 
 def test_read_all_fields_returns_every_occurrence_in_order(tmp_path):
