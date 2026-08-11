@@ -588,3 +588,238 @@ reads `mode` at runtime yet; that is Lot 009c SC15).
   `git status --short` (working tree, before any `git add`) showing only
   the five files listed above under "Files touched this iteration" plus
   this brief's own `deliverables/`.
+
+---
+
+## Lot 009b — plafond budgétaire CI autonome
+
+**Author**: forge-generateur-codex
+**Date**: 2026-08-10T21:13:07Z
+
+Cette section concerne uniquement 009b. Elle ne modifie pas le verdict de
+009a et ne prononce aucun jugement sur le travail produit ici.
+
+### Première action et budget
+
+Commande :
+
+```text
+py harness/budget.py split-check --brief harness/queue/briefs/009-full-auto-agent-invocation --estimated-calls 95
+```
+
+Sortie réelle :
+
+```text
+advisory   : SIZE_OK   (advisory -- the Planificateur decides)
+brief      : 009-full-auto-agent-invocation
+estimated  : 95
+
+signals (reported, NOT triggers -- see the note in budget.py: on the 5
+briefs whose real cost is known, none of these separated cheap from
+expensive, and subsystem breadth pointed the wrong way):
+  subsystems in Success Conditions : 0  []
+  success conditions               : 0
+  global-goal phrasing             : 'whole' present
+```
+
+Le lot est indépendant de 009a et son périmètre est testable seul ; je garde
+donc la découpe prévue. Le suivi automatique n'a pas pu identifier cette
+session parmi quatre anciens journaux portant le même nom :
+
+```text
+py harness/budget.py status --brief harness/queue/briefs/009-full-auto-agent-invocation
+status     : AMBIGUOUS
+reason     : 4 transcripts name 009-full-auto-agent-invocation: agent-ab2d58522202b42af.jsonl (33 tool calls), agent-ab01dbbf1caf03303.jsonl (51 tool calls), agent-a6851938d5de33777.jsonl (47 tool calls), agent-a2b206b1e6c1b29b2.jsonl (100 tool calls). Disambiguate with --agent <substring>.
+Nothing is being enforced. This is not OK -- it is unmeasured.
+```
+
+Je n'ai choisi aucun ancien transcript arbitrairement. Cette limitation est
+déclarée ; les contrôles de taille et les jalons de la session restent réels,
+mais le nombre d'appels courant n'est pas mesuré par `budget.py`.
+
+### Red-first
+
+J'ai écrit le nouveau fichier de tests avant le module, puis exécuté :
+
+```text
+py -m pytest harness/tests/test_ci_budget_guard.py -q
+```
+
+Sortie réelle avant correction :
+
+```text
+E   ModuleNotFoundError: No module named 'harness.pipeline.ci_budget_guard'
+ERROR harness/tests/test_ci_budget_guard.py
+1 error in 0.14s
+```
+
+Le fichier complet est conservé dans `deliverables/red-first-009b.txt`.
+Après création du module, la même commande passe les dix tests.
+
+### Ce qui a été construit
+
+- `harness/pipeline/ci_budget_guard.py` lit toutes les lignes non vides du
+  ledger JSONL. Une ligne JSON corrompue, un timestamp absent ou un USD
+  invalide refuse le calcul au lieu d'être ignoré.
+- `precheck_monthly_budget` additionne le mois civil UTC courant. Dès que le
+  total atteint le plafond, il réécrit seulement l'unique ligne top-level
+  `mode:` en `manual`, en octets, sans réémettre le YAML ni toucher aux autres
+  lignes.
+- `record_invocation` ajoute une ligne en mode append. Il appelle directement
+  `harness.backends.ledger.price_of` pour chaque modèle et conserve
+  `PRICES_AS_OF`. Un modèle utilisé mais absent de la table refuse l'append au
+  lieu d'être tarifé à zéro.
+- Le dépassement propre à une invocation est marqué après coup par
+  `over_cap: true`. Il n'efface pas le résultat. Deux tests distincts prouvent
+  que le paramètre est réel pour les plafonds 5 USD et 50 USD.
+- `record_transcript` appelle le lecteur de transcript déjà publié dans
+  `harness/backends/ledger.py`, puis passe l'usage au même enregistreur.
+- `harness/pipeline/ci-budget-ledger.jsonl` est le ledger persistant initial,
+  vide hormis une ligne blanche ignorée par le lecteur.
+
+Le test de réécriture utilise volontairement des fins de ligne CRLF et compare
+les octets avant/après ligne par ligne. Un autre test vérifie qu'un ledger
+malformé refuse le précontrôle ; un dernier refuse une configuration contenant
+deux lignes `mode:` sans rien réécrire.
+
+### Mesures demandées
+
+Commande :
+
+```text
+rg -n "^def test_(monthly_precheck_refuses|monthly_precheck_proceeds|budget_refusal_changes_only_mode_line_bytes|record_marks_over_cap|prior_month_entries_do_not_count)" harness/tests/test_ci_budget_guard.py
+```
+
+Sortie réelle :
+
+```text
+44:def test_monthly_precheck_refuses_at_or_above_cap(tmp_path):
+65:def test_monthly_precheck_proceeds_below_cap(tmp_path):
+85:def test_budget_refusal_changes_only_mode_line_bytes(tmp_path):
+116:def test_record_marks_over_cap_for_challenge_cap(tmp_path):
+141:def test_record_marks_over_cap_for_forge_run_cap(tmp_path):
+165:def test_prior_month_entries_do_not_count_toward_current_month(tmp_path):
+```
+
+Les compteurs reconstruits depuis cette sortie valent respectivement 1, 1,
+1, 2 et 1. Pour le ledger :
+
+```text
+git check-ignore --quiet -- harness/pipeline/ci-budget-ledger.jsonl
+sortie standard : aucune
+code de sortie : 1
+```
+
+Le code `1` prouve que le fichier n'est pas ignoré. La sortie est conservée
+dans `deliverables/git-check-ignore-009b.txt`.
+
+Le précontrôle CLI réel sur le ledger initial a également été exécuté :
+
+```text
+py harness/pipeline/ci_budget_guard.py precheck
+{"month_total_usd": 0.0, "status": "PROCEED"}
+```
+
+### Prix : source unique et découverte dans le CLI Claude
+
+La recherche suivante ne trouve aucun nom de modèle ni table de prix recopiée
+dans le nouveau module ; elle trouve uniquement les appels à la source
+existante :
+
+```text
+rg -n "backend_ledger\.(price_of|PRICES_AS_OF|scan_transcript)|claude-(opus|fable|sonnet|haiku)" harness/pipeline/ci_budget_guard.py
+199:    """Calcule le coût via ``backend_ledger.price_of`` sans recopier les prix."""
+204:        cost = backend_ledger.price_of(model, dict(counts))
+236:        "prices_as_of": backend_ledger.PRICES_AS_OF,
+257:    usage = backend_ledger.scan_transcript(Path(transcript_path))
+```
+
+La commande `claude --help` a été exécutée pour vérifier l'hypothèse du brief
+sur l'impossibilité d'un plafond natif. Cette hypothèse n'est plus vraie pour
+le CLI installé :
+
+```text
+--max-budget-usd <amount>             Maximum dollar amount to spend on API
+                                      calls (only works with --print)
+```
+
+La sortie pertinente est conservée dans
+`deliverables/claude-help-budget-excerpt.txt`. 009b garde le marquage post-hoc
+qu'il doit fournir ; aucun appel réel n'est câblé dans ce lot. Le futur appel
+du lot 009c devra traiter explicitement ce nouveau fait au lieu d'affirmer que
+le plafond natif n'existe pas.
+
+### Lecture secondaire autorisée
+
+Une lecture secondaire, sans modification ni jugement, a vérifié que les trois
+artefacts 009b n'existaient pas dans `HEAD` et que `price_of` était réellement
+importable :
+
+```text
+py -c "from harness.backends import ledger; print(ledger.PRICES_AS_OF, ledger.price_of('claude-sonnet-5', {'in':0,'cache_write':0,'cache_read':1000000,'out':0}))"
+2026-08-03 0.3
+
+git ls-files harness/tests/test_ci_budget_guard.py harness/pipeline/ci_budget_guard.py harness/pipeline/ci-budget-ledger.jsonl
+<aucune sortie>
+```
+
+Elle a aussi rejoué le red-first en collecte seule et obtenu le même
+`ModuleNotFoundError`, code de sortie `1`. Les commandes et sorties sont
+conservées dans `deliverables/subagent-009b-read-check.txt`. J'ai refait les
+mesures décisives moi-même ; cette lecture ne vaut pas validation externe.
+
+### Tests
+
+Tests ciblés :
+
+```text
+py -m pytest harness/tests/test_ci_budget_guard.py -q
+..........                                                               [100%]
+10 passed in 0.22s
+```
+
+Suite complète, sortie réelle et non tronquée :
+
+```text
+py -m pytest harness/tests/ -q
+........................................................................ [ 24%]
+........................................................................ [ 48%]
+........................................................................ [ 73%]
+........................................................................ [ 97%]
+......                                                                   [100%]
+294 passed in 21.09s
+```
+
+Les deux sorties sont aussi conservées dans
+`deliverables/pytest-009b-targeted-output.txt` et
+`deliverables/pytest-009b-full-output.txt`.
+
+### Périmètre et limite déclarée
+
+Le lot touche uniquement le nouveau module, le nouveau ledger, le nouveau
+fichier de tests et les livrables communs du brief. Il ne modifie ni la valeur
+de `harness/pipeline/config.yaml`, ni un ADR, ni un workflow. Le test du
+coupe-circuit travaille exclusivement sur une copie `tmp_path`.
+
+Le CLI installé offre désormais `--max-budget-usd`, contrairement à
+l'hypothèse de planification. L'utiliser dans l'appel réel relève de 009c ; ce
+lot autonome n'invente pas ce câblage et consigne le fait pour la décision
+suivante.
+
+### Gate mécanique du lot
+
+Après ajout et suivi Git de tous les fichiers déclarés, la commande réelle :
+
+```text
+py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation
+```
+
+a produit dix lignes `[PASS]` puis :
+
+```text
+VERDICT: ACCEPT
+```
+
+La sortie complète est conservée dans `deliverables/gate-009b.txt`. Ce résultat
+est seulement le contrôle mécanique. Le `verdict.md` existant juge 009a ; je
+n'ajoute aucun verdict pour 009b, car je suis le Générateur de ce lot.

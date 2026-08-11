@@ -1,0 +1,27 @@
+Lecture secondaire uniquement ; aucune modification et aucun jugement.
+
+Commande :
+
+py -c "from harness.backends import ledger; print(ledger.PRICES_AS_OF, ledger.price_of('claude-sonnet-5', {'in':0,'cache_write':0,'cache_read':1000000,'out':0}))"
+
+Sortie :
+
+2026-08-03 0.3
+
+Commande :
+
+git ls-files harness/tests/test_ci_budget_guard.py harness/pipeline/ci_budget_guard.py harness/pipeline/ci-budget-ledger.jsonl
+
+Sortie : aucune. Les trois artefacts étaient absents de HEAD au début du lot.
+
+Commande red-first indépendante :
+
+py -m pytest harness/tests/test_ci_budget_guard.py --collect-only -q
+
+Sortie utile exacte :
+
+E   ModuleNotFoundError: No module named 'harness.pipeline.ci_budget_guard'
+ERROR harness/tests/test_ci_budget_guard.py
+no tests collected, 1 error in 0.08s
+
+Code de sortie : 1.
