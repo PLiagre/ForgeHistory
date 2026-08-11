@@ -111,6 +111,18 @@ contre le code actuel, montrer sa sortie rouge en la recopiant, puis
 corriger, puis montrer sa sortie verte. Un test écrit après le correctif ne
 prouve rien ici, parce que le défaut est précisément une absence de refus.
 
+**SC3b.** *(amendement du 2026-08-11 — voir la note en fin de brief.)* Le
+contrôle examine **chaque couple auteur du brief, pas seulement le premier**.
+`read_field` utilise aujourd'hui `re.search`, qui rend la première occurrence
+seulement : sur un brief multi-lots dont chaque lot ajoute sa propre section
+signée, seul le lot le plus ancien est contrôlé. Il est **exigé** qu'un brief
+portant `forge-generateur` puis `forge-generateur-codex` dans son journal, et
+`forge-evaluateur` puis `forge-evaluateur-codex` dans son verdict, soit
+analysé sur **tous** ses couples et non sur le premier. Preuve red-first :
+contre le code actuel, un couple auto-jugé placé en seconde position doit
+passer inaperçu ; après correctif, il doit être refusé. Les deux sorties sont
+recopiées.
+
 **SC4.** Le refus de SC3 porte sur l'acteur en général, **pas sur une liste
 en dur de deux backends**. Ajouter un troisième acteur (par exemple
 `forge-generateur-gemini` / `forge-evaluateur-gemini`) doit être refusé
@@ -216,6 +228,8 @@ Ce brief ne doit explicitement PAS :
 | nom | source de l'échantillon | dénominateur |
 |---|---|---|
 | `self_authored_multibackend_refused_test_count` | fonctions de test qui prouvent le refus d'un couple `<role>-<acteur>` identique | nombre de tests ajoutés pour SC3 |
+| `author_pairs_examined_per_brief` | couples auteur extraits du journal et du verdict du brief 009 par le contrôle corrigé | nombre réel de couples présents dans ces deux fichiers |
+| `second_position_self_judgment_refused` | couple auto-jugé placé en seconde position, avant puis après correctif | 1 exécution de chaque côté, les deux sorties recopiées |
 | `unknown_actor_refused_without_code_change` | exécution du contrôle sur un acteur absent du dépôt, sans modifier le contrôle | 1 exécution, sortie recopiée |
 | `briefs_gate_verdict_unchanged_count` | gate exécuté sur chaque répertoire de brief avant et après le correctif | nombre total de répertoires de brief comparés |
 | `cross_actor_judgment_still_accepted` | gate réel sur le brief 009 (journal `forge-generateur`, verdict `forge-evaluateur-codex`) | 1 exécution |
@@ -240,6 +254,27 @@ un compteur.
 Aucune autre dérogation n'est recevable. En particulier, « je n'ai pas pu
 faire la preuve red-first » n'est pas une dérogation : SC3 est
 inatteignable sans elle, et un lot qui l'omet est incomplet, pas dérogé.
+
+## Amendment Note (2026-08-11)
+
+Une seule chose a été ajoutée à ce brief après sa première rédaction, et
+avant tout travail de Générateur : **SC3b**, ses deux compteurs, et sa ligne
+de rubrique.
+
+Origine du changement, pour qu'il ne passe pas pour une intuition tardive :
+en évaluant le lot 009b, l'Évaluateur a constaté que le gate n'avait
+**rien vérifié de ce lot**. Le journal du brief 009 porte `forge-generateur`
+en tête (lot 009a, Claude) et `forge-generateur-codex` plus bas (lot 009b,
+Codex) ; le verdict porte de même deux auteurs. `read_field` s'appuyant sur
+`re.search`, le contrôle a comparé le couple du premier lot et ignoré le
+second. La preuve est dans la section « Évaluation — lot 009b » de
+`harness/queue/briefs/009-full-auto-agent-invocation/verdict.md`.
+
+C'est un second angle mort, indépendant de celui décrit en tête de ce brief
+et qui se cumule avec lui : le premier laisse passer un acteur qui se juge
+lui-même, le second laisse passer **tout lot autre que le premier**, quel
+que soit son auteur. Corriger l'un sans l'autre laisserait la porte ouverte.
+Aucune autre section n'a été modifiée.
 
 ## Execution Contract
 
