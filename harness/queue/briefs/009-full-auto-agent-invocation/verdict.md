@@ -411,3 +411,112 @@ large que son implémentation, et une description opérationnelle encore en
 avance sur les workflows. Le lot 009b reste indépendant et peut être produit.
 Le lot 009c reste bloqué jusqu'à un ACCEPT explicite de 009a et un gate
 mécanique vert de 009b.
+
+---
+
+# Évaluation — lot 009b (plafond budgétaire CI), commit `cd89141`
+
+**Authored**: 2026-08-11T09:40:00Z
+**Author**: forge-evaluateur
+
+Cette section s'ajoute aux précédentes ; elle n'en efface aucune. Je juge ici
+le lot 009b, produit par `forge-generateur-codex`. Je ne l'ai pas produit :
+acteurs différents, donc juge recevable. Aucun chiffre du manifeste n'a été
+repris sans être recalculé par mes propres commandes.
+
+## Conditions de succès
+
+| SC | Résultat | Preuve reconstruite par l'Évaluateur |
+|---|---|---|
+| SC8 — module autonome, ledger JSONL committé, prix importés | **SATISFAITE** | `grep -nE "PRICES\|per_million\|1_000_000"` sur le module ne rend que deux lignes, toutes deux des *références* à `backend_ledger` (`PRICES_AS_OF`, docstring) : aucune table de prix recopiée. `git ls-files --error-unmatch harness/pipeline/ci-budget-ledger.jsonl` réussit — le fichier est bien suivi. |
+| SC9 — refus fail-closed au plafond, deux branches | **SATISFAITE** | Appel direct de `precheck_monthly_budget` sur des ledgers jetables : total `200.0` → `BudgetExceededError` ; total `199.999999` → PROCEED. La frontière est bien `>=`, testée à l'unité près et non à la dizaine. |
+| SC10 — la bascule ne touche QUE la ligne `mode:` | **SATISFAITE** | Copie jetable du vrai `config.yaml`, comparaison octet à octet ligne par ligne après refus : **`54` lignes avant, `54` après, une seule différente (index `25`)** — `b'mode: full_auto_decision_only\n'` → `b'mode: manual\n'`. Commentaires et lignes voisines byte-identiques. |
+| SC11 — marquage `over_cap` post-hoc, plafond paramétrable | **SATISFAITE** | Deux valeurs de plafond réellement distinctes dans les fixtures, extraites par AST et non par lecture du nom des tests : `5.0` et `50.0`. Le caractère post-hoc est documenté dans la docstring du module (`lignes 9-16`), comme exigé. |
+| SC12 — les mois antérieurs ne comptent pas | **SATISFAITE** | Fixture `199.0` le mois précédent + `10.0` le mois courant ; `current_month_total_usd` rend `10.0`. |
+| SC13 — le ledger n'est pas exclu par `.gitignore` | **SATISFAITE** | `git check-ignore --quiet -- harness/pipeline/ci-budget-ledger.jsonl` → **exit 1**, c'est-à-dire non ignoré. Sortie conservée par le Générateur dans `deliverables/git-check-ignore-009b.txt`. |
+
+## Preuve red-first, rejouée par l'Évaluateur
+
+Copie jetable du dépôt hors de l'arbre de travail (`git archive HEAD | tar -x`),
+arbre du dépôt jamais modifié — vérifié par `git status --short harness/pipeline/`,
+sortie vide.
+
+**Première tentative invalide, et je la consigne plutôt que de la taire.**
+J'ai d'abord lancé `pytest` depuis la racine du dépôt en pointant le fichier
+de test de la copie. Les quatre sabotages sont restés **verts**. La cause
+n'était pas le module : le répertoire courant plaçait le vrai dépôt en tête
+de `sys.path`, si bien que les tests de la copie importaient le module
+**intact** du dépôt. Un red-first mené ainsi ne prouve rien du tout, et
+aurait ici « prouvé » l'inverse de la vérité. Rejoué depuis la copie
+(`cd <copie> && py -m pytest ...`) :
+
+| sabotage | tests devenus rouges |
+|---|---|
+| `total >= cap` → `total > cap` | `test_monthly_precheck_refuses_at_or_above_cap`, `test_ambiguous_config_refuses_kill_switch_rewrite` |
+| `"over_cap": usd > cap` → `False` | `test_record_marks_over_cap_for_challenge_cap`, `test_record_marks_over_cap_for_forge_run_cap` |
+| filtre de mois civil neutralisé | `test_prior_month_entries_do_not_count_toward_current_month` |
+| appel à `_set_mode_manual` supprimé | `test_budget_refusal_changes_only_mode_line_bytes`, `test_ambiguous_config_refuses_kill_switch_rewrite` |
+
+Restauration après chaque sabotage : `10 passed`. Les quatre comportements
+sont donc **indépendamment porteurs** : aucun test ne survit à la
+suppression de ce qu'il prétend garder.
+
+## Frontières de périmètre
+
+`git show --stat cd89141 -- docs/adr .github/workflows harness/pipeline/config.yaml`
+ne rend **rien** : le lot n'a touché aucun ADR, aucun workflow et aucune
+valeur de configuration, conformément à ses non-objectifs. Les douze fichiers
+modifiés sont le module, son ledger, son fichier de tests et neuf livrables.
+
+Le défaut C1 reproché au lot 009a n'est **pas** reproduit ici : la sortie
+complète de la suite figure bien dans le journal lui-même
+(`generator-log.md`, section 009b, `294 passed in 21.09s` sous sa commande),
+et pas seulement dans le fichier annexe. Je l'avais soupçonné à tort sur un
+`grep` tronqué ; vérification faite, le journal est conforme.
+
+## Trois constats, aucun bloquant
+
+1. **Un ledger absent ou vide vaut « budget remis à zéro ».** Sondé
+   directement : fichier inexistant → `PROCEED, total=0.0` ; fichier de zéro
+   octet → `PROCEED, total=0.0`. Le ledger livré est précisément dans cet
+   état (un seul octet, `\n`). Ce n'est **pas** une violation : aucune
+   condition ne l'exige, et refuser sur ledger vide rendrait le garde
+   inutilisable à sa première exécution légitime. Mais c'est la famille de
+   défaut qui a déjà coûté deux rejets au dépôt — « une entrée vide vaut
+   permissif » — et ici la conséquence est monétaire. Un lot ultérieur
+   devrait distinguer « n'a jamais existé » (on continue) de « fichier suivi
+   par Git et désormais manquant » (on refuse). À noter que le cas
+   *corrompu* est déjà traité, lui, et testé.
+2. **Le contrôle d'auteur du gate est aveugle à ce lot.** `read_field`
+   utilise `re.search`, qui rend la **première** occurrence. Le journal porte
+   `forge-generateur` en ligne 1 (lot 009a, Claude) et
+   `forge-generateur-codex` en ligne `596` (lot `009b`, Codex) ; le verdict porte
+   `forge-evaluateur` en ligne 4 et `forge-evaluateur-codex` en ligne `252`. Le
+   gate a donc comparé le couple du **lot 009a** et n'a rien vérifié du lot
+   009b. Sur un brief multi-lots dont les lots sont produits par des acteurs
+   différents, le contrôle ne voit que le premier. Ce n'est pas un défaut de
+   009b — déclarer son auteur en tête de section est la bonne pratique, et
+   Codex l'a fait. C'est un défaut du contrôle, désormais couvert par le
+   brief `010`, lot `010a`.
+3. **La prémisse de la dérogation s'est révélée fausse, et le Générateur l'a
+   dit.** Le brief prévoyait d'accepter la forme post-hoc « si aucun plafond
+   natif n'est trouvé ». `claude --help` en expose un
+   (`--max-budget-usd <amount>`, sortie réelle conservée dans
+   `deliverables/claude-help-budget-excerpt.txt`). Le Générateur ne s'est pas
+   abrité derrière la formulation de la dérogation : il a écrit la
+   découverte, conservé la forme post-hoc que SC11 exige littéralement, et
+   renvoyé au lot 009c la décision d'ajouter aussi le plafond natif. C'est le
+   bon découpage. Le propriétaire doit trancher ce point avant 009c.
+
+## Verdict : **LOT_009b: ACCEPT**
+
+Les six conditions SC8 à SC13 sont satisfaites, chacune reconstruite par mes
+propres commandes ; la preuve red-first est valide après correction de mon
+propre protocole ; les frontières de périmètre sont tenues ; aucun échec
+disqualifiant n'est présent. Les trois constats ci-dessus sont des suites à
+donner, pas des motifs de rejet.
+
+Rappel de l'état du brief `009` : le lot 009a reste **REJETÉ** (défauts C1-C4,
+`feedback/feedback-009a-002.md`). Le lot 009c reste bloqué jusqu'à un ACCEPT
+explicite de 009a — l'acceptation de 009b lève l'une de ses deux conditions,
+pas les deux.

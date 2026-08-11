@@ -56,3 +56,52 @@ def test_settings_json_stays_parseable():
     the hooks down with it, which is the same outage this file guards."""
     config = json.loads(SETTINGS.read_text(encoding="utf-8"))
     assert "hooks" in config, "settings.json parsed but has no hooks block"
+
+
+def hook_commands() -> list[str]:
+    config = json.loads(SETTINGS.read_text(encoding="utf-8"))
+    return [
+        hook["command"]
+        for group in config.get("hooks", {}).values()
+        for entry in group
+        for hook in entry.get("hooks", [])
+        if hook.get("type") == "command"
+    ]
+
+
+def cwd_dependent(command: str) -> bool:
+    """True when the command names a hook script by a path that only resolves
+    from the repository root."""
+    return ".claude/hooks/" in command and "$CLAUDE_PROJECT_DIR" not in command
+
+
+def test_the_old_relative_form_is_recognised_as_broken():
+    """Red-first, kept permanently rather than performed once.
+
+    2026-08-11: a session ran `cd` into a brief directory. Every hook was
+    wired as `py .claude/hooks/<script>.py` -- a relative path resolved
+    against the *shell's* working directory, not the repository. Python could
+    no longer find the scripts, so every Bash, Edit and Write call died in
+    PreToolUse. The failure looks fail-closed and is worse than it looks: the
+    guards were not enforcing their rules, they were simply absent, and they
+    took the whole session's tool access down with them. Subagents inherit
+    the working directory, so no subagent could repair it either.
+
+    This asserts the detector actually fires on the shape that caused the
+    outage. Without it, the test below could pass against a file where the
+    marker string appears in a comment and prove nothing."""
+    assert cwd_dependent("py .claude/hooks/no_bare_python.py")
+    assert not cwd_dependent('py "$CLAUDE_PROJECT_DIR/.claude/hooks/no_bare_python.py"')
+
+
+def test_hook_commands_resolve_from_any_working_directory():
+    """A guard that only exists when the shell happens to sit at the
+    repository root is not a guard -- it is a coincidence."""
+    commands = hook_commands()
+    assert commands, "settings.json declares no command hooks at all"
+
+    broken = [c for c in commands if cwd_dependent(c)]
+    assert not broken, (
+        "hook command(s) use a working-directory-relative script path and will "
+        f"break as soon as any tool runs from a subdirectory: {broken}"
+    )
