@@ -105,7 +105,7 @@ conditionnelle qui remplacerait le clic, sans l'activer.
 | 009a — séparation du mode | **REJETÉ, itération 2** | Rejugé par Codex (`c9e9291`). Quatre défauts C1-C4 dans `feedback/feedback-009a-002.md`. Le plus sérieux est C3 : le garde accepte encore trois faux workflows malgré sa promesse de « preuve positive ». |
 | 009b — plafond budgétaire CI | **ACCEPTÉ** | Verdict Claude ajouté à `verdict.md` (`ba035b1`). SC8 à SC13 reconstruites indépendamment, red-first rejoué depuis une copie jetable. Trois constats non bloquants y sont consignés. |
 | 009c — invocation réelle de challenge | **bloqué** | Une de ses deux conditions est levée (009b accepté) ; l'autre non (009a rejeté). Ne pas démarrer. |
-| 010a — contrat des rôles | **PRODUIT, en attente de jugement** | PR brouillon [#20](https://github.com/PLiagre/ForgeHistory/pull/20), commit `62a0fe2`. Les deux angles morts sont fermés ensemble ; 302 tests verts ; SC6 vérifiée sur le brief 009 réel ; non-régression recontrôlée par l'orchestrateur contre le gate d'avant. Le gate répond REJECT sur ce lot pour la seule raison structurelle qu'il doit : `verdict.md` n'existe pas et le Générateur n'a pas le droit de l'écrire. **À juger par Codex.** Point à challenger en priorité : la règle d'appariement des `k` derniers couples est un choix de conception, correct sur le brief 009 mais reposant sur une hypothèse. |
+| 010a — contrat des rôles | **ACCEPTÉ à l'itération 2**, après un vrai cycle REJECT → correction → ACCEPT | Itération 1 (`62a0fe2`) **rejetée** : elle rendait le contrôle *plus permissif* qu'avant — ajouter au journal un lot non encore jugé poussait un couple auto-jugé hors de la fenêtre des `k` derniers auteurs, et le refus disparaissait. Itération 2 (`e912d61`) referme la porte par deux ajouts ; verdict `192218a`. Ce qui a décidé : une énumération **exhaustive** plutôt qu'un échantillon — 66 564 combinaisons de listes d'auteurs, 0 cas refusé-avant/accepté-après, 39 585 acceptés-avant/refusés-après. Le contrôle refuse un sur-ensemble strict. 305 tests. |
 | 010b — Codex backend officiel | **spécifié, non produit** | Attend 010a. Produit par Codex, jugé par Claude. |
 | 010c — verrou de fusion | **spécifié, non produit** | Indépendant. Produit par Codex, jugé par Claude. |
 
@@ -164,6 +164,23 @@ l'auteur son acteur explicite (`forge-generateur-claude` plutôt que
 `forge-generateur`), ce qui suppose de migrer les journaux existants sans
 invalider les verdicts déjà rendus — exactement la contrainte de
 non-régression que SC5 impose.
+
+Quatre autres évasions ont été trouvées par l'Évaluateur en cherchant
+activement, et consignées `R1` à `R4` dans le verdict du lot 010a. Aucune
+n'était exigée par le brief, aucune n'est une régression, et elles méritent
+le même brief futur que le cas natif :
+
+- **R1** — le test de SC4 vérifie qu'un nom d'acteur inventé est absent de
+  tout le dépôt. Il rougit donc si quelqu'un *documente* ce nom hors des
+  fichiers exemptés. Un test qui casse parce qu'on parle de lui.
+- **R2** — évasion par la casse : `-Morrigan` et `-morrigan` sont vus comme
+  deux acteurs.
+- **R3** — évasion par le rôle : un verdict signé
+  `forge-planificateur-<acteur>` échappe au contrôle, qui ne reconnaît que
+  les préfixes générateur et évaluateur.
+- **R4** — auto-jugement désaligné à listes de longueur égale. Seule
+  l'intersection **par acteur** le fermerait, et cette règle est écartée à
+  juste titre : elle refuserait le brief 009 et violerait SC6.
 
 ## Risques connus
 
