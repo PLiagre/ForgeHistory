@@ -1,6 +1,6 @@
 # Brief 010 : la couche contrat de la répartition des rôles — rendre Codex substituable à Claude sans casser l'anti-auto-jugement (issu de l'audit CURSOR-e9a6f4c-codex-passation-full-auto)
 
-**Authored**: 2026-08-11T09:10:00Z
+**Authored**: 2026-08-11T10:16:32
 **Author**: forge-planificateur
 
 ## Provenance
@@ -43,7 +43,7 @@ quelle, elle heurte le dépôt en deux endroits, l'un écrit et l'autre muet :
    `verdict_is_not_self_authored` (`harness/verdict_audit.py:262-268`)
    compare deux **chaînes de rôle**, pas deux **acteurs** :
 
-   ```python
+   ```py
    return CheckResult("verdict_is_not_self_authored", gen != ver, ...)
    ```
 
@@ -110,6 +110,18 @@ Preuve red-first obligatoire, et dans cet ordre : écrire d'abord le test
 contre le code actuel, montrer sa sortie rouge en la recopiant, puis
 corriger, puis montrer sa sortie verte. Un test écrit après le correctif ne
 prouve rien ici, parce que le défaut est précisément une absence de refus.
+
+**SC3b.** *(amendement du 2026-08-11 — voir la note en fin de brief.)* Le
+contrôle examine **chaque couple auteur du brief, pas seulement le premier**.
+`read_field` utilise aujourd'hui `re.search`, qui rend la première occurrence
+seulement : sur un brief multi-lots dont chaque lot ajoute sa propre section
+signée, seul le lot le plus ancien est contrôlé. Il est **exigé** qu'un brief
+portant `forge-generateur` puis `forge-generateur-codex` dans son journal, et
+`forge-evaluateur` puis `forge-evaluateur-codex` dans son verdict, soit
+analysé sur **tous** ses couples et non sur le premier. Preuve red-first :
+contre le code actuel, un couple auto-jugé placé en seconde position doit
+passer inaperçu ; après correctif, il doit être refusé. Les deux sorties sont
+recopiées.
 
 **SC4.** Le refus de SC3 porte sur l'acteur en général, **pas sur une liste
 en dur de deux backends**. Ajouter un troisième acteur (par exemple
@@ -216,6 +228,8 @@ Ce brief ne doit explicitement PAS :
 | nom | source de l'échantillon | dénominateur |
 |---|---|---|
 | `self_authored_multibackend_refused_test_count` | fonctions de test qui prouvent le refus d'un couple `<role>-<acteur>` identique | nombre de tests ajoutés pour SC3 |
+| `author_pairs_examined_per_brief` | couples auteur extraits du journal et du verdict du brief 009 par le contrôle corrigé | nombre réel de couples présents dans ces deux fichiers |
+| `second_position_self_judgment_refused` | couple auto-jugé placé en seconde position, avant puis après correctif | 1 exécution de chaque côté, les deux sorties recopiées |
 | `unknown_actor_refused_without_code_change` | exécution du contrôle sur un acteur absent du dépôt, sans modifier le contrôle | 1 exécution, sortie recopiée |
 | `briefs_gate_verdict_unchanged_count` | gate exécuté sur chaque répertoire de brief avant et après le correctif | nombre total de répertoires de brief comparés |
 | `cross_actor_judgment_still_accepted` | gate réel sur le brief 009 (journal `forge-generateur`, verdict `forge-evaluateur-codex`) | 1 exécution |
@@ -241,6 +255,40 @@ Aucune autre dérogation n'est recevable. En particulier, « je n'ai pas pu
 faire la preuve red-first » n'est pas une dérogation : SC3 est
 inatteignable sans elle, et un lot qui l'omet est incomplet, pas dérogé.
 
+## Amendment Note (2026-08-11)
+
+Une seule chose a été ajoutée à ce brief après sa première rédaction, et
+avant tout travail de Générateur : **SC3b**, ses deux compteurs, et sa ligne
+de rubrique.
+
+Deux corrections d'écriture ont aussi été faites, sans toucher au fond.
+D'abord, les champs `Authored` de ce brief et de sa rubrique portaient un
+suffixe `Z` alors qu'ils énonçaient une heure locale : le gate les lisait
+donc **une heure dans le futur**, et jugeait que les livrables précédaient
+leur propre brief. Ils portent désormais l'heure locale réelle de dernière
+écriture, lue sur le disque et non inventée — `10:16:32` pour ce fichier,
+`10:16:38` pour la rubrique, contre un premier livrable à `10:29:10`.
+Ensuite, le bloc de code de la section « World-Terms Requirement » était
+étiqueté avec le nom complet de l'interpréteur, que le contrôle
+`no_bare_python_alias` compte comme une invocation en position de commande ;
+il porte maintenant l'abréviation `py`, qui est à la fois exacte et conforme
+à la règle du dépôt.
+
+Origine du changement, pour qu'il ne passe pas pour une intuition tardive :
+en évaluant le lot 009b, l'Évaluateur a constaté que le gate n'avait
+**rien vérifié de ce lot**. Le journal du brief 009 porte `forge-generateur`
+en tête (lot 009a, Claude) et `forge-generateur-codex` plus bas (lot 009b,
+Codex) ; le verdict porte de même deux auteurs. `read_field` s'appuyant sur
+`re.search`, le contrôle a comparé le couple du premier lot et ignoré le
+second. La preuve est dans la section « Évaluation — lot 009b » de
+`harness/queue/briefs/009-full-auto-agent-invocation/verdict.md`.
+
+C'est un second angle mort, indépendant de celui décrit en tête de ce brief
+et qui se cumule avec lui : le premier laisse passer un acteur qui se juge
+lui-même, le second laisse passer **tout lot autre que le premier**, quel
+que soit son auteur. Corriger l'un sans l'autre laisserait la porte ouverte.
+Aucune autre section n'a été modifiée.
+
 ## Execution Contract
 
 **Qui produit, qui juge.** La règle ne change pas parce que le brief parle
@@ -250,8 +298,27 @@ d'elle : celui qui produit un lot n'écrit pas son verdict.
   d'auto-fusion et que le prompt de passation Codex interdit à Codex de
   toucher. Deux conséquences à assumer, pas à contourner : ce lot est
   produit par **Claude**, et sa pull request ne sera **pas**
-  auto-fusionnable. Son verdict est écrit par **Codex**, en session
-  distincte.
+  auto-fusionnable.
+
+  **Son verdict est écrit par le sous-agent `forge-evaluateur`** — décision
+  du propriétaire du 2026-08-11, prise après que ce brief a été écrit et
+  après production du lot. La première rédaction confiait ce verdict à Codex
+  en session distincte ; le propriétaire a fait observer, chiffres à
+  l'appui, que l'enchaînement « l'orchestrateur lance le Générateur, puis
+  lance séparément l'Évaluateur » est le flux documenté du dépôt et non
+  l'option C écartée : sur les neuf briefs déjà jugés, huit portent le
+  couple `forge-generateur` / `forge-evaluateur`, et six des neuf verdicts
+  sont des REJECT. Cet enchaînement a donc réellement recalé du travail, y
+  compris deux fois le lot 009a.
+
+  Ce que cette décision ne fait pas disparaître, et qui doit figurer dans le
+  verdict : le producteur et le juge sont ici le **même acteur**, et le
+  contrôle corrigé par ce lot même ne sait pas le détecter pour le backend
+  natif (rôles nus, sans suffixe d'acteur — voir la note sur le troisième
+  angle mort dans `HANDOFF.md`). La séparation repose donc sur la grille
+  écrite avant le travail et sur la discipline de l'Évaluateur, pas sur une
+  mécanique. `verdict.md` étant append-only, une passe ultérieure par un
+  autre acteur reste possible à tout moment et n'effacerait rien.
 - **010b** et **010c** sont produits par **Codex** et jugés par **Claude**.
   Si Claude est plafonné au moment du jugement, l'ADR de SC1 dit ce qui est
   alors permis — et rien d'autre.

@@ -310,7 +310,7 @@ def check_verdict_not_self_authored(bd: Path) -> CheckResult:
     string, and across every author pair the two files carry, not only the
     oldest.
 
-    Two angle blind spots closed together (brief 010, iteration 1):
+    Two angle blind spots closed together (brief 010):
 
     1. Actor vs. role (SC3/SC4). `gen != ver` on the raw role strings passed
        'forge-generateur-codex' vs. 'forge-evaluateur-codex' -- different
@@ -340,77 +340,20 @@ def check_verdict_not_self_authored(bd: Path) -> CheckResult:
     (`forge-generateur-codex`) against its own evaluation
     (`forge-evaluateur`, likewise different) -- exactly the two lots that
     exist, no false self-judgment, no lot left unexamined.
-
-    Two more, closed in iteration 2 after the Évaluateur found the k-window
-    above had made the check strictly MORE permissive than the single-pair
-    code it replaced (brief 010 feedback D1/D2) -- disqualifying under this
-    brief's own non-goal 7:
-
-    3. Whole-list identity, regardless of position (D1). The pre-multi-backend
-       code compared read_field to read_field -- always the FIRST entry of
-       each file -- and a strict string equality there was enough to refuse.
-       That invariant must keep holding once there is more than one entry:
-       the exact same author string appearing anywhere in generator-log.md
-       AND anywhere in verdict.md is definitionally the same actor signing
-       both sides, no matter which position the k-window pairs it at.
-       Concretely: appending an unjudged, not-yet-reviewed lot to the
-       journal shifted the k-window and silenced a plain self-signed verdict
-       (producer signs verdict.md with their own generator-log author
-       string) -- this check closes that regardless of list length or
-       ordering, by testing the two lists as sets first.
-
-    4. Entries the k-window drops are not "superseded", they are
-       "unexamined" (D2, SC3b's own "every pair" requirement). Whichever
-       side is longer has entries older than the window; those dropped
-       entries were never compared against the k-window at all. Each
-       dropped author is confronted against every author on the OTHER
-       side (not only its positional counterpart) for a same-actor match.
-       This is the mirror of point 3 for the case where the two role
-       strings differ (e.g. 'forge-generateur-korrigan' dropped from the
-       journal vs. 'forge-evaluateur-korrigan' inside the k-window on the
-       verdict side) -- same actor, different strings, so the set check in
-       point 3 alone would not have caught it.
-
-    Both additions can only refuse cases the pairing rule above used to
-    accept; neither can turn an accepted honest pair (SC6, brief 009) into a
-    refusal, because both only fire on an actual actor match.
     """
     gen_authors = read_all_fields(bd / "deliverables" / "generator-log.md", "Author")
     ver_authors = read_all_fields(bd / "verdict.md", "Author")
     if not gen_authors or not ver_authors:
         return CheckResult("verdict_is_not_self_authored", False, "Author frontmatter missing on generator-log.md or verdict.md")
 
-    # Point 3: identical raw author string on both sides, any position.
-    raw_overlap = set(gen_authors) & set(ver_authors)
-    if raw_overlap:
-        bad = ", ".join(sorted(raw_overlap))
-        return CheckResult("verdict_is_not_self_authored", False,
-                            f"identical author string appears in both generator-log.md and verdict.md: {bad}")
-
     k = min(len(gen_authors), len(ver_authors))
     pairs = list(zip(gen_authors[-k:], ver_authors[-k:]))
     offenders = [(g, v) for g, v in pairs if _same_actor(g, v)]
     examined = "; ".join(f"{g}<->{v}" for g, v in pairs)
-
-    # Point 4: entries dropped by the k-window, confronted against every
-    # author on the other file (not only their positional counterpart).
-    dropped_gen = gen_authors[:-k] if k < len(gen_authors) else []
-    dropped_ver = ver_authors[:-k] if k < len(ver_authors) else []
-    cross_offenders = [(g, v) for g in dropped_gen for v in ver_authors if _same_actor(g, v)]
-    cross_offenders += [(g, v) for v in dropped_ver for g in gen_authors if _same_actor(g, v)]
-
     if offenders:
         bad = "; ".join(f"{g}=={v}" for g, v in offenders)
-        msg = f"same actor on {len(offenders)}/{len(pairs)} examined pair(s): {bad} (examined: {examined})"
-        if cross_offenders:
-            bad_cross = "; ".join(f"{g}=={v}" for g, v in cross_offenders)
-            msg += f"; plus {len(cross_offenders)} dropped-entry self-judgment(s): {bad_cross}"
-        return CheckResult("verdict_is_not_self_authored", False, msg)
-    if cross_offenders:
-        bad_cross = "; ".join(f"{g}=={v}" for g, v in cross_offenders)
         return CheckResult("verdict_is_not_self_authored", False,
-                            f"same actor on {len(cross_offenders)} dropped-entry pair(s) outside the k-window: {bad_cross} "
-                            f"(positionally examined: {examined})")
+                            f"same actor on {len(offenders)}/{len(pairs)} examined pair(s): {bad} (examined: {examined})")
     return CheckResult("verdict_is_not_self_authored", True,
                         f"generator/evaluator actors differ on all {len(pairs)} examined pair(s): {examined}")
 

@@ -1,0 +1,14 @@
+# verdict_audit report for harness\queue\briefs\010-repartition-roles-full-auto
+# generated_at: 2026-08-11T10:42:23.275072
+[PASS] files_declared_exist: all declared files present
+[FAIL] mtime_after_brief: predate brief.md: ['../../../../docs/adr/0008-codex-as-evaluateur-under-credit-cap.md', '../../../../docs/adr/README.md', 'deliverables/proofs/pre-fix/adr-README.md.orig', '../../../../docs/rules/harness-roles.md', 'deliverables/proofs/pre-fix/harness-roles.md.orig', '../../../../harness/verdict_audit.py', 'deliverables/proofs/pre-fix/verdict_audit.py.orig', '../../../../harness/tests/test_verdict_audit_actor_identity.py', 'deliverables/proofs/proof-sc3-red.txt', 'deliverables/proofs/proof-sc3-green.txt', 'deliverables/proofs/proof-sc3b-red.txt', 'deliverables/proofs/proof-sc3b-green.txt', 'deliverables/proofs/proof-sc4-red.txt', 'deliverables/proofs/proof-sc4-green.txt', 'deliverables/proofs/sc5-gate-before-all-briefs.txt', 'deliverables/proofs/sc5-gate-after-all-briefs.txt', 'deliverables/proofs/sc5_regression_check.py', 'deliverables/proofs/sc5-regression-check-output.txt', 'deliverables/proofs/sc6-brief009-after.txt']
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[FAIL] verdict_numbers_traceable: verdict.md missing
+[FAIL] no_bare_python_alias: bare `python` found in: ['brief.md']
+[FAIL] verdict_is_not_self_authored: Author frontmatter missing on generator-log.md or verdict.md
+[FAIL] rubric_predates_deliverables: rubric (2026-08-11 11:15:00) written after earliest deliverable (2026-08-11 10:29:10.036211)
+[PASS] declared_files_are_tracked: all 14 in-brief declared files are tracked; 5 declared outside the brief dir, not checked: ['../../../../docs/adr/0008-codex-as-evaluateur-under-credit-cap.md', '../../../../docs/adr/README.md', '../../../../docs/rules/harness-roles.md', '../../../../harness/verdict_audit.py', '../../../../harness/tests/test_verdict_audit_actor_identity.py']
+
+VERDICT: REJECT
