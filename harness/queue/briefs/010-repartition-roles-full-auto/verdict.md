@@ -377,3 +377,287 @@ chose qu'il croit avoir vérifiée à mon sujet. C'est la démonstration
 concrète, sur ce lot même, que le gate est nécessaire et non suffisant — et
 que la valeur de ce verdict tient à la grille écrite avant le travail, pas à
 cette ligne verte.
+
+---
+
+## Évaluation — lot `010a`, itération 2 (correctif D1/D2)
+
+**Authored**: 2026-08-11T14:22:15
+**Author**: forge-evaluateur
+
+Commit jugé : `e912d61`, branche `forge/010a-iteration-2`. Conditions jugées :
+SC1, SC2, SC3, SC3b, SC4, SC5, SC6 — et elles seules. Cette section **s'ajoute**
+à celle de l'itération 1 ; rien n'y a été effacé.
+
+### Rappel, inchangé : le producteur et le juge sont ici le même acteur
+
+Ce lot a été produit par Claude et ce verdict est écrit par Claude. Le contrôle
+que ce lot corrige **ne sait toujours pas** détecter ce cas : les deux
+signatures sont les rôles nus (`forge-generateur` d'un côté, `forge-evaluateur`
+de l'autre), sans suffixe d'acteur, et le contrôle en déduit deux acteurs
+distincts. Je l'ai revérifié moi-même : ma fixture `M16_natif` porte exactement
+ce couple, et le contrôle corrigé répond
+`[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur<->forge-evaluateur`.
+La séparation entre production et jugement ne repose donc sur **aucune
+mécanique** : elle repose sur `eval-rubric.md`, écrite et horodatée avant le
+premier livrable, et sur ma discipline à ne juger que contre elle. `verdict.md`
+étant append-only, une passe ultérieure par un autre acteur reste possible à
+tout moment et n'effacerait rien de ce qui suit.
+
+### Gate mécanique
+
+Ma commande :
+`py harness/verdict_audit.py harness/queue/briefs/010-repartition-roles-full-auto`,
+exécutée avant d'écrire cette section. Résultat : les dix contrôles `[PASS]`,
+`VERDICT: ACCEPT`, `exit=0`. Le rapport committé par le Générateur est cité par
+son chemin, pas recopié :
+`deliverables/proofs/gate-010a-self-check-final-iteration2.txt`.
+Suite complète du dépôt, rejouée par moi : `py -m pytest harness/tests/ -q` →
+`305 passed in 24.38s`. Le gate reste nécessaire et non suffisant, et sur ce lot
+il se trompe sur la seule chose qu'il croit avoir vérifiée à mon sujet.
+
+### Méthode de reconstruction
+
+Trois états du contrôle, tous copiés **hors du dépôt** et exécutés depuis ces
+copies :
+
+- `pre` — `git show 304c59a:harness/verdict_audit.py`, l'état avant le lot ;
+- `iter1` — `git show b054b66:harness/verdict_audit.py`, l'état après
+  l'itération 1, que le Générateur déclare comme base de sa preuve rouge ;
+- `post` — le fichier actuel de l'arbre de travail.
+
+Trois vérifications préalables, parce qu'une preuve rouge contre la mauvaise
+base ne prouve rien. `diff -q` confirme que `304c59a` et `62a0fe2~1` rendent le
+même fichier (le contrôle n'avait pas bougé avant le lot), que `b054b66` et
+`62a0fe2` aussi, et que le fichier de l'arbre de travail est bit à bit celui du
+commit `e912d61`. Les deux copies committées par le Générateur
+(`proofs/pre-fix/verdict_audit.py.orig` et
+`proofs/pre-fix/verdict_audit.py.iter1-pre-d1fix.orig`) sont identiques à ce que
+rend `git show` sur ces deux commits — `diff -q` muet des deux côtés. Aucune
+reconstitution complaisante.
+
+Mes jeux d'essai sont les miens : `16` fixtures `M1` à `M16` construites hors du
+dépôt, avec un nom d'acteur (`morrigan`) que je n'avais pas employé à
+l'itération 1 et que le Générateur n'emploie nulle part. L'arbre de travail du
+dépôt n'a été modifié à aucun moment ; la seule sonde qui exigeait d'écrire dans
+un fichier suivi a été faite dans un **clone jetable** du dépôt.
+
+### Condition par condition
+
+| SC | Verdict | Ma commande, et ce qu'elle a réellement rendu |
+|---|---|---|
+| SC1 | PASS | `grep -n Status docs/adr/0008-codex-as-evaluateur-under-credit-cap.md` → `**Status**: accepted` ; `grep -n 0008 docs/adr/README.md` → la ligne existe, avec statut et date. Fichier inchangé depuis l'itération 1, où j'avais lu les quatre points (a)-(d) en entier. |
+| SC2 | PASS | `py -m pytest harness/tests/test_single_source_of_instruction.py -q` → `1 passed in 0.17s` ; `grep -n -i claude docs/rules/harness-roles.md` → la ligne « Évaluateur » du tableau renvoie à l'exception au lieu de réserver le rôle à Claude. |
+| SC3 | PASS | ma fixture `M4` : `pre` → `[PASS] ... generator=forge-generateur-morrigan, evaluator=forge-evaluateur-morrigan` puis `VERDICT: ACCEPT` ; `post` → `[FAIL] ... same actor on 1/1 examined pair(s): forge-generateur-morrigan==forge-evaluateur-morrigan` puis `VERDICT: REJECT`. |
+| SC3b | PASS | ma fixture `M5` (couple auto-jugé en seconde position) : `pre` → `ACCEPT` ; `post` → `[FAIL] ... same actor on 1/2 examined pair(s)`. Et ma fixture `M3`, celle qui faisait échouer SC3b à l'itération 1 : `iter1` → `ACCEPT`, `post` → `[FAIL] ... same actor on 1 dropped-entry pair(s) outside the k-window`. |
+| SC4 | PASS | acteur inventé par moi, `morrigan`, absent du dépôt (`git grep -il morrigan` : aucune sortie avant cette section) ; refus obtenu sans toucher au contrôle. Lecture du corps : `_actor_suffix` ne fait que retirer le préfixe de rôle, aucune énumération de backends. |
+| SC5 | PASS | mon propre script sur `harness/queue/briefs/*/` : `11` répertoires, `PASS->FAIL = 0` et `FAIL->PASS = 0`, dans les deux sens et sur les deux comparaisons (`pre` vers `post`, puis `iter1` vers `post`). |
+| SC6 | PASS | `py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation` → `[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 2 examined pair(s)` puis `VERDICT: ACCEPT` et `exit=0`. |
+
+### D1 — le motif de rejet de l'itération 1 est refermé, et je l'ai reproduit moi-même
+
+Les deux cas que le feedback exigeait, rejoués avec **mes** fixtures et **mes**
+copies des trois états du contrôle :
+
+| ma fixture | avant le lot (`304c59a`) | itération 1 (`b054b66`) | itération 2 (`e912d61`) |
+|---|---|---|---|
+| `M1` — journal `forge-generateur` puis `forge-generateur-morrigan` (lot non jugé) ; verdict signé `forge-generateur` | `REJECT` — `[FAIL] ... same author on both: forge-generateur` | `ACCEPT` — `[PASS] ... forge-generateur-morrigan<->forge-generateur` | `REJECT` — `[FAIL] ... identical author string appears in both generator-log.md and verdict.md: forge-generateur` |
+| `M2` — même forme, acteur suffixé en tête ; verdict signé `forge-generateur-morrigan` | `REJECT` — `[FAIL] ... same author on both: forge-generateur-morrigan` | `ACCEPT` | `REJECT` — `[FAIL] ... identical author string ... forge-generateur-morrigan` |
+| `M3` — le seul couple auto-jugé poussé hors fenêtre (défaut D2) | `ACCEPT` | `ACCEPT` | `REJECT` — `[FAIL] ... same actor on 1 dropped-entry pair(s) outside the k-window: forge-generateur-morrigan==forge-evaluateur-morrigan` |
+
+La régression est bien fermée, et fermée dans le bon sens : les deux cas que le
+dépôt refusait avant le lot sont de nouveau refusés, et le cas que personne ne
+refusait l'est désormais. La colonne du milieu est ma propre reproduction du
+rouge revendiqué par le Générateur — je ne l'ai pas pris sur parole.
+
+J'ai aussi rejoué les trois fixtures **committées** par le Générateur avec mes
+copies à moi : `fx_d1_case1` et `fx_d1_case2` donnent `PASS` en itération 1 et
+`FAIL` en itération 2 ; `fx_d2` donne `PASS`, `PASS`, puis `FAIL`. Ses preuves
+disent la vérité.
+
+### Le contrôle n'a resserré que dans le bon sens — preuve exhaustive, pas par échantillon
+
+Au-delà de mes `16` fixtures, j'ai comparé les deux contrôles **par force
+brute** : toutes les listes d'auteurs de longueur `1` à `3` sur un alphabet de
+six signatures (rôles nus, rôles suffixés, et un rôle tiers), des deux côtés,
+soit `66564` combinaisons, en appelant directement la fonction de contrôle des
+deux modules sur le même répertoire jetable.
+
+- cas refusés avant le lot et acceptés après : `0`
+- cas acceptés avant le lot et refusés après : `39585`
+
+Le contrôle d'aujourd'hui refuse donc un **sur-ensemble** strict de ce que
+refusait celui d'avant le lot. C'est exactement ce que le non-objectif `7` et la
+ligne disqualifiante de la grille exigent, et ce n'est plus une impression tirée
+de quelques cas : c'est une énumération.
+
+### Le garde-fou inverse tient
+
+Un contrôle qui refuserait tout ne serait pas plus sûr, il serait cassé. Trois
+mesures :
+
+- brief `009` réel : `ACCEPT`, avec les deux couples examinés
+  (`forge-generateur<->forge-evaluateur-codex; forge-generateur-codex<->forge-evaluateur`) ;
+- ma fixture `M6` (deux lots honnêtement croisés) : `ACCEPT` avant comme après ;
+- les `11` répertoires réels : aucun ne bascule, ni dans un sens ni dans
+  l'autre.
+
+### Sondes adverses — y compris celles qui n'ont rien trouvé
+
+Une sonde négative est une information : elle dit où j'ai cherché sans rien
+trouver. Le lot a échoué une fois sur un cas non imaginé ; j'ai donc cherché des
+agencements nouveaux.
+
+**Sondes qui n'ont rien trouvé** — le contrôle resserre, comme voulu :
+
+- `M11` — listes très inégales, journal à quatre entrées contre un verdict à
+  une : l'auteur auto-jugé, très loin hors fenêtre, est attrapé.
+- `M12` — l'inverse, verdict plus long que le journal : la passe auto-jugée
+  écartée côté verdict est attrapée elle aussi. Le Générateur a implémenté cette
+  symétrie alors que le feedback ne la demandait pas nommément.
+- `M13` — auteurs répétés des deux côtés : refus, sur les deux couples.
+- `M14` — espaces en fin de signature : le champ est lu par un motif qui
+  s'arrête au premier blanc ; l'évasion par l'espace ne marche pas.
+- `M7` — verdict portant d'abord une passe auto-jugée puis une passe
+  indépendante : c'était ma sonde `adv2` de l'itération 1, que je n'avais pas
+  comptée en défaut ; elle est désormais refusée. Resserrement, pas régression.
+
+**Sondes qui ont trouvé quelque chose** : voir « Constats non bloquants »
+ci-dessous. Aucune n'est une régression — je les ai toutes rejouées contre
+l'état d'avant le lot, qui les acceptait déjà.
+
+### Compteurs, reconstruits par mes commandes
+
+| compteur | manifeste | ma reconstruction | accord |
+|---|---|---|---|
+| `self_authored_multibackend_refused_test_count` | `6` | `6` — même lecture de l'arbre syntaxique du fichier de test, six fonctions nommées rendues | oui, avec une réserve de vocabulaire |
+| `author_pairs_examined_per_brief` | `2` | `2` — sortie du gate sur le brief `009`, citée en SC6 | oui |
+| `author_pairs_unpaired_signatures_count` | `1` | `1` — lecture de tous les champs auteur des deux fichiers du brief `009` : journal `2` signatures, verdict `3`, donc `1` non appariée | oui |
+| `second_position_self_judgment_refused` | `1` | `1` — ma fixture `M5`, avant puis après | oui |
+| `unknown_actor_refused_without_code_change` | `1` | `1` — rejoué avec `morrigan`, contrôle non modifié entre les deux mesures | oui |
+| `briefs_gate_verdict_unchanged_count` | `11` | `11` — ma boucle sur `harness/queue/briefs/*/`, les deux sens | oui |
+| `briefs_gate_verdict_unchanged_count_iteration1` | `11` | `11` — même boucle, comparaison `pre` vers `iter1` | oui |
+| `cross_actor_judgment_still_accepted` | `1` | `1` — gate réel sur le brief `009` | oui |
+
+Réserve sur le premier : la source déclarée par le brief est « fonctions de test
+qui prouvent le refus d'un couple rôle-acteur identique ». Sur les six comptées,
+cinq portent bien sur un couple avec suffixe d'acteur ; la sixième
+(`test_self_signed_verdict_masked_by_unjudged_later_lot_is_refused`) porte sur
+deux rôles nus identiques. Le chiffre est reproductible par la commande citée et
+l'élargissement est écrit dans le journal, donc je ne le compte pas en défaut —
+mais ce compteur mesure aujourd'hui « tests de refus d'auto-jugement », un peu
+plus large que son intitulé.
+
+### D3, D4, D5
+
+**D3 — traité, et bien traité.** Le test de SC4 n'emploie plus `gemini` mais un
+nom inventé, et son assertion d'absence porte désormais sur **tout le dépôt**
+via une recherche `git grep`, plus seulement sur le texte du contrôle. J'ai
+vérifié moi-même que ce nom n'apparaît que dans deux fichiers, tous deux
+exemptés à juste titre : le test lui-même et le journal du Générateur. C'est ce
+que SC4 demande à la lettre, et c'est une amélioration réelle par rapport à
+l'itération 1. Je ne peux pas écrire ce nom ici — voir `R1`.
+
+**D4 — traité.** Le compteur `author_pairs_examined_per_brief` garde sa valeur,
+comme demandé, et un compteur nouveau dit ce qu'il masquait : `1` signature du
+verdict `009` n'est jamais appariée positionnellement. Je l'ai recalculé à la
+source.
+
+**D5 — correctement laissé hors périmètre.** Le cas du backend natif n'a pas été
+touché, et c'est la bonne décision : le traiter aurait été un dépassement de
+périmètre, pas un bonus. Vérifié mécaniquement — `git diff e912d61~1 e912d61`
+ne touche que trois fichiers hors du répertoire du brief :
+`harness/verdict_audit.py`, `harness/tests/test_verdict_audit_actor_identity.py`
+et `harness/queue/cost-ledger.jsonl`. Aucun fichier sous `.github/workflows/`,
+aucun fichier du brief `009`, `VISION.md` non touché. Les seules lignes
+supprimées du contrôle sont un commentaire et un message reformulé ; les seules
+suppressions dans les tests remplacent l'ancien jeu d'essai par un plus strict.
+Aucun test affaibli, aucun test retiré : `9` fonctions de test dans ce fichier
+contre `6` à l'itération 1.
+
+### Constats non bloquants — pour un brief ultérieur, pas pour celui-ci
+
+Aucun de ces points n'est une régression : je les ai tous rejoués contre l'état
+d'avant le lot, qui les acceptait déjà. Aucun n'est exigé par une Success
+Condition de ce lot. Je les consigne parce qu'ils sont réels et reproductibles.
+
+**R1 — le test de SC4 rend la suite rouge si le juge nomme son jeu d'essai.**
+Le test refuse que son nom d'acteur apparaisse ailleurs dans le dépôt, et n'en
+exempte que deux fichiers : lui-même et `deliverables/generator-log.md`. Ni
+`verdict.md`, ni `feedback/` n'y figurent. Vérifié dans un **clone jetable** du
+dépôt, où j'ai ajouté une phrase citant ce nom dans `verdict.md` :
+`py -m pytest harness/tests/test_verdict_audit_actor_identity.py -q` passe de
+`9 passed` à `1 failed, 8 passed`, avec
+`AssertionError: fixture actor ... must not already appear elsewhere in the repo (found in: [... verdict.md])`.
+Conséquence concrète : l'Évaluateur ne peut pas discuter ce jeu d'essai par son
+nom sans casser la suite. Correction, une ligne : ajouter le répertoire du brief
+entier à la liste d'exemption, ou n'inspecter que les chemins de code et de
+configuration, jamais les comptes-rendus.
+
+**R2 — l'évasion par la casse.** Ma fixture `M9` : journal
+`forge-generateur-Morrigan`, verdict `forge-evaluateur-morrigan`. Même acteur,
+une majuscule d'écart, et le contrôle répond `[PASS] ... actors differ`. Avant
+le lot aussi, donc pas une régression. Correction : comparer les suffixes
+d'acteur en casse repliée, et faire l'intersection des chaînes brutes sur la
+même base.
+
+**R3 — l'évasion par le rôle.** Ma fixture `M15` : journal
+`forge-generateur-morrigan`, verdict signé `forge-planificateur-morrigan`. Le
+contrôle ne dérive l'acteur du verdict que derrière le préfixe
+`forge-evaluateur` ; sous un troisième nom de rôle, le même acteur passe.
+Accepté avant comme après. Correction : dériver l'acteur derrière n'importe quel
+préfixe de rôle, puis comparer les acteurs.
+
+**R4 — l'auto-jugement désaligné à l'intérieur de la fenêtre.** Ma fixture
+`M8` : journal `forge-generateur-a`, `forge-generateur-morrigan`,
+`forge-generateur-z` ; verdict `forge-evaluateur-morrigan`,
+`forge-evaluateur-q`, `forge-evaluateur-w`. Les deux listes ont la même
+longueur, donc aucune entrée n'est écartée, et l'appariement par position ne met
+jamais `morrigan` face à `morrigan` : `ACCEPT`. C'est la limite intrinsèque de
+tout appariement positionnel, et **je ne peux pas la reprocher à ce lot** : la
+seule règle qui la fermerait est la confrontation de tous contre tous,
+c'est-à-dire l'intersection par acteur — celle que j'ai moi-même écartée à
+l'itération 1 parce qu'elle refuserait le brief `009` à tort, et que SC6
+interdit. Fermer `R4` demande une autre idée : ancrer chaque verdict au lot
+qu'il juge, ce qui suppose une trace que le dépôt ne porte pas encore. C'est le
+même manque que `D5`, et il mérite le même brief.
+
+**Un mot sur ma propre position.** `R4` mis à part, le correctif livré est
+littéralement celui que j'avais écrit dans `feedback/feedback-010a.md`. Juger
+favorablement un code qui applique ma propre prescription est un conflit
+d'intérêt, et je préfère l'écrire que le taire : c'est pourquoi je n'ai pas
+noté le lot sur « a-t-il suivi mon conseil », mais sur les lignes de la grille
+et sur une énumération exhaustive (`66564` combinaisons) qui ne doit rien à mon
+avis sur la bonne façon de coder.
+
+### Ce qui s'est amélioré depuis l'itération 1
+
+- Le motif de rejet unique est refermé, et refermé sans rien casser d'autre :
+  aucun des `11` répertoires réels ne bouge, dans aucun sens.
+- La symétrie (verdict plus long que le journal) a été traitée alors que le
+  feedback ne la demandait pas nommément.
+- Le script de non-régression regarde désormais **les deux sens** ; celui de
+  l'itération 1 ne regardait que le sens `PASS->FAIL`, c'est-à-dire précisément
+  celui qui ne pouvait pas révéler le défaut D1.
+- `D3` est mieux traité que demandé : l'absence du nom d'acteur est vérifiée sur
+  tout le dépôt par le test lui-même, plus seulement par affirmation.
+- Les fixtures sont committées : la prochaine refonte de la règle d'appariement
+  ne pourra pas rouvrir la même porte en silence.
+
+### Ce qui a régressé depuis l'itération 1
+
+Rien. Aucune condition satisfaite à l'itération 1 ne l'est moins aujourd'hui ;
+la suite de tests passe de `302` à `305`, sans suppression.
+
+### LOT_010a: ACCEPT
+
+Les sept conditions du lot sont satisfaites, chaque compteur a été reconstruit
+par mes propres commandes, la preuve red-first existe et je l'ai rejouée contre
+la bonne base, et l'échec disqualifiant de l'itération 1 — rendre le contrôle
+plus permissif — est démenti par énumération exhaustive et non par échantillon.
+Les quatre constats `R1` à `R4` sont réels, mais aucun n'est une régression ni
+une condition de ce lot ; ils appartiennent au brief que `D5` appelait déjà.
+
+Ce verdict vaut ce que vaut la discipline de celui qui l'écrit, puisque le
+producteur et le juge sont ici le même acteur et que le gate ne sait pas le
+voir. Il est append-only : une passe par un acteur différent reste ouverte.
