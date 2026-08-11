@@ -39,8 +39,25 @@ un tiers (la CI ou le propriétaire), jamais par la session qui a produit le
 lot. L'option « sous-agent d'évaluation engendré par le Générateur » est
 écartée — le producteur cadrerait son juge.
 
-**Cette décision n'est pas encore applicable sans perte de garantie**, et
-c'est l'objet du brief 010 ci-dessous.
+## Les quatre arbitrages restants sont tranchés (2026-08-11)
+
+Enregistrés en toutes lettres à la fin de
+`architecture/decisions/DECISION-CURSOR-e9a6f4c-codex-passation-full-auto.md`.
+Ne pas les paraphraser dans un brief : un brief les lit là-bas.
+
+1. **Verrou de fusion → porte conditionnelle.** L'auto-fusion exige quatre
+   preuves réunies : CI verte, gate ACCEPT, verdict d'un Évaluateur dont
+   l'acteur diffère du producteur, et audit Cursor déposé. Le clic est
+   remplacé par des conditions vérifiables, pas supprimé.
+2. **Budget → plafond natif ET marquage.** `--max-budget-usd 5` sur l'appel
+   headless (coupe avant la dépense) plus le marquage post-hoc du lot 009b
+   (garde la trace). Les deux.
+3. **Câblage → `cursor-auditor` d'abord.** `pipeline-audit.yml` avant
+   `pipeline-forge-run.yml`. C'est aussi un prérequis du point 1, qui exige
+   un audit Cursor déposé.
+4. **Hermes → contrat d'écriture dans le dépôt.** Dossier dédié, versionné,
+   format imposé, auteur traçable. Il reste observateur : un rapport est une
+   entrée, jamais une instruction.
 
 ## Deux trous dans le seul contrôle qui protège vraiment le dépôt
 
@@ -88,26 +105,24 @@ conditionnelle qui remplacerait le clic, sans l'activer.
 | 009a — séparation du mode | **REJETÉ, itération 2** | Rejugé par Codex (`c9e9291`). Quatre défauts C1-C4 dans `feedback/feedback-009a-002.md`. Le plus sérieux est C3 : le garde accepte encore trois faux workflows malgré sa promesse de « preuve positive ». |
 | 009b — plafond budgétaire CI | **ACCEPTÉ** | Verdict Claude ajouté à `verdict.md` (`ba035b1`). SC8 à SC13 reconstruites indépendamment, red-first rejoué depuis une copie jetable. Trois constats non bloquants y sont consignés. |
 | 009c — invocation réelle de challenge | **bloqué** | Une de ses deux conditions est levée (009b accepté) ; l'autre non (009a rejeté). Ne pas démarrer. |
-| 010a — contrat des rôles | **spécifié, non produit** | Corrige les deux trous ci-dessus. Doit être produit par **Claude** : il touche `verdict_audit.py`, que le prompt de passation interdit à Codex. Jugé par Codex. |
+| 010a — contrat des rôles | **PRODUIT, en attente de jugement** | PR brouillon [#20](https://github.com/PLiagre/ForgeHistory/pull/20), commit `62a0fe2`. Les deux angles morts sont fermés ensemble ; 302 tests verts ; SC6 vérifiée sur le brief 009 réel ; non-régression recontrôlée par l'orchestrateur contre le gate d'avant. Le gate répond REJECT sur ce lot pour la seule raison structurelle qu'il doit : `verdict.md` n'existe pas et le Générateur n'a pas le droit de l'écrire. **À juger par Codex.** Point à challenger en priorité : la règle d'appariement des `k` derniers couples est un choix de conception, correct sur le brief 009 mais reposant sur une hypothèse. |
 | 010b — Codex backend officiel | **spécifié, non produit** | Attend 010a. Produit par Codex, jugé par Claude. |
 | 010c — verrou de fusion | **spécifié, non produit** | Indépendant. Produit par Codex, jugé par Claude. |
 
 ## Prochaines actions, dans l'ordre
 
-1. **Faire corriger 009a (C1-C4) par Codex**, qui devient ici le Générateur —
+1. **Faire juger 010a par Codex** (PR #20). Claude l'a produit, il ne peut pas
+   le juger — et c'est désormais le contrôle corrigé lui-même qui le dirait.
+2. **Faire corriger 009a (C1-C4) par Codex**, qui devient ici le Générateur —
    il n'a pas produit l'itération 2, il l'a jugée. Claude jugera l'itération 3.
    Source d'instruction : le brief 009 ; défauts à traiter :
    `feedback/feedback-009a-002.md`.
-2. **Produire 010a** (Claude), puis le faire juger par Codex.
-3. **Produire 010c** (Codex), indépendant, en parallèle.
-4. **Arbitrer `--max-budget-usd`** avant 009c : `claude --help` expose
-   désormais un plafond USD natif, ce que la planification croyait inexistant.
-   Décider explicitement si l'appel headless l'utilise aussi.
-5. **Arbitrer le verrou de fusion** une fois 010c livré : le propriétaire
-   décide si la porte conditionnelle remplace son clic.
-6. Après 009c seulement, une passe Planificateur écrira les briefs des deux
-   maillons restants (`pipeline-audit.yml`, `pipeline-forge-run.yml`). Un
-   agent sans brief n'a pas d'instruction : ne pas les câbler avant.
+3. **Produire 010c** (Codex), indépendant de tout le reste.
+4. **Produire 010b** (Codex) une fois 010a accepté.
+5. Après 009c, une passe Planificateur écrit le brief du maillon
+   `cursor-auditor` (`pipeline-audit.yml`) — décidé en premier — puis celui de
+   `pipeline-forge-run.yml`, puis le contrat d'écriture d'Hermes. Un agent
+   sans brief n'a pas d'instruction : ne rien câbler avant.
 
 ## Full automatisation : ne pas surannoncer
 
@@ -121,6 +136,34 @@ Les trois stubs sont toujours là sur `master` :
 
 Fournir les secrets aujourd'hui ne déclencherait aucun appel d'agent : le code
 qui les utiliserait n'existe pas encore. Hermes reste en lecture seule.
+
+## Troisième angle mort, connu et non couvert (2026-08-11)
+
+Le lot 010a ferme les deux angles morts que le brief 010 lui demandait de
+fermer. Il en reste un **troisième**, que ce brief n'avait pas demandé et
+qu'il ne faut donc pas croire fermé :
+
+| couple d'auteurs | contrôle |
+|---|---|
+| `forge-generateur` / `forge-evaluateur` | **accepté** — le trou |
+| `forge-generateur-codex` / `forge-evaluateur-codex` | refusé |
+| `forge-generateur` / `forge-evaluateur-codex` | accepté (légitime) |
+| `forge-generateur-codex` / `forge-evaluateur` | accepté (légitime) |
+
+Le backend natif s'écrit en rôles nus, sans suffixe d'acteur : `_actor_suffix`
+rend `None` des deux côtés et il n'y a rien à comparer. Autrement dit, **le
+gate ne peut pas détecter que Claude a produit et jugé le même lot** — le cas
+le plus fréquent, justement.
+
+Conséquence immédiate et concrète : la séparation des rôles sur le lot 010a
+ne repose sur aucune mécanique, seulement sur la discipline. C'est pourquoi
+son verdict doit venir de Codex, et pourquoi ce n'est pas une formalité.
+
+Piste de correction pour un brief futur, à ne pas improviser : faire porter à
+l'auteur son acteur explicite (`forge-generateur-claude` plutôt que
+`forge-generateur`), ce qui suppose de migrer les journaux existants sans
+invalider les verdicts déjà rendus — exactement la contrainte de
+non-régression que SC5 impose.
 
 ## Risques connus
 

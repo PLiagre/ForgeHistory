@@ -1,6 +1,6 @@
 # Eval Rubric — Brief 010 (issu de l'audit CURSOR-e9a6f4c-codex-passation-full-auto)
 
-**Authored**: 2026-08-11T09:15:00Z
+**Authored**: 2026-08-11T10:16:38
 **Author**: forge-planificateur
 
 Écrite avant tout travail du Générateur. Ne sera pas révisée après avoir vu
@@ -28,6 +28,7 @@ comptée comme non satisfaite, quelle que soit la qualité du code.
 | SC1 | ADR `0008-*.md` avec `Status` non vide, portant les quatre points (a) Codex peut évaluer, (b) session distincte déclenchée par un tiers, (c) option « sous-agent du Générateur » écartée avec sa raison, (d) le plafond de crédit comme fait déclencheur. Ligne ajoutée à `docs/adr/README.md`. | Un des quatre points absent, ou présent en paraphrase vague. Un `Status` vide. Une formulation qui autorise implicitement le sous-agent en n'en parlant pas. |
 | SC2 | `harness-roles.md` modifié ; `test_single_source_of_instruction.py` vert. | La règle est recopiée dans l'ADR au lieu d'y être référencée. Le test est rouge. Le fichier de règle dit encore que l'Évaluateur est réservé à Claude. |
 | SC3 | Le couple `forge-generateur-codex` / `forge-evaluateur-codex` est REFUSÉ, avec sortie rouge **avant** correctif recopiée, puis verte après. | Test écrit après le correctif. Sortie rouge absente, ou remplacée par une affirmation en prose. Refus obtenu par une liste en dur de deux noms. |
+| SC3b | Tous les couples auteur du brief sont examinés, pas seulement le premier. Preuve red-first : un couple auto-jugé en **seconde** position passe inaperçu avant correctif, et est refusé après. Les deux sorties recopiées. | Le correctif se contente de lire le dernier auteur au lieu du premier — cela déplace l'angle mort au lieu de le fermer. Preuve faite uniquement en première position, ce qui ne teste rien de nouveau. Compteur `author_pairs_examined_per_brief` annoncé sans être reconstruit sur le brief 009 réel. |
 | SC4 | Un acteur inédit (`forge-generateur-gemini` / `forge-evaluateur-gemini`) est refusé **sans modifier le contrôle**. | Le contrôle contient une énumération de backends. Le test réutilise `codex`, ce qui ne prouve pas la généralité. |
 | SC5 | Gate exécuté sur **tous** les répertoires de brief avant et après ; aucun verdict ne passe de PASS à FAIL sur ce contrôle ; le compteur porte le nombre réel de répertoires comparés. | Un échantillon partiel présenté comme exhaustif. Un brief existant devenu rouge et « expliqué » plutôt que traité. Le dénominateur ne correspond pas au nombre réel de répertoires. |
 | SC6 | Gate réel sur le brief 009 : le verdict signé `forge-evaluateur-codex` face au journal `forge-generateur` passe toujours. Sortie recopiée. | Le contrôle est devenu si strict qu'il refuse un jugement croisé légitime — c'est un échec, pas une prudence. |
