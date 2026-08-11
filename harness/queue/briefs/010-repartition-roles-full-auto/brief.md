@@ -298,8 +298,27 @@ d'elle : celui qui produit un lot n'écrit pas son verdict.
   d'auto-fusion et que le prompt de passation Codex interdit à Codex de
   toucher. Deux conséquences à assumer, pas à contourner : ce lot est
   produit par **Claude**, et sa pull request ne sera **pas**
-  auto-fusionnable. Son verdict est écrit par **Codex**, en session
-  distincte.
+  auto-fusionnable.
+
+  **Son verdict est écrit par le sous-agent `forge-evaluateur`** — décision
+  du propriétaire du 2026-08-11, prise après que ce brief a été écrit et
+  après production du lot. La première rédaction confiait ce verdict à Codex
+  en session distincte ; le propriétaire a fait observer, chiffres à
+  l'appui, que l'enchaînement « l'orchestrateur lance le Générateur, puis
+  lance séparément l'Évaluateur » est le flux documenté du dépôt et non
+  l'option C écartée : sur les neuf briefs déjà jugés, huit portent le
+  couple `forge-generateur` / `forge-evaluateur`, et six des neuf verdicts
+  sont des REJECT. Cet enchaînement a donc réellement recalé du travail, y
+  compris deux fois le lot 009a.
+
+  Ce que cette décision ne fait pas disparaître, et qui doit figurer dans le
+  verdict : le producteur et le juge sont ici le **même acteur**, et le
+  contrôle corrigé par ce lot même ne sait pas le détecter pour le backend
+  natif (rôles nus, sans suffixe d'acteur — voir la note sur le troisième
+  angle mort dans `HANDOFF.md`). La séparation repose donc sur la grille
+  écrite avant le travail et sur la discipline de l'Évaluateur, pas sur une
+  mécanique. `verdict.md` étant append-only, une passe ultérieure par un
+  autre acteur reste possible à tout moment et n'effacerait rien.
 - **010b** et **010c** sont produits par **Codex** et jugés par **Claude**.
   Si Claude est plafonné au moment du jugement, l'ADR de SC1 dit ce qui est
   alors permis — et rien d'autre.
