@@ -1,0 +1,110 @@
+{
+  "files": [
+    {
+      "path": "../../../../docs/adr/0008-codex-as-evaluateur-under-credit-cap.md"
+    },
+    {
+      "path": "../../../../docs/adr/README.md",
+      "must_differ_from": "deliverables/proofs/pre-fix/adr-README.md.orig"
+    },
+    {
+      "path": "deliverables/proofs/pre-fix/adr-README.md.orig"
+    },
+    {
+      "path": "../../../../docs/rules/harness-roles.md",
+      "must_differ_from": "deliverables/proofs/pre-fix/harness-roles.md.orig"
+    },
+    {
+      "path": "deliverables/proofs/pre-fix/harness-roles.md.orig"
+    },
+    {
+      "path": "../../../../harness/verdict_audit.py",
+      "must_differ_from": "deliverables/proofs/pre-fix/verdict_audit.py.orig"
+    },
+    {
+      "path": "deliverables/proofs/pre-fix/verdict_audit.py.orig"
+    },
+    {
+      "path": "../../../../harness/tests/test_verdict_audit_actor_identity.py"
+    },
+    {
+      "path": "deliverables/proofs/proof-sc3-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/proof-sc3-green.txt",
+      "must_differ_from": "deliverables/proofs/proof-sc3-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/proof-sc3b-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/proof-sc3b-green.txt",
+      "must_differ_from": "deliverables/proofs/proof-sc3b-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/proof-sc4-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/proof-sc4-green.txt",
+      "must_differ_from": "deliverables/proofs/proof-sc4-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/sc5-gate-before-all-briefs.txt"
+    },
+    {
+      "path": "deliverables/proofs/sc5-gate-after-all-briefs.txt",
+      "must_differ_from": "deliverables/proofs/sc5-gate-before-all-briefs.txt"
+    },
+    {
+      "path": "deliverables/proofs/sc5_regression_check.py"
+    },
+    {
+      "path": "deliverables/proofs/sc5-regression-check-output.txt"
+    },
+    {
+      "path": "deliverables/proofs/sc6-brief009-after.txt"
+    },
+    {
+      "path": "deliverables/proofs/gate-010a-self-check-final.txt"
+    }
+  ],
+  "counters": [
+    {
+      "name": "self_authored_multibackend_refused_test_count",
+      "value": 3,
+      "sample_size": 3,
+      "command": "py -m pytest harness/tests/test_verdict_audit_actor_identity.py -v"
+    },
+    {
+      "name": "author_pairs_examined_per_brief",
+      "value": 2,
+      "sample_size": 2,
+      "command": "py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation"
+    },
+    {
+      "name": "second_position_self_judgment_refused",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py <copie-jetable-pre-correctif>/verdict_audit_PREFIX.py <fixture SC3b> ; puis py harness/verdict_audit.py <meme fixture SC3b>"
+    },
+    {
+      "name": "unknown_actor_refused_without_code_change",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py harness/verdict_audit.py <fixture SC4, acteur forge-generateur-gemini/forge-evaluateur-gemini>"
+    },
+    {
+      "name": "briefs_gate_verdict_unchanged_count",
+      "value": 11,
+      "sample_size": 11,
+      "command": "py deliverables/proofs/sc5_regression_check.py deliverables/proofs/sc5-gate-before-all-briefs.txt deliverables/proofs/sc5-gate-after-all-briefs.txt"
+    },
+    {
+      "name": "cross_actor_judgment_still_accepted",
+      "value": 1,
+      "sample_size": 1,
+      "command": "py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation"
+    }
+  ],
+  "waivers": []
+}

@@ -1,6 +1,6 @@
 # Eval Rubric — Brief 010 (issu de l'audit CURSOR-e9a6f4c-codex-passation-full-auto)
 
-**Authored**: 2026-08-11T09:15:00Z
+**Authored**: 2026-08-11T10:16:38
 **Author**: forge-planificateur
 
 Écrite avant tout travail du Générateur. Ne sera pas révisée après avoir vu

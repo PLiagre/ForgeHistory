@@ -1,0 +1,13 @@
+briefs compared: 11
+PASS->FAIL regressions: 0 []
+  001-spatial-primary-key-adr: PASS -> PASS
+  002-geo-pipeline-coastline-1400: PASS -> PASS
+  003-port-unity-game: PASS -> PASS
+  004-polish-visuel: PASS -> PASS
+  005-refonte-visuelle-carte: PASS -> PASS
+  006-full-auto-agent-pipeline: PASS -> PASS
+  007-geo-pipeline-cells-adjacency: PASS -> PASS
+  008-contexte-opus5-right-sizing: FAIL -> FAIL
+  008-full-auto-automation-gaps: PASS -> PASS
+  009-full-auto-agent-invocation: PASS -> PASS
+  010-repartition-roles-full-auto: FAIL -> FAIL

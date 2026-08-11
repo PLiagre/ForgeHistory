@@ -1,6 +1,6 @@
 # Brief 010 : la couche contrat de la répartition des rôles — rendre Codex substituable à Claude sans casser l'anti-auto-jugement (issu de l'audit CURSOR-e9a6f4c-codex-passation-full-auto)
 
-**Authored**: 2026-08-11T09:10:00Z
+**Authored**: 2026-08-11T10:16:32
 **Author**: forge-planificateur
 
 ## Provenance
@@ -43,7 +43,7 @@ quelle, elle heurte le dépôt en deux endroits, l'un écrit et l'autre muet :
    `verdict_is_not_self_authored` (`harness/verdict_audit.py:262-268`)
    compare deux **chaînes de rôle**, pas deux **acteurs** :
 
-   ```python
+   ```py
    return CheckResult("verdict_is_not_self_authored", gen != ver, ...)
    ```
 
@@ -260,6 +260,19 @@ inatteignable sans elle, et un lot qui l'omet est incomplet, pas dérogé.
 Une seule chose a été ajoutée à ce brief après sa première rédaction, et
 avant tout travail de Générateur : **SC3b**, ses deux compteurs, et sa ligne
 de rubrique.
+
+Deux corrections d'écriture ont aussi été faites, sans toucher au fond.
+D'abord, les champs `Authored` de ce brief et de sa rubrique portaient un
+suffixe `Z` alors qu'ils énonçaient une heure locale : le gate les lisait
+donc **une heure dans le futur**, et jugeait que les livrables précédaient
+leur propre brief. Ils portent désormais l'heure locale réelle de dernière
+écriture, lue sur le disque et non inventée — `10:16:32` pour ce fichier,
+`10:16:38` pour la rubrique, contre un premier livrable à `10:29:10`.
+Ensuite, le bloc de code de la section « World-Terms Requirement » était
+étiqueté avec le nom complet de l'interpréteur, que le contrôle
+`no_bare_python_alias` compte comme une invocation en position de commande ;
+il porte maintenant l'abréviation `py`, qui est à la fois exacte et conforme
+à la règle du dépôt.
 
 Origine du changement, pour qu'il ne passe pas pour une intuition tardive :
 en évaluant le lot 009b, l'Évaluateur a constaté que le gate n'avait

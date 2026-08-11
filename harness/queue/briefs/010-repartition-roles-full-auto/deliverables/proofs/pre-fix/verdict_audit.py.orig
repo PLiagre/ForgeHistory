@@ -75,21 +75,6 @@ def read_field(p: Path, label: str) -> str | None:
     return m.group(1) if m else None
 
 
-def read_all_fields(p: Path, label: str) -> list[str]:
-    """All occurrences of a `**Label**: value` frontmatter field, in document
-    order -- unlike read_field (re.search), which only ever sees the first.
-
-    A multi-lot brief appends one signed section per lot to
-    deliverables/generator-log.md and to verdict.md; read_field alone can
-    only ever see the oldest lot's author (brief 010's SC3b). Callers that
-    need every author -- not just the earliest -- use this instead.
-    """
-    if not p.exists():
-        return []
-    pattern = re.compile(_FRONTMATTER_FIELD.pattern.format(label=re.escape(label)), re.MULTILINE)
-    return [m.group(1) for m in pattern.finditer(p.read_text(encoding="utf-8"))]
-
-
 def read_ts(p: Path, label: str = "Authored") -> datetime.datetime | None:
     v = read_field(p, label)
     if not v:
@@ -274,88 +259,13 @@ def check_no_bare_python(bd: Path, m: dict) -> CheckResult:
                         f"bare `python` found in: {hits}" if hits else "no bare `python` invocations found")
 
 
-def _actor_suffix(author: str, role_prefix: str) -> str | None:
-    """The backend name after a role prefix (e.g. 'codex' out of
-    'forge-generateur-codex'), or None for the bare/native role string
-    ('forge-generateur') carrying no backend suffix at all.
-
-    This is string surgery on the *role* prefix, never a lookup table of
-    known backends -- an actor nobody has used yet (brief 010's SC4 proves
-    this with a backend name absent from the whole repository) is derived
-    exactly the same way as 'codex' or 'cursor', so a third or fourth
-    backend needs no change here.
-    """
-    if author == role_prefix:
-        return None
-    prefixed = role_prefix + "-"
-    return author[len(prefixed):] if author.startswith(prefixed) else None
-
-
-def _same_actor(gen_author: str, ver_author: str) -> bool:
-    """Same *actor* behind a (generator, evaluator) author pair -- the
-    question `gen != ver` used to ask by comparing role strings, which broke
-    the moment two backends existed (brief 010's World-Terms Requirement):
-    'forge-generateur-codex' != 'forge-evaluateur-codex' as strings, even
-    though the same actor, Codex, wrote both.
-    """
-    if gen_author == ver_author:
-        return True
-    g = _actor_suffix(gen_author, "forge-generateur")
-    v = _actor_suffix(ver_author, "forge-evaluateur")
-    return g is not None and g == v
-
-
 def check_verdict_not_self_authored(bd: Path) -> CheckResult:
-    """Refuse a lot whose producer also judged it -- by actor, not by role
-    string, and across every author pair the two files carry, not only the
-    oldest.
-
-    Two angle blind spots closed together (brief 010):
-
-    1. Actor vs. role (SC3/SC4). `gen != ver` on the raw role strings passed
-       'forge-generateur-codex' vs. 'forge-evaluateur-codex' -- different
-       strings, same actor. `_same_actor` derives the actor from each side's
-       backend suffix instead, generically (SC4: an unseen actor name is
-       refused with no code change, because nothing here enumerates known
-       backends).
-
-    2. First pair only (SC3b). `read_field`'s re.search only ever returns
-       the earliest `**Author**:` line, so on a multi-lot brief (each lot
-       appends its own signed section) every author pair past the first was
-       invisible to this check -- self-authored or not, it was simply never
-       looked at. `read_all_fields` collects every occurrence in order.
-
-    Pairing rule, once every author is collected. A brief's generator-log
-    and verdict.md are appended to independently and don't carry matching
-    counts (verdict.md may hold more than one evaluation pass over the same
-    lot -- brief 009 carries an initial REJECT plus a later re-evaluation of
-    the very same Lot 009a). The most recent verdict entries are the ones
-    that still speak for the brief's current state, so the last `k` authors
-    of each file are paired positionally, `k = min(len(gen), len(ver))` --
-    older, superseded verdict passes drop off the front rather than being
-    force-matched to the wrong lot. Verified against the real brief 009
-    (SC6): this pairs Lot 009a's generator (`forge-generateur`) against its
-    own later re-evaluation (`forge-evaluateur-codex`, different actor, a
-    legitimate cross-actor judgment) and Lot 009b's generator
-    (`forge-generateur-codex`) against its own evaluation
-    (`forge-evaluateur`, likewise different) -- exactly the two lots that
-    exist, no false self-judgment, no lot left unexamined.
-    """
-    gen_authors = read_all_fields(bd / "deliverables" / "generator-log.md", "Author")
-    ver_authors = read_all_fields(bd / "verdict.md", "Author")
-    if not gen_authors or not ver_authors:
+    gen = read_field(bd / "deliverables" / "generator-log.md", "Author")
+    ver = read_field(bd / "verdict.md", "Author")
+    if not gen or not ver:
         return CheckResult("verdict_is_not_self_authored", False, "Author frontmatter missing on generator-log.md or verdict.md")
-
-    k = min(len(gen_authors), len(ver_authors))
-    pairs = list(zip(gen_authors[-k:], ver_authors[-k:]))
-    offenders = [(g, v) for g, v in pairs if _same_actor(g, v)]
-    examined = "; ".join(f"{g}<->{v}" for g, v in pairs)
-    if offenders:
-        bad = "; ".join(f"{g}=={v}" for g, v in offenders)
-        return CheckResult("verdict_is_not_self_authored", False,
-                            f"same actor on {len(offenders)}/{len(pairs)} examined pair(s): {bad} (examined: {examined})")
-    return CheckResult("verdict_is_not_self_authored", True,
-                        f"generator/evaluator actors differ on all {len(pairs)} examined pair(s): {examined}")
+    return CheckResult("verdict_is_not_self_authored", gen != ver,
+                        f"same author on both: {gen}" if gen == ver else f"generator={gen}, evaluator={ver}")
 
 
 def check_rubric_predates(bd: Path, m: dict) -> CheckResult:
