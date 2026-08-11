@@ -137,6 +137,34 @@ Les trois stubs sont toujours là sur `master` :
 Fournir les secrets aujourd'hui ne déclencherait aucun appel d'agent : le code
 qui les utiliserait n'existe pas encore. Hermes reste en lecture seule.
 
+## Troisième angle mort, connu et non couvert (2026-08-11)
+
+Le lot 010a ferme les deux angles morts que le brief 010 lui demandait de
+fermer. Il en reste un **troisième**, que ce brief n'avait pas demandé et
+qu'il ne faut donc pas croire fermé :
+
+| couple d'auteurs | contrôle |
+|---|---|
+| `forge-generateur` / `forge-evaluateur` | **accepté** — le trou |
+| `forge-generateur-codex` / `forge-evaluateur-codex` | refusé |
+| `forge-generateur` / `forge-evaluateur-codex` | accepté (légitime) |
+| `forge-generateur-codex` / `forge-evaluateur` | accepté (légitime) |
+
+Le backend natif s'écrit en rôles nus, sans suffixe d'acteur : `_actor_suffix`
+rend `None` des deux côtés et il n'y a rien à comparer. Autrement dit, **le
+gate ne peut pas détecter que Claude a produit et jugé le même lot** — le cas
+le plus fréquent, justement.
+
+Conséquence immédiate et concrète : la séparation des rôles sur le lot 010a
+ne repose sur aucune mécanique, seulement sur la discipline. C'est pourquoi
+son verdict doit venir de Codex, et pourquoi ce n'est pas une formalité.
+
+Piste de correction pour un brief futur, à ne pas improviser : faire porter à
+l'auteur son acteur explicite (`forge-generateur-claude` plutôt que
+`forge-generateur`), ce qui suppose de migrer les journaux existants sans
+invalider les verdicts déjà rendus — exactement la contrainte de
+non-régression que SC5 impose.
+
 ## Risques connus
 
 - **Les hooks du dépôt ont bloqué une session entière cette fois-ci.** Ils
