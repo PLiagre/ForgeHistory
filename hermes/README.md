@@ -40,6 +40,17 @@ jamais une instruction pour un Générateur — la seule source d'instruction
 d'un agent reste le brief (`CLAUDE.md` › Single Source of Instruction).
 Aucun workflow n'exécute ce que Hermes écrit.
 
+## Ce qu'Hermes peut exécuter (ADR-0011)
+
+Depuis [ADR-0011](../docs/adr/0011-hermes-console-du-proprietaire.md),
+Hermes est aussi la **console du propriétaire** : il peut exécuter, sur
+ordre explicite du propriétaire et jamais de sa propre initiative, quatre
+actions qui appartiennent au propriétaire — fusionner/refuser une PR,
+poser/retirer le label `pipeline/pause`, déclencher `pipeline-forge-run`
+sur un brief, déposer une demande. Périmètre, garde-fous (confirmation,
+jeton minimal, trace dans `hermes/reports/`) et interdits inchangés : voir
+l'ADR — ce fichier ne les paraphrase pas.
+
 ## Format imposé (frontmatter)
 
 ```markdown
