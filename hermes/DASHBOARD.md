@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-12 12:33 UTC.
+> Générée le 2026-08-12 12:40 UTC.
 
 ## En bref
 
@@ -15,6 +15,9 @@
 
 ## Ce qui attend le propriétaire
 
+- Fusionner (ou refuser) la PR #39 — « cursor-auditor: critique de la PR #34 (ADR-0011, console du propriétaire) » (branche `cursor/audit-pull-request-34-713b`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
+- Fusionner (ou refuser) la PR #38 — « cursor-auditor : audit du merge 0269d8e (ADR-0011, console du propriétaire) » (branche `cursor/audit-de-commit-master-e7e6`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
+- Fusionner (ou refuser) la PR #37 — « cursor-auditor: audit de la PR #32 (demande Hermes — tableau de bord et pilotage) » (branche `cursor/audit-pull-request-32-e53c`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Fusionner (ou refuser) la PR #31 — « challenge: revue de l'audit CURSOR-65c3ac1-dashboard-hermes-modele-auditeur » (branche `forge-bot/review-CURSOR-65c3ac1-dashboard-hermes-modele-auditeur-31594124761`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 
@@ -22,21 +25,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-12 12:33:47 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:33:45 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:33:41 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:33:40 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 12:33:29 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-779d97c-revue-verdicts-illisibles-31596321701 | success |
-| 2026-08-12 12:33:26 | pipeline-orchestrate | push | master | queued |
-| 2026-08-12 12:33:26 | pipeline-audit | push | master | in_progress |
-| 2026-08-12 12:33:26 | hermes-dashboard | push | master | in_progress |
-| 2026-08-12 12:33:26 | harness-ci | push | master | in_progress |
-| 2026-08-12 12:33:26 | audit-guard | push | master | success |
-| 2026-08-12 12:33:26 | security | push | master | in_progress |
-| 2026-08-12 12:33:23 | harness-ci | push | cursor/audit-pr-32-e849633 | in_progress |
-| 2026-08-12 12:33:23 | audit-guard | push | cursor/audit-pr-32-e849633 | success |
-| 2026-08-12 12:33:23 | security | push | cursor/audit-pr-32-e849633 | in_progress |
-| 2026-08-12 12:33:22 | security | push | forge/hermes-skill-versionnee-c2dd | success |
+| 2026-08-12 12:40:04 | audit-guard | pull_request | cursor/audit-pull-request-34-713b | queued |
+| 2026-08-12 12:40:04 | merge-bot | pull_request | cursor/audit-pull-request-34-713b | queued |
+| 2026-08-12 12:40:04 | hermes-observer | pull_request_target | cursor/audit-pull-request-34-713b | queued |
+| 2026-08-12 12:40:04 | harness-ci | pull_request | cursor/audit-pull-request-34-713b | queued |
+| 2026-08-12 12:40:04 | security | pull_request | cursor/audit-pull-request-34-713b | queued |
+| 2026-08-12 12:40:04 | pipeline-audit | pull_request | cursor/audit-pull-request-34-713b | queued |
+| 2026-08-12 12:39:51 | hermes-observer | pull_request_target | forge/hermes-skill-versionnee-c2dd | queued |
+| 2026-08-12 12:39:51 | audit-guard | push | master | in_progress |
+| 2026-08-12 12:39:51 | hermes-dashboard | push | master | in_progress |
+| 2026-08-12 12:39:51 | security | push | master | in_progress |
+| 2026-08-12 12:39:51 | harness-ci | push | master | in_progress |
+| 2026-08-12 12:39:51 | pipeline-audit | push | master | success |
+| 2026-08-12 12:39:50 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:39:48 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:39:31 | security | push | cursor/audit-pull-request-34-713b | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
