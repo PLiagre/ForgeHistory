@@ -51,6 +51,12 @@ pass. See [docs/rules/harness-roles.md](docs/rules/harness-roles.md) and
 
 ## Architecture
 
+- **ROADMAP.md** — the game/project roadmap, owned by Hermes (project
+ lead, ADR-0010). Claude (CTO) reads it to plan briefs; evolutions enter
+ through `hermes/requests/`.
+- **hermes/** — the project lead's writing contract: reports and evolution
+ requests, versioned and author-traceable. Never code, CI, briefs or
+ verdicts. See `hermes/README.md`.
 - **sim/** — the simulation engine, testable without Unity. Empty stub (F1+).
 - **pipeline/geo/** — geo/map pipeline, incl. sources.lock. Empty stub (F1).
 - **harness/** — brief queue, three-role agents' shared contract, the
@@ -117,3 +123,4 @@ See [HANDOFF.md](HANDOFF.md) — rewritten at the end of every session.
 | `harness/backends/**` | `harness/backends/README.md` (pluggable-Générateur contract) |
 | `architecture/**` | `architecture/README.md` (Cursor audit loop) + ADR-0005 |
 | `harness/pipeline/**` | `docs/rules/full-auto-pipeline.md` + ADR-0006 (full-auto derogation to ADR-0005) |
+| `ROADMAP.md`, `hermes/**` | `hermes/README.md` (contrat d'écriture d'Hermes) + ADR-0010 |
