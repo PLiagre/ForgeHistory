@@ -19,7 +19,7 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
-| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **en préparation** : le pipeline géographique produit le littoral 1400 et les cellules/adjacence ; le moteur `sim/` n'est pas commencé | `pipeline/geo/`, `sim/` (stub) |
+| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **commencé** : le pipeline géographique produit le littoral 1400 et les cellules/adjacence ; le moteur `sim/` est amorcé (brief 011 : monde chargé depuis les cellules G3, population amorcée, tick déterministe, nourriture physique, chaîne faim→mortalité) | `pipeline/geo/`, `sim/` |
 | 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | non commencé | `sim/` |
 | 3 | **États** — fiscalité, lois, diplomatie, technologies, culture, religion | non commencé | `sim/` |
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
@@ -35,7 +35,7 @@ contiendra jamais de logique de simulation.
 |---|---|---|
 | **F0** — Harnais | Trois rôles (Planificateur / Générateur / Évaluateur), gate mécanique `verdict_audit.py`, briefs 001→010, boucle d'audit Cursor, pipeline full-auto (FSM, orchestrateur, budgets) | **terminé** |
 | **F1** — Fondations monde | Pipeline géographique (littoral `1400` ✓, cellules G3 ✓, suite : relief, climat, ressources), portage Unity ✓, refonte visuelle carte (briefs 004/005, reprise conditionnée aux logs Unity) | **en cours** |
-| **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | à venir — premier brief à écrire par le CTO depuis cette roadmap |
+| **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — brief 011 (amorçage `sim/`) livré et accepté le 2026-08-12 ; suites : relief/climat/ressources côté geo, puis commerce inter-cellules et agrégation Province |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles — chaque couche émerge de la précédente | à venir |
 
 ## Le workflow — quatre acteurs (ADR-0010)
@@ -81,8 +81,11 @@ et `hermes/README.md`. Câblage runtime : `docs/rules/full-auto-pipeline.md`.
      propriétaire exhaustive) ;
    - le câblage « console du propriétaire » (H4) se fait dans
      l'installation locale, dans les bornes d'ADR-0011.
-4. **Premier brief F2** : le CTO écrit le brief d'amorçage de `sim/`
-   (couche 1, monde vivant) depuis cette roadmap.
+4. ~~**Premier brief F2**~~ — **fait le 2026-08-12** : brief 011
+   (`harness/queue/briefs/011-sim-monde-vivant-amorcage/`) écrit et passé
+   par la boucle trois rôles ; verdict PASS à l'itération 2, gate ACCEPT.
+   Suite F2 : brief suivant à écrire (commerce inter-cellules ou
+   agrégation Province dérivée).
 5. **Reprendre 004/005** (visuel carte) quand les logs Unity requis par le
    gate sont produits sur la machine propriétaire.
 
@@ -92,3 +95,4 @@ et `hermes/README.md`. Câblage runtime : `docs/rules/full-auto-pipeline.md`.
 |---|---|---|
 | 2026-08-12 | hermes (rédaction initiale déléguée à Cursor, décision propriétaire) | création — état F0/F1, couches jeu, workflow quatre acteurs |
 | 2026-08-12 | hermes (rédaction déléguée à Cursor, décision propriétaire « ok pour tout ») | reflet de la demande « tableau de bord unique et pilotage » (H1-H5, ADR-0011) ; correction factuelle : secrets CI provisionnés |
+| 2026-08-12 | orchestrateur Cursor (remplaçant du CTO Claude, indisponible — instruction propriétaire) | correction factuelle uniquement : brief 011 (F2, amorçage `sim/`) livré et accepté — statuts couche 1, F2 et étape 4 mis à jour |
