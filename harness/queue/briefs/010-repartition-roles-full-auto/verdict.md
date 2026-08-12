@@ -661,3 +661,115 @@ une condition de ce lot ; ils appartiennent au brief que `D5` appelait déjà.
 Ce verdict vaut ce que vaut la discipline de celui qui l'écrit, puisque le
 producteur et le juge sont ici le même acteur et que le gate ne sait pas le
 voir. Il est append-only : une passe par un acteur différent reste ouverte.
+
+---
+
+# Évaluation — lot 010b (Codex backend officiel et mesuré)
+
+**Authored**: 2026-08-12T11:30:00Z
+**Author**: forge-evaluateur
+
+Cette section s'ajoute aux précédentes ; elle n'en efface aucune. Je juge ici
+le lot 010b, produit par `forge-generateur-codex` (commit `42679d7`). Je ne
+l'ai pas produit — producteur Codex, Évaluateur Claude, acteurs distincts,
+donc juge recevable. Chaque preuve a été reconstruite par mes propres
+commandes, dans un worktree dédié puis sur la branche d'intégration ; aucun
+chiffre du manifeste n'a été repris sans recalcul.
+
+## Gate et suite
+
+- `py harness/verdict_audit.py harness/queue/briefs/010-repartition-roles-full-auto`
+  → dix `[PASS]`, `VERDICT: ACCEPT`, exit `0`. La ligne
+  `verdict_is_not_self_authored` examine bien **les deux** couples auteurs
+  (`forge-generateur`↔`forge-evaluateur` ; `forge-generateur-codex`↔`forge-evaluateur`)
+  — c'est le contrôle corrigé par 010a qui juge 010b.
+- `py -m pytest harness/tests/ -q` → suite verte (`311` sur la branche 010b
+  isolée), rejouée par moi.
+
+## Conditions SC7–SC11, reconstruites
+
+| SC | Résultat | Preuve indépendante que j'ai exécutée |
+|---|---|---|
+| **SC7** — wrapper conforme, même signature que Cursor, réellement exécuté | **SATISFAITE** | `run_codex_generator.sh` prend `<brief_dir> [extra_dirs]`, identique à `run_cursor_generator.sh`. Le wrapper a réellement tourné deux fois (preuves `wrapper-*-output.txt`) ; il ne s'est jamais contenté d'exister. |
+| **SC8** — `--backend codex` aux trois emplacements | **SATISFAITE** | `grep -n codex .claude/commands/forge-run.md` → ligne `3` (argument-hint), `19` (description d'option), `78` (branche `elif backend == "codex"`). Compteur `forge_run_backend_mentions_count` = `3`, reconstruit. |
+| **SC9** — coût Codex mesuré, jetons non inventés | **SATISFAITE** | `py harness/backends/ledger.py report` affiche `2 codex` ; les deux entrées du `cost-ledger.jsonl` sont réelles (`generator-run-failed`), correspondant aux deux tentatives. Le coût jeton n'étant pas récupérable (JSONL vide, `codex.exe: Permission denied`), la dérogation est déclarée avec la commande tentée (`Get-Content` sur le JSONL/`.err`) et l'erreur littérale — recevable selon la table des dérogations. Aucun coût inventé. |
+| **SC10** — ADR-`0009` avec Status, ligne README | **SATISFAITE** | `docs/adr/0009-...md` porte `**Status**: accepted` ; `docs/adr/README.md` gagne sa ligne `0009`. |
+| **SC11** — refus d'auto-jugement, réutilisant la fonction de SC3 | **SATISFAITE** | `codex_preflight.py` **importe** `verdict_audit` et appelle `verdict_audit.check_verdict_not_self_authored(...)` (aucune réimplémentation en shell). Reproduit par moi : sur `fx_sc3` (verdict déjà signé `forge-evaluateur-codex`), le preflight **REFUSE** avec exit `2` **avant toute écriture** (aucun `codex-run.jsonl`/`.err`/`backend-status` créé) ; sur `fx_010b_cross_actor` (acteur `forge-evaluateur-korrigan`, distinct), le preflight passe (exit `0`). |
+
+## Frontières de périmètre — vérifiées par diff
+
+`git diff --name-only origin/master..42679d7` : aucun fichier sous
+`.github/workflows/`, ni `VISION.md`, ni brief `009`. Les trois `TODO(operator`
+des trois workflows restent intacts (`1` par fichier). La seule modification de
+`run_cursor_generator.sh` est sa ligne de commentaire `# Usage:` — pas de
+changement de logique.
+
+## Constat mineur, non bloquant
+
+Le commentaire `# Usage:` de `run_cursor_generator.sh` annonce désormais
+`[extra_dirs_colon_separated]` sans que le corps du wrapper Cursor consomme cet
+argument. C'est une dérive documentaire sur un fichier annexe, hors des
+conditions de 010b ; à corriger dans une passe future, pas un motif de rejet.
+
+## Verdict : **LOT_010b: ACCEPT**
+
+Les cinq conditions SC7 à SC11 sont satisfaites, chacune reconstruite par mes
+propres commandes. Le backend est **mesuré** (deux invocations réelles au
+ledger), pas seulement déclaré — l'échec disqualifiant du lot est donc démenti.
+La dérogation jetons est recevable : commande tentée et erreur littérale
+présentes, aucun coût fabriqué. Le refus d'auto-jugement réutilise la fonction
+de 010a et refuse avant toute écriture. Producteur (Codex) et juge (Claude)
+sont ici des acteurs distincts.
+
+---
+
+# Évaluation — lot 010c (le verrou de fusion, mesuré et spécifié)
+
+**Authored**: 2026-08-12T11:45:00Z
+**Author**: forge-evaluateur
+
+Cette section s'ajoute aux précédentes. Je juge le lot 010c, produit par
+`forge-generateur-codex` (commit `df142e6`). Producteur Codex, Évaluateur
+Claude : acteurs distincts, juge recevable. Preuves reconstruites par mes
+commandes.
+
+## Gate et suite
+
+- `py harness/verdict_audit.py harness/queue/briefs/010-repartition-roles-full-auto`
+  → dix `[PASS]`, `VERDICT: ACCEPT`, exit `0`.
+- `py -m pytest harness/tests/ -q` → suite verte (`311` sur la branche 010c
+  isolée), rejouée par moi.
+
+## Conditions SC12–SC15, reconstruites
+
+| SC | Résultat | Preuve indépendante que j'ai exécutée |
+|---|---|---|
+| **SC12** — le test lit `merge-bot.yml`, sans recopier ses valeurs en dur | **SATISFAITE** | `merge_bot_policy.py` fait un vrai `read_text` du workflow et en extrait préfixes et chemins par regex ; `test_merge_bot_policy.py` charge le vrai fichier, **refuse** un fichier vide ou tronqué (`pytest.raises(MergeBotPolicyError)` — évite le défaut C3 de 009a), et devient **rouge** si un préfixe ou un chemin est ajouté (deux tests `pytest.raises(AssertionError)`). Compteurs `mergebot_allowed_prefixes_count`=`2`, `mergebot_allowed_paths_count`=`3`, lus du fichier. |
+| **SC13** — doc nommant l'étape humaine exacte, sans surpromesse | **SATISFAITE** | `docs/rules/conditional-merge-gate.md` déclare « spécifiée, non câblée », nomme l'étape humaine (« le propriétaire clique “Merge pull request” … ou lance `gh pr merge` ») et précise qu'aucun workflow ne lit ce document — pas de comportement promis qu'aucun code n'exécute (défaut C4 de 009a évité). |
+| **SC14** — mesure sur les `20` dernières PR fusionnées | **SATISFAITE (mesure honnête `5`/`18`)** | Reconstruit : `gh pr list --state merged` rend **`18`** PR fusionnées (le dépôt n'en a pas plus). La mesure livrée déclare `requested=20 returned=18`, `recent_prs_automergeable_count=5`, `sample_size=18`, avec une `cohort_note` qui dit explicitement que le dénominateur `20` n'existe pas encore. J'ai recompté : `5` PR `automergeable=true`, toutes `cursor/`. **Aucun dénominateur `20` fabriqué** — c'est la seule conduite honnête ; la limite du dépôt est déclarée, pas contournée. |
+| **SC15** — porte conditionnelle spécifiée, non activée ; diff workflows vide | **SATISFAITE** | Le doc spécifie les quatre prédicats un par un (CI verte, gate ACCEPT, verdict indépendant d'un acteur distinct, audit Cursor déposé) avec, pour chacun, la lecture qui le prouve. `git diff origin/master..df142e6 -- .github/workflows/` est **vide** ; compteur `workflows_diff_bytes`=`0`, reconstruit. La spécification n'active rien (« n'appelle pas `gh pr merge` »). |
+
+## Frontières de périmètre
+
+`git diff --name-only origin/master..df142e6` : aucun fichier sous
+`.github/workflows/`, ni `VISION.md`, ni brief `009`. Les trois `TODO(operator`
+restent intacts.
+
+## Verdict : **LOT_010c: ACCEPT**
+
+Les quatre conditions SC12 à SC15 sont satisfaites, reconstruites par mes
+propres commandes. Le test lit réellement le workflow et se protège du fichier
+vide/tronqué ; la mesure `5`/`18` est honnête et déclare le manque de deux PR
+plutôt que d'inventer un dénominateur ; la spécification ne touche à aucun
+workflow. Producteur (Codex) et juge (Claude) distincts.
+
+---
+
+# État du brief `010` après intégration
+
+- **010a** : ACCEPT (itération 2, `forge-evaluateur`, déjà fusionné — PR #`20`/#`21`).
+- **010b** : ACCEPT (ci-dessus, `forge-evaluateur`).
+- **010c** : ACCEPT (ci-dessus, `forge-evaluateur`).
+
+Le brief `010` est complet sur ses trois lots. Chaque lot a été jugé par un
+acteur distinct de son producteur.
