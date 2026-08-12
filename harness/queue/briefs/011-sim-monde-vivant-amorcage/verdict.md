@@ -244,3 +244,199 @@ de la grille. De même, relâcher l'assertion pour tolérer les champs non
 couverts reviendrait à réécrire la grille après coup. La sortie est
 d'ajouter les sites d'écriture et de lecture manquants au périmètre
 d'analyse, pas de rétrécir le modèle.
+
+---
+
+# Verdict — Brief `011`, itération 2
+
+**Authored**: 2026-08-12T16:49:34Z
+**Author**: forge-evaluateur
+
+La section ci-dessus (itération 1) est conservée intacte : elle reste le
+verdict qui a motivé le REJECT et le feedback auquel le Générateur a
+répondu. Les chiffres qu'elle cite sont ceux de l'itération 1 et ne
+décrivent plus l'état actuel des preuves, qui ont été régénérées.
+
+## Note de transparence
+
+Comme à l'itération 1, cette évaluation a été exécutée par un sous-agent
+hébergé par Cursor, en remplacement de Claude (indisponible), sur
+instruction du propriétaire du projet, dans une session distincte de celle
+du Générateur et orchestrée depuis l'extérieur du harnais habituel. Aucune
+ligne de code du lot n'a été modifiée par l'Évaluateur : les deux
+contre-preuves décrites plus bas ont été montées dans des copies de travail
+situées hors du dépôt.
+
+## Mechanical Gate Result
+
+Commande exécutée depuis la racine du dépôt :
+`.venv/bin/python harness/verdict_audit.py harness/queue/briefs/011-sim-monde-vivant-amorcage`.
+
+Avant l'écriture de la présente section, le gate rendait `VERDICT: ACCEPT`
+avec ses dix contrôles au vert. Même avertissement de lecture qu'à
+l'itération 1 : le gate ne juge que la forme et ne lit pas la conclusion de
+l'Évaluateur ; c'est le verdict de fond ci-dessous qui décide.
+
+## Vérification point par point du feedback
+
+| Point | État | Preuve reconstruite par l'Évaluateur |
+|---|---|---|
+| B1 — SC8 : parcourir les champs déclarés | **Corrigé** | Voir le détail ci-dessous : le test itère bien sur les champs déclarés, le compteur exige l'égalité avec le total, et les deux contre-preuves rougissent réellement. |
+| B2 — condensé SHA256 recopié dans le journal | **Corrigé** | Recherche par motif d'une chaîne hexadécimale longue sur tout `sim/` et sur tout le dossier du brief : aucune occurrence. Le journal cite désormais les seuls noms de variable et renvoie à la commande à rejouer. |
+| N1 — code mort dans le test central | **Corrigé** | Le fichier a été réécrit ; les quatre variables inutilisées que je citais ont disparu. Relecture intégrale du nouveau fichier : aucune variable morte, aucune expression sans effet. |
+| N2 — paramètre inutilisé dans l'amorçage | **Corrigé** | La fonction d'amorçage du stock ne reçoit plus la superficie ; l'appelant est mis à jour. La formule documentée dans `sim/SEEDING.md` reste exacte, et l'amorçage donne le même résultat qu'avant (vérifié par le déterminisme rejoué, empreinte inchangée). |
+| N3 — garde ADR trop étroite | **Corrigé** | La garde refuse maintenant tout nom normalisé commençant par « province ». Deux cas de test ajoutés (forme courte et forme avec suffixe) ; les cinq tests de conformité passent à l'exécution. |
+| N4 — inspection statique fermée par exclusion de nom | **Corrigé** | Le parcours est devenu récursif avec exclusion du répertoire de tests. Sortie rejouée : 5 fichiers inspectés au lieu de 4, dont le fichier d'initialisation du paquet auparavant exclu. |
+| N5 — nombres d'artefacts recopiés dans le README | **Corrigé** | Recherche par motif dans tout `sim/` : plus aucune occurrence des deux nombres. Le README renvoie au fichier de statistiques. |
+| N6 — nom d'événement du registre de coût | **Corrigé pour l'avenir** | La ligne ajoutée à cette itération utilise la forme avec tiret, conforme aux entrées précédentes. La ligne de l'itération 1 conserve la forme fautive : le registre est en ajout seul, on ne réécrit pas une entrée passée. Acceptable. |
+
+### Détail de B1 — les deux contre-preuves refaites par l'Évaluateur
+
+Lecture du test corrigé : il itère bien sur les champs déclarés de la
+dataclass, et exige pour chacun au moins un site d'écriture et au moins un
+site de lecture, en analysant trois fichiers du moteur au lieu d'un seul.
+Les sites d'écriture reconnus incluent les arguments nommés du constructeur,
+ce qui est la raison pour laquelle les deux champs auparavant non couverts
+le sont désormais sans qu'aucun champ ait été retiré du modèle. Le compteur
+exige l'égalité stricte avec le total déclaré, et vaut 5 sur 5 à
+l'exécution.
+
+Contre-preuve (a), champ fantôme. Dans une copie hors dépôt, j'ai ajouté à
+la dataclass un champ sans écrivain ni lecteur, puis rejoué le fichier de
+test : deux tests en échec, code de sortie non nul, message nommant le champ
+fautif et précisant les deux sites manquants. Ma sortie est **identique
+octet pour octet** au fichier `sim/tests/proof_red/run_phantom_red.txt`
+livré, à la seule ligne du répertoire racine près — qui diffère
+nécessairement puisque j'ai exécuté hors du dépôt. La preuve livrée n'est
+donc pas rédigée à la main.
+
+Contre-preuve (b), sabotage de SC10. Même méthode, en retirant cette fois le
+champ de faim de la dataclass : un test en échec, code de sortie non nul,
+message citant l'attribut écrit mais non déclaré. Là encore ma sortie est
+identique octet pour octet au fichier `sim/tests/proof_red/run_sabotage.txt`
+livré, à la ligne du répertoire racine près.
+
+Les deux sorties vertes livrées sont, elles, identiques octet pour octet à
+ce que produit le dépôt dans son état actuel.
+
+Les deux paires sont déclarées au manifeste sous `must_differ_from`, les
+quatre fichiers sont suivis par git, et les horodatages montrent bien le
+rouge produit avant le vert dans chaque paire.
+
+## Per-Rubric-Line Verdict (grille complète re-déroulée)
+
+| Success Condition | PASS/FAIL | Evidence (rejouée par l'Évaluateur à l'itération 2) |
+|---|---|---|
+| SC1 — paquet importable et documenté | PASS | Importation du paquet : version non vide affichée. README à jour. |
+| SC2 — chargement depuis les artefacts G3 | PASS | Recompté depuis les artefacts : 596 cellules, égal au champ de comptage du fichier de statistiques ; 1364 arêtes. Aucune de ces valeurs n'apparaît plus nulle part dans `sim/`, code, tests ou documentation. |
+| SC3 — `cell_id` seule clé spatiale (ADR `0003`) | PASS | Cinq tests de conformité exécutés, tous verts, dont deux nouveaux couvrant la forme courte et la forme suffixée. La garde lève une erreur explicite à l'instanciation, vérifiée par exécution. |
+| SC4 — amorçage documenté et déterministe | PASS | Deux chargements avec la même graine : populations et stocks strictement identiques. Rejoué deux fois de suite, même résultat. La documentation d'amorçage reste exacte après le retrait du paramètre inutilisé. |
+| SC5 — boucle de tick déterministe | PASS | Rejoué deux fois de suite, hors des tests livrés : deux séries de dix pas avec la même graine donnent des condensés égaux, une graine différente donne un condensé différent. Aucune valeur de condensé écrite en dur, ni dans le code, ni dans les tests, ni désormais dans le journal. |
+| SC6 — économie physique de la nourriture | PASS | Les deux champs et leurs sentinelles `-1` sont inchangés ; l'ordre production puis consommation puis faim puis mortalité dans le pas de temps est inchangé. |
+| SC7a / SC7b / SC7c / SC7d | PASS | Les quatre tests rejoués : maillons isolés avec états construits à la main, seuil importé d'une constante nommée, intégration passant par le pas de temps complet. |
+| SC8 — couverture d'écriture sur tous les champs | **PASS** (était FAIL) | Le test parcourt les champs déclarés, le compteur exige l'égalité avec le total et vaut 5 sur 5, et les deux contre-preuves refaites par mes soins rougissent réellement. Le défaut de l'itération 1 est fermé, et il l'est en ajoutant des sites d'écriture au périmètre d'analyse, non en retirant des champs du modèle. |
+| SC9 — aucun compteur codé en dur | PASS | Inspection statique rejouée, désormais récursive : 0 littéral non nommé sur 5 fichiers inspectés. |
+| SC10 — preuve rouge d'abord | PASS | Quatre artefacts de preuve suivis par git, deux paires déclarées au manifeste, rouge avant vert dans chaque paire, et authenticité établie par reproduction octet pour octet. Diffs recalculés : 53 lignes pour la paire de sabotage, 94 pour la paire du champ fantôme. |
+| SC11 — suite de tests entièrement verte | PASS | Suite complète du paquet rejouée : code de sortie nul, tous les tests collectés au vert (`20` tests, contre `18` à l'itération 1). Suite du harnais rejouée également : intacte, seuls les cas Unity restent ignorés comme prévu sous Linux. |
+| SC12 — `sim/README.md` mis à jour | PASS | Modules, commande de test, source des données et histoire du stub toujours présents ; les deux nombres d'artefacts ont été remplacés par un renvoi au fichier de statistiques. |
+
+### Reconstruction indépendante des compteurs
+
+Tous reconstruits par mes propres commandes, aucun repris du manifeste :
+cellules chargées 596 sur 596 ; arêtes 1364 sur 1364 ; champs de modèle
+couverts 5 sur 5 ; compteurs en dur trouvés 0 sur 5 fichiers ; amorçage
+déterministe 1 sur 1 ; ticks déterministes 1 sur 1 ; maillons unitaires 3
+sur 3 ; intégration 1 sur 1 ; lignes différentes de la paire de sabotage 53
+sur 53 ; lignes différentes de la paire du champ fantôme 94 sur 94.
+
+Le manifeste porte en outre un compteur d'archive valant 70, qui documente
+la mesure de l'itération 1 citée plus haut dans ce fichier. Je l'ai
+reconstruit à partir des artefacts de l'itération 1 conservés dans
+l'historique git : la valeur est exacte. Voir toutefois la réserve R1
+ci-dessous, la commande déclarée pour ce compteur n'étant pas celle qui
+produit sa valeur.
+
+## Overall Verdict: PASS
+
+Les douze conditions de succès sont satisfaites et vérifiées par
+reconstruction indépendante. Les deux points bloquants de l'itération 1 sont
+fermés, les six points non bloquants aussi. Aucun échec disqualifiant de la
+grille n'est présent.
+
+## Boundary Violations
+
+Aucune. Le périmètre est respecté : hors de `sim/`, seuls le dossier du
+brief et le registre de coût du harnais ont changé, ce dernier par un simple
+ajout en fin de fichier. `VISION.md`, `pipeline/geo/`, `unity/`,
+`docs/adr/` et le code du harnais sont intacts, vérifié par comparaison avec
+la branche de référence sur tous les chemins hors périmètre.
+
+Les non-objectifs de contenu restent tenus : pas de commerce entre cellules,
+pas d'objet Province, pas de familles ni de personnes, aucune donnée
+historique inventée.
+
+## What Improved Since Last Iteration
+
+- **Le contrôle de SC8 est devenu un vrai contrôle.** Il part maintenant des
+  champs déclarés, ce qui est le sens qui permet de détecter le mode d'échec
+  visé, et il possède deux familles de preuve rouge au lieu d'une. C'est la
+  correction demandée, faite de la bonne manière : le périmètre d'analyse a
+  été élargi pour trouver les sites d'écriture manquants, aucun champ n'a
+  été retiré du modèle pour faire passer le test.
+- **Les preuves rouges sont authentifiables.** Deux d'entre elles se
+  reproduisent octet pour octet depuis une copie hors dépôt. C'est le
+  standard le plus élevé que je puisse demander à ce type d'artefact.
+- **La garde de l'ADR couvre maintenant l'intention et pas seulement la
+  lettre**, avec des cas de test pour les formes qui passaient auparavant.
+- **Les deux sources de valeurs périmées ont été supprimées** : le condensé
+  dans le journal et les nombres d'artefacts dans le README. La hard-won
+  rule `12` est respectée dans tous les documents du lot.
+- **L'inspection statique ne se referme plus par exclusion de nom** : un
+  futur sous-module sera inspecté sans intervention.
+
+## What Regressed Since Last Iteration
+
+Rien. Les conditions déjà satisfaites à l'itération 1 le sont encore, y
+compris le déterminisme, dont l'empreinte est inchangée malgré la
+modification de la signature de la fonction d'amorçage du stock — ce qui
+confirme que ce changement était bien neutre.
+
+## Réserves — à traiter dans un brief ultérieur, non bloquantes ici
+
+**R1 — le compteur d'archive du manifeste n'est pas reproductible par sa
+propre commande.** L'entrée qui conserve la mesure de l'itération 1 déclare
+comme commande le diff des deux fichiers de preuve courants ; or ces
+fichiers ont été régénérés, et cette commande produit aujourd'hui la valeur
+de l'itération 2, pas celle qu'elle documente. J'ai pu retrouver la valeur
+annoncée, mais seulement en comparant les versions de ces fichiers telles
+qu'elles existent dans le commit de l'itération 1, ce que la commande
+déclarée ne dit pas. Le journal du Générateur explique honnêtement pourquoi
+cette entrée existe — garder traçable un nombre cité dans la section
+d'itération 1 de ce fichier — et c'est ce qui m'empêche d'y voir un
+compteur fabriqué. Correction attendue : remplacer la commande déclarée par
+celle qui produit réellement la valeur, c'est-à-dire un diff des deux
+fichiers extraits du commit de l'itération 1, ou retirer l'entrée le jour où
+plus aucun document ne cite ce nombre. Un compteur dont la commande ne rend
+pas la valeur est précisément ce que la hard-won rule 3 interdit ; ici la
+mesure est réelle et vérifiée, c'est son étiquette qui est fausse.
+
+**R2 — le contrôle de SC8 est lié à une seule dataclass.** Il nomme
+explicitement la dataclass du modèle au lieu de découvrir toutes les
+dataclasses du paquet. Aujourd'hui il n'en existe qu'une, donc la couverture
+est complète ; le jour où une deuxième entité apparaît, elle échappera
+silencieusement au contrôle. Faire découvrir les dataclasses par
+introspection du module de modèle.
+
+**R3 — la détection des sites d'écriture ne vérifie pas l'objet écrit.**
+Toute affectation d'attribut portant le nom d'un champ compte comme un site
+d'écriture, quel que soit l'objet. Un futur champ dont le nom coïnciderait
+avec un attribut sans rapport ailleurs dans le paquet serait compté comme
+couvert sans l'être. Restreindre la reconnaissance aux objets dont le type
+est celui de l'entité, ou au minimum aux variables dont le nom est celui
+attendu, comme le fait déjà l'autre assertion du fichier.
+
+**R4 — deux fichiers de preuve verte identiques.** La sortie verte de la
+paire de sabotage et celle de la paire du champ fantôme sont le même texte,
+puisque c'est le même run vert. Ce n'est pas une faute — chaque paire diffère
+bien — mais un seul fichier vert référencé par les deux paires dirait la
+même chose sans dupliquer un artefact.
