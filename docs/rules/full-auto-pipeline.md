@@ -94,13 +94,29 @@ harness loop.
    carries `--max-budget-usd 5.00` (owner arbitration n°2, 2026-08-11), is
    preceded by `harness/pipeline/ci_budget_guard.py precheck` (monthly cap,
    lot 009b) and followed by its post-hoc `record` marking.
-2. Provision the three GitHub Actions repository secrets:
-   `ANTHROPIC_API_KEY` (headless Claude), `OPENAI_API_KEY` (Codex CLI),
-   `CURSOR_API_KEY` (Cloud Agents API — the agent-specific key from the
-   Cursor dashboard's Cloud Agents settings, not a generic dashboard key).
-   Until they exist, every invocation step logs a documented `::warning::`
-   waiver and no-ops instead of failing — full_auto never silently pretends
-   to run.
+2. Provision the GitHub Actions repository secrets —
+   **subscription-quota first** (owner decision 2026-08-12: consume the
+   Pro-plan quotas, never API credit), API keys only as fallback:
+   - `CLAUDE_CODE_OAUTH_TOKEN` — subscription token generated locally by
+     `claude setup-token` (Pro/Max/Team plans). Fallback:
+     `ANTHROPIC_API_KEY` (API billing). If both are set, the CLI prefers
+     the API key — so set only the token.
+   - `CODEX_AUTH_JSON` — the full contents of `~/.codex/auth.json`
+     produced locally by `codex login` (ChatGPT-managed auth; official
+     OpenAI "CI/CD auth" procedure, private trusted repos only). Fallback:
+     `OPENAI_API_KEY` (API billing). Known limit: on ephemeral runners the
+     refreshed token is not persisted back, so the seed secret goes stale
+     after roughly 8 days without a run refresh — re-run `codex login`
+     locally and update the secret when the workflow reports an auth
+     error.
+   - `CURSOR_API_KEY` — the agent-specific key from the Cursor dashboard's
+     Cloud Agents settings (not a generic dashboard key). Cloud Agents
+     launched through the API draw from the same Cursor plan usage as
+     agents launched from the dashboard — this key is already
+     subscription-based.
+   Until credentials exist, every invocation step logs a documented
+   `::warning::` waiver and no-ops instead of failing — full_auto never
+   silently pretends to run.
 3. `harness/pipeline/config.yaml` declares `mode: full_auto` since
    2026-08-12. The value is legal because
    `harness/pipeline/full_auto_mode_guard.py` re-reads the forge-run

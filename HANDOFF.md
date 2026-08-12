@@ -78,10 +78,16 @@ arbitrages 1-3, séparation producteur/juge) est reconduit.
   d'audits touchant uniquement `architecture/inbox/`).
 - La direction du projet se lit désormais dans **`ROADMAP.md`** ;
   les prochaines actions y sont ordonnées. En résumé :
-  1. **Le propriétaire provisionne les trois secrets** GitHub Actions :
-     `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CURSOR_API_KEY` (clé
-     spécifique Cloud Agents du dashboard Cursor). Sans eux la boucle
-     consigne des dérogations et n'appelle personne.
+  1. **Le propriétaire provisionne les trois secrets** GitHub Actions, en
+     **quota d'abonnement** (décision du 2026-08-12, jamais de crédit
+     API) : `CLAUDE_CODE_OAUTH_TOKEN` (jeton `claude setup-token`, plan
+     Pro/Max), `CODEX_AUTH_JSON` (contenu de `~/.codex/auth.json` après
+     `codex login` ChatGPT ; à re-seeder s'il périme, ~8 jours sans
+     rafraîchissement), `CURSOR_API_KEY` (clé spécifique Cloud Agents du
+     dashboard Cursor — consomme déjà le forfait). Les clés API
+     `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` restent des replis acceptés par
+     les workflows. Sans identifiant, la boucle consigne des dérogations
+     et n'appelle personne.
   2. Rejouer la boucle sur un brief réel (`workflow_dispatch` de
      `pipeline-forge-run` ou label `forge-run/queued`).
   3. Le CTO écrit le premier brief F2 (`sim/`, couche 1) depuis la roadmap.

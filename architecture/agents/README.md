@@ -37,10 +37,12 @@ l'applique — deux couches, jamais une seule qui pourrait dériver.
 
 Additif. Depuis ADR-0010 (2026-08-12), les workflows `pipeline-*.yml`
 portent de vraies invocations d'agents, déclenchées sur `push`,
-`pull_request` et `workflow_dispatch`. Tant que les secrets
-(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CURSOR_API_KEY`) ne sont pas
-configurés, chaque étape d'invocation consigne une dérogation `::warning::`
-et ne fait rien — jamais d'échec ni de succès silencieux. Le harness
+`pull_request` et `workflow_dispatch`. Tant que les identifiants ne sont
+pas configurés (quota d'abonnement d'abord : `CLAUDE_CODE_OAUTH_TOKEN`,
+`CODEX_AUTH_JSON`, `CURSOR_API_KEY` ; clés API en repli — voir
+`docs/rules/full-auto-pipeline.md` § activation), chaque étape d'invocation
+consigne une dérogation `::warning::` et ne fait rien — jamais d'échec ni
+de succès silencieux. Le harness
 existant (`/forge-run`, le gate, les briefs) fonctionne exactement comme
 avant si cette boucle n'est jamais activée. Câblage et arrêt d'urgence :
 `docs/rules/full-auto-pipeline.md`.

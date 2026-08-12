@@ -12,7 +12,8 @@ name: pipeline-challenge
 # pas d'invocation -- brief 009 lot 009c SC15), plafond mensuel
 # ci_budget_guard precheck (lot 009b), plafond natif --max-budget-usd 5 sur
 # l'appel lui-même (arbitrage n°2 du 2026-08-11), marquage post-hoc.
-# Sans ANTHROPIC_API_KEY : dérogation consignée, aucun appel simulé.
+# Sans identifiant Claude (CLAUDE_CODE_OAUTH_TOKEN d'abonnement, ou
+# ANTHROPIC_API_KEY en repli) : dérogation consignée, aucun appel simulé.
 #
 # Le job mechanical-scaffold-smoke est conservé tel quel : il prouve à
 # chaque déclenchement, sans secret, que la moitié NON-LLM du rôle
@@ -105,18 +106,24 @@ jobs:
           set -euo pipefail
           python harness/pipeline/ci_budget_guard.py precheck
 
+      # Abonnement d'abord (décision propriétaire du 2026-08-12) :
+      # CLAUDE_CODE_OAUTH_TOKEN (jeton `claude setup-token`, plans Pro/Max)
+      # consomme le quota de l'abonnement ; ANTHROPIC_API_KEY reste le repli
+      # en facturation API.
       - name: Check headless credential availability
         id: check
         if: steps.resolve.outputs.audit_id != ''
         env:
+          HAS_CLAUDE_SUB: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
           HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
         run: |
           set -euo pipefail
-          if [ "$HAS_ANTHROPIC" = "true" ]; then
+          if [ "$HAS_CLAUDE_SUB" = "true" ] || [ "$HAS_ANTHROPIC" = "true" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Claude auth: $([ "$HAS_CLAUDE_SUB" = "true" ] && echo 'abonnement (CLAUDE_CODE_OAUTH_TOKEN)' || echo 'clé API (ANTHROPIC_API_KEY)')"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::ANTHROPIC_API_KEY not configured -- documented waiver, no invocation attempted. Run /forge-audit-review ${{ steps.resolve.outputs.audit_id }} manually, or provision the secret (docs/rules/full-auto-pipeline.md, ADR-0010)."
+            echo "::warning::Neither CLAUDE_CODE_OAUTH_TOKEN (abonnement) nor ANTHROPIC_API_KEY is configured -- documented waiver, no invocation attempted. Run /forge-audit-review ${{ steps.resolve.outputs.audit_id }} manually, or provision a secret (docs/rules/full-auto-pipeline.md, ADR-0010)."
           fi
 
       - name: Install Claude Code CLI
@@ -129,6 +136,7 @@ jobs:
       - name: Invoke claude-challenger headless (/forge-audit-review)
         if: steps.check.outputs.available == 'true'
         env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}
         run: |

@@ -22,7 +22,9 @@ name: pipeline-forge-run
 #   * plafond mensuel harness/pipeline/ci_budget_guard.py precheck
 #     (lot 009b) AVANT l'appel, plafond natif --max-budget-usd PENDANT
 #     l'appel, marquage post-hoc APRÈS (arbitrage n°2 du 2026-08-11).
-#   * sans ANTHROPIC_API_KEY + OPENAI_API_KEY : dérogation consignée en
+#   * sans identifiant Claude (CLAUDE_CODE_OAUTH_TOKEN d'abonnement, ou
+#     ANTHROPIC_API_KEY en repli) et Codex (CODEX_AUTH_JSON d'abonnement
+#     ChatGPT, ou OPENAI_API_KEY en repli) : dérogation consignée en
 #     ::warning::, aucun appel simulé, le job réussit sans rien prétendre.
 
 on:
@@ -118,19 +120,35 @@ jobs:
           set -euo pipefail
           python harness/pipeline/ci_budget_guard.py precheck
 
+      # Deux voies d'authentification par acteur, l'abonnement d'abord
+      # (décision propriétaire du 2026-08-12 : consommer les quotas des
+      # abonnements Pro, jamais du crédit API) :
+      #   * Claude : CLAUDE_CODE_OAUTH_TOKEN (jeton `claude setup-token`,
+      #     plans Pro/Max) ; repli ANTHROPIC_API_KEY (facturation API).
+      #   * Codex : CODEX_AUTH_JSON (contenu de ~/.codex/auth.json produit
+      #     par `codex login` ChatGPT -- procédure officielle "CI/CD auth",
+      #     dépôt privé de confiance requis) ; repli OPENAI_API_KEY.
       - name: Check headless credential availability
         id: check
         if: steps.pause.outputs.paused != 'true' && steps.mode.outputs.mode != 'manual'
         env:
+          HAS_CLAUDE_SUB: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
           HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_CODEX_SUB: ${{ secrets.CODEX_AUTH_JSON != '' }}
           HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
         run: |
           set -euo pipefail
-          if [ "$HAS_ANTHROPIC" = "true" ] && [ "$HAS_OPENAI" = "true" ]; then
+          claude_ok=false
+          codex_ok=false
+          if [ "$HAS_CLAUDE_SUB" = "true" ] || [ "$HAS_ANTHROPIC" = "true" ]; then claude_ok=true; fi
+          if [ "$HAS_CODEX_SUB" = "true" ] || [ "$HAS_OPENAI" = "true" ]; then codex_ok=true; fi
+          if [ "$claude_ok" = "true" ] && [ "$codex_ok" = "true" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Claude auth: $([ "$HAS_CLAUDE_SUB" = "true" ] && echo 'abonnement (CLAUDE_CODE_OAUTH_TOKEN)' || echo 'clé API (ANTHROPIC_API_KEY)')"
+            echo "Codex auth: $([ "$HAS_CODEX_SUB" = "true" ] && echo 'abonnement ChatGPT (CODEX_AUTH_JSON)' || echo 'clé API (OPENAI_API_KEY)')"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Missing secret(s): ANTHROPIC_API_KEY (Claude CTO) and/or OPENAI_API_KEY (Codex Générateur) -- documented waiver, no invocation attempted. Provision both repository secrets to activate this maillon (ADR-0010)."
+            echo "::warning::Missing credential(s): Claude needs CLAUDE_CODE_OAUTH_TOKEN (abonnement) or ANTHROPIC_API_KEY; Codex needs CODEX_AUTH_JSON (abonnement ChatGPT) or OPENAI_API_KEY -- documented waiver, no invocation attempted (ADR-0010, docs/rules/full-auto-pipeline.md)."
           fi
 
       - name: Install Claude Code and Codex CLIs
@@ -141,9 +159,27 @@ jobs:
           claude --version
           codex --version
 
+      - name: Bootstrap Codex subscription auth (auth.json)
+        if: steps.check.outputs.available == 'true'
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+        run: |
+          set -euo pipefail
+          if [ -n "${CODEX_AUTH_JSON:-}" ]; then
+            mkdir -p "$HOME/.codex"
+            chmod 700 "$HOME/.codex"
+            printf '%s' "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"
+            chmod 600 "$HOME/.codex/auth.json"
+            codex login status
+            echo "Codex authentifié par abonnement ChatGPT (auth.json seedé depuis le secret)."
+          else
+            echo "Pas de CODEX_AUTH_JSON -- Codex utilisera OPENAI_API_KEY (facturation API)."
+          fi
+
       - name: Invoke Claude (CTO) headless -- /forge-run with Codex as Générateur
         if: steps.check.outputs.available == 'true'
         env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CODEX_MODEL: gpt-5.6-sol
@@ -203,4 +239,4 @@ jobs:
       - name: No credential available -- documented waiver
         if: steps.pause.outputs.paused != 'true' && steps.mode.outputs.mode != 'manual' && steps.check.outputs.available != 'true'
         run: |
-          echo "::warning::Headless invocation skipped for lack of credentials -- see the check step above. Run /forge-run ${{ steps.resolve.outputs.brief_dir }} manually, or provision ANTHROPIC_API_KEY + OPENAI_API_KEY (docs/rules/full-auto-pipeline.md, ADR-0010)."
+          echo "::warning::Headless invocation skipped for lack of credentials -- see the check step above. Run /forge-run ${{ steps.resolve.outputs.brief_dir }} manually, or provision CLAUDE_CODE_OAUTH_TOKEN + CODEX_AUTH_JSON (abonnements ; clés API en repli -- docs/rules/full-auto-pipeline.md, ADR-0010)."

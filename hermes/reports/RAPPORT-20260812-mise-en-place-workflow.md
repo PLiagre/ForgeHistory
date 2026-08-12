@@ -24,8 +24,11 @@ au moment où Hermes devient chef de projet (ADR-0010).
 
 ## Ce qui bloque encore
 
-1. Les trois secrets CI (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
-   `CURSOR_API_KEY`) ne sont pas provisionnés — action propriétaire.
+1. Les identifiants CI ne sont pas provisionnés — action propriétaire.
+   Décision du 2026-08-12 : en **quota d'abonnement**, jamais en crédit
+   API — `CLAUDE_CODE_OAUTH_TOKEN` (jeton `claude setup-token`),
+   `CODEX_AUTH_JSON` (fichier `codex login`), `CURSOR_API_KEY` (clé Cloud
+   Agents, déjà adossée au forfait Cursor).
 2. Le gate des briefs 004/005 (visuel carte) exige des logs Unity que seule
    la machine propriétaire peut produire.
 

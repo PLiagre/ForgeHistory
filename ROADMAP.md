@@ -65,9 +65,11 @@ et `hermes/README.md`. Câblage runtime : `docs/rules/full-auto-pipeline.md`.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. **Provisionner les secrets CI** (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
-   `CURSOR_API_KEY`) — sans eux, les workflows câblés consignent une
-   dérogation et ne font rien (jamais d'échec silencieux).
+1. **Provisionner les secrets CI**, en quota d'abonnement d'abord
+   (`CLAUDE_CODE_OAUTH_TOKEN`, `CODEX_AUTH_JSON`, `CURSOR_API_KEY` — voir
+   `docs/rules/full-auto-pipeline.md` § activation) — sans eux, les
+   workflows câblés consignent une dérogation et ne font rien (jamais
+   d'échec silencieux).
 2. **Rejouer la boucle sur un brief réel** : déclencher
    `pipeline-forge-run` sur un brief F1 restant et vérifier la chaîne
    complète Claude → Codex → gate → PR → critique Cursor.

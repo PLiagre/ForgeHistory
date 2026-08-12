@@ -19,9 +19,11 @@
 # post-merge) each carry a real agent invocation, each behind the
 # `pipeline/pause` kill-switch, this `mode:` key, the monthly
 # ci_budget_guard precheck and a per-call --max-budget-usd cap. Without the
-# repository secrets (ANTHROPIC_API_KEY, OPENAI_API_KEY, CURSOR_API_KEY)
-# every invocation step logs a documented waiver and no-ops -- full_auto
-# never silently pretends to run. The value passes
+# repository credentials (subscription-first: CLAUDE_CODE_OAUTH_TOKEN,
+# CODEX_AUTH_JSON, CURSOR_API_KEY; API-key fallbacks ANTHROPIC_API_KEY /
+# OPENAI_API_KEY -- see docs/rules/full-auto-pipeline.md) every invocation
+# step logs a documented waiver and no-ops -- full_auto never silently
+# pretends to run. The value passes
 # harness/pipeline/full_auto_mode_guard.py because the forge-run workflow no
 # longer carries the stub marker (ADR-0007's fail-closed reservation was
 # exactly for this moment). `full_auto_decision_only` remains valid as the
