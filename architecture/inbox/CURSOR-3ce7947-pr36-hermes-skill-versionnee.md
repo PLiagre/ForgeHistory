@@ -1,7 +1,7 @@
 ---
 audit_id: CURSOR-3ce7947-pr36-hermes-skill-versionnee
 auditor: cursor-cloud
-target_branch: forge/hermes-skill-versionnee-c2dd
+target_branch: master
 target_commit: 3ce79475ea7f23bf02074c010ddeab645e8c790c
 created_at: 2026-08-12T13:05:00Z
 audit_type: pull-request-critique
@@ -19,6 +19,29 @@ il propose, la décision reste à la boucle (`architecture/README.md`,
 ADR-0005/0006). Les trois flags `*_authorized` sont à `false` : rien ici n'est
 pré-autorisé.
 
+## 0. Note de correction (à lire avant le reste)
+
+La PR #36 a été **fusionnée pendant la rédaction de cet audit**
+(2026-08-12T12:39:48Z, commit de fusion `e116a0c`, par `PLiagre`), et une
+vérification plus poussée a démenti l'un de mes constats. Deux conséquences,
+assumées ici plutôt que masquées :
+
+1. **Un constat est retiré.** Ma première version comportait un constat P2-9
+   « check de CI en attente permanente ». C'était faux : le job en question a
+   démarré à 12:34:58 et réussi à 12:35:19 — je l'avais simplement observé
+   pendant sa minute d'attente. Le constat est **requalifié en P3-9** et réduit
+   à ce qui reste vrai (une fenêtre d'attente et un `mergeStateStatus:
+   UNSTABLE` temporaires). Détail et preuves en § 3, P3-9.
+2. **Le P0-1 ne bloque plus une fusion, il décrit une divergence déjà dans
+   `master`.** Sa sévérité est maintenue parce que le fond ne change pas, mais
+   la remédiation change de nature : il ne s'agit plus de retenir une PR, mais
+   de refermer un écart entre ADR-0011 et le contenu du dépôt.
+
+Le `target_branch` du frontmatter est `master` : `3ce7947` y est désormais un
+ancêtre (`git merge-base --is-ancestor` vérifié), ce qui satisfait la règle
+d'intégrité n°4 d'`architecture/README.md`. Les constats P1-2, P1-3, P2-4 à
+P2-8, P3-10 et P3-11 sont inchangés et vérifiés après fusion.
+
 ## 1. Provenance et périmètre
 
 | | |
@@ -27,9 +50,9 @@ pré-autorisé.
 | Auteur affiché | `PLiagre` ; commit signé `Cursor Agent <cursoragent@cursor.com>` |
 | Branche | `forge/hermes-skill-versionnee-c2dd` |
 | Tête auditée | `3ce79475ea7f23bf02074c010ddeab645e8c790c` |
-| Base | `master` (`MERGEABLE`, `mergeStateStatus: UNSTABLE`) |
+| Base | `master` |
 | Diff | 2 fichiers, +90 / −0 |
-| État | `OPEN`, non brouillon, ouverte le 2026-08-12T12:33:54Z |
+| État | ouverte le 2026-08-12T12:33:54Z, **`MERGED`** le 2026-08-12T12:39:48Z par `PLiagre` (humain), commit de fusion `e116a0cad7a285fc95525e734edf1edc0a73c71b` |
 
 Contenu du diff :
 
@@ -48,7 +71,7 @@ intention que porte le constat P0 ci-dessous.
 
 ## 2. Classification de la CI du commit audité
 
-Relevé sur `3ce7947` (`gh pr checks 36`, sortie collée en § 5) :
+Relevé final sur `3ce7947` (`gh pr checks 36`, sortie collée en § 5) :
 
 | Job (workflow) | Résultat |
 |---|---|
@@ -57,11 +80,13 @@ Relevé sur `3ce7947` (`gh pr checks 36`, sortie collée en § 5) :
 | `actionlint`, `gitleaks` (security) | **vert** |
 | `invoke-cursor-auditor` (pipeline-audit) | **vert** (c'est l'appel qui a produit cet audit) |
 | `check-and-automerge` (merge-bot) | **ignoré** (branche `forge/*` hors `bot_branches`) |
-| `Reconcile local Hermes state` (hermes-observer) | **en attente (`QUEUED`) — jamais démarré** |
+| `Reconcile local Hermes state` (hermes-observer) | **vert** (run `31597053851` : démarré 12:34:58, réussi 12:35:19 ; un second run déclenché par la fusion, `31597524781`, est vert aussi) |
 
-**Aucun job rouge.** Mais la CI n'est pas « verte » pour autant : un check
-reste indéfiniment en attente, ce qui explique `mergeStateStatus: UNSTABLE`
-(constat P2-9).
+**CI verte : aucun job rouge, aucun job resté en attente.** Les deux jobs
+« ignorés » le sont par leur propre condition, pas par un échec. À 12:34, ce
+relevé montrait `Reconcile local Hermes state` en attente et
+`mergeStateStatus: UNSTABLE` : c'était la minute d'attente d'un runner
+auto-hébergé, pas un blocage (voir § 0 et P3-9).
 
 ## 3. Constats
 
@@ -75,7 +100,7 @@ reste indéfiniment en attente, ce qui explique `mergeStateStatus: UNSTABLE`
 | P2-6 | **P2** | Une dizaine de commandes livrées sans une seule preuve rejouée ; deux sont contredites par le dépôt lui-même. |
 | P2-7 | **P2** | La skill crée une seconde lecture directe de l'API Cursor pour une donnée que le tableau de bord calcule déjà — contre sa propre règle et contre le principe « une seule source de vérité ». |
 | P2-8 | **P2** | La commande d'installation n'existe que dans la description de la PR, pas dans le dépôt : l'objectif « maintenable par PR » n'est pas atteint pour l'étape la plus fragile. |
-| P2-9 | **P2** | Un check de CI en attente permanente rend inapplicable telle quelle la règle « CI verte » que la skill impose à Hermes avant toute fusion. |
+| P3-9 | **P3** (publié d'abord en P2, **requalifié** — § 0) | La preuve « CI verte » que la skill impose dépend d'un runner auto-hébergé : elle a une fenêtre d'attente, et le cron d'alerte de la skill ne regarde que les échecs, pas les files d'attente. |
 | P3-10 | **P3** | Traçabilité d'auteur affaiblie sur ce chemin : commit préfixé `hermes:` mais signé par l'agent Cursor, et fichier sans champ `author:`. |
 | P3-11 | **P3** | La garde « Cursor ne développe pas » est indexée sur le **nom de branche**, pas sur l'identité de l'agent. |
 
@@ -93,9 +118,10 @@ La PR ajoute précisément « la skill locale », sans brief sous
 ni par un Évaluateur, et **sans modifier ADR-0011** (les deux seuls fichiers
 touchés sont `hermes/README.md` et le nouveau `SKILL.md`).
 
-Conséquence concrète : si la PR est fusionnée telle quelle, le dépôt contient
-en même temps une décision enregistrée qui dit « hors dépôt, sinon par un
-brief » et le fichier qui la contredit. Ce n'est pas une question de goût :
+Conséquence concrète, et désormais constatée plutôt qu'anticipée : la PR ayant
+été fusionnée à 12:39:48, `master` contient à cette heure une décision
+enregistrée qui dit « hors dépôt, sinon par un brief » **et** le fichier qui la
+contredit. Ce n'est pas une question de goût :
 c'est le mécanisme de gouvernance du projet (une décision écrite, une seule
 source d'instruction) qui devient faux dans son propre dépôt. La littérature
 2026 sur les pipelines d'agents nomme exactement ce risque : une autonomie
@@ -106,8 +132,11 @@ opérateur du pipeline, pas un commentaire *a posteriori* [E2].
 Deux sorties possibles, aucune n'appartient à cet audit : (a) amender ADR-0011
 (ou déposer une décision propriétaire dans `architecture/decisions/`) pour
 enregistrer la dérogation, (b) faire passer le contenu par un brief comme
-l'ADR le prévoit. Ce que l'audit demande, c'est que **le dépôt ne se
-contredise pas** après fusion.
+l'ADR le prévoit. Ce que l'audit demande, c'est que **le dépôt ne se contredise
+pas** — la fusion ayant eu lieu, cela se règle maintenant par une décision
+écrite, plus par une retenue de PR. À noter, sans reproche : la fusion (12:39)
+a précédé le dépôt de cet audit (13:05), donc le propriétaire n'avait pas ce
+constat sous les yeux au moment de décider.
 
 **Preuve** : `docs/adr/0011-hermes-console-du-proprietaire.md:69-71` ;
 liste des fichiers modifiés (§ 1) ; `git log` de la branche (§ 5) ne montre
@@ -282,31 +311,34 @@ pas.
 **Preuve** : `SKILL.md:19-21` ; description de la PR § « Côté PC du
 propriétaire ».
 
-### P2-9 — la règle « CI verte » est inapplicable telle quelle
+### P3-9 — « CI verte » dépend d'un runner auto-hébergé (constat corrigé à la baisse)
 
-La skill impose à Hermes de refuser une fusion si une preuve manque, la
-première étant « CI verte » (`SKILL.md:65-67`). Or le workflow
-`hermes-observer.yml:32` tourne sur un runner auto-hébergé
-(`[self-hosted, Windows, X64, hermes-observer]`) : le PC du propriétaire. Quand
-ce PC est éteint, le check « Reconcile local Hermes state » reste `QUEUED`
-indéfiniment. C'est le cas **sur cette PR même** (§ 2) et sur les huit derniers
-runs du workflow, tous `queued` (§ 5) ; c'est aussi la cause du
-`mergeStateStatus: UNSTABLE`.
+**Ce que j'ai écrit d'abord, et qui était faux.** J'avais relevé le check
+`Reconcile local Hermes state` en attente (`QUEUED`) et huit runs
+`hermes-observer` consécutifs également en attente, et j'en avais conclu à une
+attente permanente rendant inapplicable la règle « CI verte » de la skill
+(`SKILL.md:65-67`). Vérification faite ensuite sur le run lui-même : le job a
+**démarré à 12:34:58 et réussi à 12:35:19**, et les huit runs en question sont
+tous passés en `completed success`. Je n'avais observé qu'une file d'attente
+d'environ une minute. Le constat, tel que formulé, ne tient pas ; je le retire.
 
-Deux conséquences, dans les deux sens : appliquée à la lettre, la règle bloque
-toute fusion tant que le PC est éteint ; appliquée avec souplesse, elle
-s'érode — et l'érosion silencieuse de la porte est exactement ce que la
-décision du 2026-08-11 cherchait à empêcher. Nuance : le cron n°2 de la skill
-(`SKILL.md:82-86`) ne surveille que `conclusion: failure`, donc une file
-bloquée en attente ne déclenche aucune alerte : la panne est invisible.
+**Ce qui reste vrai, et pourquoi c'est faible.** `hermes-observer.yml:30-32`
+tourne sur un runner auto-hébergé (`[self-hosted, Windows, X64,
+hermes-observer]`), c'est-à-dire le PC du propriétaire. Il en découle deux
+choses mesurées : la preuve « CI verte » a une fenêtre pendant laquelle elle
+n'est pas encore vraie (`mergeStateStatus: UNSTABLE` à 12:34, `MERGED` à
+12:39), et le cron d'alerte de la skill (`SKILL.md:82-86`) ne regarde que
+`conclusion: failure` — une file d'attente longue, elle, ne déclenche rien.
+C'est une remarque d'exploitation, pas un défaut de la PR : niveau P3.
 
-Ce constat n'est pas propre à la PR #36 — mais la PR est le premier document
-qui **s'appuie** sur « CI verte » comme sur un fait mécanique, ce qui le rend
-opposable ici.
+Leçon pour l'auditeur autant que pour la PR : un état `QUEUED` n'est pas un
+état terminal, et je l'ai traité comme tel. C'est exactement le piège que la
+lentille 2 dénonce — conclure d'une observation instantanée au lieu d'une
+mesure. Le même standard s'applique à l'audit qu'au code audité.
 
-**Preuve** : `gh pr checks 36` (§ 2 et § 5) ; `gh run list --workflow
-hermes-observer.yml` (§ 5) ; `.github/workflows/hermes-observer.yml:30-32` ;
-`SKILL.md:65-67` et `:82-86`.
+**Preuve** : `gh run view 31597053851 --json jobs` (§ 5, démarrage et fin du
+job) ; `gh pr checks 36` final (§ 5, tout vert) ;
+`.github/workflows/hermes-observer.yml:30-32` ; `SKILL.md:65-67` et `:82-86`.
 
 ### P3-10 — traçabilité d'auteur affaiblie sur ce chemin
 
@@ -351,7 +383,7 @@ indépendance partielle, à garder en tête en lisant cet audit.
 |---|---|---|
 | 1. Intention avant diff | Intention lisible et sourcée ; **contrainte violée** | P0-1 |
 | 2. Preuve d'exécution | Preuve honnête mais sans lien avec le diff ; commandes non rejouées | P2-4, P2-6 |
-| 3. Portes mécaniques d'abord | Le chemin n'a aucune porte ; le jugement humain fait tout | P2-5, P2-9 |
+| 3. Portes mécaniques d'abord | Le chemin n'a aucune porte ; le jugement humain fait tout | P2-5 |
 | 4. Cadrage adverse | Tenu par deux exécutions, pas deux outils — dit ouvertement | P3-11 |
 | 5. Taille et découpage | **Conforme** : 2 fichiers, +90 / −0, loin des seuils (~5 fichiers, quelques centaines de lignes). Aucun découpage à demander. | — |
 | 6. Pièges du code généré par IA | Commande hallucinée, forme d'auth divergente, secret non déclaré, duplication d'instruction | P1-2, P1-3, P2-6, P2-7 |
@@ -359,16 +391,20 @@ indépendance partielle, à garder en tête en lisant cet audit.
 ## 5. Commandes rejouées (sorties collées)
 
 ```
-$ gh pr checks 36 -R PLiagre/ForgeHistory
-check-and-automerge     skipping  0    .../runs/31597053734/job/94115021331
-cursor-scope            skipping  0    .../runs/31597053742/job/94115021595
-actionlint              pass      11s  .../runs/31597053750/job/94115020886
-gitleaks                pass      16s  .../runs/31597053750/job/94115020642
-schema                  pass      12s  .../runs/31597053742/job/94115020672
-tests                   pass      24s  .../runs/31597053735/job/94115020928
-f0-demo                 pass      14s  .../runs/31597053735/job/94115020790
-invoke-cursor-auditor   pass      19s  .../runs/31597053754/job/94115020998
+$ gh pr checks 36 -R PLiagre/ForgeHistory        # relevé a 12:34 (pendant la file d'attente)
 Reconcile local Hermes state  pending  0  .../runs/31597053851/job/94115022032
+[les 8 autres jobs : pass ou skipping]
+
+$ gh pr checks 36 -R PLiagre/ForgeHistory        # relevé final
+Reconcile local Hermes state  pass      10s  .../runs/31597524781/job/94116589571
+actionlint                    pass      11s  .../runs/31597053750/job/94115020886
+gitleaks                      pass      16s  .../runs/31597053750/job/94115020642
+schema                        pass      12s  .../runs/31597053742/job/94115020672
+tests                         pass      24s  .../runs/31597053735/job/94115020928
+f0-demo                       pass      14s  .../runs/31597053735/job/94115020790
+invoke-cursor-auditor         pass      19s  .../runs/31597053754/job/94115020998
+cursor-scope                  skipping  0    .../runs/31597053742/job/94115021595
+check-and-automerge           skipping  0    .../runs/31597053734/job/94115021331
 ```
 
 ```
@@ -408,9 +444,10 @@ $ grep -n -A4 "^allow_paths:" .github/merge-bot.yaml
 ```
 
 ```
-$ gh run list -R PLiagre/ForgeHistory --workflow hermes-observer.yml --limit 8 \
-    --json status,conclusion,headBranch,event
-# 8 runs sur 8 : "status": "queued", "conclusion": ""  (runner auto-hébergé absent)
+$ gh run view 31597053851 -R PLiagre/ForgeHistory --json jobs
+Reconcile local Hermes state: success, demarre 2026-08-12T12:34:58Z, fini 2026-08-12T12:35:19Z
+# c'est le job que j'avais relevé "en attente" a 12:34 : une minute de file, pas un blocage
+# (les 8 runs hermes-observer vus "queued" a 12:38-12:39 sont tous "completed success")
 ```
 
 ```
@@ -464,10 +501,13 @@ déclaré dans le workflow cité, et que tout `SKILL.md` de `hermes/skills/`
 porte un frontmatter minimal. But : que les constats P1-2 et P2-6 ne puissent
 plus atteindre `master` sans qu'une machine le dise d'abord.
 
-Hors briefs, et volontairement : le constat P2-9 (check en attente permanente)
-touche la CI et la définition de la porte de fusion. Un audit ne propose pas de
-changement de CI (`ci_changes_authorized: false`) ; ce point relève d'une
-décision du propriétaire.
+Hors briefs, et volontairement : le constat P3-9 est une remarque
+d'exploitation (une file d'attente de runner, un cron qui ne regarde que les
+échecs) ; il ne justifie pas un brief, et toucher à la CI n'appartient de toute
+façon pas à un audit (`ci_changes_authorized: false`).
+
+Note de portée : la PR étant déjà fusionnée, les briefs A et B portent
+désormais sur du contenu présent dans `master`, non sur une PR à retenir.
 
 ## 7. Ce que cet audit ne fait pas
 
