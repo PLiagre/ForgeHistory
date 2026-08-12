@@ -1,49 +1,72 @@
 # HANDOFF.md
 
-## Mise à jour Codex la plus récente — 2026-08-11
+## Session la plus récente — 2026-08-12 : évaluation indépendante + stabilisation
 
-Codex a repris la session et poursuit le projet sans modifier les verdicts ni
-committer le travail des Générateurs.
+Claude a repris le projet comme **orchestrateur, Évaluateur indépendant et
+intégrateur final**. Les trois lots produits par Codex/Claude ont été évalués
+contre leurs Success Conditions originales, chacun par un acteur distinct de
+son producteur, puis les trois ont été intégrés sur une branche de
+stabilisation. Aucun lot n'a été accepté sur la seule foi de son propre
+journal ; chaque compteur et chaque preuve ont été reconstruits par des
+commandes de l'Évaluateur.
 
-- `D:\ForgeHistory`, branche `forge/009a-iteration-3` : correction 009a
-  itération 3 produite, 300 tests verts, gate 10/10 ; prête pour évaluation
-  indépendante par Claude.
-- `D:\ForgeHistory-010b`, branche `codex/010b-codex-backend` : lot 010b
-  produit, 311 tests verts. Le wrapper Codex, le préflight anti-auto-jugement,
-  le ledger, ADR-0009 et les preuves SC7–SC11 sont présents. Deux appels réels
-  sont comptés ; l'installation AppX locale refuse toutefois l'exécution de
-  son `codex.exe` (`Permission denied`, code interne 126), donc aucun coût jeton
-  n'est inventé. Lot prêt pour évaluation indépendante par Claude après staging.
-- `D:\ForgeHistory-010c`, branche `codex/010c-merge-lock` : lot 010c produit
-  et stagé, 311 tests verts, gate mécanique 10/10. Le dépôt GitHub ne possède
-  que 18 PR fusionnées : la mesure honnête est 5/18, pas un dénominateur 20
-  fabriqué. Prêt pour évaluation indépendante.
+**Verdicts indépendants (tous ACCEPT)** :
 
-Pour 010b, la référence CLI utilisée est l'interface officielle
-`codex exec` : https://developers.openai.com/codex/cli/reference/. Le fixture
-inter-acteurs et les sorties brutes sont sous
-`harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/`.
-Le prochain acteur ne doit pas convertir l'échec AppX en succès fictif : soit
-il évalue la dérogation SC9 telle quelle, soit le propriétaire fournit une
-installation CLI autonome exécutable et le wrapper est rejoué.
+| lot | verdict | reconstruit par l'Évaluateur |
+|---|---|---|
+| **009a** itération 3 (`999dcf3`+`3703d75`, prod. Codex) | **ACCEPT** | C1 fermé (sortie complète `300 passed` au journal) ; C2 (compteur transition = 2 sur `244a4f2~1..3703d75`) ; C3 (cas `commentaires-seuls` et `tronqué-avant-steps` désormais **refusés**, sondés directement ; cas `echo no-agent` restreint en limite documentée et testée) ; C4 (docs/config ne décrivent plus le mode comme coupe-circuit actif). Verdict `7c76c52`. |
+| **010b** (`42679d7`, prod. Codex) | **ACCEPT** | SC7-SC11 : wrapper conforme et réellement exécuté ; `--backend codex` aux 3 emplacements de `forge-run.md` ; `2 codex` mesurés au ledger ; dérogation jetons recevable (commande tentée + `codex.exe: Permission denied`) ; refus d'auto-jugement **avant écriture**, réutilisant `verdict_audit.check_verdict_not_self_authored` (pas de réimplémentation). Verdict `d6f7cdb`. |
+| **010c** (`df142e6`, prod. Codex) | **ACCEPT** | SC12-SC15 : le test lit réellement `merge-bot.yml` et refuse un fichier vide/tronqué ; doc nomme l'étape humaine sans surpromesse ; mesure honnête **5/18** (18 PR fusionnées réelles confirmées par `gh` ; dénominateur 20 **non** fabriqué) ; porte spécifiée non activée, diff `.github/workflows/` vide. Verdict `d6f7cdb`. |
 
-État de reprise vérifié le 2026-08-11. Ce fichier décrit l'état réel utile à
-la prochaine session ; l'historique détaillé reste dans Git.
+Aucun lot rejeté. La séparation producteur/Évaluateur a été tenue : Codex a
+produit 009a-itér.3, 010b et 010c ; Claude les a jugés.
 
-## Point de départ
+## Point de départ pour la prochaine session
 
-- Branche par défaut : `master`, commit `3822c68` (PR #21 fusionnée ; lot
-  010a accepté). Intégration en cours sur `forge/stabilisation-2026-08-12`.
-- Jalon général : F0 terminé ; F1 en cours. Le jeu Unity porté, le pipeline
-  géographique et les travaux visuels n'ont pas été touchés cette session.
-- `py -m pytest harness/tests/ -q` → suite verte (voir rapport final).
-- `py harness/verdict_audit.py harness/queue/briefs/010-repartition-roles-full-auto`
-  → **10/10, VERDICT: ACCEPT**.
-- `py harness/harness_audit.py` → **23/24**. Le seul rouge,
-  `no_premature_stub_content`, est l'outil qui est périmé : il croit encore
-  que `pipeline/geo/` est un stub vide alors que des lots acceptés l'ont
-  rempli. Ne pas vider le répertoire pour satisfaire l'audit.
-- `py harness/audit_schema.py` → les sept audits sont valides.
+- Branche par défaut : `master`. La stabilisation `forge/stabilisation-2026-08-12`
+  (merges `1b860b5` 009a, `6aff527` 010b, `7e06660` 010c, + verdicts `7c76c52`
+  et `d6f7cdb`) intègre les trois lots au-dessus de `3822c68` (PR #21, 010a).
+- Jalon général : F0 terminé ; F1 en cours. Unity, le pipeline géographique et
+  les travaux visuels n'ont pas été touchés cette session.
+- Validation finale rejouée sur l'état intégré :
+  - `py -m pytest harness/tests/ -q` → **321 passed**, zéro échec.
+  - `py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation` → **VERDICT: ACCEPT**.
+  - `py harness/verdict_audit.py harness/queue/briefs/010-repartition-roles-full-auto` → **VERDICT: ACCEPT**.
+  - `py harness/audit_schema.py` → les 7 audits sont valides.
+  - `py harness/harness_audit.py` → **23/24**. Le seul rouge,
+    `no_premature_stub_content`, est l'**outil qui est périmé** : il croit
+    encore que `pipeline/geo/` est un stub vide alors que des lots F1 acceptés
+    l'ont rempli. Ce rouge préexiste et n'est pas une régression de cette
+    intégration (aucun des trois lots ne touche `pipeline/geo/`). **Ne pas
+    vider `pipeline/geo/` pour le faire passer.**
+  - `git diff --check` propre ; arbre propre.
+
+## État des briefs
+
+| brief / lot | état | preuve / blocage |
+|---|---|---|
+| 009a — séparation du mode | **ACCEPTÉ (itération 3)** | Verdict indépendant `7c76c52`. C1-C4 fermés et reconstruits. |
+| 009b — plafond budgétaire CI | **ACCEPTÉ** | Verdict `ba035b1`. |
+| 009c — invocation réelle de challenge | **débloqué, non produit** | Ses **deux** conditions sont désormais levées (009a ET 009b acceptés). Reste à produire dans un futur lot/brief. |
+| 010a — contrat des rôles | **ACCEPTÉ (itération 2)** | Verdict `192218a`. |
+| 010b — Codex backend officiel | **ACCEPTÉ** | Verdict `d6f7cdb`. |
+| 010c — verrou de fusion | **ACCEPTÉ** | Verdict `d6f7cdb`. |
+
+Le brief **010 est complet sur ses trois lots**. Le brief 009 est complet sur
+009a+009b ; 009c reste à produire.
+
+## Prochaine action recommandée (une seule)
+
+**Produire le lot 009c** (invocation réelle de `claude-challenger`,
+mode-gated + budget-gated), maintenant que 009a et 009b sont tous deux
+acceptés — c'est la seule dépendance qui le bloquait. Avant de le câbler,
+trancher l'arbitrage `--max-budget-usd` (voir plus bas, point 2). Un agent
+sans brief n'a pas d'instruction : la source reste le brief 009, Success
+Conditions SC14-SC21.
+
+Ensuite seulement, une passe Planificateur écrit le brief du maillon
+`cursor-auditor` (`pipeline-audit.yml`, décidé en premier), puis
+`pipeline-forge-run.yml`, puis le contrat d'écriture d'Hermes.
 
 ## La décision du propriétaire est enregistrée (2026-08-11)
 
@@ -74,10 +97,12 @@ Ne pas les paraphraser dans un brief : un brief les lit là-bas.
 1. **Verrou de fusion → porte conditionnelle.** L'auto-fusion exige quatre
    preuves réunies : CI verte, gate ACCEPT, verdict d'un Évaluateur dont
    l'acteur diffère du producteur, et audit Cursor déposé. Le clic est
-   remplacé par des conditions vérifiables, pas supprimé.
+   remplacé par des conditions vérifiables, pas supprimé. **Le lot 010c a
+   spécifié cette porte (doc `docs/rules/conditional-merge-gate.md`) sans
+   l'activer.**
 2. **Budget → plafond natif ET marquage.** `--max-budget-usd 5` sur l'appel
    headless (coupe avant la dépense) plus le marquage post-hoc du lot 009b
-   (garde la trace). Les deux.
+   (garde la trace). Les deux. À trancher/câbler dans 009c.
 3. **Câblage → `cursor-auditor` d'abord.** `pipeline-audit.yml` avant
    `pipeline-forge-run.yml`. C'est aussi un prérequis du point 1, qui exige
    un audit Cursor déposé.
@@ -85,85 +110,12 @@ Ne pas les paraphraser dans un brief : un brief les lit là-bas.
    format imposé, auteur traçable. Il reste observateur : un rapport est une
    entrée, jamais une instruction.
 
-## Deux trous dans le seul contrôle qui protège vraiment le dépôt
+## Troisième angle mort, connu et non couvert
 
-`verdict_is_not_self_authored` (`harness/verdict_audit.py:262-268`) est la
-barrière mécanique contre l'auto-jugement. Elle a deux angles morts, trouvés
-cette session, indépendants l'un de l'autre et qui se cumulent :
-
-1. **Elle compare des rôles, pas des acteurs.** Le code est
-   `gen != ver`, une simple inégalité de chaînes. Avec un seul backend,
-   `forge-generateur` ≠ `forge-evaluateur` suffisait. Avec deux,
-   `forge-generateur-codex` ≠ `forge-evaluateur-codex` **passe aussi** : le
-   même acteur peut produire et juger, et le gate affiche `[PASS]`.
-2. **Elle ne lit que le premier auteur de chaque fichier.** `read_field`
-   utilise `re.search`, qui rend la première occurrence. Sur le brief 009,
-   `generator-log.md` porte `forge-generateur` en tête (lot 009a, Claude) et
-   `forge-generateur-codex` plus bas (lot 009b, Codex) : le gate a comparé le
-   couple du lot 009a et **n'a rien vérifié du lot 009b**. Sur un brief
-   multi-lots, seul le premier lot est contrôlé.
-
-Le contrôle ne ment pas : il n'a jamais su distinguer un acteur d'un rôle, ni
-un lot d'un autre. Cela devient porteur exactement dans le cas que la
-décision du propriétaire vise — Claude plafonné, Codex seul de bout en bout.
-
-## Le verrou qui bloque réellement le zéro-intervention
-
-Ce n'est pas le câblage des agents, c'est la fusion.
-`.github/workflows/merge-bot.yml` n'auto-fusionne que les branches préfixées
-`cursor/` ou `forge-bot/`, et seulement si **tous** les chemins modifiés
-tombent dans `architecture/inbox/`, `architecture/reviews/` ou
-`harness/queue/briefs/*/feedback/`. Donc :
-
-- une branche `codex/` n'est **jamais** auto-fusionnée ;
-- **aucune pull request de code** ne l'est, même sur une branche autorisée.
-
-Les trois maillons câblés demain, la boucle s'arrêterait encore au clic du
-propriétaire. La denylist n'a pas été élargie : la protection de branche est
-indisponible sur ce plan GitHub (`HTTP 403`, vérifié), donc cette liste est
-la **seule** barrière réelle. Le lot 010c la mesure et spécifie la porte
-conditionnelle qui remplacerait le clic, sans l'activer.
-
-## État des briefs
-
-| brief / lot | état | preuve / blocage |
-|---|---|---|
-| 009a — séparation du mode | **ITÉRATION 3 PRODUITE, À RÉÉVALUER** | Codex a repris le commit partiel `999dcf3` comme Générateur et fermé C1-C4. Suite complète : 300 tests. Gate mécanique : 10/10. Le Générateur ne prononce pas le verdict ; Claude doit reconstruire les preuves dans une session distincte. |
-| 009b — plafond budgétaire CI | **ACCEPTÉ** | Verdict Claude ajouté à `verdict.md` (`ba035b1`). SC8 à SC13 reconstruites indépendamment, red-first rejoué depuis une copie jetable. Trois constats non bloquants y sont consignés. |
-| 009c — invocation réelle de challenge | **bloqué** | Une de ses deux conditions est levée (009b accepté) ; l'autre non (009a rejeté). Ne pas démarrer. |
-| 010a — contrat des rôles | **ACCEPTÉ à l'itération 2**, après un vrai cycle REJECT → correction → ACCEPT | Itération 1 (`62a0fe2`) **rejetée** : elle rendait le contrôle *plus permissif* qu'avant — ajouter au journal un lot non encore jugé poussait un couple auto-jugé hors de la fenêtre des `k` derniers auteurs, et le refus disparaissait. Itération 2 (`e912d61`) referme la porte par deux ajouts ; verdict `192218a`. Ce qui a décidé : une énumération **exhaustive** plutôt qu'un échantillon — 66 564 combinaisons de listes d'auteurs, 0 cas refusé-avant/accepté-après, 39 585 acceptés-avant/refusés-après. Le contrôle refuse un sur-ensemble strict. 305 tests. |
-| 010b — Codex backend officiel | **spécifié, non produit** | Attend 010a. Produit par Codex, jugé par Claude. |
-| 010c — verrou de fusion | **PRODUIT, À RÉÉVALUER** | Test SC12, spécification inactive et mesure livrés par Codex. 311 tests, gate mécanique 10/10, zéro octet sous `.github/workflows/`. SC14 mesure 5 auto-fusionnables sur les 18 PR fusionnées existantes ; le dénominateur 20 demandé n'existe pas encore et doit être jugé explicitement. |
-
-## Prochaines actions, dans l'ordre
-
-1. **Faire réévaluer 009a itération 3 par Claude** dans une session distincte.
-2. **Faire réévaluer 010c par Claude**. SC14 doit être jugé sur son fait réel :
-   seulement 18 PR fusionnées existent. Ne jamais compléter le dénominateur
-   avec des PR fermées ou des lignes fictives.
-3. **Produire 010b** (Codex) : 010a est accepté, donc sa dépendance est levée.
-5. Après 009c, une passe Planificateur écrit le brief du maillon
-   `cursor-auditor` (`pipeline-audit.yml`) — décidé en premier — puis celui de
-   `pipeline-forge-run.yml`, puis le contrat d'écriture d'Hermes. Un agent
-   sans brief n'a pas d'instruction : ne rien câbler avant.
-
-## Full automatisation : ne pas surannoncer
-
-Les trois stubs sont toujours là sur `master` :
-
-```text
-.github/workflows/pipeline-audit.yml       TODO(operator...)
-.github/workflows/pipeline-challenge.yml   TODO(operator...)
-.github/workflows/pipeline-forge-run.yml   TODO(operator...)
-```
-
-Fournir les secrets aujourd'hui ne déclencherait aucun appel d'agent : le code
-qui les utiliserait n'existe pas encore. Hermes reste en lecture seule.
-
-## Troisième angle mort, connu et non couvert (2026-08-11)
-
-Le lot 010a ferme les deux angles morts que le brief 010 lui demandait de
-fermer. Il en reste un **troisième**, que ce brief n'avait pas demandé et
+Le lot 010a a fermé les deux angles morts que le brief 010 lui demandait :
+`verdict_is_not_self_authored` compare désormais des **acteurs** (pas des
+rôles) et examine **tous** les couples d'un brief multi-lots (pas seulement le
+premier). Il en reste un **troisième**, que ce brief n'avait pas demandé et
 qu'il ne faut donc pas croire fermé :
 
 | couple d'auteurs | contrôle |
@@ -173,83 +125,70 @@ qu'il ne faut donc pas croire fermé :
 | `forge-generateur` / `forge-evaluateur-codex` | accepté (légitime) |
 | `forge-generateur-codex` / `forge-evaluateur` | accepté (légitime) |
 
-Le backend natif s'écrit en rôles nus, sans suffixe d'acteur : `_actor_suffix`
-rend `None` des deux côtés et il n'y a rien à comparer. Autrement dit, **le
-gate ne peut pas détecter que Claude a produit et jugé le même lot** — le cas
-le plus fréquent, justement.
+Le backend natif s'écrit en rôles nus, sans suffixe d'acteur : le gate ne peut
+pas détecter que **Claude a produit et jugé le même lot**. La séparation sur un
+lot natif ne repose donc sur aucune mécanique, seulement sur la discipline et
+sur la grille écrite avant le travail. Piste (à ne pas improviser) : faire
+porter à l'auteur son acteur explicite (`forge-generateur-claude`), en migrant
+les journaux existants sans invalider les verdicts déjà rendus — la contrainte
+de non-régression que SC5 impose.
 
-Conséquence immédiate et concrète : la séparation des rôles sur le lot 010a
-ne repose sur aucune mécanique, seulement sur la discipline. C'est pourquoi
-son verdict doit venir de Codex, et pourquoi ce n'est pas une formalité.
+Quatre autres évasions (`R1`-`R4`) ont été trouvées par l'Évaluateur de 010a et
+consignées dans le verdict du lot 010a. Aucune n'est une régression ; elles
+méritent le même brief futur que le cas natif.
 
-Piste de correction pour un brief futur, à ne pas improviser : faire porter à
-l'auteur son acteur explicite (`forge-generateur-claude` plutôt que
-`forge-generateur`), ce qui suppose de migrer les journaux existants sans
-invalider les verdicts déjà rendus — exactement la contrainte de
-non-régression que SC5 impose.
+## Full automatisation : ne pas surannoncer
 
-Quatre autres évasions ont été trouvées par l'Évaluateur en cherchant
-activement, et consignées `R1` à `R4` dans le verdict du lot 010a. Aucune
-n'était exigée par le brief, aucune n'est une régression, et elles méritent
-le même brief futur que le cas natif :
+Les trois stubs sont toujours là :
 
-- **R1** — le test de SC4 vérifie qu'un nom d'acteur inventé est absent de
-  tout le dépôt. Il rougit donc si quelqu'un *documente* ce nom hors des
-  fichiers exemptés. Un test qui casse parce qu'on parle de lui.
-- **R2** — évasion par la casse : `-Morrigan` et `-morrigan` sont vus comme
-  deux acteurs.
-- **R3** — évasion par le rôle : un verdict signé
-  `forge-planificateur-<acteur>` échappe au contrôle, qui ne reconnaît que
-  les préfixes générateur et évaluateur.
-- **R4** — auto-jugement désaligné à listes de longueur égale. Seule
-  l'intersection **par acteur** le fermerait, et cette règle est écartée à
-  juste titre : elle refuserait le brief 009 et violerait SC6.
+```text
+.github/workflows/pipeline-audit.yml       TODO(operator...)
+.github/workflows/pipeline-challenge.yml   TODO(operator...)
+.github/workflows/pipeline-forge-run.yml   TODO(operator...)
+```
+
+Fournir les secrets aujourd'hui ne déclencherait aucun appel d'agent : le code
+qui les utiliserait n'existe pas encore. Aucun de ces trois workflows n'a été
+touché par 009a, 010b ni 010c. Hermes reste en lecture seule.
 
 ## Risques connus
 
-- **Les hooks du dépôt ont bloqué une session entière cette fois-ci.** Ils
-  étaient câblés en chemin relatif ; un `cd` dans un dossier de brief a suffi
-  à rendre Bash, Edit et Write inutilisables, sous-agents compris. Corrigé
-  par `$CLAUDE_PROJECT_DIR` (`43c2a1b`) et verrouillé par deux tests dans
-  `test_hooks_armed.py`. Leçon générale : un garde câblé en chemin relatif ne
-  protège que par coïncidence.
-- **Un red-first lancé depuis la racine du dépôt ne prouve rien.** Sabotant
-  une copie jetable mais exécutant `pytest` depuis `D:\ForgeHistory`, les
-  tests importaient le module **intact** du dépôt et restaient verts. Toujours
-  exécuter depuis la copie (`cd <copie> && py -m pytest ...`).
-- Un ledger de budget CI absent ou vide vaut « budget remis à zéro » ; le
-  ledger livré est exactement dans cet état. Non bloquant, consigné dans le
-  verdict 009b.
-- `budget.py split-check` rapporte 0 condition de succès sur un brief dont
-  les conditions sont groupées sous des sous-titres `###` — son extracteur
-  s'arrête au premier titre rencontré. Constaté sur le brief 010, non
-  contourné : le brief n'a pas été remodelé pour plaire au détecteur.
-- Ne jamais fabriquer de contenu VictoriaProject au-delà de ce qui a été lu ;
-  ce dépôt y est en lecture seule.
-- Les 7 rouges hérités du portage Unity restent rouges-et-attribués. Ne pas
-  les « réparer » à la légère.
+- **Le backend Codex n'est pas exécutable sur cette machine.** L'installation
+  AppX refuse `codex.exe` (`Permission denied`, code interne `126`), donc le
+  transcript JSONL des invocations est vide et le coût en jetons n'est pas
+  récupérable. La dérogation SC9 de 010b est recevable **telle quelle** ; ne
+  pas convertir cet échec en succès fictif. Pour mesurer un vrai coût jeton, le
+  propriétaire doit fournir une installation CLI autonome exécutable, puis le
+  wrapper est rejoué.
+- **Un red-first lancé depuis la racine du dépôt ne prouve rien.** Sabotant une
+  copie jetable mais exécutant `pytest` depuis `D:\ForgeHistory`, les tests
+  importent le module **intact** du dépôt. Toujours exécuter depuis la copie.
+- **Nombres dans un `verdict.md`.** Le contrôle `verdict_numbers_traceable`
+  exige que tout nombre cité en prose trace à un compteur du manifeste — sinon
+  il faut l'entourer de backticks (code span). Convention du dépôt à respecter
+  en écrivant un verdict.
+- Un ledger de budget CI absent ou vide vaut « budget remis à zéro » (non
+  bloquant, consigné dans le verdict 009b).
+- `budget.py split-check` rapporte 0 condition de succès sur un brief dont les
+  conditions sont groupées sous des sous-titres `###` (extracteur limité) ; ne
+  pas remodeler un brief pour plaire au détecteur.
+- Ne jamais fabriquer de contenu VictoriaProject au-delà de ce qui a été lu.
+- Les 7 rouges hérités du portage Unity restent rouges-et-attribués.
 - Les Générateurs ne committent jamais.
-- Pour Unity, passer par `unity/run-unity.ps1` : il attend dans un seul
-  processus et rend la main une fois. Ne jamais relire un log Unity d'un
-  appel d'outil à l'autre.
+- Pour Unity, passer par `unity/run-unity.ps1` (un seul processus, rend la main
+  une fois).
 
-## Résumé de la session (2026-08-11)
+## Résumé de la session (2026-08-12)
 
-Quatre commits sur `forge/roles-full-auto`, rien de poussé sur `master`.
-
-1. **La décision du propriétaire sur les rôles est entrée dans le dépôt**
-   (`7ea3171`) : contre-audit (11 CONFIRMED, 2 PARTIAL, 6 NEEDS_OWNER) puis
-   décision puis conversion. Trois délimitations posées contre l'audit
-   d'origine : son `20/24` ne se reproduit pas (`23/24` ici, le second rouge
-   était un artefact de conteneur), sa section centrale est dépassée par
-   `c9e9291`, et son « techniquement, oui » repose sur des affirmations
-   produit invérifiables depuis ce dépôt. Le contre-audit ajoute le verrou de
-   fusion, que l'audit ne voyait pas.
-2. **Brief 010 écrit** (`b5cf3fc`), trois lots, autour du trou d'auto-jugement
-   multi-backend.
-3. **Hooks réparés** (`43c2a1b`) après qu'ils ont bloqué la session, avec la
-   preuve dans les deux sens : une commande ordinaire passe depuis le
-   sous-dossier fautif, et `python --version` y est toujours refusé.
-4. **Lot 009b ACCEPTÉ** (`ba035b1`), SC8 à SC13 reconstruites par des
-   commandes propres, red-first rejoué après invalidation de mon premier
-   protocole, trois constats non bloquants consignés.
+1. **Trois évaluations indépendantes**, chacune reconstruite par des commandes
+   de l'Évaluateur, jamais sur la foi du journal du lot : 009a itér.3 (C1-C4),
+   010b (SC7-SC11), 010c (SC12-SC15). Toutes **ACCEPT**.
+2. **Intégration** sur `forge/stabilisation-2026-08-12` depuis `origin/master`,
+   dans l'ordre 009a → 010b → 010c. Conflits `HANDOFF.md`, generator-log et
+   manifest du brief 010 résolus **en conservant le contenu des deux lots**
+   (fichiers, compteurs, dérogations, auteurs) — jamais un simple « ours »/
+   « theirs ».
+3. **Validation finale rejouée** : 321 tests verts, gates 009 et 010 ACCEPT,
+   7 audits valides, harness 23/24 (rouge geo périmé), arbres propres.
+4. Verdicts et feedbacks conservés en append-only ; aucun code fonctionnel de
+   lot évalué n'a été modifié par l'Évaluateur.
