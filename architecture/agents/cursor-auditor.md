@@ -40,9 +40,13 @@ que les briefs, pas les audits).
 
 # Déclencheur
 
-`.github/workflows/pipeline-audit.yml`, sur `push` vers `master`. Invoque le
-Cloud Agent Cursor avec ce fichier de rôle comme template (voir
-`architecture/agents/README.md` § invocation).
+`.github/workflows/pipeline-audit.yml`, sur `push` vers `master` **et** sur
+chaque `pull_request` non-brouillon (ADR-0010 : Cursor est le maillon
+critique de chaque PR). Invoque le Cloud Agent Cursor avec ce fichier de
+rôle comme template (voir `architecture/agents/README.md` § invocation).
+Pour une PR, la critique suit `architecture/review-guidelines.md` (bonnes
+pratiques d'ingénierie IA sourcées, sévérités P0–P3, preuve citée par
+constat).
 
 # Preuve de fin
 
