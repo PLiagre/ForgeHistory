@@ -1,5 +1,32 @@
 # HANDOFF.md
 
+## Mise à jour Codex la plus récente — 2026-08-11
+
+Codex a repris la session et poursuit le projet sans modifier les verdicts ni
+committer le travail des Générateurs.
+
+- `D:\ForgeHistory`, branche `forge/009a-iteration-3` : correction 009a
+  itération 3 produite, 300 tests verts, gate 10/10 ; prête pour évaluation
+  indépendante par Claude.
+- `D:\ForgeHistory-010b`, branche `codex/010b-codex-backend` : lot 010b
+  produit, 311 tests verts. Le wrapper Codex, le préflight anti-auto-jugement,
+  le ledger, ADR-0009 et les preuves SC7–SC11 sont présents. Deux appels réels
+  sont comptés ; l'installation AppX locale refuse toutefois l'exécution de
+  son `codex.exe` (`Permission denied`, code interne 126), donc aucun coût jeton
+  n'est inventé. Lot prêt pour évaluation indépendante par Claude après staging.
+- `D:\ForgeHistory-010c`, branche `codex/010c-merge-lock` : lot 010c produit
+  et stagé, 311 tests verts, gate mécanique 10/10. Le dépôt GitHub ne possède
+  que 18 PR fusionnées : la mesure honnête est 5/18, pas un dénominateur 20
+  fabriqué. Prêt pour évaluation indépendante.
+
+Pour 010b, la référence CLI utilisée est l'interface officielle
+`codex exec` : https://developers.openai.com/codex/cli/reference/. Le fixture
+inter-acteurs et les sorties brutes sont sous
+`harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/`.
+Le prochain acteur ne doit pas convertir l'échec AppX en succès fictif : soit
+il évalue la dérogation SC9 telle quelle, soit le propriétaire fournit une
+installation CLI autonome exécutable et le wrapper est rejoué.
+
 État de reprise vérifié le 2026-08-11. Ce fichier décrit l'état réel utile à
 la prochaine session ; l'historique détaillé reste dans Git.
 

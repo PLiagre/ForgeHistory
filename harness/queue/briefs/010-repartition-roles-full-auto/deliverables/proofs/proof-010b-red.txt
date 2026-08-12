@@ -1,0 +1,11 @@
+Commande réellement exécutée avant l'implémentation :
+
+py -m pytest harness/tests/test_codex_backend.py -q
+
+Résultat observé :
+
+FFFFFF                                                                   [100%]
+6 failed in 0.22s
+
+Les échecs constataient l'absence du wrapper et du préflight Codex, zéro
+occurrence Codex dans forge-run et le rejet de codex par le choix du ledger.

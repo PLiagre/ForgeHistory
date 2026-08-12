@@ -10,3 +10,4 @@
 | [0006](0006-full-auto-agent-pipeline.md) | Full-auto agent pipeline (derogation to ADR-0005's owner step) | accepted | 2026-08-05 |
 | [0007](0007-full-auto-mode-split.md) | Split `mode: full_auto` into `full_auto_decision_only` and a reserved, fail-closed `full_auto` | accepted | 2026-08-10 |
 | [0008](0008-codex-as-evaluateur-under-credit-cap.md) | Codex may hold the Évaluateur role, only in a third-party-triggered session, only when Claude is credit-capped | accepted | 2026-08-11 |
+| [0009](0009-codex-as-official-generator-backend.md) | Codex as an official Générateur backend | accepted | 2026-08-11 |

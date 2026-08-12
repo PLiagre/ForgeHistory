@@ -154,6 +154,81 @@
     },
     {
       "path": "deliverables/proofs/gate-010a-self-check-final-iteration2.txt"
+    },
+    {
+      "path": "../../../../.claude/commands/forge-run.md"
+    },
+    {
+      "path": "../../../../docs/adr/0009-codex-as-official-generator-backend.md"
+    },
+    {
+      "path": "../../../../harness/backends/README.md"
+    },
+    {
+      "path": "../../../../harness/backends/ledger.py"
+    },
+    {
+      "path": "../../../../harness/backends/run_cursor_generator.sh"
+    },
+    {
+      "path": "../../../../harness/backends/codex_preflight.py"
+    },
+    {
+      "path": "../../../../harness/backends/run_codex_generator.sh"
+    },
+    {
+      "path": "../../../../harness/queue/cost-ledger.jsonl"
+    },
+    {
+      "path": "../../../../harness/tests/test_codex_backend.py"
+    },
+    {
+      "path": "../../../../HANDOFF.md"
+    },
+    {
+      "path": "deliverables/proofs/proof-010b-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/pytest-010b-green.txt"
+    },
+    {
+      "path": "deliverables/proofs/gate-010b-self-check.txt"
+    },
+    {
+      "path": "deliverables/proofs/wrapper-same-actor-output.txt"
+    },
+    {
+      "path": "deliverables/proofs/wrapper-cross-actor-output.txt"
+    },
+    {
+      "path": "deliverables/proofs/ledger-codex-report.txt"
+    },
+    {
+      "path": "deliverables/proofs/codex-token-waiver.txt"
+    },
+    {
+      "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/brief.md"
+    },
+    {
+      "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/eval-rubric.md"
+    },
+    {
+      "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/verdict.md"
+    },
+    {
+      "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/codex-run.jsonl"
+    },
+    {
+      "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/codex-run.err"
+    },
+    {
+      "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/deliverables/manifest.json"
+    },
+    {
+      "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/deliverables/backend-status-codex.md"
     }
   ],
   "counters": [
@@ -204,7 +279,43 @@
       "value": 1,
       "sample_size": 1,
       "command": "py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation"
+    },
+    {
+      "name": "forge_run_backend_mentions_count",
+      "value": 3,
+      "sample_size": 3,
+      "command": "rg -n \"codex\" .claude/commands/forge-run.md"
+    },
+    {
+      "name": "codex_invocations_in_ledger",
+      "value": 2,
+      "sample_size": 3,
+      "command": "py harness/backends/ledger.py report"
+    },
+    {
+      "name": "codex_wrapper_real_exec_attempts",
+      "value": 2,
+      "sample_size": 2,
+      "command": "& 'C:\\Program Files\\Git\\bin\\bash.exe' harness/backends/run_codex_generator.sh /d/ForgeHistory-010b/harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_010b_cross_actor"
+    },
+    {
+      "name": "codex_same_actor_refusals",
+      "value": 1,
+      "sample_size": 1,
+      "command": "& 'C:\\Program Files\\Git\\bin\\bash.exe' harness/backends/run_codex_generator.sh harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_sc3"
+    },
+    {
+      "name": "codex_backend_tests_passed",
+      "value": 6,
+      "sample_size": 6,
+      "command": "py -m pytest harness/tests/test_codex_backend.py -q"
     }
   ],
-  "waivers": []
+  "waivers": [
+    {
+      "claim": "Le coût en jetons des deux invocations Codex n'est pas récupérable : les processus ont échoué avant le démarrage du modèle et le transcript JSONL est vide.",
+      "command": "Get-Content harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_010b_cross_actor/codex-run.jsonl; Get-Content harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_010b_cross_actor/codex-run.err",
+      "error": "codex-run.jsonl: sortie vide; codex-run.err: harness/backends/run_codex_generator.sh: line 104: /c/Program Files/WindowsApps/OpenAI.Codex_26.803.5235.0_x64__2p2nqsd0c76g0/app/resources/codex.exe: Permission denied"
+    }
+  ]
 }
