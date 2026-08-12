@@ -5,12 +5,13 @@ la prochaine session ; l'historique détaillé reste dans Git.
 
 ## Point de départ
 
-- Branche par défaut : `master`, commit `89219cc` (PR #16, #17, #18 de Codex
-  fusionnées). Travail de cette session sur `forge/roles-full-auto`, quatre
-  commits, **non fusionnés**.
+- Branche par défaut : `master`, commit `304c59a` (PR #19 fusionnée, donc les
+  quatre commits de `forge/roles-full-auto` sont désormais sur `master`).
+  Reprise active sur `forge/009a-iteration-3`, au commit partiel `999dcf3`,
+  avec les corrections finales de l'itération 3 encore non commitées.
 - Jalon général : F0 terminé ; F1 en cours. Le jeu Unity porté, le pipeline
   géographique et les travaux visuels n'ont pas été touchés cette session.
-- `py -m pytest harness/tests/ -q` → **296 passed**, zéro échec.
+- `py -m pytest harness/tests/ -q` → **300 passed**, zéro échec.
 - `py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation`
   → **10/10, VERDICT: ACCEPT**.
 - `py harness/harness_audit.py` → **23/24**. Le seul rouge,
@@ -102,7 +103,7 @@ conditionnelle qui remplacerait le clic, sans l'activer.
 
 | brief / lot | état | preuve / blocage |
 |---|---|---|
-| 009a — séparation du mode | **REJETÉ, itération 2** | Rejugé par Codex (`c9e9291`). Quatre défauts C1-C4 dans `feedback/feedback-009a-002.md`. Le plus sérieux est C3 : le garde accepte encore trois faux workflows malgré sa promesse de « preuve positive ». |
+| 009a — séparation du mode | **ITÉRATION 3 PRODUITE, À RÉÉVALUER** | Codex a repris le commit partiel `999dcf3` comme Générateur et fermé C1-C4. Suite complète : 300 tests. Gate mécanique : 10/10. Le Générateur ne prononce pas le verdict ; Claude doit reconstruire les preuves dans une session distincte. |
 | 009b — plafond budgétaire CI | **ACCEPTÉ** | Verdict Claude ajouté à `verdict.md` (`ba035b1`). SC8 à SC13 reconstruites indépendamment, red-first rejoué depuis une copie jetable. Trois constats non bloquants y sont consignés. |
 | 009c — invocation réelle de challenge | **bloqué** | Une de ses deux conditions est levée (009b accepté) ; l'autre non (009a rejeté). Ne pas démarrer. |
 | 010a — contrat des rôles | **ACCEPTÉ à l'itération 2**, après un vrai cycle REJECT → correction → ACCEPT | Itération 1 (`62a0fe2`) **rejetée** : elle rendait le contrôle *plus permissif* qu'avant — ajouter au journal un lot non encore jugé poussait un couple auto-jugé hors de la fenêtre des `k` derniers auteurs, et le refus disparaissait. Itération 2 (`e912d61`) referme la porte par deux ajouts ; verdict `192218a`. Ce qui a décidé : une énumération **exhaustive** plutôt qu'un échantillon — 66 564 combinaisons de listes d'auteurs, 0 cas refusé-avant/accepté-après, 39 585 acceptés-avant/refusés-après. Le contrôle refuse un sur-ensemble strict. 305 tests. |
