@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-12 10:13 UTC.
+> Générée le 2026-08-12 11:42 UTC.
 
 ## En bref
 
@@ -15,11 +15,28 @@
 
 ## Ce qui attend le propriétaire
 
-- Rien : aucune PR ouverte connue, aucun audit en attente de décision.
+- Fusionner (ou refuser) la PR #28 — « cursor-auditor : critique de la PR #27 (tableau de bord Hermes, modèle de l'auditeur, filtre anti-boucle) » (branche `cursor/audit-pull-request-27-20d2`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
+- Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
-Non disponible dans cette génération (données GitHub non fournies au script).
+| quand (UTC) | workflow | déclencheur | branche | résultat |
+|---|---|---|---|---|
+| 2026-08-12 11:42:07 | hermes-observer | pull_request_target | forge/hermes-dashboard-modele-auditeur-977d | queued |
+| 2026-08-12 11:42:07 | audit-guard | push | master | success |
+| 2026-08-12 11:42:07 | harness-ci | push | master | in_progress |
+| 2026-08-12 11:42:07 | security | push | master | in_progress |
+| 2026-08-12 11:42:07 | hermes-dashboard | push | master | in_progress |
+| 2026-08-12 11:42:07 | pipeline-audit | push | master | in_progress |
+| 2026-08-12 11:41:47 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 11:41:42 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 11:41:42 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 11:41:39 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 11:41:39 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 11:41:39 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 11:41:39 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 11:41:39 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 11:41:33 | hermes-observer | workflow_run | master | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -29,7 +46,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 
 | audit | où il en est | dernier événement (UTC) |
 |---|---|---|
-| CURSOR-cdc683f-hermes-workflow-quatre-acteurs | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-cdc683f-hermes-workflow-quatre-acteurs | retenu — à convertir en brief | 2026-08-12 11:41 |
 
 (7 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
 
