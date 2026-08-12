@@ -1,0 +1,73 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+collecting ... collected 3 items
+
+sim/tests/test_write_coverage.py::test_engine_writes_only_declared_fields FAILED [ 33%]
+sim/tests/test_write_coverage.py::test_engine_written_fields_also_have_read_sites PASSED [ 66%]
+sim/tests/test_write_coverage.py::test_write_coverage_counter PASSED     [100%]
+
+=================================== FAILURES ===================================
+___________________ test_engine_writes_only_declared_fields ____________________
+
+    def test_engine_writes_only_declared_fields():
+        """
+        SC8 / SC10 : tout attribut écrit dans engine.py doit être déclaré
+        dans Cell.__dataclass_fields__.
+        Ce test va ROUGE si hunger_ticks est retiré de Cell.
+        """
+        engine_written, _ = _collect_attribute_ops(_ENGINE_FILE)
+        declared = set(dataclasses.fields(Cell).__class__.__name__) or {
+            f.name for f in dataclasses.fields(Cell)
+        }
+        # Champs déclarés dans Cell
+        declared_fields = {f.name for f in dataclasses.fields(Cell)}
+    
+        # Filtrer : on ne considère que les attributs qui ressemblent à des champs
+        # de modèle (pas les attributs Python internes comme __class__, etc.)
+        model_like = {a for a in engine_written if not a.startswith("__")}
+    
+        # Intersecte avec les attributs qui font partie du vocabulaire Cell
+        # (les autres attributs — ex. 'cells', 'values' — appartiennent au monde)
+        cell_field_names = declared_fields
+        written_cell_fields = model_like & (cell_field_names | engine_written)
+    
+        # Vérification principale : tout ce qui est écrit sur 'cell.' doit être déclaré
+        # On détermine les champs écrits sur un objet Cell en cherchant les attributs
+        # qui correspondent à un nom de champ réel ou non-déclaré.
+        # Approche : on reconstruit en ne gardant que les attributs écrits
+        # dans des fonctions dont le nom commence par '_apply' ou 'tick' ou '_update'.
+        source = _ENGINE_FILE.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+    
+        cell_writes: set = set()
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for child in ast.walk(node):
+                    if isinstance(child, (ast.Assign, ast.AugAssign)):
+                        targets = (
+                            child.targets if isinstance(child, ast.Assign)
+                            else [child.target]
+                        )
+                        for t in targets:
+                            if (
+                                isinstance(t, ast.Attribute)
+                                and isinstance(t.value, ast.Name)
+                                and t.value.id == "cell"
+                            ):
+                                cell_writes.add(t.attr)
+    
+        undeclared = cell_writes - declared_fields
+>       assert not undeclared, (
+            f"ADR / SC8 : attributs écrits sur 'cell' dans engine.py mais non déclarés "
+            f"dans Cell.__dataclass_fields__ : {undeclared}. "
+            f"Champs déclarés : {declared_fields}."
+        )
+E       AssertionError: ADR / SC8 : attributs écrits sur 'cell' dans engine.py mais non déclarés dans Cell.__dataclass_fields__ : {'hunger_ticks'}. Champs déclarés : {'population', 'food_stock_kg', 'area_km2', 'cell_id'}.
+E       assert not {'hunger_ticks'}
+
+sim/tests/test_write_coverage.py:107: AssertionError
+=========================== short test summary info ============================
+FAILED sim/tests/test_write_coverage.py::test_engine_writes_only_declared_fields
+========================= 1 failed, 2 passed in 0.02s ==========================

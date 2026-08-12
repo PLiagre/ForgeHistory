@@ -1,0 +1,84 @@
+{
+  "files": [
+    {"path": "../../../../sim/__init__.py"},
+    {"path": "../../../../sim/constants.py"},
+    {"path": "../../../../sim/model.py"},
+    {"path": "../../../../sim/world.py"},
+    {"path": "../../../../sim/engine.py"},
+    {"path": "../../../../sim/SEEDING.md"},
+    {"path": "../../../../sim/README.md"},
+    {"path": "../../../../sim/tests/__init__.py"},
+    {"path": "../../../../sim/tests/test_world.py"},
+    {"path": "../../../../sim/tests/test_adr_compliance.py"},
+    {"path": "../../../../sim/tests/test_seeding.py"},
+    {"path": "../../../../sim/tests/test_engine.py"},
+    {"path": "../../../../sim/tests/test_causal_chain.py"},
+    {"path": "../../../../sim/tests/test_write_coverage.py"},
+    {"path": "../../../../sim/tests/test_no_hardcoded.py"},
+    {"path": "../../../../sim/tests/proof_red/run_sabotage.txt"},
+    {
+      "path": "../../../../sim/tests/proof_red/run_correct.txt",
+      "must_differ_from": "../../../../sim/tests/proof_red/run_sabotage.txt"
+    },
+    {"path": "deliverables/manifest.json"},
+    {"path": "deliverables/generator-log.md"},
+    {"path": "../../../../harness/queue/cost-ledger.jsonl"}
+  ],
+  "counters": [
+    {
+      "name": "cells_chargees",
+      "value": 596,
+      "sample_size": 596,
+      "command": ".venv/bin/python -m pytest sim/tests/test_world.py::test_cells_count_matches_stats -v -s"
+    },
+    {
+      "name": "aretes_adjacence_chargees",
+      "value": 1364,
+      "sample_size": 1364,
+      "command": ".venv/bin/python -m pytest sim/tests/test_world.py::test_adjacency_count_matches_file -v -s"
+    },
+    {
+      "name": "champs_modele_couverts",
+      "value": 3,
+      "sample_size": 5,
+      "command": ".venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_write_coverage_counter -v -s"
+    },
+    {
+      "name": "compteurs_en_dur_trouves",
+      "value": 0,
+      "sample_size": 4,
+      "command": ".venv/bin/python -m pytest sim/tests/test_no_hardcoded.py -v -s"
+    },
+    {
+      "name": "amorçage_deterministe_valide",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_seeding.py::test_seeding_determinisme -v -s"
+    },
+    {
+      "name": "ticks_deterministes_valides",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_engine.py::test_tick_determinisme -v -s"
+    },
+    {
+      "name": "maillons_chaine_causale_testes_unitairement",
+      "value": 3,
+      "sample_size": 3,
+      "command": ".venv/bin/python -m pytest sim/tests/test_causal_chain.py::test_sc7a_stock_decreases_when_production_lt_consumption sim/tests/test_causal_chain.py::test_sc7b_hunger_ticks_increments_when_stock_empty sim/tests/test_causal_chain.py::test_sc7c_population_decreases_when_hunger_above_threshold -v -s"
+    },
+    {
+      "name": "test_integration_bout_en_bout_resultat",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_causal_chain.py::test_sc7d_zero_yield_leads_to_population_decline -v -s"
+    },
+    {
+      "name": "lignes_differentes_preuve_rouge",
+      "value": 70,
+      "sample_size": 70,
+      "command": "diff sim/tests/proof_red/run_sabotage.txt sim/tests/proof_red/run_correct.txt | wc -l"
+    }
+  ],
+  "waivers": []
+}
