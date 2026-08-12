@@ -73,7 +73,9 @@ arbitrages 1-3, séparation producteur/juge) est reconduit.
 ## Point de départ pour la prochaine session
 
 - Branche par défaut : `master`. Le travail de cette session est sur la PR
-  de la branche `cursor/workflow-quatre-acteurs-roadmap-977d`.
+  de la branche `forge/workflow-quatre-acteurs-977d` (préfixe `forge/` et
+  non `cursor/` : audit-guard réserve mécaniquement `cursor/*` aux dépôts
+  d'audits touchant uniquement `architecture/inbox/`).
 - La direction du projet se lit désormais dans **`ROADMAP.md`** ;
   les prochaines actions y sont ordonnées. En résumé :
   1. **Le propriétaire provisionne les trois secrets** GitHub Actions :
