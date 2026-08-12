@@ -5,16 +5,17 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-12 15:49 UTC.
+> Générée le 2026-08-12 17:09 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 17 — boucles closes : 7.
+- **Audits en cours** : 18 — boucles closes : 7.
 
 ## Ce qui attend le propriétaire
 
+- Fusionner (ou refuser) la PR #57 — « Brief 011 : amorçage du moteur sim/ — monde vivant, couche 1 (F2) » (branche `forge/011-sim-monde-vivant-a67c`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -23,21 +24,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-12 15:49:30 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 15:49:30 | pipeline-failure-escalate | workflow_run | master | queued |
-| 2026-08-12 15:49:29 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 15:49:20 | hermes-observer | workflow_run | master | in_progress |
-| 2026-08-12 15:49:17 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-12 15:49:17 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:49:13 | hermes-dashboard | push | master | in_progress |
-| 2026-08-12 15:49:13 | security | push | master | success |
-| 2026-08-12 15:49:13 | audit-guard | push | master | in_progress |
-| 2026-08-12 15:49:13 | pipeline-audit | push | master | success |
-| 2026-08-12 15:49:13 | harness-ci | push | master | in_progress |
-| 2026-08-12 15:48:54 | pipeline-orchestrate | workflow_dispatch | master | success |
-| 2026-08-12 15:45:09 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:45:03 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:44:58 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 17:09:19 | hermes-dashboard | push | master | in_progress |
+| 2026-08-12 17:09:19 | security | push | master | in_progress |
+| 2026-08-12 17:09:19 | pipeline-audit | push | master | queued |
+| 2026-08-12 17:09:19 | pipeline-challenge | push | master | in_progress |
+| 2026-08-12 17:09:19 | audit-guard | push | master | in_progress |
+| 2026-08-12 17:09:19 | harness-ci | push | master | in_progress |
+| 2026-08-12 17:09:19 | hermes-observer | pull_request_target | cursor/audit-pull-request-57-a2c0 | queued |
+| 2026-08-12 17:09:17 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 17:09:11 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 17:09:09 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 17:09:07 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 17:08:58 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 17:08:55 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 17:08:52 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 17:08:52 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -56,6 +57,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-3b47ffe-pr57-monde-sans-faim | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-3ce7947-pr36-hermes-skill-versionnee | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
