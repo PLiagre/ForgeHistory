@@ -109,10 +109,14 @@ jobs:
               --arg ref "$TARGET_COMMIT" \
               '{prompt: {text: $prompt}, repos: [{url: $repo, startingRef: $ref}], autoCreatePR: true}')"
           fi
+          # Authentification Basic (clé en nom d'utilisateur, mot de passe
+          # vide), construite en en-tête pour ne pas déclencher le faux
+          # positif gitleaks `curl-auth-user` sur une référence de variable.
+          auth_header="Authorization: Basic $(printf '%s:' "$CURSOR_API_KEY" | base64 -w0)"
           response="$(curl -sS --fail-with-body \
             --request POST \
             --url https://api.cursor.com/v1/agents \
-            -u "${CURSOR_API_KEY}:" \
+            --header "$auth_header" \
             --header 'Content-Type: application/json' \
             --data "$payload")" || {
               echo "::error::Cursor Cloud Agents API call failed:"

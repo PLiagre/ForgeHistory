@@ -197,7 +197,7 @@ jobs:
           gh pr create \
             --head "$branch" \
             --title "forge-run: ${slug} (chaîne automatique ADR-0010)" \
-            --body "$(printf 'Brief : `%s`\n\nProduit par la chaîne automatique (Claude CTO headless, Générateur Codex `--backend codex`, gate mécanique rejouée dans ce run %s).\n\nLa critique Cursor de cette PR est déclenchée par pipeline-audit.yml.' "$BRIEF_DIR" "$GITHUB_RUN_ID")" \
+            --body "$(printf 'Brief : %s\n\nProduit par la chaîne automatique (Claude CTO headless, Générateur Codex --backend codex, gate mécanique rejouée dans ce run %s).\n\nLa critique Cursor de cette PR est déclenchée par pipeline-audit.yml.' "$BRIEF_DIR" "$GITHUB_RUN_ID")" \
             || echo "::warning::gh pr create refused (repository setting or permissions) -- branch $branch is pushed; open the PR manually."
 
       - name: No credential available -- documented waiver
