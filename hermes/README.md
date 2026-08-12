@@ -16,8 +16,23 @@ ADR-0010 du statut d'observateur à celui de chef de projet.
 | chemin | contenu | format |
 |---|---|---|
 | `ROADMAP.md` (racine) | la feuille de route jeu + projet | libre, mais l'« Historique des révisions » en bas est obligatoire |
+| `hermes/DASHBOARD.md` | **le tableau de bord** : où en est la boucle, qui attend quoi, ce que ça consomme | **généré** par `hermes/dashboard.py` — jamais édité à la main |
 | `hermes/reports/RAPPORT-AAAAMMJJ-<slug>.md` | compte-rendu d'état (après une session, un jalon, un incident) | frontmatter ci-dessous |
 | `hermes/requests/DEMANDE-AAAAMMJJ-<slug>.md` | demande d'évolution formulée par le propriétaire, mise en forme par Hermes | frontmatter ci-dessous |
+
+## Le tableau de bord
+
+`hermes/DASHBOARD.md` est **l'endroit où le propriétaire regarde d'abord**.
+C'est une vue calculée depuis les sources de vérité du dépôt (ledger
+d'audits, ledgers de coût, config du pipeline, briefs) plus les données
+vivantes GitHub/Cursor quand la CI le régénère — jamais une base de données
+parallèle, jamais un texte rédigé à la main.
+
+- Régénéré automatiquement par `.github/workflows/hermes-dashboard.yml` à
+  chaque poussée sur `master` et toutes les 6 heures.
+- Régénérable à la main : `py hermes/dashboard.py` (vue locale, sections
+  GitHub marquées « non disponible »).
+- Une donnée absente est **dite absente** — le tableau n'invente rien.
 
 Hermes n'écrit **jamais** : du code, de la CI, un brief, une rubrique, un
 verdict, un audit. Un fichier Hermes est une **entrée** pour le CTO (Claude),

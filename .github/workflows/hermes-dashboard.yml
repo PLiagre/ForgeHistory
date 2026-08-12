@@ -1,0 +1,103 @@
+name: hermes-dashboard
+
+# Rôle Hermes (ADR-0010) : le chef de projet tient un tableau de bord
+# lisible par le propriétaire. Ce workflow régénère hermes/DASHBOARD.md --
+# une VUE calculée par hermes/dashboard.py depuis les sources de vérité du
+# dépôt, enrichie des données vivantes GitHub (runs, PR ouvertes) et, si la
+# clé est disponible, des agents Cursor récents. Il commite uniquement ce
+# fichier ; tout autre diff fait échouer le job au lieu de pousser.
+#
+# Anti-boucle : le déclencheur push ignore hermes/DASHBOARD.md, donc le
+# commit produit ici ne redéclenche pas ce workflow, et pipeline-audit.yml
+# classe les poussées hermes/** comme documentaires (pas de nouvel audit).
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'hermes/DASHBOARD.md'
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: hermes-dashboard
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: master
+          fetch-depth: 0
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Collect live GitHub data (runs + open PRs)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh run list --limit 20 \
+            --json name,event,headBranch,conclusion,status,createdAt \
+            > "$RUNNER_TEMP/runs.json" || echo '[]' > "$RUNNER_TEMP/runs.json"
+          gh pr list --state open \
+            --json number,title,headRefName,isDraft \
+            > "$RUNNER_TEMP/prs.json" || echo '[]' > "$RUNNER_TEMP/prs.json"
+
+      - name: Collect recent Cursor Cloud agents (optional)
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CURSOR_API_KEY:-}" ]; then
+            echo "Pas de CURSOR_API_KEY -- section agents marquée non disponible."
+            exit 0
+          fi
+          auth_header="Authorization: Basic $(printf '%s:' "$CURSOR_API_KEY" | base64 -w0)"
+          curl -sS --fail-with-body \
+            --url "https://api.cursor.com/v1/agents?limit=10" \
+            --header "$auth_header" \
+            > "$RUNNER_TEMP/agents.json" \
+            || { echo "::warning::liste des agents Cursor indisponible -- la vue le dira, sans inventer."; rm -f "$RUNNER_TEMP/agents.json"; }
+
+      - name: Regenerate hermes/DASHBOARD.md
+        run: |
+          set -euo pipefail
+          args=(--runs-json "$RUNNER_TEMP/runs.json" --prs-json "$RUNNER_TEMP/prs.json")
+          if [ -f "$RUNNER_TEMP/agents.json" ]; then
+            args+=(--agents-json "$RUNNER_TEMP/agents.json")
+          fi
+          python hermes/dashboard.py "${args[@]}"
+
+      - name: Refuse to push anything but the dashboard
+        run: |
+          set -euo pipefail
+          offending="$(git status --porcelain | grep -v ' hermes/DASHBOARD.md$' || true)"
+          if [ -n "$offending" ]; then
+            echo "::error::la régénération a modifié autre chose que hermes/DASHBOARD.md -- refus de pousser:"
+            printf '%s\n' "$offending"
+            exit 1
+          fi
+
+      - name: Commit and push (hermes)
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- hermes/DASHBOARD.md; then
+            echo "Tableau de bord inchangé -- rien à pousser."
+            exit 0
+          fi
+          git config user.name "hermes"
+          git config user.email "hermes-bot@users.noreply.github.com"
+          git add hermes/DASHBOARD.md
+          git commit -m "hermes: tableau de bord régénéré"
+          git pull --rebase origin master
+          git push origin master

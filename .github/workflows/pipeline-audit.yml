@@ -46,8 +46,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Anti-boucle : un push sur master qui ne touche QUE les artefacts de
+      # la boucle elle-même (audits inbox, revues, décisions, archive,
+      # ledger, dashboard/rapports Hermes) est documentaire -- l'auditer
+      # relancerait un agent sur la production de la boucle, en chaîne, à
+      # chaque tour. Constaté en réel le 2026-08-12 : la fusion du premier
+      # audit a déclenché un deuxième auditeur sur cette fusion même.
+      - name: Documentary push? (loop artefacts only -- no re-audit)
+        id: docs
+        if: github.event_name == 'push'
+        env:
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.event.after }}
+        run: |
+          set -euo pipefail
+          skip=false
+          if [ -n "${EVENT_BEFORE:-}" ] && [ "${EVENT_BEFORE}" != "0000000000000000000000000000000000000000" ]; then
+            changed="$(git diff --name-only "$EVENT_BEFORE" "$EVENT_AFTER" 2>/dev/null || true)"
+            if [ -n "$changed" ]; then
+              hors_boucle="$(printf '%s\n' "$changed" | grep -vE '^(architecture/(inbox|reviews|decisions|archive)/|architecture/audit-ledger\.jsonl$|hermes/)' || true)"
+              if [ -z "$hors_boucle" ]; then
+                skip=true
+                echo "::notice::push documentaire (artefacts de la boucle uniquement) -- pas de nouvel audit lancé."
+              fi
+            fi
+          fi
+          echo "skip=${skip}" >> "$GITHUB_OUTPUT"
+
       - name: Kill-switch -- any open pipeline/pause label stops everything
         id: pause
+        if: steps.docs.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -62,7 +90,7 @@ jobs:
 
       - name: Check Cursor Cloud Agent credentials
         id: check
-        if: steps.pause.outputs.paused != 'true'
+        if: steps.docs.outputs.skip != 'true' && steps.pause.outputs.paused != 'true'
         env:
           HAS_CURSOR: ${{ secrets.CURSOR_API_KEY != '' }}
         run: |
@@ -74,10 +102,20 @@ jobs:
             echo "::warning::CURSOR_API_KEY not configured -- documented waiver, no invocation attempted. Open a Cursor Cloud Agent session manually with architecture/agents/cursor-auditor.md as the role template (ADR-0010, docs/rules/full-auto-pipeline.md)."
           fi
 
+      # Modèle : le propriétaire exige au moins Opus pour la critique
+      # (2026-08-12 -- le défaut claude-4.5-sonnet du premier tour était
+      # trop faible ; l'identifiant deviné 'claude-opus-5-thinking-high' a
+      # été refusé `invalid_model` par l'API au tour suivant). Le workflow
+      # ne devine donc plus : il interroge GET /v1/models, honore la
+      # variable de dépôt CURSOR_AUDITOR_MODEL si elle correspond à un
+      # identifiant réel, sinon prend le premier modèle « opus » (puis
+      # « grok »), et journalise la liste complète pour permettre au
+      # propriétaire de fixer la variable en connaissance de cause.
       - name: Invoke cursor-auditor (Cloud Agents API v1)
         if: steps.check.outputs.available == 'true'
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CURSOR_AUDITOR_MODEL: ${{ vars.CURSOR_AUDITOR_MODEL || '' }}
           EVENT_NAME: ${{ github.event_name }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -85,34 +123,65 @@ jobs:
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
           set -euo pipefail
+          auth_header="Authorization: Basic $(printf '%s:' "$CURSOR_API_KEY" | base64 -w0)"
+
+          ids="$(curl -sS --fail-with-body --url https://api.cursor.com/v1/models --header "$auth_header" \
+            | jq -r '[.items[] | .id, (.aliases[]? // empty)] | .[]' || true)"
+          echo "Modèles disponibles (GET /v1/models):"
+          printf '%s\n' "$ids"
+          model=""
+          if [ -n "${CURSOR_AUDITOR_MODEL:-}" ]; then
+            if printf '%s\n' "$ids" | grep -qxF "$CURSOR_AUDITOR_MODEL"; then
+              model="$CURSOR_AUDITOR_MODEL"
+            else
+              echo "::warning::CURSOR_AUDITOR_MODEL='$CURSOR_AUDITOR_MODEL' inconnu de l'API -- repli sur la préférence opus/grok (liste réelle ci-dessus)."
+            fi
+          fi
+          if [ -z "$model" ]; then
+            model="$(printf '%s\n' "$ids" | grep -i opus | grep -i thinking | head -1 || true)"
+          fi
+          if [ -z "$model" ]; then
+            model="$(printf '%s\n' "$ids" | grep -i opus | head -1 || true)"
+          fi
+          if [ -z "$model" ]; then
+            model="$(printf '%s\n' "$ids" | grep -i grok | head -1 || true)"
+          fi
+          if [ -z "$model" ]; then
+            echo "::warning::aucun modèle opus/grok trouvé dans la liste -- le défaut du compte sera utilisé."
+          fi
+          echo "Modèle retenu: ${model:-<défaut du compte>}"
+
+          consignes="Livrable: un audit architecture/inbox/CURSOR-<sha>-<slug>.md déposé par une PR cursor/* \
+          qui ne touche que architecture/inbox/**. Pousse UNE seule branche cursor/* (jamais de branches \
+          de brouillon multiples) et OUVRE toi-même la pull request avant de terminer -- une branche \
+          poussée sans PR est un livrable incomplet. Respecte chaque section Interdits du contrat."
           if [ "$EVENT_NAME" = "pull_request" ]; then
             prompt="Tu es cursor-auditor (contrat: architecture/agents/cursor-auditor.md). \
           Critique la pull request #${PR_NUMBER} (${PR_URL}) en suivant architecture/review-guidelines.md: \
-          six lentilles, sévérités P0-P3, chaque constat cite sa preuve. \
-          Livrable: un audit architecture/inbox/CURSOR-<sha>-<slug>.md déposé par une PR cursor/* \
-          qui ne touche que architecture/inbox/**. Respecte chaque section Interdits du contrat."
+          six lentilles, sévérités P0-P3, chaque constat cite sa preuve. ${consignes}"
             payload="$(jq -n \
               --arg prompt "$prompt" \
+              --arg model "$model" \
               --arg repo "$REPO_URL" \
               --arg prurl "$PR_URL" \
-              '{prompt: {text: $prompt}, repos: [{url: $repo, prUrl: $prurl}], autoCreatePR: true}')"
+              '{prompt: {text: $prompt}, repos: [{url: $repo, prUrl: $prurl}], autoCreatePR: true}
+               | if $model != "" then . + {model: {id: $model}} else . end')"
           else
             prompt="Tu es cursor-auditor (contrat: architecture/agents/cursor-auditor.md), \
           avec cursor-qa-scout (architecture/agents/cursor-qa-scout.md) en compagnon de session. \
           Audite le commit ${TARGET_COMMIT} fraîchement fusionné sur master: diff du merge, état du dépôt, \
-          risques P0-P3, sources externes datées, au plus 3 briefs proposés. \
-          Livrable: un audit architecture/inbox/CURSOR-<sha>-<slug>.md déposé par une PR cursor/* \
-          qui ne touche que architecture/inbox/**. Respecte chaque section Interdits du contrat."
+          risques P0-P3, sources externes datées, au plus 3 briefs proposés. ${consignes}"
             payload="$(jq -n \
               --arg prompt "$prompt" \
+              --arg model "$model" \
               --arg repo "$REPO_URL" \
               --arg ref "$TARGET_COMMIT" \
-              '{prompt: {text: $prompt}, repos: [{url: $repo, startingRef: $ref}], autoCreatePR: true}')"
+              '{prompt: {text: $prompt}, repos: [{url: $repo, startingRef: $ref}], autoCreatePR: true}
+               | if $model != "" then . + {model: {id: $model}} else . end')"
           fi
-          # Authentification Basic (clé en nom d'utilisateur, mot de passe
-          # vide), construite en en-tête pour ne pas déclencher le faux
-          # positif gitleaks `curl-auth-user` sur une référence de variable.
-          auth_header="Authorization: Basic $(printf '%s:' "$CURSOR_API_KEY" | base64 -w0)"
+          # (auth_header défini en tête de step -- Basic, clé en nom
+          # d'utilisateur, mot de passe vide, en en-tête pour ne pas
+          # déclencher le faux positif gitleaks `curl-auth-user`.)
           response="$(curl -sS --fail-with-body \
             --request POST \
             --url https://api.cursor.com/v1/agents \

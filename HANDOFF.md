@@ -1,5 +1,45 @@
 # HANDOFF.md
 
+## Addendum — 2026-08-12 (fin de journée) : premiers tours réels + tableau de bord
+
+Les secrets d'abonnement ont été provisionnés par le propriétaire et la
+boucle a tourné pour la première fois en conditions réelles :
+
+1. **Cursor** : `pipeline-audit` a lancé un Cloud Agent sur le merge de la
+   PR #24 (`agent_id` au log). L'agent a produit un audit conforme de 535
+   lignes (`CURSOR-cdc683f-hermes-workflow-quatre-acteurs`, 4 constats
+   P0-P2), fusionné via la PR #25. **Deux ratés observés** : il n'a pas
+   ouvert sa PR lui-même (ouverte à la main) et a laissé deux branches de
+   brouillon (supprimées) — le prompt d'invocation l'exige désormais.
+2. **Claude (abonnement)** : `pipeline-challenge` a tourné headless avec
+   `CLAUDE_CODE_OAUTH_TOKEN` (« Claude auth: abonnement » au log), produit
+   la revue `CLAUDE-CURSOR-cdc683f-...` (101 lignes) et le marquage
+   post-hoc a fonctionné : **1.0615 USD équivalent, sous le plafond 5** —
+   ligne réelle au `ci-budget-ledger.jsonl`. Publication en PR #26.
+3. **Blocage découvert** : `gh pr create` depuis un workflow est refusé —
+   le réglage GitHub « Allow GitHub Actions to create and approve pull
+   requests » (Settings → Actions → General) doit être activé par le
+   propriétaire, sinon chaque publication reste une branche sans PR.
+4. **Boucle-sur-la-boucle constatée** : la fusion du premier audit a
+   déclenché un deuxième auditeur sur cette fusion même. Corrigé :
+   `pipeline-audit` classe désormais un push ne touchant que
+   `architecture/{inbox,reviews,decisions,archive}/`, le ledger d'audits
+   ou `hermes/**` comme documentaire — pas de nouvel audit.
+5. **Codex (`CODEX_AUTH_JSON`) toujours pas exercé** — attend le premier
+   `pipeline-forge-run` (dispatch manuel sur un brief).
+
+Nouveautés de ce même addendum : `hermes/DASHBOARD.md` (tableau de bord
+généré par `hermes/dashboard.py`, régénéré par `hermes-dashboard.yml` à
+chaque push master et toutes les 6 h — l'endroit où le propriétaire
+regarde d'abord) ; le modèle de l'auditeur Cursor est monté en gamme —
+demande propriétaire, le défaut claude-4.5-sonnet du premier tour étant
+jugé trop faible. L'identifiant deviné (`claude-opus-5-thinking-high`) a
+été refusé `invalid_model` par l'API : le workflow ne devine plus, il
+interroge `GET /v1/models`, honore la variable de dépôt
+`CURSOR_AUDITOR_MODEL` si elle correspond à un identifiant réel, sinon
+choisit le premier modèle « opus » (puis « grok »), et journalise la liste
+complète des identifiants valides dans chaque run.
+
 ## Session la plus récente — 2026-08-12 (après-midi) : ADR-0010, câblage réel, nettoyage
 
 Sur demande explicite du propriétaire (enregistrée dans
