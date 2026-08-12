@@ -5,17 +5,17 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-12 12:18 UTC.
+> Générée le 2026-08-12 12:25 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 3 — boucles closes : 7.
+- **Audits en cours** : 4 — boucles closes : 7.
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #33 — « cursor-auditor: audit de la PR #30 (revue de verdicts illisible par la boucle) » (branche `cursor/audit-pr-30-122d`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
+- Fusionner (ou refuser) la PR #34 — « hermes: décision « ok pour tout » — ADR-0011 (console du propriétaire) et roadmap reflétée » (branche `forge/hermes-decision-adr-0011-c2dd`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Fusionner (ou refuser) la PR #31 — « challenge: revue de l'audit CURSOR-65c3ac1-dashboard-hermes-modele-auditeur » (branche `forge-bot/review-CURSOR-65c3ac1-dashboard-hermes-modele-auditeur-31594124761`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 
@@ -23,21 +23,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-12 12:18:08 | pipeline-audit | push | master | in_progress |
-| 2026-08-12 12:18:07 | hermes-observer | pull_request_target | forge/hermes-tableau-pilotage-c2dd | in_progress |
-| 2026-08-12 12:18:07 | audit-guard | push | master | in_progress |
-| 2026-08-12 12:18:07 | security | push | master | in_progress |
-| 2026-08-12 12:18:07 | harness-ci | push | master | in_progress |
-| 2026-08-12 12:18:07 | hermes-dashboard | push | master | in_progress |
-| 2026-08-12 12:18:03 | hermes-observer | pull_request_target | forge/hermes-tableau-pilotage-c2dd | cancelled |
-| 2026-08-12 12:18:03 | pipeline-audit | pull_request | forge/hermes-tableau-pilotage-c2dd | in_progress |
-| 2026-08-12 12:15:23 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 12:15:13 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 12:15:03 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 12:15:03 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 12:14:53 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 12:14:50 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 12:14:47 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 12:25:22 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:25:19 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 12:25:18 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:25:17 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:25:02 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:25:02 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:25:00 | hermes-observer | pull_request_target | cursor/audit-pr-30-122d | queued |
+| 2026-08-12 12:24:59 | pipeline-challenge | push | master | in_progress |
+| 2026-08-12 12:24:59 | security | push | master | success |
+| 2026-08-12 12:24:59 | audit-guard | push | master | success |
+| 2026-08-12 12:24:59 | hermes-dashboard | push | master | in_progress |
+| 2026-08-12 12:24:59 | pipeline-audit | push | master | success |
+| 2026-08-12 12:24:59 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 12:24:59 | harness-ci | push | master | in_progress |
+| 2026-08-12 12:24:59 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -50,6 +50,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-cdc683f-hermes-workflow-quatre-acteurs | retenu — à convertir en brief | 2026-08-12 11:41 |
 | CURSOR-73022bd-hermes-dashboard-modele-auditeur | contre-audit rendu — attend la décision | 2026-08-12 11:55 |
 | CURSOR-65c3ac1-dashboard-hermes-modele-auditeur | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-779d97c-revue-verdicts-illisibles | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 
 (7 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
 
