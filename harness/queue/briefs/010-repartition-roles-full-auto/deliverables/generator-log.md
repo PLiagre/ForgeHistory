@@ -642,3 +642,312 @@ $ py -m pytest harness/tests/ -q
   cette itération.
 - Je n'ai pas commité : `git add` seulement, comme à l'itération 1.
 - Je n'ai pas modifié `verdict.md` ni `feedback/feedback-010a.md`.
+
+## Production — lot 010b (2026-08-11)
+
+**Author**: forge-generateur-codex
+
+### Budget et périmètre
+
+Le split-check initial a estimé le lot à 100 unités (`SIZE_OK`). Le statut
+budget était `UNMEASURABLE` dans ce worktree, faute de transcript Claude local
+associé ; aucun chiffre n'a été inventé. Le lot ne touche ni les workflows, ni
+`VISION.md`, ni le brief 009, et ne rédige aucun verdict.
+
+### SC7 — wrapper Codex réel, même interface
+
+`harness/backends/run_codex_generator.sh` expose exactement la même signature
+que le wrapper Cursor :
+
+```
+harness/backends/run_codex_generator.sh: <brief_dir> [extra_dirs_colon_separated]
+harness/backends/run_cursor_generator.sh: <brief_dir> [extra_dirs_colon_separated]
+```
+
+Le wrapper utilise l'interface non interactive stable `codex exec`, le prompt
+sur stdin, `--cd`, `--sandbox workspace-write` et `--json`, conformément à la
+référence officielle : https://developers.openai.com/codex/cli/reference/.
+Il signe `forge-generateur-codex`, vérifie les livrables, écrit un état explicite
+et ne touche jamais à `verdict.md`.
+
+Deux appels réels ont été tentés sur le fixture inter-acteurs
+`fx_010b_cross_actor`. Le premier a révélé que le bundle Desktop expose d'abord
+un ELF Linux sans extension ; le wrapper préfère désormais le PE `codex.exe`
+sur Windows. Le second a franchi le préflight puis l'ACL AppX a refusé
+l'exécution du PE :
+
+```
+PREFLIGHT OK: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur-codex<->forge-evaluateur-korrigan
+harness/backends/run_codex_generator.sh: line 104: /c/Program Files/WindowsApps/OpenAI.Codex_26.803.5235.0_x64__2p2nqsd0c76g0/app/resources/codex.exe: Permission denied
+wrapper exit: 1 ; codex exit: 126
+```
+
+La sortie complète est recopiée dans
+`deliverables/proofs/wrapper-cross-actor-output.txt`; le JSONL vide, stderr et
+fichier d'état produits par le wrapper sont conservés dans le fixture.
+
+### SC8 — trois emplacements exacts dans forge-run
+
+Commande réelle : `rg -n "codex" .claude/commands/forge-run.md`.
+
+```
+3:argument-hint: <brief-slug-or-path> [--backend claude|cursor|codex] [--max-iterations N]
+19:- `--backend claude|cursor|codex` (default `claude`) — which Générateur backend
+78:    elif backend == "codex": run bash harness/backends/run_codex_generator.sh <BRIEF_DIR>
+```
+
+Compteur : `forge_run_backend_mentions_count = 3`, échantillon 3.
+
+### SC9 — ledger mesuré, jetons non inventés
+
+`py harness/backends/ledger.py report` rend :
+
+```
+By backend:
+    28  claude
+     4  cursor
+     2  codex
+```
+
+Compteur : `codex_invocations_in_ledger = 2`, sur les 3 lignes backend du
+rapport. Les deux appels ont échoué avant le démarrage d'un modèle ; leur
+`codex-run.jsonl` est vide. La dérogation du manifest cite la commande de
+lecture, la sortie vide et l'erreur littérale, plutôt que de compter zéro
+jeton sans preuve.
+
+### SC10 — décision enregistrée
+
+`docs/adr/0009-codex-as-official-generator-backend.md` porte `Status:
+accepted`, enregistre l'interface, la mesure et le préflight, et
+`docs/adr/README.md` contient sa ligne.
+
+### SC11 — refus inter-acteurs réutilisé, pas réimplémenté
+
+`harness/backends/codex_preflight.py` importe et appelle directement
+`verdict_audit.check_verdict_not_self_authored`. L'appel réel du wrapper sur
+`fx_sc3` a rendu 2 avant tout fichier de sortie :
+
+```
+REFUSING TO RUN: a forge-generateur-codex section would be self-authored against the existing verdict (same actor on 1/1 examined pair(s): forge-generateur-codex==forge-evaluateur-codex (examined: forge-generateur-codex<->forge-evaluateur-codex); plus 1 dropped-entry self-judgment(s): forge-generateur-codex==forge-evaluateur-codex).
+```
+
+La commande, Bash 5.2.37, la sortie et le code sont recopiés dans
+`deliverables/proofs/wrapper-same-actor-output.txt`.
+
+### Tests
+
+Le test red-first a d'abord rendu `6 failed in 0.22s`. Après implémentation :
+
+```
+$ py -m pytest harness/tests/test_codex_backend.py -q
+6 passed in 0.26s
+
+$ py -m pytest harness/tests/ -q
+311 passed in 22.09s
+```
+
+Le gate mécanique final a rendu 10/10 PASS et `VERDICT: ACCEPT`; sa sortie est
+recopiée dans `deliverables/proofs/gate-010b-self-check.txt`. Il s'agit du
+contrôle mécanique, pas d'un verdict écrit par le Générateur.
+
+Le premier passage complet avait exposé une régression de libellé Cursor
+(`NOT observable`) : corrigée puis rejouée sur la suite entière. Les sorties
+rouge, verte et intermédiaire sont conservées dans les preuves. Aucun commit
+n'a été créé et ce Générateur n'a écrit ni verdict ni jugement d'acceptation.
+
+---
+
+## Lot 010c — le verrou de fusion mesuré et spécifié, sans activation
+
+**Author**: forge-generateur-codex
+**Date**: 2026-08-11
+
+Cette section concerne uniquement 010c. Elle n'ajoute aucun verdict et ne
+prononce pas la recevabilité du lot ; Claude doit reconstruire les compteurs
+dans une session distincte.
+
+### Première action et budget
+
+Commande :
+
+```text
+py harness/budget.py split-check --brief harness/queue/briefs/010-repartition-roles-full-auto --estimated-calls 80
+```
+
+Sortie réelle :
+
+```text
+advisory   : SIZE_OK   (advisory -- the Planificateur decides)
+brief      : 010-repartition-roles-full-auto
+estimated  : 80
+```
+
+Le suivi automatique de la session est ambigu et n'a pas été attribué à un
+ancien journal arbitraire :
+
+```text
+py harness/budget.py status --brief harness/queue/briefs/010-repartition-roles-full-auto
+status     : AMBIGUOUS
+reason     : 2 transcripts name 010-repartition-roles-full-auto: agent-ab7ddd9fc8234c57a.jsonl (37 tool calls), agent-a3e4b7b0460596b89.jsonl (101 tool calls). Disambiguate with --agent <substring>.
+Nothing is being enforced. This is not OK -- it is unmeasured.
+```
+
+### SC12 — le test lit la politique réellement exécutée
+
+`harness/merge_bot_policy.py` lit directement
+`.github/workflows/merge-bot.yml`. Il refuse un fichier absent, illisible,
+vide ou tronqué et extrait trois éléments : les préfixes dans le `if:` du job,
+la regex de denylist et la regex d'allowlist. Il ne contient aucune copie des
+deux listes comme source de décision.
+
+Le test a été écrit avant le module. Première exécution réelle :
+
+```text
+py -m pytest harness/tests/test_merge_bot_policy.py -q
+E   ModuleNotFoundError: No module named 'harness.merge_bot_policy'
+ERROR harness/tests/test_merge_bot_policy.py
+1 error in 0.15s
+```
+
+Après création du module :
+
+```text
+py -m pytest harness/tests/test_merge_bot_policy.py -q
+......                                                                   [100%]
+6 passed in 0.04s
+```
+
+Deux tests construisent des copies temporaires élargies : l'une ajoute le
+préfixe `codex/`, l'autre le chemin `docs/`. Dans les deux cas, l'assertion de
+frontière devient rouge. Deux autres cas refusent un workflow vide ou tronqué,
+afin de ne pas reproduire le défaut C3 du lot 009a.
+
+Compteurs reconstruits depuis le workflow lui-même :
+
+```text
+mergebot_allowed_prefixes_count = 2
+prefixes = ['cursor/', 'forge-bot/']
+mergebot_allowed_paths_count = 3
+paths = ['architecture/inbox/', 'architecture/reviews/', 'harness/queue/briefs/*/feedback/']
+```
+
+### SC13 et SC15 — chaîne réelle et porte conditionnelle inactive
+
+Le document court `docs/rules/conditional-merge-gate.md` nomme l'étape
+humaine exacte : pour une PR de code, le propriétaire clique aujourd'hui
+« Merge pull request » dans GitHub, ou lance lui-même `gh pr merge`. Le job
+actuel est ignoré dès le `if:` pour une branche `codex/` ou `forge/`.
+
+La porte future est spécifiée par quatre lectures au même SHA :
+
+1. contrôles GitHub présents et tous dans le compartiment `pass`, dont les
+   deux jobs `harness-ci` ;
+2. gate du brief exécuté sur un checkout propre, code 0, dix `[PASS]` et
+   dernière ligne `VERDICT: ACCEPT` ;
+3. verdict du lot explicitement ACCEPT, avec acteurs producteur/juge
+   identifiables et différents ;
+4. audit `cursor-cloud` suivi sous `architecture/inbox/`, dont
+   `target_commit` égale exactement le SHA de tête et dont le schéma passe.
+
+Le document impose de reconstruire les quatre preuves si le SHA change. Il
+n'appelle aucune commande de fusion et dit dès sa première ligne qu'aucun
+workflow ne le lit.
+
+Mesure du périmètre workflow depuis le commit de départ du lot :
+
+```text
+git diff --numstat 3822c68 -- .github/workflows
+(aucune sortie)
+workflows_diff_bytes = 0
+```
+
+Les trois chaînes `TODO(operator` de `pipeline-audit.yml`,
+`pipeline-challenge.yml` et `pipeline-forge-run.yml` sont toujours présentes ;
+leur sortie complète est dans `deliverables/proofs/workflows-diff-010c.txt`.
+
+### SC14 — cohorte réelle des PR fusionnées
+
+Commande réellement exécutée contre GitHub, chaque PR étant relue avec
+`gh pr view <numéro> --json files` puis comparée aux regex extraites du
+workflow :
+
+```text
+py harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/measure_recent_prs_automergeable.py --limit 20
+requested=20
+returned=18
+branch_prefixes=["cursor/", "forge-bot/"]
+allowed_path_prefixes=["architecture/inbox/", "architecture/reviews/", "harness/queue/briefs/*/feedback/"]
+{"automergeable": false, "changed_paths": 74, "head": "forge/010a-iteration-2", "number": 21, "reasons": ["préfixe de branche refusé", "denylist (1 chemin(s))", "hors allowlist (73 chemin(s))"]}
+{"automergeable": false, "changed_paths": 46, "head": "forge/010a-contrat-roles", "number": 20, "reasons": ["préfixe de branche refusé", "denylist (1 chemin(s))", "hors allowlist (45 chemin(s))"]}
+{"automergeable": false, "changed_paths": 10, "head": "forge/roles-full-auto", "number": 19, "reasons": ["préfixe de branche refusé", "hors allowlist (9 chemin(s))"]}
+{"automergeable": false, "changed_paths": 1, "head": "codex/full-auto-session-handoff", "number": 18, "reasons": ["préfixe de branche refusé", "hors allowlist (1 chemin(s))"]}
+{"automergeable": false, "changed_paths": 12, "head": "codex/009b-ci-budget-guard", "number": 17, "reasons": ["préfixe de branche refusé", "hors allowlist (12 chemin(s))"]}
+{"automergeable": false, "changed_paths": 4, "head": "codex/009a-reevaluation", "number": 16, "reasons": ["préfixe de branche refusé", "hors allowlist (3 chemin(s))"]}
+{"automergeable": true, "changed_paths": 1, "head": "cursor/codex-handoff-full-auto-79aa", "number": 15, "reasons": []}
+{"automergeable": false, "changed_paths": 48, "head": "forge/cursor-audit-loop", "number": 14, "reasons": ["préfixe de branche refusé", "denylist (2 chemin(s))", "hors allowlist (45 chemin(s))"]}
+{"automergeable": false, "changed_paths": 2, "head": "codex/hermes-observer-setup", "number": 13, "reasons": ["préfixe de branche refusé", "denylist (1 chemin(s))", "hors allowlist (2 chemin(s))"]}
+{"automergeable": false, "changed_paths": 7, "head": "cursor/opus5-context-audit-brief-bd25", "number": 11, "reasons": ["hors allowlist (6 chemin(s))"]}
+{"automergeable": false, "changed_paths": 100, "head": "forge/cursor-audit-loop", "number": 10, "reasons": ["préfixe de branche refusé", "hors allowlist (98 chemin(s))"]}
+{"automergeable": true, "changed_paths": 1, "head": "cursor/audit-5633ee7-automation-gaps-73c6", "number": 9, "reasons": []}
+{"automergeable": false, "changed_paths": 64, "head": "forge/cursor-audit-loop", "number": 8, "reasons": ["préfixe de branche refusé", "denylist (6 chemin(s))", "hors allowlist (62 chemin(s))"]}
+{"automergeable": false, "changed_paths": 3, "head": "cursor/full-auto-pipeline-brief-342b", "number": 6, "reasons": ["hors allowlist (3 chemin(s))"]}
+{"automergeable": true, "changed_paths": 1, "head": "cursor/postmerge-audit-42cb054-342b", "number": 5, "reasons": []}
+{"automergeable": false, "changed_paths": 33, "head": "forge/cursor-audit-loop", "number": 4, "reasons": ["préfixe de branche refusé", "denylist (3 chemin(s))", "hors allowlist (32 chemin(s))"]}
+{"automergeable": true, "changed_paths": 1, "head": "cursor/audit-bbe6da5-bare-python-matcher-3f31", "number": 3, "reasons": []}
+{"automergeable": true, "changed_paths": 1, "head": "cursor/audit-6231186-execution-budgets-3f31", "number": 2, "reasons": []}
+recent_prs_automergeable_count=5
+sample_size=18
+cohort_note=GitHub ne contient que 18 PR fusionnées; le dénominateur demandé 20 n'existe pas encore.
+```
+
+Le résultat observable est **5 sur 18**. Le dépôt ne possède que 18 PR
+fusionnées : les numéros absents ou les PR fermées sans fusion ne sont pas des
+observations légitimes. Le dénominateur 20 exigé par le brief n'est donc pas
+atteignable aujourd'hui. La commande a réussi, il n'existe aucun corps
+d'erreur permettant d'invoquer la dérogation prévue ; le manifest conserve
+honnêtement `sample_size: 18`. Ce manque devra être jugé comme tel, jamais
+masqué par deux lignes inventées.
+
+### Suite complète
+
+```text
+py -m pytest harness/tests/ -q
+........................................................................ [ 23%]
+........................................................................ [ 46%]
+........................................................................ [ 69%]
+........................................................................ [ 92%]
+.......................                                                  [100%]
+311 passed in 24.46s
+```
+
+### Périmètre
+
+Le lot ajoute un module de lecture, son test, un document de spécification et
+des preuves sous les livrables du brief 010. Il ne modifie aucun workflow,
+`VISION.md`, le brief 009, ses livrables, ses verdicts ou ses feedbacks.
+
+### Gate mécanique
+
+```text
+py harness/verdict_audit.py harness/queue/briefs/010-repartition-roles-full-auto
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 2 examined pair(s): forge-generateur<->forge-evaluateur; forge-generateur-codex<->forge-evaluateur
+[PASS] rubric_predates_deliverables: rubric (2026-08-11 10:16:38) predates earliest deliverable (2026-08-11 22:58:04.418904)
+[PASS] declared_files_are_tracked: all 49 in-brief declared files are tracked; 8 declared outside the brief dir, not checked
+
+VERDICT: ACCEPT
+```
+
+Ce résultat est mécanique seulement. Il révèle aussi une limite à ne pas
+masquer : en l'absence d'un verdict 010c, le contrôle positionnel associe la
+nouvelle signature `forge-generateur-codex` à la dernière signature
+`forge-evaluateur` déjà présente pour 010a. La passe mécanique ne prouve donc
+pas qu'un Évaluateur a jugé 010c ; seul un verdict Claude ajouté ensuite peut
+le faire. Ce lot ne modifie pas le contrôle accepté en 010a et consigne ce
+constat pour une correction future.

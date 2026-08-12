@@ -168,6 +168,89 @@ def test_truncated_forge_run_workflow_before_jobs_section_refuses_full_auto_fail
         validate_mode("full_auto", forge_run_workflow=truncated)
 
 
+def test_comment_only_structure_markers_refused_full_auto_fail_closed(tmp_path):
+    """Iteration-3 fix for feedback-009a-002.md blocker C3, case 1/3.
+    Iteration-2's positive-evidence check looked for the substrings
+    `jobs:`/`runs-on:` ANYWHERE in the text, including inside a comment.
+    A file containing only `# jobs:` / `# runs-on:` as comments (never a
+    real YAML key) satisfied that substring search and was silently
+    ACCEPTED -- reproduced against the unmodified iteration-2 module, see
+    generator-log.md's iteration-3 section for the exact red output. The
+    fixed check requires each structure marker to start a real (stripped)
+    line, so a commented-out marker no longer counts."""
+    import pytest
+
+    comments_only = tmp_path / "pipeline-forge-run.yml"
+    comments_only.write_text(
+        "# jobs:\n# runs-on:\n# aucune invocation forge-run\n", encoding="utf-8"
+    )
+    with pytest.raises(ModeGuardError, match="does not look like a complete"):
+        validate_mode("full_auto", forge_run_workflow=comments_only)
+
+
+def test_structure_marker_prefix_garbage_does_not_count_as_yaml_key(tmp_path):
+    """Iteration-3 C3 hardening: ``jobs:garbage`` is not the ``jobs:``
+    key merely because it shares the same text prefix. The dependency-free
+    heuristic accepts only an end-of-line, whitespace, or inline comment
+    after a required marker."""
+    import pytest
+
+    malformed = tmp_path / "pipeline-forge-run.yml"
+    malformed.write_text(
+        "name: malformed\njobs:garbage\n  forge:\n    runs-on: ubuntu-latest\n"
+        "    steps:\n      - run: echo no-agent\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ModeGuardError, match="does not look like a complete"):
+        validate_mode("full_auto", forge_run_workflow=malformed)
+
+
+def test_truncated_after_runs_on_before_steps_refused_full_auto_fail_closed(tmp_path):
+    """Iteration-3 fix for C3, case 2/3. A file with a REAL, uncommented
+    `jobs:`/`runs-on:` pair but truncated before any `steps:` section
+    (a partial write cutting off exactly where the real workflow's own
+    invocation step would begin) satisfied iteration-2's two-marker
+    substring check and was silently ACCEPTED. `steps:` is now a required
+    third structural marker (also checked as a real line, not a
+    substring), so this truncation is refused."""
+    import pytest
+
+    truncated = tmp_path / "pipeline-forge-run.yml"
+    truncated.write_text(
+        "name: incomplete\njobs:\n  forge:\n    runs-on: ubuntu-latest\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ModeGuardError, match="does not look like a complete"):
+        validate_mode("full_auto", forge_run_workflow=truncated)
+
+
+def test_structurally_complete_workflow_without_real_invocation_still_accepted_known_heuristic_limit(
+    tmp_path,
+):
+    """Iteration-3, C3, case 3/3 -- the one case that is NOT closed, and is
+    documented here rather than silently left uncovered ("la porte se
+    rouvrira en silence" -- feedback-009a-002.md). A complete, well-formed
+    workflow with real, uncommented `jobs:`/`runs-on:`/`steps:` sections
+    whose only step is `run: echo no-agent` still passes this guard: the
+    module answers "does this file look like a real, complete GitHub
+    Actions workflow, not a corrupted/truncated one", never "does this
+    workflow's step actually invoke an agent". Proving the latter is
+    exactly Lot 009c SC14's own job (the real headless `claude` CLI
+    invocation) -- duplicating that proof here would pre-empt 009c's own
+    work, which brief 009's Non-Goals reserve to it. This test pins the
+    known, documented limit so a future change cannot silently narrow or
+    widen it without this test forcing a conscious update."""
+    fake_but_structurally_complete = tmp_path / "pipeline-forge-run.yml"
+    fake_but_structurally_complete.write_text(
+        "name: fake\njobs:\n  forge:\n    runs-on: ubuntu-latest\n"
+        "    steps:\n      - run: echo no-agent\n",
+        encoding="utf-8",
+    )
+    # Must NOT raise -- this is the documented, accepted limitation, not a
+    # regression: this module cannot and does not prove semantic wiring.
+    validate_mode("full_auto", forge_run_workflow=fake_but_structurally_complete)
+
+
 def test_non_utf8_forge_run_workflow_raises_mode_guard_error_not_uncaught_exception(tmp_path):
     """Secondary, non-blocking defect named in feedback-009a.md B2 point 3:
     a workflow file that is not valid UTF-8 must refuse via the module's

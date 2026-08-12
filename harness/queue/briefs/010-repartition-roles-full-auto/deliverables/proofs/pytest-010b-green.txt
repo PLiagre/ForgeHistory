@@ -1,0 +1,27 @@
+$ py -m pytest harness/tests/test_codex_backend.py -q
+......                                                                   [100%]
+6 passed in 0.26s
+
+$ py -m pytest harness/tests/ -q
+........................................................................ [ 23%]
+........................................................................ [ 46%]
+................F....................................................... [ 69%]
+........................................................................ [ 92%]
+.......................                                                  [100%]
+1 failed, 310 passed in 24.33s
+
+Cause du premier passage complet : le test historique exigeait la chaîne
+littérale `NOT observable` dans l'avertissement Cursor. La formulation a été
+rendue rétrocompatible, sans changement de logique.
+
+$ py -m pytest harness/tests/test_ledger_tokens.py::test_cli_reports_role_brief_and_cursor_caveat harness/tests/test_codex_backend.py -q
+.......                                                                  [100%]
+7 passed in 0.34s
+
+$ py -m pytest harness/tests/ -q
+........................................................................ [ 23%]
+........................................................................ [ 46%]
+........................................................................ [ 69%]
+........................................................................ [ 92%]
+.......................                                                  [100%]
+311 passed in 22.09s

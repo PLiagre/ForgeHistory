@@ -520,3 +520,63 @@ Rappel de l'état du brief `009` : le lot 009a reste **REJETÉ** (défauts C1-C4
 `feedback/feedback-009a-002.md`). Le lot 009c reste bloqué jusqu'à un ACCEPT
 explicite de 009a — l'acceptation de 009b lève l'une de ses deux conditions,
 pas les deux.
+
+---
+
+# Réévaluation — lot 009a, itération 3 (`999dcf3` + `3703d75`)
+
+**Authored**: 2026-08-12T10:00:00Z
+**Author**: forge-evaluateur
+
+Cette section s'ajoute aux précédentes ; elle n'en efface aucune. Je juge ici
+la correction d'itération 3, produite par `forge-generateur-codex` (commits
+`999dcf3` partiel + `3703d75`). Acteurs distincts (producteur Codex,
+Évaluateur Claude) : je suis recevable pour juger. Chaque preuve ci-dessous a
+été reconstruite par mes propres commandes, sur la branche `forge/009a-iteration-3`,
+dans un worktree dédié — aucun chiffre repris du manifeste ou du journal sans
+recalcul.
+
+## Gate mécanique et suite
+
+- `py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation`
+  → **dix lignes `[PASS]`, `VERDICT: ACCEPT`, exit 0**. `verdict_is_not_self_authored`
+  compare `generator=forge-generateur` / `evaluator=forge-evaluateur`.
+- `py -m pytest harness/tests/ -q` → **`300 passed in 27.30s`** (rejoué par moi).
+- `py -m pytest harness/tests/ -k "mode_guard or mode_split or full_auto" -q`
+  → `20 passed, 280 deselected`.
+
+Le gate est nécessaire mais ne tranche pas les quatre défauts de traçabilité et
+de vérité ; ceux-ci sont jugés ci-dessous, un par un.
+
+## Les quatre défauts C1–C4, reconstruits
+
+| défaut | résultat | preuve indépendante que j'ai exécutée |
+|---|---|---|
+| **C1** — sortie complète manquante dans le journal | **FERMÉ** | `grep -n "300 passed" deliverables/generator-log.md` → ligne `919` (`300 passed in 26.00s`), sous sa commande `py -m pytest harness/tests/ -q`, dans une section datée d'itération 3 qui n'écrase pas l'historique. `deliverables/pytest-full-output.txt` contient la même exécution à `300` tests, remplaçant celle à `284`. |
+| **C2** — commande du compteur trop courte | **FERMÉ (résidu mineur non bloquant)** | Reconstruit sans le script du Générateur : sur toute la plage du lot `244a4f2~1..3703d75`, `git log -p -- harness/pipeline/config.yaml` ne montre que `-mode: full_auto` / `+mode: full_auto_decision_only` → **2 valeurs distinctes**. `git diff 999dcf3..3703d75 -- harness/pipeline/config.yaml` ne touche PAS la ligne `mode:`. La commande du manifeste s'arrête à `999dcf3` (et non `3703d75`), mais sa note l'explique honnêtement et la valeur est invariante — vérifié, pas supposé. |
+| **C3** — le garde accepte des faux workflows que son texte dit refuser | **FERMÉ** | Sondé directement contre le vrai `validate_mode` d'itération 3 (aucune doublure) : `commentaires_seuls` → **REFUSED**, `tronque_apres_runs_on` → **REFUSED** (les deux cas de l'itération 2 sont fermés), `empty`/`whitespace` → REFUSED. Le seul accept résiduel `workflow_echo_sans_agent` est désormais un **cas de limite documenté et testé** (`test_structurally_complete_workflow_without_real_invocation_still_accepted_known_heuristic_limit`) ; la docstring et le module ne prétendent plus « positively proves forge-run is wired » ni « no fourth silently-permissive outcome ». La promesse a été rendue vraie là où c'était faisable, et restreinte pour le cas résiduel — exactement les deux options offertes par le feedback C3. |
+| **C4** — le mode décrit comme un contrôle opérationnel actif | **FERMÉ** | `full-auto-pipeline.md` : « How to activate » → « How to declare … before runtime wiring » ; « activates the audit→owner-decision half unattended » → « declares the intended posture … does not activate an unattended path. No workflow reads this key at runtime yet ». `config.yaml` : « Live switches » → « Declared posture and limits », « Emergency kill-switch » retiré. Vérif croisée : `grep` sur `.github/workflows/` ne trouve aucun lecteur du mode — cohérent avec le texte corrigé. Le seul « Kill-switch » restant nomme le label `pipeline/pause`, mécanisme distinct du `mode:`, hors périmètre 009a. |
+
+## Frontières de périmètre — vérifiées par diff, pas par déclaration
+
+Sur toute la plage d'itération 3 (`999dcf3^..3703d75`) :
+
+- **Aucun fichier `.github/` touché.** `git diff --name-only … | grep '^\.github/'` → vide.
+- **Aucun fichier 009b/009c touché** (`ci_budget_guard.py`, `ci-budget-ledger.jsonl`,
+  `pipeline-challenge.yml`) → vide.
+- **`docs/adr/0006-full-auto-agent-pipeline.md` byte-identique** : hash
+  `f6fe0362…` avant et après itération 3.
+- Les deux branches SC1/SC2 restent exercées (suite verte, `20` tests mode-guard).
+
+## Verdict : **LOT_009a: ACCEPT** (itération 3)
+
+Les quatre défauts C1–C4 sont fermés, chacun reconstruit par mes propres
+commandes. Le cœur fonctionnel — déjà jugé solide aux itérations précédentes —
+n'a pas régressé : `300` tests verts sans qu'aucun test préexistant soit modifié,
+gate mécanique `10`/`10`, frontières tenues, ADR-`0006` intact à l'octet. Le seul
+résidu (la commande C2 s'arrête un commit trop tôt) est documenté honnêtement,
+n'affecte pas la valeur du compteur, et ne justifie pas un rejet.
+
+**Le brief `009` est désormais : 009a ACCEPT, 009b ACCEPT, 009c non produit
+(NOT_IN_SCOPE — reste réservé, dépendait de 009a+009b maintenant tous deux
+acceptés).** Un futur brief/lot 009c pourra être lancé.

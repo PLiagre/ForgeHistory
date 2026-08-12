@@ -1,28 +1,30 @@
 # harness/pipeline/config.yaml
 #
-# Live switches for the full-auto pipeline (ADR-0006,
+# Declared posture and limits for the full-auto pipeline (ADR-0006,
 # harness/pipeline/auto_policy.yaml). Parsed by
 # harness/pipeline/policy_loader.py (`load_flat_yaml`) -- no PyYAML
 # dependency in this repo, see generator-log.md.
 #
-# Emergency kill-switch: set `mode: manual` (below) to fall back to the
-# ADR-0005 human loop (/forge-audit-accept, /forge-audit-reject), or apply
-# the `pipeline/pause` label to a PR/issue that the workflows read. Full
-# activation/deactivation steps: docs/rules/full-auto-pipeline.md
+# `mode:` is a declaration validated by full_auto_mode_guard.py. As of brief
+# 009 Lot 009a, no workflow reads it at runtime; `manual` therefore records
+# the intended fallback but is not yet an operational emergency stop. The
+# first load-bearing workflow check is reserved for Lot 009c SC15. Current
+# implementation state: docs/rules/full-auto-pipeline.md
 #
-# `mode: full_auto_decision_only` activated after Lot 006c: the brief's
+# `mode: full_auto_decision_only` was declared after Lot 006c: the brief's
 # "Lots atomiques" ordering gated this flip on 006c's end-to-end demo
 # proving the loop closes without a human (idempotent demo, exit 0,
 # IMPLEMENTED->VERIFIED->ARCHIVED) and the budget supervisor (006c) being in
 # place to catch runaway cost. ADR-0007 (docs/adr/0007-full-auto-mode-split.md)
-# split the single `full_auto` value into `full_auto_decision_only` (audit ->
-# owner decision today; the challenge maillon is wired by brief 009 Lot
-# 009c, not yet as of Lot 009a -- pipeline-challenge.yml's invocation step
-# is still the documented TODO(operator...) stub until 009c lands) and a
+# split the single `full_auto` value into `full_auto_decision_only` (the
+# posture intended for audit -> owner decision; no workflow reads it yet,
+# and the challenge maillon remains the documented TODO(operator...) stub
+# until brief 009 Lot 009c lands) and a
 # reserved, fail-closed `full_auto` (refused by
-# harness/pipeline/full_auto_mode_guard.py until forge-run's own invocation
-# is wired for real -- see that module's docstring). To deactivate, revert
-# this to `manual` -- the ADR-0005 human loop is unchanged.
+# harness/pipeline/full_auto_mode_guard.py while the target workflow fails
+# its narrow structural heuristic or carries the stub marker; passing that
+# heuristic is not semantic proof of an invocation). The ADR-0005 human
+# loop is unchanged.
 mode: full_auto_decision_only
 
 # Ceiling on how many times the orchestrator (Lot 006b) may re-invoke
