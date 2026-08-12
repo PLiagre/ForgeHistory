@@ -11,21 +11,24 @@
 # first load-bearing workflow check is reserved for Lot 009c SC15. Current
 # implementation state: docs/rules/full-auto-pipeline.md
 #
-# `mode: full_auto_decision_only` was declared after Lot 006c: the brief's
-# "Lots atomiques" ordering gated this flip on 006c's end-to-end demo
-# proving the loop closes without a human (idempotent demo, exit 0,
-# IMPLEMENTED->VERIFIED->ARCHIVED) and the budget supervisor (006c) being in
-# place to catch runaway cost. ADR-0007 (docs/adr/0007-full-auto-mode-split.md)
-# split the single `full_auto` value into `full_auto_decision_only` (the
-# posture intended for audit -> owner decision; no workflow reads it yet,
-# and the challenge maillon remains the documented TODO(operator...) stub
-# until brief 009 Lot 009c lands) and a
-# reserved, fail-closed `full_auto` (refused by
-# harness/pipeline/full_auto_mode_guard.py while the target workflow fails
-# its narrow structural heuristic or carries the stub marker; passing that
-# heuristic is not semantic proof of an invocation). The ADR-0005 human
-# loop is unchanged.
-mode: full_auto_decision_only
+# `mode: full_auto` was declared on 2026-08-12 (ADR-0010) once the three
+# invocation workflows stopped being documented stubs: pipeline-forge-run.yml
+# (Claude CTO headless + Codex Générateur), pipeline-challenge.yml
+# (claude-challenger headless, consultation runtime de cette clé -- lot 009c
+# SC15) and pipeline-audit.yml (Cursor critique de chaque PR + audit
+# post-merge) each carry a real agent invocation, each behind the
+# `pipeline/pause` kill-switch, this `mode:` key, the monthly
+# ci_budget_guard precheck and a per-call --max-budget-usd cap. Without the
+# repository secrets (ANTHROPIC_API_KEY, OPENAI_API_KEY, CURSOR_API_KEY)
+# every invocation step logs a documented waiver and no-ops -- full_auto
+# never silently pretends to run. The value passes
+# harness/pipeline/full_auto_mode_guard.py because the forge-run workflow no
+# longer carries the stub marker (ADR-0007's fail-closed reservation was
+# exactly for this moment). `full_auto_decision_only` remains valid as the
+# narrower fallback posture; `manual` remains the emergency stop -- and is
+# now load-bearing: pipeline-forge-run.yml and pipeline-challenge.yml read
+# this key at runtime and skip their invocation when it says manual.
+mode: full_auto
 
 # Ceiling on how many times the orchestrator (Lot 006b) may re-invoke
 # claude-developer on the SAME brief after a REJECT/plateau before it must
@@ -37,6 +40,9 @@ auto_merge_audit_prs: true
 auto_merge_review_prs: true
 claude_challenge_on_inbox_merge: true
 cursor_audit_on_master_push: true
+# ADR-0010: Cursor critiques every non-draft, non-cursor/* pull request
+# against architecture/review-guidelines.md (pipeline-audit.yml).
+cursor_review_on_pr: true
 
 # Auto-merge is restricted to these path prefixes (bot branches only:
 # cursor/*, forge-bot/*). Any PR touching a path outside this list is never

@@ -4,19 +4,24 @@ SC1/SC2, counters `mode_full_auto_bare_rejected_test_count` and
 `mode_full_auto_accepted_when_forgerun_wired_test_count`.
 
 Both branches of the same guard are proven, per the pairing hard-won rule
-008a paid for (a guard exercising only one branch is not proven):
-  - test_bare_full_auto_refused_while_forgerun_unwired (SC1): against the
-    REAL, on-disk `.github/workflows/pipeline-forge-run.yml`, which still
-    contains the stub marker today.
-  - test_full_auto_accepted_once_forgerun_wired (SC2): against a FIXTURE
-    copy of that same file with the stub marker removed -- never the real
-    file, which brief 009's own Non-Goals forbid rewiring in this lot.
+008a paid for (a guard exercising only one branch is not proven).
 
-Hard-won rule 4 (prove red first): `test_stub_marker_still_present_in_real_
-forge_run_workflow_control` is the control case -- if a future lot wires
-forge-run for real and removes the marker, THIS test goes red first,
-loudly, rather than SC1's own test silently starting to pass for the wrong
-reason (the real file no longer matching what SC1 claims to prove against).
+2026-08-12 (ADR-0010): pipeline-forge-run.yml was wired for real (headless
+Claude invocation, no stub marker left), which made the original control
+case `test_stub_marker_still_present_in_real_forge_run_workflow_control` go
+red exactly as its own docstring predicted. The pair is therefore INVERTED,
+consciously, in the same commit that rewired the workflow:
+  - test_full_auto_accepted_against_real_wired_forge_run: against the REAL,
+    on-disk `.github/workflows/pipeline-forge-run.yml`, which no longer
+    contains the stub marker.
+  - test_bare_full_auto_refused_on_stubbed_fixture (SC1's refusal branch):
+    against a FIXTURE copy of that same file with the stub marker put back
+    -- proving the guard is not hardcoded to accept `full_auto` forever
+    either.
+
+The control case now pins the ABSENCE of the marker in the real file: if a
+future edit reintroduced a stub, that control goes red first, loudly, and
+`mode: full_auto` in config.yaml would stop being legal.
 """
 from __future__ import annotations
 
@@ -35,38 +40,42 @@ REPO_ROOT = HARNESS.parent
 REAL_FORGE_RUN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pipeline-forge-run.yml"
 
 
-def test_stub_marker_still_present_in_real_forge_run_workflow_control():
-    """Control case for SC1 -- if this goes red, SC1's own refusal test is
-    no longer testing the condition it claims to (forge-run would have been
-    wired for real, out of this lot's scope)."""
+def test_stub_marker_absent_from_real_forge_run_workflow_control():
+    """Control case, inverted on 2026-08-12 (ADR-0010): the real workflow
+    is wired and carries no stub marker. If this goes red, someone put a
+    stub back into pipeline-forge-run.yml -- and `mode: full_auto` in
+    config.yaml stops being legal (see test_config_yaml_current_mode below,
+    which would go red with it)."""
     text = REAL_FORGE_RUN_WORKFLOW.read_text(encoding="utf-8")
-    assert FORGE_RUN_STUB_MARKER in text
+    assert FORGE_RUN_STUB_MARKER not in text
 
 
-def test_bare_full_auto_refused_while_forgerun_unwired():
-    """SC1 -- against the REAL repository state (not a fixture), the bare
-    `full_auto` value is refused fail-closed: a raised exception, not a
-    silent pass-through."""
+def test_full_auto_accepted_against_real_wired_forge_run():
+    """SC2's acceptance branch, now provable against the REAL repository
+    state (not a fixture): forge-run carries a real headless invocation,
+    so the bare `full_auto` value is legal. Must not raise."""
+    validate_mode("full_auto", forge_run_workflow=REAL_FORGE_RUN_WORKFLOW)
+
+
+def test_bare_full_auto_refused_on_stubbed_fixture(tmp_path):
+    """SC1's refusal branch, kept alive on a FIXTURE: a copy of the real
+    workflow with the stub marker put back must refuse `full_auto`
+    fail-closed -- proving the guard is not hardcoded to accept it forever
+    now that the real file is wired."""
     import pytest
 
-    with pytest.raises(ModeGuardError, match="full_auto refused"):
-        validate_mode("full_auto", forge_run_workflow=REAL_FORGE_RUN_WORKFLOW)
-
-
-def test_full_auto_accepted_once_forgerun_wired(tmp_path):
-    """SC2 -- companion test proving the SAME guard is not hardcoded to
-    refuse `full_auto` forever: a fixture copy of pipeline-forge-run.yml
-    with the stub marker removed makes `full_auto` valid again, with no
-    code change to the guard itself."""
     real_text = REAL_FORGE_RUN_WORKFLOW.read_text(encoding="utf-8")
-    assert FORGE_RUN_STUB_MARKER in real_text  # sanity: fixture actually removes something real
+    assert FORGE_RUN_STUB_MARKER not in real_text  # sanity: fixture actually adds something new
 
-    wired_fixture = tmp_path / "pipeline-forge-run.yml"
-    wired_fixture.write_text(real_text.replace(FORGE_RUN_STUB_MARKER, "DONE(operator"), encoding="utf-8")
-    assert FORGE_RUN_STUB_MARKER not in wired_fixture.read_text(encoding="utf-8")
+    stubbed_fixture = tmp_path / "pipeline-forge-run.yml"
+    stubbed_fixture.write_text(
+        real_text + f"\n# {FORGE_RUN_STUB_MARKER}, once provisioned): re-stubbed fixture\n",
+        encoding="utf-8",
+    )
+    assert FORGE_RUN_STUB_MARKER in stubbed_fixture.read_text(encoding="utf-8")
 
-    # Must not raise.
-    validate_mode("full_auto", forge_run_workflow=wired_fixture)
+    with pytest.raises(ModeGuardError, match="full_auto refused"):
+        validate_mode("full_auto", forge_run_workflow=stubbed_fixture)
 
 
 def test_manual_always_valid():
@@ -275,12 +284,15 @@ def test_empty_mode_refused():
         validate_mode("", forge_run_workflow=REAL_FORGE_RUN_WORKFLOW)
 
 
-def test_config_yaml_current_mode_is_now_full_auto_decision_only():
-    """Regression guard for SC3 -- once this lot rewrites config.yaml, its
-    mode must both be the new value AND pass the guard unconditionally."""
+def test_config_yaml_current_mode_is_now_full_auto():
+    """Regression guard, updated 2026-08-12 (ADR-0010): config.yaml now
+    declares `full_auto`, and that value must pass the guard against the
+    REAL, wired forge-run workflow. If someone re-stubs the workflow, this
+    test goes red together with the control case above -- the declaration
+    and the wiring can never silently disagree."""
     sys.path.insert(0, str(HARNESS / "pipeline"))
     import policy_loader  # noqa: E402
 
     config = policy_loader.load_flat_yaml(HARNESS / "pipeline" / "config.yaml")
-    assert config.get("mode") == "full_auto_decision_only"
+    assert config.get("mode") == "full_auto"
     validate_mode(config["mode"], forge_run_workflow=REAL_FORGE_RUN_WORKFLOW)

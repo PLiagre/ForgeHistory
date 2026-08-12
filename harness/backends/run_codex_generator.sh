@@ -7,6 +7,11 @@
 # Contract: writes <brief_dir>/deliverables/manifest.json and
 # <brief_dir>/deliverables/generator-log.md with Author:
 # forge-generateur-codex. Never writes verdict.md.
+#
+# Optional env: CODEX_MODEL -- forwarded as `codex exec --model <value>`.
+# ADR-0010 names GPT-5.6 Sol as the executor's model; the CI workflow
+# (pipeline-forge-run.yml) sets CODEX_MODEL=gpt-5.6-sol explicitly. Unset,
+# the CLI's own configured/default model applies (unchanged local behavior).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -64,6 +69,11 @@ if [ -n "${CODEX_EXTRA_DIRS:-}" ]; then
   done
 fi
 
+CODEX_MODEL_ARGS=()
+if [ -n "${CODEX_MODEL:-}" ]; then
+  CODEX_MODEL_ARGS+=(--model "$CODEX_MODEL")
+fi
+
 mkdir -p "$BRIEF_DIR/deliverables"
 PROMPT_FILE="$(mktemp)"
 cleanup_prompt() {
@@ -105,6 +115,7 @@ set +e
   --cd "$REPO_ROOT" \
   --sandbox workspace-write \
   --json \
+  "${CODEX_MODEL_ARGS[@]}" \
   "${CODEX_ADD_DIR_ARGS[@]}" \
   - < "$PROMPT_FILE" > "$OUT_JSONL" 2> "$ERR_LOG"
 CODEX_EXIT=$?

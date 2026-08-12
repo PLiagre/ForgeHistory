@@ -8,9 +8,17 @@ restate the brief's Success Conditions (`CLAUDE.md` › Single Source of
 Instruction) — read `harness/queue/briefs/006-full-auto-agent-pipeline/brief.md`
 for those.
 
+2026-08-12 (ADR-0010): the three agent-invocation workflows are wired for
+real — no `TODO(operator...)` stub remains. `pipeline-audit.yml` also fires
+on every non-draft, non-`cursor/*` pull request (Cursor critiques the PR
+against `architecture/review-guidelines.md`), not only on merges to master.
+
 ## Diagram
 
 ```
+pull request opened/updated ────▶ [cursor-auditor] critique de PR
+  │  .github/workflows/pipeline-audit.yml (pull_request)
+  │
 merge code (Claude/bot) on master
   │
   ▼
@@ -74,66 +82,54 @@ table in `architecture/agents/README.md`): `cursor-auditor`,
 `docs/rules/harness-roles.md` already enforces for the ordinary (non-audit)
 harness loop.
 
-## How to declare `mode: full_auto_decision_only` before runtime wiring
+## How to activate the wired loop (state as of ADR-0010)
 
-1. Confirm Lot 006a + 006b + 006c are all merged (the FSM ledger, the
-   policy table, the six role contracts, the four `pipeline-*.yml`
-   workflows, the budget supervisor, and the end-to-end demo — see the
-   brief's "Lots atomiques").
-2. Provision the credentials the waivers in
-   `harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/manifest.json`
-   name as missing today (`CURSOR_API_KEY` for Cloud Agent invocation,
-   `ANTHROPIC_API_KEY` for headless Claude) as GitHub Actions repository
-   secrets. Until they exist, every workflow that would call an external
-   agent logs a documented waiver and no-ops instead of failing — full_auto
-   cannot silently pretend to run without them.
-3. Edit `harness/pipeline/config.yaml`: set `mode: full_auto_decision_only`
-   (brief 009 / ADR-0007 narrowed the single `full_auto` value to this
-   name). As of brief 009 Lot 009a, this declares the intended posture and
-   makes the value pass `full_auto_mode_guard.py`; it does not activate an
-   unattended path. No `.github/workflows/pipeline-*.yml` file reads this
-   key at runtime yet. The first runtime call site is reserved for Lot 009c
-   SC15, and `pipeline-challenge.yml`'s invocation step is still the
-   documented `TODO(operator...)` stub until that lot lands.
-   The unqualified `full_auto` value is reserved and refused fail-closed by
-   `harness/pipeline/full_auto_mode_guard.py` while the target workflow is
-   missing, truncated, malformed by its narrow structural heuristic, or
-   still contains the stub marker. Passing that heuristic alone is not
-   semantic proof of an agent invocation.
-4. Commit and merge that single-line change (this file IS allowed to be
-   part of a normal, human-reviewed PR — flipping the switch is not itself
-   a bot action).
-5. Until Lot 009c wires a workflow to read this key, a subsequent `push` to
-   `master` behaves exactly as before this declaration. The diagram above
-   describes the target pipeline, not the runtime effect of Lot 009a.
+1. The wiring exists: `pipeline-forge-run.yml` installs the Claude Code and
+   Codex CLIs and runs `claude -p "/forge-run <brief> --backend codex"`
+   (executor model: `CODEX_MODEL=gpt-5.6-sol`, forwarded by
+   `harness/backends/run_codex_generator.sh` as `codex exec --model`);
+   `pipeline-challenge.yml` runs `claude -p "/forge-audit-review <audit_id>"`;
+   `pipeline-audit.yml` launches a Cursor Cloud Agent through the official
+   API (`POST https://api.cursor.com/v1/agents`). Every headless Claude call
+   carries `--max-budget-usd 5.00` (owner arbitration n°2, 2026-08-11), is
+   preceded by `harness/pipeline/ci_budget_guard.py precheck` (monthly cap,
+   lot 009b) and followed by its post-hoc `record` marking.
+2. Provision the three GitHub Actions repository secrets:
+   `ANTHROPIC_API_KEY` (headless Claude), `OPENAI_API_KEY` (Codex CLI),
+   `CURSOR_API_KEY` (Cloud Agents API — the agent-specific key from the
+   Cursor dashboard's Cloud Agents settings, not a generic dashboard key).
+   Until they exist, every invocation step logs a documented `::warning::`
+   waiver and no-ops instead of failing — full_auto never silently pretends
+   to run.
+3. `harness/pipeline/config.yaml` declares `mode: full_auto` since
+   2026-08-12. The value is legal because
+   `harness/pipeline/full_auto_mode_guard.py` re-reads the forge-run
+   workflow on every call and no stub marker remains (ADR-0007's
+   fail-closed reservation was for exactly this moment; the guard's narrow
+   structural heuristic still refuses a missing/truncated/re-stubbed file).
+4. `pipeline-forge-run.yml` and `pipeline-challenge.yml` consult the
+   `mode:` key at runtime (the load-bearing check brief 009 lot 009c
+   reserved): `manual` skips the invocation with a logged waiver.
 
-## How to emergency-disable once runtime wiring exists
+## How to emergency-disable
 
-The repository defines two intended controls. Their current implementation
-state differs; neither retroactively undoes anything already merged:
+Both controls are wired and load-bearing:
 
-1. **`mode: manual`** in `harness/pipeline/config.yaml` declares the
-   fallback to the ADR-0005 human loop (`/forge-audit-accept`,
-   `/forge-audit-reject`, manual `/forge-run`). As of Lot 009a no workflow
-   reads this key, so changing it does not yet stop a running automatic
-   path. Lot 009c SC15 is responsible for the first load-bearing runtime
-   check. The manual value remains available (brief 006 Non-Goals: "ne pas
-   supprimer la boucle manuelle").
+1. **`mode: manual`** in `harness/pipeline/config.yaml` — read at runtime
+   by `pipeline-forge-run.yml` and `pipeline-challenge.yml` before any
+   invocation; it declares the fallback to the ADR-0005 human loop
+   (`/forge-audit-accept`, `/forge-audit-reject`, manual `/forge-run`).
+   `ci_budget_guard.py precheck` also rewrites the key to `manual` itself
+   when the monthly cap is reached. The manual value remains available
+   (brief 006 Non-Goals: "ne pas supprimer la boucle manuelle").
 2. **Kill-switch label `pipeline/pause`** — apply it to any open PR or
-   issue in this repo. Every `pipeline-*.yml` workflow's automatic-action
-   steps (the Cursor/Claude invocation, the orchestrator's ledger writes,
-   `merge-bot.yml`'s `gh pr merge --auto`) must be preceded by a check for
-   this label on the PR/issue in question before taking any write action;
-   a labelled item is treated exactly like a missing credential — a
-   documented waiver logged, no write attempted. (Wiring this check into
-   every workflow step is Lot 006c's responsibility per the brief's own
-   Lot ordering; this doc names the contract so 006c has a fixed target,
-   not a paraphrase of Lot 006c's own Success Conditions.)
+   issue in this repo. The three invocation workflows query
+   `repos/<owner>/<repo>/issues?labels=pipeline/pause&state=open` before
+   invoking any agent; one labelled open item is treated exactly like a
+   missing credential — a documented waiver logged, no write attempted.
 
-Either control is a single, human-authored, normally-reviewed change. The
-`mode:` control becomes an effective stop only when a workflow actually
-consults it; Lot 009a provides the declaration and validation, not that
-runtime wiring.
+Either control is a single, human-authored, normally-reviewed change (or a
+single label click for the pause).
 
 ## Known gap (real, not narrated)
 

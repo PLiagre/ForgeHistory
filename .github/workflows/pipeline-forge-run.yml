@@ -1,27 +1,29 @@
 name: pipeline-forge-run
 
-# Brief 006, Lot 006b, Success Condition 12. Runs claude-developer
-# (architecture/agents/claude-developer.md) headless for exactly ONE brief,
-# per the brief's own "un brief = un forge-run" discipline
-# (docs/rules/harness-roles.md).
+# ADR-0010 : le maillon d'exécution de la chaîne à quatre acteurs. Claude
+# Code (le CTO) est invoqué headless pour exactement UN brief -- /forge-run
+# avec le backend Codex (modèle GPT-5.6 Sol) comme Générateur -- puis le
+# résultat est publié en pull request par ce workflow (Claude fait les PR,
+# jamais Codex : « les Générateurs ne committent jamais »).
 #
-# Two ways in, both explicit -- this workflow never guesses which brief to
-# run:
-#   * workflow_dispatch with a required brief_dir input.
-#   * a `forge-run/queued` label applied to an issue/PR on a bot branch
-#     (cursor/*, forge-bot/*), carrying the brief_dir in its body as
-#     `brief_dir: <path>`.
+# Deux entrées, toutes deux explicites -- ce workflow ne devine jamais quel
+# brief exécuter :
+#   * workflow_dispatch avec un input brief_dir obligatoire.
+#   * un label `forge-run/queued` posé sur une issue/PR dont le corps
+#     contient `brief_dir: <chemin>`.
 #
-# Waiver: same as pipeline-challenge.yml -- if neither the claude CLI nor
-# ANTHROPIC_API_KEY is available, the job posts a comment naming the gap
-# and stops rather than failing silently or guessing a fallback.
-#
-# What this workflow always does mechanically, with no credential needed:
-# the split-check preflight (`py harness/budget.py split-check`), because
-# `/forge-run` itself requires that check to pass before launching a
-# Générateur (brief 006 Success Condition 15, Lot 006c) -- wiring it here
-# too means a queued brief that is already oversized never reaches an LLM
-# invocation at all.
+# Garde-fous, dans l'ordre où ils coupent :
+#   * split-check obligatoire (brief 006 SC15) -- un brief surdimensionné
+#     n'atteint jamais une invocation LLM.
+#   * label `pipeline/pause` ouvert quelque part = tout s'arrête
+#     (docs/rules/full-auto-pipeline.md § kill-switch).
+#   * `mode: manual` dans harness/pipeline/config.yaml = pas d'invocation
+#     (consultation runtime du mode, brief 009 lot 009c).
+#   * plafond mensuel harness/pipeline/ci_budget_guard.py precheck
+#     (lot 009b) AVANT l'appel, plafond natif --max-budget-usd PENDANT
+#     l'appel, marquage post-hoc APRÈS (arbitrage n°2 du 2026-08-11).
+#   * sans ANTHROPIC_API_KEY + OPENAI_API_KEY : dérogation consignée en
+#     ::warning::, aucun appel simulé, le job réussit sans rien prétendre.
 
 on:
   workflow_dispatch:
@@ -35,7 +37,7 @@ on:
     types: [labeled]
 
 permissions:
-  contents: read
+  contents: write
   issues: write
   pull-requests: write
 
@@ -45,6 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.13"
@@ -77,29 +81,126 @@ jobs:
             exit "$code"
           }
 
-      - name: Check headless credential availability
-        id: check
+      - name: Kill-switch -- any open pipeline/pause label stops everything
+        id: pause
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          if which claude >/dev/null 2>&1 || [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+          paused="$(gh api "repos/${GITHUB_REPOSITORY}/issues?labels=pipeline/pause&state=open" --jq 'length')"
+          if [ "$paused" -gt 0 ]; then
+            echo "paused=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::pipeline/pause label found on $paused open issue(s)/PR(s) -- no agent invocation, documented waiver (docs/rules/full-auto-pipeline.md)."
+          else
+            echo "paused=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Runtime mode check -- mode manual means no invocation
+        id: mode
+        if: steps.pause.outputs.paused != 'true'
+        run: |
+          set -euo pipefail
+          mode="$(python - <<'PY'
+          import sys
+          sys.path.insert(0, "harness/pipeline")
+          import policy_loader
+          print(policy_loader.load_flat_yaml("harness/pipeline/config.yaml").get("mode", ""))
+          PY
+          )"
+          echo "mode=${mode}" >> "$GITHUB_OUTPUT"
+          if [ "$mode" = "manual" ]; then
+            echo "::warning::harness/pipeline/config.yaml declares mode: manual -- no headless invocation; run /forge-run interactively instead (docs/rules/full-auto-pipeline.md)."
+          fi
+
+      - name: Monthly CI budget precheck (lot 009b)
+        if: steps.pause.outputs.paused != 'true' && steps.mode.outputs.mode != 'manual'
+        run: |
+          set -euo pipefail
+          python harness/pipeline/ci_budget_guard.py precheck
+
+      - name: Check headless credential availability
+        id: check
+        if: steps.pause.outputs.paused != 'true' && steps.mode.outputs.mode != 'manual'
+        env:
+          HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: |
+          set -euo pipefail
+          if [ "$HAS_ANTHROPIC" = "true" ] && [ "$HAS_OPENAI" = "true" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Missing secret(s): ANTHROPIC_API_KEY (Claude CTO) and/or OPENAI_API_KEY (Codex Générateur) -- documented waiver, no invocation attempted. Provision both repository secrets to activate this maillon (ADR-0010)."
           fi
 
-      - name: Invoke claude-developer headless (single brief)
+      - name: Install Claude Code and Codex CLIs
+        if: steps.check.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          npm install -g @anthropic-ai/claude-code @openai/codex
+          claude --version
+          codex --version
+
+      - name: Invoke Claude (CTO) headless -- /forge-run with Codex as Générateur
         if: steps.check.outputs.available == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CODEX_MODEL: gpt-5.6-sol
           BRIEF_DIR: ${{ steps.resolve.outputs.brief_dir }}
         run: |
           set -euo pipefail
-          echo "TODO(operator, once claude CLI or ANTHROPIC_API_KEY is provisioned):"
-          echo "run the equivalent of /forge-run \$BRIEF_DIR headless here, following"
-          echo "architecture/agents/claude-developer.md and .claude/commands/forge-run.md"
-          echo "exactly (mechanical gate always runs after; Évaluateur only after ACCEPT)."
+          claude -p "/forge-run ${BRIEF_DIR} --backend codex" \
+            --permission-mode acceptEdits \
+            --max-turns 300 \
+            --max-budget-usd 5.00 \
+            --output-format stream-json --verbose \
+            | tee "$RUNNER_TEMP/forge-run-transcript.jsonl"
+
+      - name: Post-hoc budget marking (lot 009b, arbitrage n°2)
+        if: steps.check.outputs.available == 'true'
+        env:
+          BRIEF_DIR: ${{ steps.resolve.outputs.brief_dir }}
+        run: |
+          set -euo pipefail
+          python harness/pipeline/ci_budget_guard.py record \
+            --step-name "forge-run:${BRIEF_DIR}" \
+            --transcript "$RUNNER_TEMP/forge-run-transcript.jsonl" \
+            --per-invocation-cap-usd 5 \
+            || echo "::warning::post-hoc cost marking refused (unreadable transcript format) -- native --max-budget-usd already capped the spend; recording skipped rather than guessed."
+
+      - name: Mechanical gate on the produced deliverables
+        if: steps.check.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          python harness/verdict_audit.py "${{ steps.resolve.outputs.brief_dir }}"
+
+      - name: Publish the produced work as a pull request (Claude fait les PR)
+        if: steps.check.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRIEF_DIR: ${{ steps.resolve.outputs.brief_dir }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "No changes produced -- nothing to publish."
+            exit 0
+          fi
+          slug="$(basename "$BRIEF_DIR")"
+          branch="forge-bot/${slug}-${GITHUB_RUN_ID}"
+          git config user.name "forge-bot"
+          git config user.email "forge-bot@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "forge-run: livrables du brief ${slug} (Claude CTO + Codex Générateur, run ${GITHUB_RUN_ID})"
+          git push -u origin "$branch"
+          gh pr create \
+            --head "$branch" \
+            --title "forge-run: ${slug} (chaîne automatique ADR-0010)" \
+            --body "$(printf 'Brief : `%s`\n\nProduit par la chaîne automatique (Claude CTO headless, Générateur Codex `--backend codex`, gate mécanique rejouée dans ce run %s).\n\nLa critique Cursor de cette PR est déclenchée par pipeline-audit.yml.' "$BRIEF_DIR" "$GITHUB_RUN_ID")" \
+            || echo "::warning::gh pr create refused (repository setting or permissions) -- branch $branch is pushed; open the PR manually."
 
       - name: No credential available -- documented waiver
-        if: steps.check.outputs.available != 'true'
+        if: steps.pause.outputs.paused != 'true' && steps.mode.outputs.mode != 'manual' && steps.check.outputs.available != 'true'
         run: |
-          echo "::warning::Neither the claude CLI nor ANTHROPIC_API_KEY is available -- waiver documented in harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/manifest.json. Run /forge-run ${{ steps.resolve.outputs.brief_dir }} manually, or provision ANTHROPIC_API_KEY (see docs/rules/full-auto-pipeline.md)."
+          echo "::warning::Headless invocation skipped for lack of credentials -- see the check step above. Run /forge-run ${{ steps.resolve.outputs.brief_dir }} manually, or provision ANTHROPIC_API_KEY + OPENAI_API_KEY (docs/rules/full-auto-pipeline.md, ADR-0010)."

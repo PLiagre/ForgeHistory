@@ -1,24 +1,28 @@
 name: pipeline-audit
 
-# Brief 006, Lot 006b, Success Condition 9. Fires cursor-auditor
-# (architecture/agents/cursor-auditor.md) after every merge to master, per
-# the full-auto vision (brief 006 "Vision cible"). cursor-qa-scout
-# (architecture/agents/cursor-qa-scout.md) rides along as a companion role
-# in the same Cloud Agent session, per its own role file.
+# ADR-0010 : Cursor est le maillon CRITIQUE de la chaîne à quatre acteurs.
+# Deux déclencheurs :
+#   * pull_request (non-brouillon, hors branches cursor/*) -- Cursor relit
+#     la PR et la critique contre architecture/review-guidelines.md (bonnes
+#     pratiques d'ingénierie IA sourcées, sévérités P0-P3, preuve citée par
+#     constat).
+#   * push master -- l'audit post-merge historique (ADR-0005/0006), rôle
+#     cursor-auditor avec cursor-qa-scout en compagnon.
+# Dans les deux cas, l'agent est un Cursor Cloud Agent lancé par l'API
+# officielle (POST https://api.cursor.com/v1/agents, authentification Basic
+# avec la clé en nom d'utilisateur), avec le fichier de rôle
+# architecture/agents/cursor-auditor.md comme contrat. Son livrable reste un
+# audit sous architecture/inbox/** déposé par une PR cursor/*.
 #
-# Waiver (harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/
-# manifest.json, claim "Cursor Cloud Agent API indisponible en CI"): this
-# repo has no CURSOR_API_KEY (or equivalent) secret configured yet --
-# `gh secret list` returns an empty list (see generator-log.md, real
-# command + real output, not narrated). Until a secret is provisioned, the
-# "invoke" step below is skipped and the job still succeeds: an absent
-# optional credential is not a broken pipeline. `workflow_dispatch` is the
-# reliable manual-activation path documented in
-# docs/rules/full-auto-pipeline.md.
+# Sans CURSOR_API_KEY : dérogation consignée en ::warning::, aucun appel
+# simulé, le job réussit sans rien prétendre. Le label `pipeline/pause`
+# ouvert n'importe où coupe l'invocation (docs/rules/full-auto-pipeline.md).
 
 on:
   push:
     branches: [master]
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
   workflow_dispatch:
     inputs:
       target_commit:
@@ -27,36 +31,93 @@ on:
 
 permissions:
   contents: read
+  issues: read
+  pull-requests: read
 
 jobs:
   invoke-cursor-auditor:
     runs-on: ubuntu-latest
+    # Pas de critique des brouillons, et pas de boucle : une PR cursor/*
+    # est le dépôt d'un audit Cursor -- la critiquer relancerait Cursor sur
+    # sa propre production.
+    if: github.event_name != 'pull_request' || (github.event.pull_request.draft == false && !startsWith(github.event.pull_request.head.ref, 'cursor/'))
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
-      - name: Check Cursor Cloud Agent credentials
-        id: check
+      - name: Kill-switch -- any open pipeline/pause label stops everything
+        id: pause
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          if [ -n "${{ secrets.CURSOR_API_KEY }}" ]; then
+          paused="$(gh api "repos/${GITHUB_REPOSITORY}/issues?labels=pipeline/pause&state=open" --jq 'length')"
+          if [ "$paused" -gt 0 ]; then
+            echo "paused=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::pipeline/pause label found on $paused open issue(s)/PR(s) -- no agent invocation, documented waiver (docs/rules/full-auto-pipeline.md)."
+          else
+            echo "paused=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check Cursor Cloud Agent credentials
+        id: check
+        if: steps.pause.outputs.paused != 'true'
+        env:
+          HAS_CURSOR: ${{ secrets.CURSOR_API_KEY != '' }}
+        run: |
+          set -euo pipefail
+          if [ "$HAS_CURSOR" = "true" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::CURSOR_API_KEY not configured -- waiver documented in harness/queue/briefs/006-full-auto-agent-pipeline/deliverables/manifest.json. Trigger this audit manually: open a Cursor Cloud Agent session with architecture/agents/cursor-auditor.md as the role template and target_commit=${{ github.event.inputs.target_commit || github.sha }}."
+            echo "::warning::CURSOR_API_KEY not configured -- documented waiver, no invocation attempted. Open a Cursor Cloud Agent session manually with architecture/agents/cursor-auditor.md as the role template (ADR-0010, docs/rules/full-auto-pipeline.md)."
           fi
 
-      - name: Invoke cursor-auditor (Cloud Agent)
+      - name: Invoke cursor-auditor (Cloud Agents API v1)
         if: steps.check.outputs.available == 'true'
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           TARGET_COMMIT: ${{ github.event.inputs.target_commit || github.sha }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
           set -euo pipefail
-          echo "TODO(operator, once CURSOR_API_KEY is provisioned): call the"
-          echo "Cursor Cloud Agent API here with architecture/agents/cursor-auditor.md"
-          echo "as the role/template and TARGET_COMMIT=$TARGET_COMMIT. Wire the real"
-          echo "endpoint here -- deliberately left as a documented stub rather than a"
-          echo "guessed, untested API call against a credential this repo does not"
-          echo "have (hard-won rule: every measurement is a real log, never narration)."
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            prompt="Tu es cursor-auditor (contrat: architecture/agents/cursor-auditor.md). \
+          Critique la pull request #${PR_NUMBER} (${PR_URL}) en suivant architecture/review-guidelines.md: \
+          six lentilles, sévérités P0-P3, chaque constat cite sa preuve. \
+          Livrable: un audit architecture/inbox/CURSOR-<sha>-<slug>.md déposé par une PR cursor/* \
+          qui ne touche que architecture/inbox/**. Respecte chaque section Interdits du contrat."
+            payload="$(jq -n \
+              --arg prompt "$prompt" \
+              --arg repo "$REPO_URL" \
+              --arg prurl "$PR_URL" \
+              '{prompt: {text: $prompt}, repos: [{url: $repo, prUrl: $prurl}], autoCreatePR: true}')"
+          else
+            prompt="Tu es cursor-auditor (contrat: architecture/agents/cursor-auditor.md), \
+          avec cursor-qa-scout (architecture/agents/cursor-qa-scout.md) en compagnon de session. \
+          Audite le commit ${TARGET_COMMIT} fraîchement fusionné sur master: diff du merge, état du dépôt, \
+          risques P0-P3, sources externes datées, au plus 3 briefs proposés. \
+          Livrable: un audit architecture/inbox/CURSOR-<sha>-<slug>.md déposé par une PR cursor/* \
+          qui ne touche que architecture/inbox/**. Respecte chaque section Interdits du contrat."
+            payload="$(jq -n \
+              --arg prompt "$prompt" \
+              --arg repo "$REPO_URL" \
+              --arg ref "$TARGET_COMMIT" \
+              '{prompt: {text: $prompt}, repos: [{url: $repo, startingRef: $ref}], autoCreatePR: true}')"
+          fi
+          response="$(curl -sS --fail-with-body \
+            --request POST \
+            --url https://api.cursor.com/v1/agents \
+            -u "${CURSOR_API_KEY}:" \
+            --header 'Content-Type: application/json' \
+            --data "$payload")" || {
+              echo "::error::Cursor Cloud Agents API call failed:"
+              printf '%s\n' "$response"
+              exit 1
+            }
+          printf '%s\n' "$response" | jq '{agent_id: (.agent.id // .id), status: (.run.status // .status)}'
+          echo "cursor-auditor launched -- its audit will arrive as a cursor/* PR touching architecture/inbox/** only."

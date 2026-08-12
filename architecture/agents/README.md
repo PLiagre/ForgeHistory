@@ -14,7 +14,7 @@ produit, `claude-evaluator` juge, jamais la même invocation.
 
 | Rôle | Invocation | Déclenché par |
 |---|---|---|
-| `cursor-auditor` | Cursor Cloud Agent, template = ce fichier de rôle (`architecture/agents/cursor-auditor.md` passé en system/instructions du Cloud Agent) | `.github/workflows/pipeline-audit.yml` sur `push master` |
+| `cursor-auditor` | Cursor Cloud Agent, template = ce fichier de rôle (`architecture/agents/cursor-auditor.md` passé en system/instructions du Cloud Agent), API `POST https://api.cursor.com/v1/agents` ; pour une PR, la critique suit `architecture/review-guidelines.md` | `.github/workflows/pipeline-audit.yml` sur `push master` **et** sur `pull_request` non-brouillon hors `cursor/*` (ADR-0010) |
 | `cursor-qa-scout` | Même Cloud Agent que `cursor-auditor` (compagnon, même session) pour un audit ; `workflow_dispatch` avec `input: theme` pour un cycle de veille autonome | `pipeline-audit.yml` (compagnon) ou déclenchement manuel documenté |
 | `claude-challenger` | Slash command `/forge-audit-review <audit_id>` (`.claude/commands/forge-audit-review.md`), exécuté headless via `claude -p` en CI, ou fallback API (`ANTHROPIC_API_KEY`) si `which claude` échoue sur le runner | `.github/workflows/pipeline-challenge.yml` sur merge touchant `architecture/inbox/*.md` |
 | `claude-developer` | Slash command `/forge-run <brief>` (`.claude/commands/forge-run.md`), backend `claude` par défaut | `harness/pipeline/orchestrator.py` (événement `audit_approved`/`brief_seed_created`) ou `.github/workflows/pipeline-forge-run.yml` |
@@ -35,11 +35,12 @@ l'applique — deux couches, jamais une seule qui pourrait dériver.
 
 ## Compatibilité
 
-Additif. Tant qu'aucun secret Cursor Cloud Agent ni `ANTHROPIC_API_KEY`
-n'est configuré sur ce repo (`gh secret list` renvoie une liste vide — voir
-`deliverables/manifest.json` § waivers), les workflows `pipeline-*.yml`
-restent en `workflow_dispatch` (activation manuelle documentée) plutôt que
-déclenchés automatiquement sur `push`/`pull_request` pour la partie qui
-appelle un agent externe. Le harness existant (`/forge-run`, le gate, les
-briefs) fonctionne exactement comme avant si cette boucle n'est jamais
-activée.
+Additif. Depuis ADR-0010 (2026-08-12), les workflows `pipeline-*.yml`
+portent de vraies invocations d'agents, déclenchées sur `push`,
+`pull_request` et `workflow_dispatch`. Tant que les secrets
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CURSOR_API_KEY`) ne sont pas
+configurés, chaque étape d'invocation consigne une dérogation `::warning::`
+et ne fait rien — jamais d'échec ni de succès silencieux. Le harness
+existant (`/forge-run`, le gate, les briefs) fonctionne exactement comme
+avant si cette boucle n'est jamais activée. Câblage et arrêt d'urgence :
+`docs/rules/full-auto-pipeline.md`.
