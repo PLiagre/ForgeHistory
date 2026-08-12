@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-12 15:42 UTC.
+> Générée le 2026-08-12 15:49 UTC.
 
 ## En bref
 
@@ -17,26 +17,27 @@
 
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-12 15:42:45 | hermes-observer | pull_request_target | cursor/audit-commit-master-7bf5 | queued |
-| 2026-08-12 15:42:45 | harness-ci | push | master | in_progress |
-| 2026-08-12 15:42:45 | pipeline-challenge | push | master | queued |
-| 2026-08-12 15:42:45 | audit-guard | push | master | in_progress |
-| 2026-08-12 15:42:45 | security | push | master | in_progress |
-| 2026-08-12 15:42:45 | pipeline-audit | push | master | in_progress |
-| 2026-08-12 15:42:45 | hermes-dashboard | push | master | in_progress |
-| 2026-08-12 15:42:42 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 15:42:31 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 15:42:29 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 15:42:25 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 15:42:13 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 15:42:10 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-12 15:42:10 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 15:42:07 | pipeline-audit | pull_request | cursor/audit-commit-master-7bf5 | skipped |
+| 2026-08-12 15:49:30 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 15:49:30 | pipeline-failure-escalate | workflow_run | master | queued |
+| 2026-08-12 15:49:29 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 15:49:20 | hermes-observer | workflow_run | master | in_progress |
+| 2026-08-12 15:49:17 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 15:49:17 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 15:49:13 | hermes-dashboard | push | master | in_progress |
+| 2026-08-12 15:49:13 | security | push | master | success |
+| 2026-08-12 15:49:13 | audit-guard | push | master | in_progress |
+| 2026-08-12 15:49:13 | pipeline-audit | push | master | success |
+| 2026-08-12 15:49:13 | harness-ci | push | master | in_progress |
+| 2026-08-12 15:48:54 | pipeline-orchestrate | workflow_dispatch | master | success |
+| 2026-08-12 15:45:09 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 15:45:03 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 15:44:58 | hermes-observer | workflow_run | master | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -51,7 +52,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-73022bd-hermes-dashboard-modele-auditeur | contre-audit rendu — attend la décision | 2026-08-12 11:55 |
 | CURSOR-779d97c-revue-verdicts-illisibles | contre-audit rendu — attend la décision | 2026-08-12 12:30 |
 | CURSOR-e849633-hermes-demande-pilotage | retenu — à convertir en brief | 2026-08-12 15:32 |
-| CURSOR-0269d8e-hermes-console-droit-executer | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-0269d8e-hermes-console-droit-executer | retenu — à convertir en brief | 2026-08-12 15:49 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
