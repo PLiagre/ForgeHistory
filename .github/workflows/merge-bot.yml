@@ -55,9 +55,17 @@ jobs:
           fi
           echo "All changed paths are within the allowlist and none are denied."
 
+      # FORGE_BOT_PAT (owner's fine-grained PAT, optional secret) instead of
+      # GITHUB_TOKEN, for two reasons: (1) enabling auto-merge with the
+      # workflow token is refused when the repo-level "Allow auto-merge"
+      # toggle plus branch protection are managed by the owner's plan, and
+      # (2) a merge performed by GITHUB_TOKEN does not trigger the downstream
+      # `push` workflows (pipeline-audit, pipeline-challenge), silently
+      # breaking the full-auto chain. Falls back to GITHUB_TOKEN when the
+      # secret is absent -- same soft-failure behaviour as before.
       - name: gh pr merge --auto
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.FORGE_BOT_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           gh pr merge --auto --squash "${{ github.event.pull_request.number }}" \
