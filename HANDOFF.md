@@ -31,12 +31,14 @@ boucle a tourné pour la première fois en conditions réelles :
 Nouveautés de ce même addendum : `hermes/DASHBOARD.md` (tableau de bord
 généré par `hermes/dashboard.py`, régénéré par `hermes-dashboard.yml` à
 chaque push master et toutes les 6 h — l'endroit où le propriétaire
-regarde d'abord) ; le modèle de l'auditeur Cursor est monté à
-`claude-opus-5-thinking-high` par défaut (variable de dépôt
-`CURSOR_AUDITOR_MODEL` pour changer sans PR, ex. `cursor-grok-4.5-high`) —
+regarde d'abord) ; le modèle de l'auditeur Cursor est monté en gamme —
 demande propriétaire, le défaut claude-4.5-sonnet du premier tour étant
-jugé trop faible. Risque : si l'API Cloud Agents refuse cet identifiant de
-modèle, le log du run l'affiche et la variable permet d'ajuster.
+jugé trop faible. L'identifiant deviné (`claude-opus-5-thinking-high`) a
+été refusé `invalid_model` par l'API : le workflow ne devine plus, il
+interroge `GET /v1/models`, honore la variable de dépôt
+`CURSOR_AUDITOR_MODEL` si elle correspond à un identifiant réel, sinon
+choisit le premier modèle « opus » (puis « grok »), et journalise la liste
+complète des identifiants valides dans chaque run.
 
 ## Session la plus récente — 2026-08-12 (après-midi) : ADR-0010, câblage réel, nettoyage
 
