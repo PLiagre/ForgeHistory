@@ -54,3 +54,28 @@ def test_province_id_variant_raises_explicit_error():
 
     with pytest.raises(TypeError, match="ADR-0003"):
         BadEntity2(cell_id=1, ProvinceId="X")
+
+
+def test_province_short_name_raises_explicit_error():
+    """
+    N3 — Forme courte 'province' lève aussi une TypeError.
+    La garde couvre toute forme dont le nom normalisé commence par 'province'.
+    """
+    @dataclasses.dataclass
+    class BadEntity3(_NoBadSpatialField):
+        cell_id: int
+        province: str  # forme courte — aussi interdite
+
+    with pytest.raises(TypeError, match="ADR-0003"):
+        BadEntity3(cell_id=1, province="France")
+
+
+def test_province_code_raises_explicit_error():
+    """province_code est aussi interdit (préfixe 'province')."""
+    @dataclasses.dataclass
+    class BadEntity4(_NoBadSpatialField):
+        cell_id: int
+        province_code: str
+
+    with pytest.raises(TypeError, match="ADR-0003"):
+        BadEntity4(cell_id=1, province_code="FR")

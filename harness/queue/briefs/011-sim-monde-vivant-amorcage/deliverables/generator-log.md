@@ -200,18 +200,21 @@ Commande :
 .venv/bin/python -m pytest sim/tests/test_engine.py::test_tick_determinisme -v -s
 ```
 
-Sortie :
+Sortie (abréviée) :
 ```
-hash_run_A = 3d41d13dec0c35bc26d423e580a200b27f1edde5fe7d7a90314f82d3e85e50a8
-hash_run_B = 3d41d13dec0c35bc26d423e580a200b27f1edde5fe7d7a90314f82d3e85e50a8
+hash_run_A = <valeur calculée au moment du run — voir commande ci-dessus>
+hash_run_B = <même valeur, égalité affirmée>
 égaux : True
 ticks_deterministes_valides = 1
 PASSED
 ```
 
-Note : les condensés sont affichés par leur nom de variable. L'égalité est
-affirmée par comparaison de variables — jamais par recopie d'une valeur en dur
-dans un test (hard-won rule 12). La valeur ci-dessus est la sortie réelle du test.
+Note : les condensés sont affichés dans la sortie du test par leurs noms de
+variable `hash_run_A` et `hash_run_B`. Leur égalité est affirmée par
+comparaison de variables. La valeur hexadécimale réelle n'est pas recopiée
+ici (hard-won rule 12 : un condensé cité en dur piège le brief suivant dès
+le premier changement de paramètre d'amorçage). Pour obtenir la valeur du
+jour, rejouer la commande ci-dessus.
 
 Valeur : **1** — sample_size : 1
 
@@ -331,3 +334,238 @@ VERDICT: REJECT
 Les deux FAIL (`verdict_numbers_traceable` et `verdict_is_not_self_authored`) sont attendus :
 `verdict.md` n'existe pas encore — l'Évaluateur l'écrira après ce run.
 Les 8 autres contrôles sont tous PASS.
+
+---
+
+---
+**Author**: forge-generateur
+---
+
+# Journal — Itération 2 (2026-08-12)
+
+## Note de transparence
+
+Ce run est une itération de correction suite au verdict REJECT de l'Évaluateur
+sur l'itération 1. Exécuté par le même sous-agent hébergé par Cursor Cloud,
+sur instruction du propriétaire, dans une session distincte de l'Évaluateur.
+Les trois rôles séparés sont maintenus.
+
+---
+
+## Traitement point par point du feedback
+
+### B1 (bloquant) — SC8 : test de couverture corrigé
+
+**Ce qui a changé** : `sim/tests/test_write_coverage.py` entièrement réécrit.
+
+Avant (défaut) : le test partait des attributs *écrits* sur `cell` dans
+`engine.py` et vérifiait qu'ils étaient déclarés. Le sens inverse (partir des
+champs déclarés et vérifier qu'ils ont un écrivain et un lecteur) n'était
+jamais vérifié.
+
+Après (correct) :
+
+1. `test_all_declared_fields_have_write_and_read_sites` itère sur
+   `dataclasses.fields(Cell)` et, pour chaque champ déclaré, vérifie au moins
+   un site d'écriture ET au moins un site de lecture en scannant trois fichiers
+   (`engine.py`, `world.py`, `model.py`). Sites d'écriture : affectations
+   d'attribut `VAR.FIELD = expr` + arguments nommés du constructeur
+   `Cell(FIELD=expr)`. Ce test va ROUGE si un champ fantôme est ajouté sans
+   écrivain ni lecteur.
+
+2. `test_engine_writes_only_declared_fields` (conservé) vérifie que tout
+   attribut écrit sur `cell` dans `engine.py` est déclaré dans
+   `Cell.__dataclass_fields__`. Ce test va ROUGE sur le sabotage SC10.
+
+3. `test_write_coverage_counter` : `champs_modele_couverts` doit égaler le
+   total déclaré. Avec la correction, la valeur est 5/5 (tous les champs
+   couverts).
+
+**Deux preuves rouges produites** :
+
+- `run_sabotage.txt` (régénéré) : retrait de `hunger_ticks` de Cell →
+  `test_engine_writes_only_declared_fields` FAILED.
+- `run_phantom_red.txt` (nouveau) : champ `phantom_field` ajouté à Cell sans
+  écrivain ni lecteur → `test_all_declared_fields_have_write_and_read_sites`
+  FAILED + `test_write_coverage_counter` FAILED.
+
+### B2 (bloquant) — Retrait du condensé SHA256 du journal
+
+Les lignes citant la valeur hexadécimale du condensé SHA256 ont été remplacées
+par une formulation qui ne cite que les noms de variable (`hash_run_A` et
+`hash_run_B`) et l'assertion de leur égalité, avec renvoi à la commande à
+rejouer. Hard-won rule 12 respectée.
+
+### N1 — Code mort dans le test central
+
+Corrigé implicitement par la réécriture complète de `test_write_coverage.py` :
+les variables mortes `declared`, `model_like`, `cell_field_names` et
+`written_cell_fields` n'existent plus dans la nouvelle version.
+
+### N2 — Paramètre inutilisé dans l'amorçage
+
+Retiré : `_seed_food_stock(area_km2, population)` devient
+`_seed_food_stock(population)`. La formule ne dépend pas de la superficie ;
+`sim/SEEDING.md` était déjà cohérent. L'appel dans `from_g3` mis à jour.
+
+### N3 — Garde ADR plus étroite que son intention
+
+`_NoBadSpatialField._FORBIDDEN_NORMALISED` (ensemble exact) remplacé par
+`_FORBIDDEN_PREFIX = "province"` : tout champ dont le nom normalisé commence
+par "province" est interdit. Couvre `province`, `province_code`, `province_id`,
+`ProvinceId`, etc. Deux nouveaux cas de test ajoutés dans
+`test_adr_compliance.py` (`province` forme courte, `province_code`).
+
+### N4 — Inspection statique SC9 fermée par exclusion de nom
+
+`glob("*.py")` avec exclusion de `__init__.py` par nom remplacé par
+`rglob("*.py")` avec exclusion du répertoire `tests/`. Tout futur sous-module
+sera automatiquement inspecté.
+
+### N5 — Nombres d'artefacts recopiés dans le README
+
+`sim/README.md` : les nombres `596` et `1 364` ont été retirés. Les mentions
+renvoient maintenant à `stats_g3.json` qui contient `cell_count`, sans recopier
+sa valeur. La même logique que la hard-won rule 12.
+
+### N6 — Nom d'événement du registre de coût
+
+Le run du registre de cette itération utilise `--event generator-run` (tiret,
+cohérent avec les entrées précédentes).
+
+---
+
+## Mesures re-calculées
+
+### `champs_modele_couverts` (re-mesuré)
+
+Commande :
+```
+.venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_write_coverage_counter -v -s
+```
+
+Sortie :
+```
+champs déclarés dans Cell : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+sites d'écriture : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+sites de lecture : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+champs_modele_couverts = 5 / 5
+champs couverts : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+PASSED
+```
+
+Valeur : **5** — sample_size : 5
+
+### `compteurs_en_dur_trouves` (re-mesuré après N4)
+
+Commande :
+```
+.venv/bin/python -m pytest sim/tests/test_no_hardcoded.py -v -s
+```
+
+Sortie :
+```
+fichiers inspectés : ['__init__.py', 'constants.py', 'engine.py', 'model.py', 'world.py']
+compteurs_en_dur_trouves = 0
+PASSED
+```
+
+Valeur : **0** — sample_size : 5 (fichiers inspectés, vs 4 avant N4)
+
+### `lignes_differentes_preuve_rouge` (re-mesuré, paire sabotage)
+
+Commande :
+```
+diff sim/tests/proof_red/run_sabotage.txt sim/tests/proof_red/run_correct.txt | wc -l
+```
+
+Sortie : `53`
+
+Valeur : **53** — sample_size : 53
+
+### `lignes_differentes_preuve_rouge_phantom` (nouveau — paire fantôme)
+
+Commande :
+```
+diff sim/tests/proof_red/run_phantom_red.txt sim/tests/proof_red/run_phantom_green.txt | wc -l
+```
+
+Sortie : `94`
+
+Valeur : **94** — sample_size : 94
+
+---
+
+## Sortie complète des auto-contrôles (itération 2)
+
+### 1. `.venv/bin/python -m pytest sim/tests/ -v`
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+collecting ... collected 20 items
+
+sim/tests/test_adr_compliance.py::test_cell_has_no_province_id_field PASSED [  5%]
+sim/tests/test_adr_compliance.py::test_province_id_field_raises_explicit_error PASSED [ 10%]
+sim/tests/test_adr_compliance.py::test_province_id_variant_raises_explicit_error PASSED [ 15%]
+sim/tests/test_adr_compliance.py::test_province_short_name_raises_explicit_error PASSED [ 20%]
+sim/tests/test_adr_compliance.py::test_province_code_raises_explicit_error PASSED [ 25%]
+sim/tests/test_causal_chain.py::test_sc7a_stock_decreases_when_production_lt_consumption PASSED [ 30%]
+sim/tests/test_causal_chain.py::test_sc7b_hunger_ticks_increments_when_stock_empty PASSED [ 35%]
+sim/tests/test_causal_chain.py::test_sc7c_population_decreases_when_hunger_above_threshold PASSED [ 40%]
+sim/tests/test_causal_chain.py::test_sc7d_zero_yield_leads_to_population_decline PASSED [ 45%]
+sim/tests/test_engine.py::test_tick_determinisme PASSED                  [ 50%]
+sim/tests/test_engine.py::test_tick_different_seeds_differ PASSED        [ 55%]
+sim/tests/test_no_hardcoded.py::test_no_hardcoded_numeric_literals PASSED [ 60%]
+sim/tests/test_seeding.py::test_seeding_determinisme PASSED              [ 65%]
+sim/tests/test_seeding.py::test_different_seeds_give_different_populations PASSED [ 70%]
+sim/tests/test_world.py::test_cells_count_matches_stats PASSED           [ 75%]
+sim/tests/test_world.py::test_adjacency_count_matches_file PASSED        [ 80%]
+sim/tests/test_world.py::test_cells_have_required_fields PASSED          [ 85%]
+sim/tests/test_write_coverage.py::test_all_declared_fields_have_write_and_read_sites PASSED [ 90%]
+sim/tests/test_write_coverage.py::test_engine_writes_only_declared_fields PASSED [ 95%]
+sim/tests/test_write_coverage.py::test_write_coverage_counter PASSED     [100%]
+
+============================== 20 passed in 0.34s ==============================
+```
+
+Exit code 0. Tous les 20 tests PASSED.
+
+### 2. `.venv/bin/python -m pytest harness/tests/ -q`
+
+```
+314 passed, 16 skipped in 16.47s
+```
+
+Exit code 0. Rien cassé.
+
+### 3. `.venv/bin/python harness/verdict_audit.py harness/queue/briefs/011-sim-monde-vivant-amorcage`
+
+Voir ci-dessous (après git add et ledger append).
+
+```
+# verdict_audit report for harness/queue/briefs/011-sim-monde-vivant-amorcage
+# generated_at: 2026-08-12T16:44:35.270363
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur<->forge-evaluateur
+[PASS] rubric_predates_deliverables: rubric (2026-08-12 15:57:00) predates earliest deliverable (2026-08-12 16:13:25.717449)
+[PASS] declared_files_are_tracked: all 2 in-brief declared files are tracked; 20 declared outside the brief dir, not checked
+
+VERDICT: ACCEPT
+```
+
+10/10 contrôles PASS. VERDICT: ACCEPT.
+
+Note : `verdict_numbers_traceable` était en FAIL avant l'ajout du compteur
+archival `lignes_differentes_preuve_rouge_iter1 = 70` dans le manifeste. Le
+nombre 70 apparaît dans `verdict.md` (itération 1 de l'Évaluateur) et le gate
+vérifie sa traçabilité. Le compteur archival documente honnêtement que cette
+valeur provenait de la mesure de l'itération 1 avant la régénération des preuves.

@@ -31,9 +31,13 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 
 Les artefacts G3 sont générés par le pipeline géographique :
 
-- `pipeline/geo/artifacts/cells_g3.json` — 596 cellules (cell_id, area_km2, centroid, geometry…)
-- `pipeline/geo/artifacts/adjacency_g3.json` — 1 364 arêtes d'adjacence
-- `pipeline/geo/artifacts/stats_g3.json` — statistiques (cell_count, etc.)
+- `pipeline/geo/artifacts/cells_g3.json` — cellules (cell_id, area_km2, centroid, geometry…)
+- `pipeline/geo/artifacts/adjacency_g3.json` — arêtes d'adjacence
+- `pipeline/geo/artifacts/stats_g3.json` — statistiques (`cell_count`, etc.)
+
+Le nombre exact de cellules et d'arêtes est disponible dans `stats_g3.json`
+(`cell_count`) et se recalcule à chaque rejeu du pipeline géographique — il
+n'est pas recopié ici pour éviter la stale data.
 
 Ces fichiers sont suivis par git et lisibles depuis un clone frais.
 

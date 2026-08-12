@@ -17,12 +17,14 @@ class _NoBadSpatialField:
     TypeError explicite à l'instanciation (via __post_init__).
     """
 
-    _FORBIDDEN_NORMALISED = frozenset({"provinceid"})
+    # Tout champ dont le nom normalisé (minuscules, sans tirets bas) commence
+    # par "province" est interdit — couvre province_id, province_code, province, etc.
+    _FORBIDDEN_PREFIX = "province"
 
     def __post_init__(self):
         for name in self.__dataclass_fields__:  # type: ignore[attr-defined]
             normalised = name.lower().replace("_", "")
-            if normalised in self._FORBIDDEN_NORMALISED:
+            if normalised.startswith(self._FORBIDDEN_PREFIX):
                 raise TypeError(
                     f"ADR-0003 : le champ '{name}' est interdit. "
                     "Province est une agrégation dérivée, jamais un champ "

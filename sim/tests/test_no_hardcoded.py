@@ -12,11 +12,13 @@ import ast
 import pathlib
 
 _SIM_DIR = pathlib.Path(__file__).parent.parent
+_TESTS_DIR = _SIM_DIR / "tests"
 
-# Fichiers à inspecter (le code du moteur, pas les tests)
+# Parcours récursif des modules du moteur, exclusion par répertoire de tests.
+# Ainsi tout futur sous-module de sim/ sera automatiquement inspecté.
 _ENGINE_FILES = sorted(
-    p for p in _SIM_DIR.glob("*.py")
-    if p.name != "__init__.py"
+    p for p in _SIM_DIR.rglob("*.py")
+    if not p.is_relative_to(_TESTS_DIR)
 )
 
 # Littéraux structurels autorisés dans les corps de fonctions

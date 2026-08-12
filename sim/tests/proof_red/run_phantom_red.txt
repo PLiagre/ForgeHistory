@@ -1,0 +1,93 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+collecting ... collected 3 items
+
+sim/tests/test_write_coverage.py::test_all_declared_fields_have_write_and_read_sites FAILED [ 33%]
+sim/tests/test_write_coverage.py::test_engine_writes_only_declared_fields PASSED [ 66%]
+sim/tests/test_write_coverage.py::test_write_coverage_counter FAILED     [100%]
+
+=================================== FAILURES ===================================
+______________ test_all_declared_fields_have_write_and_read_sites ______________
+
+    def test_all_declared_fields_have_write_and_read_sites():
+        """
+        SC8 — Itère sur dataclasses.fields(Cell) et exige pour chaque champ
+        déclaré au moins un site d'écriture ET au moins un site de lecture.
+    
+        Ce test va ROUGE si un champ est déclaré sans écrivain ou sans lecteur
+        (mode d'échec n°2, simulation-principles.md).
+        Preuve rouge : run_phantom_red.txt (champ fantôme ajouté à Cell).
+        """
+        field_names = {f.name for f in dataclasses.fields(Cell)}
+        all_writes, all_reads = _scan_writes_and_reads(_SIM_SOURCE_FILES, field_names)
+    
+        errors = []
+        for f in dataclasses.fields(Cell):
+            if f.name not in all_writes:
+                errors.append(f"'{f.name}' : aucun site d'écriture trouvé")
+            if f.name not in all_reads:
+                errors.append(f"'{f.name}' : aucun site de lecture trouvé")
+    
+        print(f"champs déclarés : {sorted(field_names)}")
+        print(f"sites d'écriture détectés : {sorted(all_writes & field_names)}")
+        print(f"sites de lecture détectés : {sorted(all_reads & field_names)}")
+    
+>       assert not errors, (
+            "SC8 : champs déclarés sans couverture complète :\n"
+            + "\n".join(f"  - {e}" for e in errors)
+        )
+E       AssertionError: SC8 : champs déclarés sans couverture complète :
+E           - 'phantom_field' : aucun site d'écriture trouvé
+E           - 'phantom_field' : aucun site de lecture trouvé
+E       assert not ["'phantom_field' : aucun site d'écriture trouvé", "'phantom_field' : aucun site de lecture trouvé"]
+
+sim/tests/test_write_coverage.py:116: AssertionError
+----------------------------- Captured stdout call -----------------------------
+champs déclarés : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'phantom_field', 'population']
+sites d'écriture détectés : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+sites de lecture détectés : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+_________________________ test_write_coverage_counter __________________________
+
+    def test_write_coverage_counter():
+        """
+        SC8 — Le compteur champs_modele_couverts doit être égal au nombre total
+        de champs déclarés dans Cell. Dérivé du parcours — jamais écrit en dur.
+        """
+        field_names = {f.name for f in dataclasses.fields(Cell)}
+        total_declared = len(field_names)
+    
+        all_writes, all_reads = _scan_writes_and_reads(_SIM_SOURCE_FILES, field_names)
+    
+        fully_covered = sorted(
+            f.name for f in dataclasses.fields(Cell)
+            if f.name in all_writes and f.name in all_reads
+        )
+        champs_modele_couverts = len(fully_covered)
+    
+        print(f"champs déclarés dans Cell : {sorted(field_names)}")
+        print(f"sites d'écriture : {sorted(all_writes & field_names)}")
+        print(f"sites de lecture : {sorted(all_reads & field_names)}")
+        print(f"champs_modele_couverts = {champs_modele_couverts} / {total_declared}")
+        print(f"champs couverts : {fully_covered}")
+    
+>       assert champs_modele_couverts == total_declared, (
+            f"SC8 : couverture incomplète — {champs_modele_couverts}/{total_declared} champs "
+            f"ont un écrivain ET un lecteur. "
+            f"Non couverts : {sorted(set(field_names) - set(fully_covered))}"
+        )
+E       AssertionError: SC8 : couverture incomplète — 5/6 champs ont un écrivain ET un lecteur. Non couverts : ['phantom_field']
+E       assert 5 == 6
+
+sim/tests/test_write_coverage.py:182: AssertionError
+----------------------------- Captured stdout call -----------------------------
+champs déclarés dans Cell : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'phantom_field', 'population']
+sites d'écriture : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+sites de lecture : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+champs_modele_couverts = 5 / 6
+champs couverts : ['area_km2', 'cell_id', 'food_stock_kg', 'hunger_ticks', 'population']
+=========================== short test summary info ============================
+FAILED sim/tests/test_write_coverage.py::test_all_declared_fields_have_write_and_read_sites
+FAILED sim/tests/test_write_coverage.py::test_write_coverage_counter - Assert...
+========================= 2 failed, 1 passed in 0.02s ==========================

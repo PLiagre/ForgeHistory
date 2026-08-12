@@ -20,6 +20,11 @@
       "path": "../../../../sim/tests/proof_red/run_correct.txt",
       "must_differ_from": "../../../../sim/tests/proof_red/run_sabotage.txt"
     },
+    {"path": "../../../../sim/tests/proof_red/run_phantom_red.txt"},
+    {
+      "path": "../../../../sim/tests/proof_red/run_phantom_green.txt",
+      "must_differ_from": "../../../../sim/tests/proof_red/run_phantom_red.txt"
+    },
     {"path": "deliverables/manifest.json"},
     {"path": "deliverables/generator-log.md"},
     {"path": "../../../../harness/queue/cost-ledger.jsonl"}
@@ -39,14 +44,14 @@
     },
     {
       "name": "champs_modele_couverts",
-      "value": 3,
+      "value": 5,
       "sample_size": 5,
       "command": ".venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_write_coverage_counter -v -s"
     },
     {
       "name": "compteurs_en_dur_trouves",
       "value": 0,
-      "sample_size": 4,
+      "sample_size": 5,
       "command": ".venv/bin/python -m pytest sim/tests/test_no_hardcoded.py -v -s"
     },
     {
@@ -75,9 +80,21 @@
     },
     {
       "name": "lignes_differentes_preuve_rouge",
+      "value": 53,
+      "sample_size": 53,
+      "command": "diff sim/tests/proof_red/run_sabotage.txt sim/tests/proof_red/run_correct.txt | wc -l"
+    },
+    {
+      "name": "lignes_differentes_preuve_rouge_phantom",
+      "value": 94,
+      "sample_size": 94,
+      "command": "diff sim/tests/proof_red/run_phantom_red.txt sim/tests/proof_red/run_phantom_green.txt | wc -l"
+    },
+    {
+      "name": "lignes_differentes_preuve_rouge_iter1",
       "value": 70,
       "sample_size": 70,
-      "command": "diff sim/tests/proof_red/run_sabotage.txt sim/tests/proof_red/run_correct.txt | wc -l"
+      "command": "diff sim/tests/proof_red/run_sabotage.txt sim/tests/proof_red/run_correct.txt | wc -l (mesure de l'itération 1, citée dans verdict.md — preuves régénérées en itération 2)"
     }
   ],
   "waivers": []

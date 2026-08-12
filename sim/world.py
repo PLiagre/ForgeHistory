@@ -32,7 +32,7 @@ def _seed_population(area_km2: float, rng: random.Random) -> int:
     return max(0, int(base * variation))
 
 
-def _seed_food_stock(area_km2: float, population: int) -> float:
+def _seed_food_stock(population: int) -> float:
     """Stock alimentaire initial : INITIAL_FOOD_DAYS ticks de consommation."""
     daily_need = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
     return daily_need * INITIAL_FOOD_DAYS
@@ -71,7 +71,7 @@ class World:
             cid = raw["cell_id"]
             area = raw["area_km2"]
             pop = _seed_population(area, rng)
-            stock = _seed_food_stock(area, pop)
+            stock = _seed_food_stock(pop)
             cell = Cell(
                 cell_id=cid,
                 area_km2=area,
