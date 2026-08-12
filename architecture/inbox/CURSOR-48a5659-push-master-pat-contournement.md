@@ -563,6 +563,6 @@ $ rg -ln "FORGE_BOT_PAT" --glob '!.github/**' .
 
 ## Budget de l'audit
 
-24 appels d'outils sur les 60 autorisés par le contrat
+38 appels d'outils sur les 60 autorisés par le contrat
 (`architecture/agents/cursor-auditor.md` › Budget max appels), veille
-`cursor-qa-scout` incluse.
+`cursor-qa-scout` et dépôt de la pull request compris.
