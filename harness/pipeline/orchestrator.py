@@ -10,7 +10,14 @@ ONE existing module that already owns that transition:
 
     event kind        -> module.function called                -> ledger event(s)
     audit_pr_merge     -> audit_ledger.append_event directly     AUDIT_PROPOSED (optional)
-    review_recorded     -> audit_decision.decide_auto            AUDIT_APPROVED or AUDIT_REJECTED
+    review_recorded     -> audit_review.record_challenge         AUDIT_CHALLENGED (only when the
+                           (the module that owns PROPOSED ->     merged review PR did not carry
+                           CHALLENGED, with all its fail-closed  the ledger line -- see
+                           guards), then                         pipeline-challenge.yml: the PR
+                        audit_decision.decide_auto               contains reviews/** only, so
+                                                                 concurrent challenges never
+                                                                 conflict on the shared ledger)
+                                                                 then AUDIT_APPROVED or AUDIT_REJECTED
     audit_approved       -> audit_convert.convert                AUDIT_CONVERTED
     brief_seed_created  -> (log only -- claude-planificateur is a separate,
                             deliberately human-shaped invocation, not a
@@ -67,6 +74,7 @@ sys.path.insert(0, str(HARNESS))
 import audit_convert  # noqa: E402
 import audit_decision  # noqa: E402
 import audit_ledger  # noqa: E402
+import audit_review  # noqa: E402
 from pipeline import policy_loader  # noqa: E402
 
 AUTO_POLICY_PATH = HARNESS / "pipeline" / "auto_policy.yaml"
@@ -143,16 +151,40 @@ def handle_audit_pr_merge(payload: dict, *, ledger_path: Path, **_kw) -> dict:
     return {"action": "ledger_append", "record": record}
 
 
-def handle_review_recorded(payload: dict, *, ledger_path: Path, inbox: Path | None, decisions_dir: Path, policy_path: Path, **_kw) -> dict:
+def handle_review_recorded(payload: dict, *, ledger_path: Path, inbox: Path | None, decisions_dir: Path, policy_path: Path, reviews_dir: Path | None = None, **_kw) -> dict:
     _require(payload, "audit_id")
+    audit_id = payload["audit_id"]
+    outcome: dict = {"action": "decide_auto"}
+
+    # The challenge PR deliberately carries architecture/reviews/** ONLY
+    # (pipeline-challenge.yml discards the local ledger line before
+    # committing): two concurrent challenge PRs appending to the shared
+    # audit-ledger.jsonl would conflict as soon as one merges, and the
+    # merge-bot allowlist never included the ledger anyway. So the
+    # PROPOSED -> CHALLENGED transition is written HERE, post-merge, on
+    # master -- by the one module that owns it, with all its fail-closed
+    # guards (filled review, no <<TODO>>, at least one verdict). If the
+    # merged PR predates this change and DID carry the ledger line, the
+    # state is already AUDIT_CHALLENGED and nothing is re-appended.
+    state = audit_ledger.current_state_for(audit_id, ledger_path)
+    if state in (None, "AUDIT_PROPOSED"):
+        challenge = audit_review.record_challenge(
+            audit_id,
+            inbox=inbox,
+            reviews_dir=reviews_dir or audit_review.REVIEWS,
+            ledger_path=ledger_path,
+        )
+        outcome["challenge_record"] = challenge
+
     record = audit_decision.decide_auto(
-        payload["audit_id"],
+        audit_id,
         inbox=inbox,
         decisions_dir=decisions_dir,
         ledger_path=ledger_path,
         policy_path=policy_path,
     )
-    return {"action": "decide_auto", "record": record}
+    outcome["record"] = record
+    return outcome
 
 
 def handle_audit_approved(payload: dict, *, ledger_path: Path, inbox: Path | None, briefs_dir: Path, **_kw) -> dict:
@@ -262,6 +294,7 @@ def run_event(
     inbox: Path | None = None,
     decisions_dir: Path | None = None,
     briefs_dir: Path | None = None,
+    reviews_dir: Path | None = None,
     policy_path: Path = AUTO_POLICY_PATH,
 ) -> dict:
     """Dispatch one event through its policy rule(s) and handler. Returns a
@@ -283,6 +316,7 @@ def run_event(
         inbox=inbox,
         decisions_dir=decisions_dir,
         briefs_dir=briefs_dir,
+        reviews_dir=reviews_dir,
         policy_path=policy_path,
     )
     outcome["event"] = event
@@ -310,6 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     rp.add_argument("--inbox", default=None)
     rp.add_argument("--decisions", default=None)
     rp.add_argument("--briefs-dir", default=None)
+    rp.add_argument("--reviews", default=None)
     rp.add_argument("--policy-path", default=str(AUTO_POLICY_PATH))
 
     args = parser.parse_args(argv)
@@ -334,9 +369,10 @@ def main(argv: list[str] | None = None) -> int:
             inbox=Path(args.inbox) if args.inbox else None,
             decisions_dir=Path(args.decisions) if args.decisions else None,
             briefs_dir=Path(args.briefs_dir) if args.briefs_dir else None,
+            reviews_dir=Path(args.reviews) if args.reviews else None,
             policy_path=Path(args.policy_path),
         )
-    except (OrchestratorError, audit_decision.DecisionError, audit_convert.ConvertError, ValueError) as exc:
+    except (OrchestratorError, audit_decision.DecisionError, audit_convert.ConvertError, audit_review.ReviewError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

@@ -93,6 +93,57 @@ def test_review_recorded_routes_through_decide_auto(tmp_path):
     assert outcome["action"] == "decide_auto"
     assert outcome["record"]["event"] == "AUDIT_APPROVED"
     assert audit_ledger.read_events(ledger)[-1]["event"] == "AUDIT_APPROVED"
+    # Already AUDIT_CHALLENGED (the pre-change PR shape carried the ledger
+    # line): the handler must NOT try to re-append CHALLENGED.
+    assert "challenge_record" not in outcome
+    events = [e["event"] for e in audit_ledger.read_events(ledger)]
+    assert events.count("AUDIT_CHALLENGED") == 1
+
+
+def test_review_recorded_writes_challenged_when_pr_carried_review_only(tmp_path):
+    """The post-change PR shape: the merged challenge PR contains
+    architecture/reviews/** only (pipeline-challenge.yml discards the local
+    ledger line), so on master the audit is still AUDIT_PROPOSED when
+    review_recorded fires. The orchestrator must write AUDIT_CHALLENGED
+    itself -- via audit_review.record_challenge, the module that owns the
+    transition -- then decide, in the same dispatch."""
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    (inbox / "CURSOR-abc-orch.md").write_text(AUDIT_DOC, encoding="utf-8")
+    reviews = tmp_path / "reviews"
+    decisions = tmp_path / "decisions"
+    ledger = tmp_path / "ledger.jsonl"
+    path = audit_review.review_path("CURSOR-abc-orch", reviews)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(REVIEW_APPROVED, encoding="utf-8")
+    # No record_challenge call here: the ledger has NO events for this audit.
+
+    outcome = orchestrator.run_event(
+        "review_recorded", {"audit_id": "CURSOR-abc-orch"},
+        ledger_path=ledger, inbox=inbox, decisions_dir=decisions,
+        reviews_dir=reviews,
+    )
+    assert outcome["challenge_record"]["event"] == "AUDIT_CHALLENGED"
+    assert outcome["record"]["event"] == "AUDIT_APPROVED"
+    events = [e["event"] for e in audit_ledger.read_events(ledger)]
+    assert events == ["AUDIT_CHALLENGED", "AUDIT_APPROVED"]
+
+
+def test_review_recorded_fails_closed_without_a_real_review(tmp_path):
+    """No review file on disk and no CHALLENGED in the ledger: the deferred
+    PROPOSED -> CHALLENGED write must refuse (record_challenge's own guard),
+    never invent a challenge that does not exist."""
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    (inbox / "CURSOR-abc-orch.md").write_text(AUDIT_DOC, encoding="utf-8")
+    ledger = tmp_path / "ledger.jsonl"
+    with pytest.raises(audit_review.ReviewError):
+        orchestrator.run_event(
+            "review_recorded", {"audit_id": "CURSOR-abc-orch"},
+            ledger_path=ledger, inbox=inbox,
+            decisions_dir=tmp_path / "decisions",
+            reviews_dir=tmp_path / "reviews",
+        )
 
 
 def test_evaluateur_pass_cannot_skip_fsm(tmp_path):

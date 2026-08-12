@@ -39,9 +39,17 @@ jobs:
   invoke-claude-challenger:
     runs-on: ubuntu-latest
     steps:
+      # Le jeton FORGE_BOT_PAT (PAT fine-grained du propriétaire, secret
+      # optionnel) sert au push de la branche ET au `gh pr create` plus bas :
+      # une PR ouverte avec GITHUB_TOKEN ne déclenche pas les workflows
+      # `pull_request` (ils restent en attente d'approbation manuelle
+      # « Approve and run »). Avec le PAT, la PR est portée par le
+      # propriétaire et la CI se lance seule. Repli : GITHUB_TOKEN, même
+      # comportement dégradé qu'avant (PR à approuver à la main).
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          token: ${{ secrets.FORGE_BOT_PAT || github.token }}
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.13"
@@ -163,19 +171,27 @@ jobs:
       - name: Publish the review as a pull request (reviews/** is merge-bot allowlisted)
         if: steps.check.outputs.available == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.FORGE_BOT_PAT || secrets.GITHUB_TOKEN }}
           AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}
         run: |
           set -euo pipefail
-          if [ -z "$(git status --porcelain -- architecture/reviews architecture/audit-ledger.jsonl)" ]; then
-            echo "::warning::the invocation left no review nor ledger change -- nothing to publish; inspect the transcript in this run's log."
+          # La ligne AUDIT_CHALLENGED écrite localement par le gate `record`
+          # pendant l'invocation ne part PAS dans la PR : deux challenges
+          # ouverts en même temps entreraient en conflit d'append sur le
+          # ledger partagé (et audit-ledger.jsonl n'a jamais été dans
+          # l'allowlist du merge-bot). La ligne authentique est ré-écrite
+          # sur master, après fusion, par pipeline-orchestrate.yml
+          # (orchestrator.py -> audit_review.record_challenge, mêmes gardes).
+          git checkout -- architecture/audit-ledger.jsonl || true
+          if [ -z "$(git status --porcelain -- architecture/reviews)" ]; then
+            echo "::warning::the invocation left no review -- nothing to publish; inspect the transcript in this run's log."
             exit 0
           fi
           branch="forge-bot/review-${AUDIT_ID}-${GITHUB_RUN_ID}"
           git config user.name "forge-bot"
           git config user.email "forge-bot@users.noreply.github.com"
           git checkout -b "$branch"
-          git add architecture/reviews architecture/audit-ledger.jsonl
+          git add architecture/reviews
           git commit -m "challenge: revue CLAUDE-${AUDIT_ID} (claude-challenger headless, run ${GITHUB_RUN_ID})"
           git push -u origin "$branch"
           gh pr create \
