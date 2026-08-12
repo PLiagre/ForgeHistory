@@ -19,6 +19,10 @@ ADR-0010 du statut d'observateur à celui de chef de projet.
 | `hermes/DASHBOARD.md` | **le tableau de bord** : où en est la boucle, qui attend quoi, ce que ça consomme | **généré** par `hermes/dashboard.py` — jamais édité à la main |
 | `hermes/reports/RAPPORT-AAAAMMJJ-<slug>.md` | compte-rendu d'état (après une session, un jalon, un incident) | frontmatter ci-dessous |
 | `hermes/requests/DEMANDE-AAAAMMJJ-<slug>.md` | demande d'évolution formulée par le propriétaire, mise en forme par Hermes | frontmatter ci-dessous |
+| `hermes/skills/<nom>/SKILL.md` | l'outillage de l'Hermes local (hermes-agent), versionné ici et lu sur le PC du propriétaire via une jonction depuis `~/.hermes/skills/` | frontmatter hermes-agent (`name`, `description`) |
+
+Jamais dans le dépôt : le reste de `~/.hermes` (sessions, mémoire, clés,
+`state.db`) — ce sont des données privées de la machine du propriétaire.
 
 ## Le tableau de bord
 
