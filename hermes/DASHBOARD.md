@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-12 15:31 UTC.
+> Générée le 2026-08-12 15:32 UTC.
 
 ## En bref
 
@@ -16,26 +16,27 @@
 ## Ce qui attend le propriétaire
 
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-12 15:30:59 | hermes-observer | pull_request_target | cursor/push-master-pat-39f4 | success |
-| 2026-08-12 15:30:59 | audit-guard | push | master | success |
-| 2026-08-12 15:30:59 | harness-ci | push | master | in_progress |
-| 2026-08-12 15:30:58 | pipeline-audit | push | master | in_progress |
-| 2026-08-12 15:30:58 | hermes-dashboard | push | master | in_progress |
-| 2026-08-12 15:30:58 | security | push | master | in_progress |
-| 2026-08-12 15:01:59 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:01:52 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:01:51 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:01:44 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:01:39 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:01:37 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:01:35 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-12 15:01:35 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 15:01:33 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 15:32:52 | pipeline-orchestrate | workflow_dispatch | master | queued |
+| 2026-08-12 15:32:48 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 15:32:44 | pipeline-failure-escalate | workflow_run | master | in_progress |
+| 2026-08-12 15:32:44 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 15:32:36 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 15:32:33 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 15:32:33 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 15:32:31 | harness-ci | push | master | in_progress |
+| 2026-08-12 15:32:31 | pipeline-audit | push | master | success |
+| 2026-08-12 15:32:31 | hermes-dashboard | push | master | in_progress |
+| 2026-08-12 15:32:31 | security | push | master | success |
+| 2026-08-12 15:32:31 | audit-guard | push | master | success |
+| 2026-08-12 15:32:15 | pipeline-orchestrate | workflow_dispatch | master | success |
+| 2026-08-12 15:31:55 | hermes-observer | workflow_run | master | in_progress |
+| 2026-08-12 15:31:41 | hermes-observer | workflow_run | master | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -49,6 +50,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-65c3ac1-dashboard-hermes-modele-auditeur | contre-audit rendu — attend la décision | 2026-08-12 12:01 |
 | CURSOR-73022bd-hermes-dashboard-modele-auditeur | contre-audit rendu — attend la décision | 2026-08-12 11:55 |
 | CURSOR-779d97c-revue-verdicts-illisibles | contre-audit rendu — attend la décision | 2026-08-12 12:30 |
+| CURSOR-e849633-hermes-demande-pilotage | retenu — à convertir en brief | 2026-08-12 15:32 |
 | CURSOR-0269d8e-hermes-console-droit-executer | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
@@ -60,7 +62,6 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-bb8fe11-hermes-console-adr-0011 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-cd1dcd2-forge-bot-pat-boucle-jetons | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-e2896e7-pr44-challenge-bb8fe11 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-e849633-hermes-demande-pilotage | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 
 (7 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
 
