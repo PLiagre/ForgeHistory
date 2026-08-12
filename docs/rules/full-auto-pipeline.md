@@ -114,6 +114,19 @@ harness loop.
      launched through the API draw from the same Cursor plan usage as
      agents launched from the dashboard — this key is already
      subscription-based.
+   - `FORGE_BOT_PAT` — a fine-grained personal access token of the owner
+     (repository: this one only; permissions: Contents read/write + Pull
+     requests read/write). Used by `pipeline-challenge.yml` and
+     `pipeline-forge-run.yml` to push `forge-bot/*` branches and open their
+     PRs, and by `merge-bot.yml` to enable auto-merge. Why it exists:
+     GitHub never triggers workflows on events caused by the built-in
+     `GITHUB_TOKEN` — a bot-opened PR sits with every check stuck on a
+     manual "Approve and run" button, and a bot-performed merge fires no
+     downstream `push` workflow, silently stopping the chain. With the PAT
+     the events are owner-authored and the loop runs unattended. Absent
+     secret → automatic fallback to `GITHUB_TOKEN` (the degraded,
+     approve-by-hand behaviour). The kill-switch label and `mode: manual`
+     cut the loop regardless of which token is in use.
    Until credentials exist, every invocation step logs a documented
    `::warning::` waiver and no-ops instead of failing — full_auto never
    silently pretends to run.
