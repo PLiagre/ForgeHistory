@@ -1,0 +1,28 @@
+Commande réellement exécutée :
+
+$env:FORGE_COST_LEDGER = 'D:\ForgeHistory-010b\harness\queue\cost-ledger.jsonl'
+& 'C:\Program Files\Git\bin\bash.exe' harness/backends/run_codex_generator.sh /d/ForgeHistory-010b/harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_010b_cross_actor
+
+Sortie du préflight :
+
+PREFLIGHT OK: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur-codex<->forge-evaluateur-korrigan
+
+Sortie du wrapper :
+
+logged: {'timestamp': '2026-08-11T23:16:20.391670', 'backend': 'codex', 'brief': 'D:/ForgeHistory-010b/harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_010b_cross_actor', 'event': 'generator-run-failed'}
+ERROR: Codex run failed or did not produce the required deliverables (exit=126).
+
+Stderr Codex littéral :
+
+harness/backends/run_codex_generator.sh: line 104: /c/Program Files/WindowsApps/OpenAI.Codex_26.803.5235.0_x64__2p2nqsd0c76g0/app/resources/codex.exe: Permission denied
+
+Code de retour : 1 (le processus Codex interne a rendu 126)
+
+Le wrapper réel a donc franchi le contrôle inter-acteurs, tenté `codex exec`,
+échoué bruyamment sur la permission de l'installation AppX et enregistré
+l'invocation. Il n'a effectué aucun repli silencieux.
+
+Un premier appel réel, avant correction de la préférence Windows, avait
+sélectionné le binaire ELF sans extension livré à côté du PE et rendu 126
+avec `cannot execute binary file: Exec format error`. Le wrapper préfère
+désormais `codex.exe` sur Windows ; les deux tentatives restent dans le ledger.

@@ -8,12 +8,13 @@
 # apply it mechanically. Parsed by harness/pipeline/policy_loader.py (no
 # PyYAML dependency -- see generator-log.md for why).
 #
-# `mode: full_auto_decision_only` is the value this policy documents (brief
-# 009 ADR-0007 split the single `full_auto` value in two -- this scalar is
-# documentation only, not a parsed enforcement key, per this file's own
-# header comment; it must not silently disagree with the LIVE switch in
-# harness/pipeline/config.yaml (`mode:`), which carries the real value).
-mode: full_auto_decision_only
+# `mode: full_auto` is the value this policy documents (ADR-0010 declared
+# it on 2026-08-12, once the three invocation workflows were really wired --
+# this scalar is documentation only, not a parsed enforcement key, per this
+# file's own header comment; it must not silently disagree with the LIVE
+# switch in harness/pipeline/config.yaml (`mode:`), which carries the real
+# value).
+mode: full_auto
 
 # One entry per row of brief 006 "## Politique auto" (10 rows -> 10 rules,
 # each carrying event / condition / action so it stays machine-parseable),

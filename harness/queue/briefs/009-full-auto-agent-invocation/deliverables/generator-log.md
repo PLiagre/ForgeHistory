@@ -823,3 +823,145 @@ VERDICT: ACCEPT
 La sortie complète est conservée dans `deliverables/gate-009b.txt`. Ce résultat
 est seulement le contrôle mécanique. Le `verdict.md` existant juge 009a ; je
 n'ajoute aucun verdict pour 009b, car je suis le Générateur de ce lot.
+
+---
+
+## Lot 009a — itération 3, reprise et finalisation
+
+**Author**: forge-generateur-codex
+**Date**: 2026-08-11
+
+Cette section complète le commit partiel `999dcf3`, créé pour préserver le
+travail interrompu sur C3. Elle traite les quatre blocages de
+`feedback/feedback-009a-002.md`. Elle ne modifie pas le verdict existant et ne
+prononce pas la recevabilité du lot ; cette décision appartient à une session
+d'Évaluateur distincte.
+
+### C3 — contrat honnête et filtre structurel resserré
+
+Le commit partiel avait déjà fermé deux faux positifs : des marqueurs présents
+uniquement dans des commentaires, et un workflow tronqué après `runs-on:` mais
+avant `steps:`. Il documentait aussi explicitement la limite restante : un
+workflow structurellement complet dont l'unique étape fait `echo no-agent`
+reste accepté. Ce garde filtre les fichiers absents, illisibles, vides,
+tronqués ou manifestement mal structurés ; il ne prouve pas qu'un agent est
+invoqué. La preuve sémantique de l'invocation appartient au lot 009c SC14.
+
+La reprise a retiré une dernière surpromesse dans le commentaire du chemin de
+réussite (`forge-run genuinely wired`) et a resserré la reconnaissance d'une
+clé : `jobs:garbage` ne compte plus comme la clé YAML `jobs:`. Reconstruction
+réelle contre le module du commit partiel, avant cette correction :
+
+```text
+ANCIEN COMMIT: ACCEPTE jobs:garbage (le nouveau test serait rouge)
+```
+
+Commande ciblée après correction :
+
+```text
+py -m pytest harness/tests/test_mode_guard.py -k "comment_only or marker_prefix or truncated_after_runs_on or structurally_complete" -q
+....                                                                     [100%]
+4 passed, 13 deselected in 0.03s
+```
+
+Le quatrième test conserve volontairement la limite `echo no-agent` sous test
+au lieu de la laisser silencieuse. Il ne présente pas cette acceptation comme
+une preuve de câblage.
+
+### C4 — le mode est une déclaration, pas encore un interrupteur d'exécution
+
+`docs/rules/full-auto-pipeline.md` dit maintenant explicitement qu'en 009a :
+
+- définir `mode: full_auto_decision_only` déclare la posture et passe le
+  validateur, mais n'active aucun chemin sans surveillance ;
+- aucun fichier `.github/workflows/pipeline-*.yml` ne lit encore cette clé ;
+- un `push` suivant se comporte donc comme avant cette déclaration ;
+- `mode: manual` ne deviendra un arrêt opérationnel que lorsqu'un workflow le
+  consultera, premier point d'appel réservé à 009c SC15.
+
+Le commentaire de `harness/pipeline/config.yaml` est aligné sur cet état réel.
+La ligne de valeur reste strictement inchangée :
+`mode: full_auto_decision_only`. Aucun workflow n'a été modifié.
+
+### C2 — compteur relancé sur la plage élargie
+
+Commande réellement exécutée après le commit partiel d'itération 3 :
+
+```text
+py harness/queue/briefs/009-full-auto-agent-invocation/deliverables/measure_config_mode_transitions.py 244a4f2~1..999dcf3
+config_mode_single_commit_transition_count = 2
+distinct values seen: ['full_auto', 'full_auto_decision_only']
+```
+
+Cette plage couvre tous les commits disponibles du lot 009a, du parent du
+premier commit jusqu'au commit partiel d'itération 3. Les corrections de cette
+reprise qui ne sont pas encore commitées modifient seulement les commentaires
+de `config.yaml`, jamais sa ligne `mode:`. Le champ `command` correspondant du
+manifest référence désormais cette mesure réelle, et non plus la plage de la
+seule itération 1.
+
+### C1 — suite complète réellement relancée et recopiée
+
+Commande :
+
+```text
+py -m pytest harness/tests/ -q
+```
+
+Sortie complète de l'exécution postérieure aux corrections C3 et C4 :
+
+```text
+........................................................................ [ 24%]
+........................................................................ [ 48%]
+........................................................................ [ 72%]
+........................................................................ [ 96%]
+............                                                             [100%]
+300 passed in 26.00s
+```
+
+La même sortie remplace l'ancienne exécution à 284 tests dans
+`deliverables/pytest-full-output.txt`. Elle n'est pas réutilisée depuis une
+ancienne itération.
+
+### Périmètre de cette reprise
+
+Les modifications non commitées de cette reprise sont limitées à :
+
+- `harness/pipeline/full_auto_mode_guard.py` et son fichier de tests ;
+- les commentaires de `harness/pipeline/config.yaml` ;
+- `docs/rules/full-auto-pipeline.md` ;
+- les livrables 009a (`generator-log.md`, `manifest.json`, sortie pytest).
+
+La valeur `mode:` n'a pas changé. Aucun workflow, aucun artefact de 009b/009c
+et aucun texte d'ADR-0006 n'a été modifié.
+
+### Gate mécanique après mise à jour des livrables
+
+Commande :
+
+```text
+py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation
+```
+
+Sortie complète :
+
+```text
+# verdict_audit report for harness\queue\briefs\009-full-auto-agent-invocation
+# generated_at: 2026-08-11T22:47:04.358472
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator=forge-generateur, evaluator=forge-evaluateur
+[PASS] rubric_predates_deliverables: rubric (2026-08-10 11:00:00) predates earliest deliverable (2026-08-10 22:52:36.524133)
+[PASS] declared_files_are_tracked: all 14 in-brief declared files are tracked; 10 declared outside the brief dir, not checked: ['../../../../harness/pipeline/config.yaml', '../../../../harness/pipeline/auto_policy.yaml', '../../../../docs/rules/full-auto-pipeline.md', '../../../../harness/pipeline/full_auto_mode_guard.py', '../../../../harness/tests/test_mode_guard.py', '../../../../docs/adr/0007-full-auto-mode-split.md', '../../../../docs/adr/README.md', '../../../../harness/pipeline/ci_budget_guard.py', '../../../../harness/pipeline/ci-budget-ledger.jsonl', '../../../../harness/tests/test_ci_budget_guard.py']
+
+VERDICT: ACCEPT
+```
+
+`VERDICT: ACCEPT` est la sortie du contrôle mécanique uniquement. Cette
+section ne remplace pas la réévaluation indépendante demandée par le contrat
+du harnais.

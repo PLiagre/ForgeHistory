@@ -1,18 +1,18 @@
 #!/usr/bin/env py
 """
 harness/backends/ledger.py -- honest, minimal usage ledger for the
-Générateur role's backend split (Claude vs Cursor).
+Générateur role's backend split (Claude vs Cursor vs Codex).
 
 Why not ECC's cost-tracking skill directly: that skill reads
 ~/.claude/metrics/costs.jsonl, written by ECC's own `stop:cost-tracker`
 hook -- which is tightly coupled to ECC's plugin-root resolution machinery
-and only tracks Claude Code's own dollar cost, never Cursor's (Cursor has
-no equivalent local log this session can read). Porting that machinery
+and only tracks Claude Code's own dollar cost, never Cursor's or Codex's.
+Porting that machinery
 would add a real dependency for a metric it can't even fully answer.
 
 What this tracks instead, and why it's honest: invocation counts per
 backend per brief -- a real, deterministic, directly-observable proxy for
-"is spend actually being spread across Claude and Cursor," which is the
+"is spend actually being spread across Claude, Cursor and Codex," which is the
 project owner's actual goal. It does not claim to know dollar costs it
 cannot measure.
 
@@ -21,13 +21,15 @@ observable: Claude Code writes a full per-request usage record to its own
 session transcripts (~/.claude/projects/<slug>/*.jsonl, plus one file per
 subagent under <session-id>/subagents/). Reading those gives real token
 counts per role, per brief, per agent -- measured, not estimated. The
-Cursor backend has no equivalent local log in this environment, so it is
-reported as "not observable" rather than folded into a total that would
-then be a lie. Same principle as above: report what is measurable, name
-what is not.
+Cursor has no equivalent local log in this environment. Codex stores session
+events locally, but this ledger cannot reliably correlate one of those sessions
+to a wrapper invocation; a process that fails before model startup emits none.
+Both are therefore reported as "not observable" rather than folded into a
+total that would then be a lie. Same principle as above: report what is
+measurable, name what is not.
 
 Usage:
-  py harness/backends/ledger.py append --backend claude|cursor --brief <dir> \
+  py harness/backends/ledger.py append --backend claude|cursor|codex --brief <dir> \
       [--event NAME] [--audit-id ID]
   py harness/backends/ledger.py report
   py harness/backends/ledger.py tokens [--transcripts DIR] [--top N] [--json]
@@ -37,6 +39,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -45,7 +48,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import transcripts as transcripts_mod
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-LEDGER_PATH = REPO_ROOT / "harness" / "queue" / "cost-ledger.jsonl"
+LEDGER_PATH = Path(
+    os.environ.get(
+        "FORGE_COST_LEDGER",
+        REPO_ROOT / "harness" / "queue" / "cost-ledger.jsonl",
+    )
+)
 
 # --- transcript reading -------------------------------------------------
 #
@@ -361,14 +369,14 @@ def tokens_report(root: Path, top: int, as_json: bool) -> int:
         for model in sorted(unpriced):
             print(f"  {model}")
 
-    cursor_runs = sum(
-        1 for e in load_entries() if e.get("backend") == "cursor"
-    )
-    print(
-        f"\nCursor backend: {cursor_runs} logged Générateur run(s), token cost "
-        "NOT observable from this environment -- excluded from the total above, "
-        "not assumed to be zero."
-    )
+    entries = load_entries()
+    for backend, label in (("cursor", "Cursor"), ("codex", "Codex")):
+        runs = sum(1 for entry in entries if entry.get("backend") == backend)
+        print(
+            f"\n{label} backend: {runs} logged Générateur run(s), token cost "
+            "NOT observable/correlated by this ledger -- excluded from the total above, "
+            "not assumed to be zero."
+        )
     return 0
 
 
@@ -377,7 +385,9 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_append = sub.add_parser("append")
-    p_append.add_argument("--backend", required=True, choices=["claude", "cursor"])
+    p_append.add_argument(
+        "--backend", required=True, choices=["claude", "cursor", "codex"]
+    )
     p_append.add_argument("--brief", required=True)
     p_append.add_argument("--event", default="generator-run")
     p_append.add_argument(

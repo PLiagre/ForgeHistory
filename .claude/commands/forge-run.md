@@ -1,6 +1,6 @@
 ---
 description: Run a ForgeHistory brief through the full three-role harness loop (Planificateur -> Générateur -> mechanical gate -> Évaluateur) until it passes or plateaus.
-argument-hint: <brief-slug-or-path> [--backend claude|cursor] [--max-iterations N]
+argument-hint: <brief-slug-or-path> [--backend claude|cursor|codex] [--max-iterations N]
 allowed-tools: Task, Read, Write, Bash, Grep, Glob
 ---
 
@@ -16,7 +16,7 @@ backend-pluggable Générateur (see `docs/adr/0002-pluggable-generator-backend.m
 `$ARGUMENTS`:
 - `<brief-slug-or-path>` (required) — either `NNN-<slug>` (resolved under
   `harness/queue/briefs/`) or a full path to a brief directory.
-- `--backend claude|cursor` (default `claude`) — which Générateur backend
+- `--backend claude|cursor|codex` (default `claude`) — which Générateur backend
   runs this brief's iterations.
 - `--max-iterations N` (default `5`).
 
@@ -75,6 +75,9 @@ while iteration < max_iterations:
         run: bash harness/backends/run_cursor_generator.sh <BRIEF_DIR>
         if this fails (missing binary/login): STOP, report the exact
         error to the user -- do not silently fall back to Claude.
+    elif backend == "codex": run bash harness/backends/run_codex_generator.sh <BRIEF_DIR>
+        if this fails (missing binary/login or anti-auto-judgment preflight):
+        STOP and report the exact error; never fall back silently.
     else:
         launch forge-generateur agent via Task tool. On iteration > 1,
         it must read feedback/feedback-{iteration-1}.md first (this is

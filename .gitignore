@@ -29,3 +29,8 @@ Thumbs.db
 # (brief 006 Lot 006c, SC18) -- a disposable brief seed the demo writes on
 # every run, deliberately never the real harness/queue/briefs/ queue.
 harness/pipeline/demo/output/
+
+# Environnement virtuel Python local (VM cloud / poste Linux) -- jamais
+# versionné ; le lanceur documenté reste `py` sur Windows, `.venv/bin/python`
+# sur Linux (voir AGENTS.md).
+.venv/

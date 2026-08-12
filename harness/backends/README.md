@@ -19,8 +19,8 @@ for the alternative backends.
   narrating what was built and how each counter was measured.
 
 A backend wrapper must **never** write `verdict.md` — it does not judge its
-own work; that stays the Évaluateur's job on Claude, regardless of which
-backend ran the Générateur (see ADR-0002).
+own work. The verdict belongs to an independent Évaluateur under ADR-0008,
+never to the session that ran the Générateur.
 
 This is what keeps `harness/verdict_audit.py` completely unchanged and
 backend-agnostic: it only ever reads the brief-directory contract above, not
@@ -32,14 +32,21 @@ which backend produced it.
 |---|---|---|
 | Claude Code (default) | none needed — native `forge-generateur` agent, in-session | working |
 | Cursor CLI | `run_cursor_generator.sh` | written; end-to-end run against the real `cursor-agent` binary requires the project owner's own Cursor login — see `HANDOFF.md` for whether it's actually been tested here |
+| Codex CLI | `run_codex_generator.sh` | official wrapper; uses stable non-interactive `codex exec`, signs `forge-generateur-codex`, and runs the shared anti-auto-judgment preflight before writing |
 
 ## Usage
 
 ```bash
-bash harness/backends/run_cursor_generator.sh <brief_dir>
+bash harness/backends/run_cursor_generator.sh <brief_dir> [extra_dirs_colon_separated]
+bash harness/backends/run_codex_generator.sh <brief_dir> [extra_dirs_colon_separated]
 ```
 
 Requires `cursor-agent` installed and either `CURSOR_API_KEY` set or a prior
 `cursor-agent login`. The script checks for both up front and exits with the
 exact missing command if either is absent — it never silently skips or
 guesses (hard-won rule 9).
+
+The Codex wrapper requires a working Codex CLI. It uses the documented
+non-interactive `codex exec` interface with a `workspace-write` sandbox and
+JSONL output; it reports the exact CLI error instead of silently falling back.
+Official reference: https://developers.openai.com/codex/cli/reference/
