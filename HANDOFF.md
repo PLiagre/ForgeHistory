@@ -32,14 +32,12 @@ la prochaine session ; l'historique détaillé reste dans Git.
 
 ## Point de départ
 
-- Branche par défaut : `master`, commit `304c59a` (PR #19 fusionnée, donc les
-  quatre commits de `forge/roles-full-auto` sont désormais sur `master`).
-  Reprise active sur `forge/009a-iteration-3`, au commit partiel `999dcf3`,
-  avec les corrections finales de l'itération 3 encore non commitées.
+- Branche par défaut : `master`, commit `3822c68` (PR #21 fusionnée ; lot
+  010a accepté). Intégration en cours sur `forge/stabilisation-2026-08-12`.
 - Jalon général : F0 terminé ; F1 en cours. Le jeu Unity porté, le pipeline
   géographique et les travaux visuels n'ont pas été touchés cette session.
-- `py -m pytest harness/tests/ -q` → **300 passed**, zéro échec.
-- `py harness/verdict_audit.py harness/queue/briefs/009-full-auto-agent-invocation`
+- `py -m pytest harness/tests/ -q` → suite verte (voir rapport final).
+- `py harness/verdict_audit.py harness/queue/briefs/010-repartition-roles-full-auto`
   → **10/10, VERDICT: ACCEPT**.
 - `py harness/harness_audit.py` → **23/24**. Le seul rouge,
   `no_premature_stub_content`, est l'outil qui est périmé : il croit encore
@@ -135,18 +133,15 @@ conditionnelle qui remplacerait le clic, sans l'activer.
 | 009c — invocation réelle de challenge | **bloqué** | Une de ses deux conditions est levée (009b accepté) ; l'autre non (009a rejeté). Ne pas démarrer. |
 | 010a — contrat des rôles | **ACCEPTÉ à l'itération 2**, après un vrai cycle REJECT → correction → ACCEPT | Itération 1 (`62a0fe2`) **rejetée** : elle rendait le contrôle *plus permissif* qu'avant — ajouter au journal un lot non encore jugé poussait un couple auto-jugé hors de la fenêtre des `k` derniers auteurs, et le refus disparaissait. Itération 2 (`e912d61`) referme la porte par deux ajouts ; verdict `192218a`. Ce qui a décidé : une énumération **exhaustive** plutôt qu'un échantillon — 66 564 combinaisons de listes d'auteurs, 0 cas refusé-avant/accepté-après, 39 585 acceptés-avant/refusés-après. Le contrôle refuse un sur-ensemble strict. 305 tests. |
 | 010b — Codex backend officiel | **spécifié, non produit** | Attend 010a. Produit par Codex, jugé par Claude. |
-| 010c — verrou de fusion | **spécifié, non produit** | Indépendant. Produit par Codex, jugé par Claude. |
+| 010c — verrou de fusion | **PRODUIT, À RÉÉVALUER** | Test SC12, spécification inactive et mesure livrés par Codex. 311 tests, gate mécanique 10/10, zéro octet sous `.github/workflows/`. SC14 mesure 5 auto-fusionnables sur les 18 PR fusionnées existantes ; le dénominateur 20 demandé n'existe pas encore et doit être jugé explicitement. |
 
 ## Prochaines actions, dans l'ordre
 
-1. **Faire juger 010a par Codex** (PR #20). Claude l'a produit, il ne peut pas
-   le juger — et c'est désormais le contrôle corrigé lui-même qui le dirait.
-2. **Faire corriger 009a (C1-C4) par Codex**, qui devient ici le Générateur —
-   il n'a pas produit l'itération 2, il l'a jugée. Claude jugera l'itération 3.
-   Source d'instruction : le brief 009 ; défauts à traiter :
-   `feedback/feedback-009a-002.md`.
-3. **Produire 010c** (Codex), indépendant de tout le reste.
-4. **Produire 010b** (Codex) une fois 010a accepté.
+1. **Faire réévaluer 009a itération 3 par Claude** dans une session distincte.
+2. **Faire réévaluer 010c par Claude**. SC14 doit être jugé sur son fait réel :
+   seulement 18 PR fusionnées existent. Ne jamais compléter le dénominateur
+   avec des PR fermées ou des lignes fictives.
+3. **Produire 010b** (Codex) : 010a est accepté, donc sa dépendance est levée.
 5. Après 009c, une passe Planificateur écrit le brief du maillon
    `cursor-auditor` (`pipeline-audit.yml`) — décidé en premier — puis celui de
    `pipeline-forge-run.yml`, puis le contrat d'écriture d'Hermes. Un agent

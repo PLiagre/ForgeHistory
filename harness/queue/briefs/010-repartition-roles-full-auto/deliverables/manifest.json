@@ -229,6 +229,34 @@
     },
     {
       "path": "deliverables/proofs/fixtures/fx_010b_cross_actor/deliverables/backend-status-codex.md"
+    },
+    {
+      "path": "../../../../harness/merge_bot_policy.py"
+    },
+    {
+      "path": "../../../../harness/tests/test_merge_bot_policy.py"
+    },
+    {
+      "path": "../../../../docs/rules/conditional-merge-gate.md"
+    },
+    {
+      "path": "deliverables/proofs/measure_recent_prs_automergeable.py"
+    },
+    {
+      "path": "deliverables/proofs/proof-sc12-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/proof-sc12-green.txt",
+      "must_differ_from": "deliverables/proofs/proof-sc12-red.txt"
+    },
+    {
+      "path": "deliverables/proofs/recent-prs-automergeable-output.txt"
+    },
+    {
+      "path": "deliverables/proofs/pytest-010c-full-output.txt"
+    },
+    {
+      "path": "deliverables/proofs/workflows-diff-010c.txt"
     }
   ],
   "counters": [
@@ -309,6 +337,30 @@
       "value": 6,
       "sample_size": 6,
       "command": "py -m pytest harness/tests/test_codex_backend.py -q"
+    },
+    {
+      "name": "mergebot_allowed_prefixes_count",
+      "value": 2,
+      "sample_size": 2,
+      "command": "py -c \"from harness.merge_bot_policy import load_merge_bot_policy; p=load_merge_bot_policy(); print('mergebot_allowed_prefixes_count =',len(p.branch_prefixes)); print('prefixes =',list(p.branch_prefixes))\" -- prints 2 and ['cursor/', 'forge-bot/']; values are extracted from .github/workflows/merge-bot.yml"
+    },
+    {
+      "name": "mergebot_allowed_paths_count",
+      "value": 3,
+      "sample_size": 3,
+      "command": "py -c \"from harness.merge_bot_policy import load_merge_bot_policy; p=load_merge_bot_policy(); print('mergebot_allowed_paths_count =',len(p.allowed_path_prefixes)); print('paths =',list(p.allowed_path_prefixes))\" -- prints 3 and the three paths extracted from .github/workflows/merge-bot.yml"
+    },
+    {
+      "name": "recent_prs_automergeable_count",
+      "value": 5,
+      "sample_size": 18,
+      "command": "py harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/measure_recent_prs_automergeable.py --limit 20 -- GitHub returns every merged PR in the repository, 18 total; 5 satisfy the extracted rules. Full output in deliverables/proofs/recent-prs-automergeable-output.txt. The requested denominator 20 does not yet exist and is not fabricated."
+    },
+    {
+      "name": "workflows_diff_bytes",
+      "value": 0,
+      "sample_size": 1,
+      "command": "git diff --numstat 3822c68 -- .github/workflows -- no stdout, therefore 0 changed bytes; captured in deliverables/proofs/workflows-diff-010c.txt"
     }
   ],
   "waivers": [
