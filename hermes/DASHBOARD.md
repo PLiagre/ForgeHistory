@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-12 12:25 UTC.
+> Générée le 2026-08-12 12:33 UTC.
 
 ## En bref
 
@@ -22,21 +22,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-12 12:25:46 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:25:44 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:25:27 | harness-ci | push | master | in_progress |
-| 2026-08-12 12:25:26 | pipeline-audit | push | master | in_progress |
-| 2026-08-12 12:25:26 | audit-guard | push | master | success |
-| 2026-08-12 12:25:26 | security | push | master | success |
-| 2026-08-12 12:25:26 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:25:26 | hermes-dashboard | push | master | in_progress |
-| 2026-08-12 12:25:26 | hermes-observer | pull_request_target | forge/hermes-decision-adr-0011-c2dd | queued |
-| 2026-08-12 12:25:24 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:25:22 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:25:19 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-12 12:25:18 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:25:17 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 12:25:02 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:33:47 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:33:45 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:33:41 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 12:33:40 | hermes-observer | workflow_run | master | success |
+| 2026-08-12 12:33:29 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-779d97c-revue-verdicts-illisibles-31596321701 | success |
+| 2026-08-12 12:33:26 | pipeline-orchestrate | push | master | queued |
+| 2026-08-12 12:33:26 | pipeline-audit | push | master | in_progress |
+| 2026-08-12 12:33:26 | hermes-dashboard | push | master | in_progress |
+| 2026-08-12 12:33:26 | harness-ci | push | master | in_progress |
+| 2026-08-12 12:33:26 | audit-guard | push | master | success |
+| 2026-08-12 12:33:26 | security | push | master | in_progress |
+| 2026-08-12 12:33:23 | harness-ci | push | cursor/audit-pr-32-e849633 | in_progress |
+| 2026-08-12 12:33:23 | audit-guard | push | cursor/audit-pr-32-e849633 | success |
+| 2026-08-12 12:33:23 | security | push | cursor/audit-pr-32-e849633 | in_progress |
+| 2026-08-12 12:33:22 | security | push | forge/hermes-skill-versionnee-c2dd | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -48,8 +48,8 @@ Non disponible dans cette génération (API Cursor non interrogée).
 |---|---|---|
 | CURSOR-cdc683f-hermes-workflow-quatre-acteurs | retenu — à convertir en brief | 2026-08-12 11:41 |
 | CURSOR-73022bd-hermes-dashboard-modele-auditeur | contre-audit rendu — attend la décision | 2026-08-12 11:55 |
+| CURSOR-779d97c-revue-verdicts-illisibles | contre-audit rendu — attend la décision | 2026-08-12 12:30 |
 | CURSOR-65c3ac1-dashboard-hermes-modele-auditeur | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-779d97c-revue-verdicts-illisibles | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 
 (7 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
 
