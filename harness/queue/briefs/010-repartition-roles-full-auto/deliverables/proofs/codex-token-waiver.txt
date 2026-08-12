@@ -1,0 +1,17 @@
+Dérogation SC9 — coût en jetons non récupérable pour ces invocations
+
+Commande de lecture réellement tentée :
+
+Get-Content harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_010b_cross_actor/codex-run.jsonl
+Get-Content harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_010b_cross_actor/codex-run.err
+
+Sortie :
+
+- `codex-run.jsonl` : sortie vide ; aucun événement de session ni usage jeton.
+- `codex-run.err` :
+  `harness/backends/run_codex_generator.sh: line 104: /c/Program Files/WindowsApps/OpenAI.Codex_26.803.5235.0_x64__2p2nqsd0c76g0/app/resources/codex.exe: Permission denied`
+
+Le processus n'a pas atteint le démarrage du modèle. Le ledger mesure donc
+les deux invocations tentées, mais n'invente ni jetons ni coût nul. Les
+transcripts généraux de l'application Codex ne permettent pas de corréler
+de façon déterministe une session à cet appel du wrapper.

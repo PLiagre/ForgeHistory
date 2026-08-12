@@ -3,7 +3,7 @@
 # Cursor's headless CLI (cursor-agent). Modeled on the subprocess + prompt
 # file + handoff/status shape of ECC's scripts/orchestrate-codex-worker.sh.
 #
-# Usage: bash harness/backends/run_cursor_generator.sh <brief_dir>
+# Usage: bash harness/backends/run_cursor_generator.sh <brief_dir> [extra_dirs_colon_separated]
 #
 # Contract (see harness/backends/README.md): writes
 # <brief_dir>/deliverables/manifest.json and

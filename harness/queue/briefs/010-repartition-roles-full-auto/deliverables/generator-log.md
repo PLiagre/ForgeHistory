@@ -642,3 +642,115 @@ $ py -m pytest harness/tests/ -q
   cette itération.
 - Je n'ai pas commité : `git add` seulement, comme à l'itération 1.
 - Je n'ai pas modifié `verdict.md` ni `feedback/feedback-010a.md`.
+
+## Production — lot 010b (2026-08-11)
+
+**Author**: forge-generateur-codex
+
+### Budget et périmètre
+
+Le split-check initial a estimé le lot à 100 unités (`SIZE_OK`). Le statut
+budget était `UNMEASURABLE` dans ce worktree, faute de transcript Claude local
+associé ; aucun chiffre n'a été inventé. Le lot ne touche ni les workflows, ni
+`VISION.md`, ni le brief 009, et ne rédige aucun verdict.
+
+### SC7 — wrapper Codex réel, même interface
+
+`harness/backends/run_codex_generator.sh` expose exactement la même signature
+que le wrapper Cursor :
+
+```
+harness/backends/run_codex_generator.sh: <brief_dir> [extra_dirs_colon_separated]
+harness/backends/run_cursor_generator.sh: <brief_dir> [extra_dirs_colon_separated]
+```
+
+Le wrapper utilise l'interface non interactive stable `codex exec`, le prompt
+sur stdin, `--cd`, `--sandbox workspace-write` et `--json`, conformément à la
+référence officielle : https://developers.openai.com/codex/cli/reference/.
+Il signe `forge-generateur-codex`, vérifie les livrables, écrit un état explicite
+et ne touche jamais à `verdict.md`.
+
+Deux appels réels ont été tentés sur le fixture inter-acteurs
+`fx_010b_cross_actor`. Le premier a révélé que le bundle Desktop expose d'abord
+un ELF Linux sans extension ; le wrapper préfère désormais le PE `codex.exe`
+sur Windows. Le second a franchi le préflight puis l'ACL AppX a refusé
+l'exécution du PE :
+
+```
+PREFLIGHT OK: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur-codex<->forge-evaluateur-korrigan
+harness/backends/run_codex_generator.sh: line 104: /c/Program Files/WindowsApps/OpenAI.Codex_26.803.5235.0_x64__2p2nqsd0c76g0/app/resources/codex.exe: Permission denied
+wrapper exit: 1 ; codex exit: 126
+```
+
+La sortie complète est recopiée dans
+`deliverables/proofs/wrapper-cross-actor-output.txt`; le JSONL vide, stderr et
+fichier d'état produits par le wrapper sont conservés dans le fixture.
+
+### SC8 — trois emplacements exacts dans forge-run
+
+Commande réelle : `rg -n "codex" .claude/commands/forge-run.md`.
+
+```
+3:argument-hint: <brief-slug-or-path> [--backend claude|cursor|codex] [--max-iterations N]
+19:- `--backend claude|cursor|codex` (default `claude`) — which Générateur backend
+78:    elif backend == "codex": run bash harness/backends/run_codex_generator.sh <BRIEF_DIR>
+```
+
+Compteur : `forge_run_backend_mentions_count = 3`, échantillon 3.
+
+### SC9 — ledger mesuré, jetons non inventés
+
+`py harness/backends/ledger.py report` rend :
+
+```
+By backend:
+    28  claude
+     4  cursor
+     2  codex
+```
+
+Compteur : `codex_invocations_in_ledger = 2`, sur les 3 lignes backend du
+rapport. Les deux appels ont échoué avant le démarrage d'un modèle ; leur
+`codex-run.jsonl` est vide. La dérogation du manifest cite la commande de
+lecture, la sortie vide et l'erreur littérale, plutôt que de compter zéro
+jeton sans preuve.
+
+### SC10 — décision enregistrée
+
+`docs/adr/0009-codex-as-official-generator-backend.md` porte `Status:
+accepted`, enregistre l'interface, la mesure et le préflight, et
+`docs/adr/README.md` contient sa ligne.
+
+### SC11 — refus inter-acteurs réutilisé, pas réimplémenté
+
+`harness/backends/codex_preflight.py` importe et appelle directement
+`verdict_audit.check_verdict_not_self_authored`. L'appel réel du wrapper sur
+`fx_sc3` a rendu 2 avant tout fichier de sortie :
+
+```
+REFUSING TO RUN: a forge-generateur-codex section would be self-authored against the existing verdict (same actor on 1/1 examined pair(s): forge-generateur-codex==forge-evaluateur-codex (examined: forge-generateur-codex<->forge-evaluateur-codex); plus 1 dropped-entry self-judgment(s): forge-generateur-codex==forge-evaluateur-codex).
+```
+
+La commande, Bash 5.2.37, la sortie et le code sont recopiés dans
+`deliverables/proofs/wrapper-same-actor-output.txt`.
+
+### Tests
+
+Le test red-first a d'abord rendu `6 failed in 0.22s`. Après implémentation :
+
+```
+$ py -m pytest harness/tests/test_codex_backend.py -q
+6 passed in 0.26s
+
+$ py -m pytest harness/tests/ -q
+311 passed in 22.09s
+```
+
+Le gate mécanique final a rendu 10/10 PASS et `VERDICT: ACCEPT`; sa sortie est
+recopiée dans `deliverables/proofs/gate-010b-self-check.txt`. Il s'agit du
+contrôle mécanique, pas d'un verdict écrit par le Générateur.
+
+Le premier passage complet avait exposé une régression de libellé Cursor
+(`NOT observable`) : corrigée puis rejouée sur la suite entière. Les sorties
+rouge, verte et intermédiaire sont conservées dans les preuves. Aucun commit
+n'a été créé et ce Générateur n'a écrit ni verdict ni jugement d'acceptation.

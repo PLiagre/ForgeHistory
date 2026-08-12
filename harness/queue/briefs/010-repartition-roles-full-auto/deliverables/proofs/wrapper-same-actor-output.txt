@@ -1,0 +1,16 @@
+Commande réellement exécutée :
+
+& 'C:\Program Files\Git\bin\bash.exe' harness/backends/run_codex_generator.sh harness/queue/briefs/010-repartition-roles-full-auto/deliverables/proofs/fixtures/fx_sc3
+
+Interpréteur :
+
+GNU bash, version 5.2.37(1)-release (x86_64-pc-msys)
+
+Sortie stderr :
+
+REFUSING TO RUN: a forge-generateur-codex section would be self-authored against the existing verdict (same actor on 1/1 examined pair(s): forge-generateur-codex==forge-evaluateur-codex (examined: forge-generateur-codex<->forge-evaluateur-codex); plus 1 dropped-entry self-judgment(s): forge-generateur-codex==forge-evaluateur-codex).
+
+Code de retour : 2
+
+Aucun codex-run.jsonl, codex-run.err ou backend-status-codex.md n'a été créé
+dans fx_sc3 : le refus a précédé toute écriture du wrapper dans le dépôt.
