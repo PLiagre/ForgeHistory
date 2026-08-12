@@ -30,12 +30,15 @@ auto-merge (merge-bot.yml, inbox/** allowlisted) ──▶ ledger AUDIT_PROPOSED
   ▼
 [claude-challenger] ──▶ architecture/reviews/CLAUDE-<audit_id>.md
   │  .github/workflows/pipeline-challenge.yml (push touching inbox/*.md)
+  │  (the PR carries reviews/** ONLY -- never the shared ledger, so
+  │   concurrent challenge PRs cannot conflict on audit-ledger.jsonl)
   ▼
-auto-merge (merge-bot.yml, reviews/** allowlisted) ──▶ ledger AUDIT_CHALLENGED
+auto-merge (merge-bot.yml, reviews/** allowlisted)
   │
   ▼
-[pipeline-orchestrator] event=review_recorded ──▶ audit_decision.decide_auto()
-  │  .github/workflows/pipeline-orchestrate.yml (push touching reviews/*.md)
+[pipeline-orchestrator] event=review_recorded ──▶ ledger AUDIT_CHALLENGED (post-merge,
+  │  .github/workflows/pipeline-orchestrate.yml     via audit_review.record_challenge)
+  │  (push touching reviews/*.md)                ──▶ audit_decision.decide_auto()
   │
   ├─ all REFUTED ─────────────────▶ ledger AUDIT_REJECTED → AUDIT_ARCHIVED (end cycle)
   ├─ ≥1 CONFIRMED/PARTIAL ────────▶ ledger AUDIT_APPROVED (retained points)
