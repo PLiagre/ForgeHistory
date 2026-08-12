@@ -121,6 +121,35 @@ def test_record_refuses_review_without_verdict(tmp_path):
     assert audit_ledger.read_events(ledger) == []
 
 
+def test_record_refuses_rows_the_auto_decision_cannot_read(tmp_path):
+    """The bb8fe11 shape (2026-08-12): verdict words present, but the rows
+    are numbered `§1` / `P1-1` instead of the scaffold's bare `| 1 |`.
+    decide_auto could never parse them, so record must refuse NOW -- in
+    front of the actor who can fix the table -- instead of logging a
+    CHALLENGED the loop chokes on after merge."""
+    inbox, reviews, ledger = _env(tmp_path)
+    reviews.mkdir()
+    audit_review.review_path("CURSOR-abc-topic", reviews).write_text(
+        """---
+review_of: CURSOR-abc-topic
+reviewer: claude-code
+target_commit: x
+reviewed_at: 2026-08-12T14:00:00Z
+---
+| # | Point | Verdict | Preuve |
+|---|---|---|---|
+| §1 | classification CI | **PARTIAL** | logique confirmee |
+| P1-1 | fusion sans preuve lue | **CONFIRMED** | delai mesure |
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(audit_review.ReviewError):
+        audit_review.record_challenge(
+            "CURSOR-abc-topic", inbox=inbox, reviews_dir=reviews, ledger_path=ledger
+        )
+    assert audit_ledger.read_events(ledger) == []
+
+
 def test_record_refuses_missing_review(tmp_path):
     inbox, reviews, ledger = _env(tmp_path)
     with pytest.raises(audit_review.ReviewError):

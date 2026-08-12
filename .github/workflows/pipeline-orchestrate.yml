@@ -43,6 +43,15 @@ on:
 permissions:
   contents: write
 
+# Un seul run à la fois, jamais annulé : trois challenges fusionnés coup
+# sur coup (runs 31603872434/31603893491/31603909788, 2026-08-12) ont
+# lancé trois orchestrations concurrentes -- la deuxième a perdu son push
+# (`! [rejected] master -> master (fetch first)`) et sa ligne de ledger
+# avec. Les écritures du ledger doivent rester sérialisées.
+concurrency:
+  group: pipeline-orchestrate-master
+  cancel-in-progress: false
+
 jobs:
   orchestrate:
     runs-on: ubuntu-latest
@@ -114,5 +123,12 @@ jobs:
             git config user.email "forge-bot@users.noreply.github.com"
             git add architecture/audit-ledger.jsonl architecture/decisions harness/queue/briefs
             git commit -m "pipeline-orchestrate: ${{ steps.resolve.outputs.event }}"
+            # master peut avoir avancé pendant le run (fusion merge-bot,
+            # tableau de bord Hermes) : rebase avant push. Les seuls autres
+            # écrivains du ledger sont les runs de CE workflow (sérialisés
+            # par le groupe concurrency ci-dessus), donc le rebase ne peut
+            # pas conflicter sur le ledger -- même schéma que
+            # hermes-dashboard.yml.
+            git pull --rebase origin master
             git push
           fi

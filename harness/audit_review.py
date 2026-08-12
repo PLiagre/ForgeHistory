@@ -36,6 +36,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 REVIEWS = REPO_ROOT / "architecture" / "reviews"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import audit_decision  # noqa: E402
 import audit_ledger  # noqa: E402
 import audits as audits_mod  # noqa: E402
 
@@ -175,6 +176,20 @@ def record_challenge(
         raise ReviewError(
             f"{path.as_posix()} has no verdict (CONFIRMED/REFUTED/PARTIAL/"
             f"NEEDS_OWNER); a challenge with no verdict is not a challenge"
+        )
+    # Same parse as audit_decision.decide_auto: the AUDIT_CHALLENGED event
+    # promises "the auto-decision can read this review". The first real
+    # headless challenge that broke this promise (CLAUDE-CURSOR-bb8fe11-...,
+    # 2026-08-12) numbered its rows `§1` / `P1-1` instead of `| 1 |` and
+    # stalled the loop AFTER merge, where nobody could fix it -- refusing
+    # here, at record time, puts the error in front of the actor (Claude)
+    # who can still rewrite the table.
+    if not audit_decision.parse_point_verdicts(text):
+        raise ReviewError(
+            f"{path.as_posix()} has verdict words but no machine-readable "
+            f"'| N | ... | VERDICT | ... |' row (N must be a bare number, "
+            f"as in the scaffold); --policy auto could never decide it, so "
+            f"the challenge is refused now rather than stalling post-merge"
         )
 
     return audit_ledger.append_event(

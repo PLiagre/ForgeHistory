@@ -264,6 +264,54 @@ def test_decide_auto_rejects_needs_owner_without_confirmed_or_partial(tmp_path):
     assert "policy: no owner in full_auto" in rec["reason"]
 
 
+REVIEW_MARKDOWN_DECORATED = """---
+review_of: CURSOR-abc-topic
+reviewer: claude-code
+target_commit: x
+reviewed_at: 2026-08-12T13:54:00Z
+---
+| # | Point | Verdict | Preuve |
+|---|---|---|---|
+| 1 | fenetre de critique de 4 s | **PARTIAL** | preuve reproduite |
+| 2 | diagnostic H2 faux | **CONFIRMED** | reproduit independamment |
+| 3 | classification CI | **PARTIAL — non rejouable ici** | coherent par deduction |
+| 8 | secrets non mesurables | **CONFIRMED** (mesurabilité) / **NEEDS_OWNER** (reformulation) | permissions verifiees |
+| 9 | style nit | `REFUTED` | non reproductible |
+"""
+
+
+def test_decide_auto_accepts_markdown_decorated_verdicts(tmp_path):
+    """The exact shapes the first real headless challenges produced
+    (runs 31603872434 / 31603909788, 2026-08-12): verdicts wrapped in
+    Markdown bold/backticks, with free text after the token in the same
+    cell, and a composite cell whose LEADING token wins. The strict
+    pre-fix pattern matched none of these rows and the auto-decision
+    stalled on every merged challenge."""
+    inbox, reviews, decisions, ledger = _auto_env(tmp_path, REVIEW_MARKDOWN_DECORATED)
+    rec = audit_decision.decide_auto(
+        "CURSOR-abc-topic", inbox=inbox, decisions_dir=decisions, ledger_path=ledger
+    )
+    assert rec["event"] == "AUDIT_APPROVED"
+    # 1 PARTIAL, 2 CONFIRMED, 3 PARTIAL(+texte), 8 CONFIRMED (token de tete
+    # de la cellule composite) ; 9 REFUTED exclu.
+    assert rec["retained_points"] == [1, 2, 3, 8]
+
+
+def test_parse_point_verdicts_is_not_a_keyword_hunt():
+    """A verdict word buried mid-sentence in the summary or proof cell must
+    NOT count as a verdict row -- only leading decoration is allowed before
+    the token in its cell. Fail-closed stays fail-closed."""
+    prose_only = (
+        "| # | Point | Verdict | Preuve |\n"
+        "|---|---|---|---|\n"
+        "| 1 | l'audit dit CONFIRMED partout | a trancher | la preuve cite REFUTED |\n"
+    )
+    assert audit_decision.parse_point_verdicts(prose_only) == []
+
+    bare_still_works = "| 4 | point simple | NEEDS_OWNER | arbitrage |\n"
+    assert audit_decision.parse_point_verdicts(bare_still_works) == [(4, "NEEDS_OWNER")]
+
+
 def test_decide_auto_refuses_when_not_challenged(tmp_path):
     inbox, decisions, ledger = _env(tmp_path, challenged=False)  # only PROPOSED, no review
     with pytest.raises(audit_decision.DecisionError):

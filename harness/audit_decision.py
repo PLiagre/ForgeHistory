@@ -58,11 +58,22 @@ from pipeline import policy_loader  # noqa: E402
 # verdict -> ledger event
 VERDICT_EVENT = {"APPROVED": "AUDIT_APPROVED", "REJECTED": "AUDIT_REJECTED"}
 
-# One row per non-numbered verdict line in a filled CLAUDE-<id>.md review
+# One row per numbered verdict line in a filled CLAUDE-<id>.md review
 # table, e.g. "| 1 | budget non impose | CONFIRMED | ... |". Captures the
 # point number and the verdict token; anything else on the row is ignored.
+#
+# The verdict token must be at the START of its cell, but Markdown
+# decoration around it (bold `**`, italics, backticks) and free text after
+# it within the same cell are tolerated: the first real challenges produced
+# headless (runs 31603872434 / 31603909788, 2026-08-12) wrote
+# `| **PARTIAL** |`, `| **PARTIAL — non rejouable ici** |` and
+# `| **CONFIRMED** (mesurabilité) / **NEEDS_OWNER** (reformulation) |`, and
+# the strict pattern refused every row, stalling the whole auto-decision.
+# A verdict word buried mid-sentence in a summary/proof cell still does
+# NOT match -- only leading decoration is allowed before the token, so this
+# stays a parse of the verdict column, not a keyword hunt.
 _POINT_VERDICT_ROW = re.compile(
-    r"^\|\s*(\d+)\s*\|.*?\|\s*(CONFIRMED|REFUTED|PARTIAL|NEEDS_OWNER)\s*\|",
+    r"^\|\s*(\d+)\s*\|.*?\|[\s*_`~]*(CONFIRMED|REFUTED|PARTIAL|NEEDS_OWNER)\b[^|]*\|",
     re.MULTILINE,
 )
 
@@ -182,12 +193,16 @@ def decide(
 # --- --policy auto (Lot 006a, ADR-0006) ----------------------------------
 
 
-def _parse_point_verdicts(text: str) -> list[tuple[int, str]]:
+def parse_point_verdicts(text: str) -> list[tuple[int, str]]:
     """Every `| N | ... | VERDICT | ... |` row in a filled review, as
     (point_number, verdict) pairs. A point can appear once; if the review
     is malformed and repeats a number, both rows are kept -- policy logic
     treats "any row says CONFIRMED/PARTIAL" as sufficient, so duplication
-    cannot silently lose a retained point."""
+    cannot silently lose a retained point.
+
+    Public on purpose: audit_review.record_challenge uses the SAME parse to
+    refuse a review the auto-decision could not read -- one parser, one
+    contract, no second place that could disagree with the first."""
     return [(int(n), v) for n, v in _POINT_VERDICT_ROW.findall(text)]
 
 
@@ -245,7 +260,7 @@ def decide_auto(
             f"no review file recorded for {audit_id!r}'s AUDIT_CHALLENGED event; "
             f"--policy auto cannot decide without the per-point verdicts"
         )
-    points = _parse_point_verdicts(review_path.read_text(encoding="utf-8"))
+    points = parse_point_verdicts(review_path.read_text(encoding="utf-8"))
     if not points:
         raise DecisionError(
             f"{review_path.as_posix()} has no '| N | ... | VERDICT | ... |' rows; "
