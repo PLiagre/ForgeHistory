@@ -65,17 +65,25 @@ et `hermes/README.md`. Câblage runtime : `docs/rules/full-auto-pipeline.md`.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. **Provisionner les secrets CI**, en quota d'abonnement d'abord
-   (`CLAUDE_CODE_OAUTH_TOKEN`, `CODEX_AUTH_JSON`, `CURSOR_API_KEY` — voir
-   `docs/rules/full-auto-pipeline.md` § activation) — sans eux, les
-   workflows câblés consignent une dérogation et ne font rien (jamais
-   d'échec silencieux).
+1. ~~**Provisionner les secrets CI**~~ — **fait le 2026-08-12** (quota
+   d'abonnement : `CLAUDE_CODE_OAUTH_TOKEN`, `CODEX_AUTH_JSON`,
+   `CURSOR_API_KEY` ; premiers tours réels consignés dans `HANDOFF.md`).
 2. **Rejouer la boucle sur un brief réel** : déclencher
    `pipeline-forge-run` sur un brief F1 restant et vérifier la chaîne
    complète Claude → Codex → gate → PR → critique Cursor.
-3. **Premier brief F2** : le CTO écrit le brief d'amorçage de `sim/`
+3. **Hermes tableau unique** (demande du 2026-08-12, tranchée « ok pour
+   tout » — `hermes/requests/DEMANDE-20260812-hermes-tableau-de-bord-pilotage.md`,
+   ADR-0011) :
+   - le propriétaire branche son Hermes local en lecture (H1, configuration
+     hors dépôt — skill de suivi + crons) ;
+   - le CTO écrit les briefs H2 (export machine du tableau de bord +
+     section agents Cursor réellement interrogée) et H3 (liste d'attentes
+     propriétaire exhaustive) ;
+   - le câblage « console du propriétaire » (H4) se fait dans
+     l'installation locale, dans les bornes d'ADR-0011.
+4. **Premier brief F2** : le CTO écrit le brief d'amorçage de `sim/`
    (couche 1, monde vivant) depuis cette roadmap.
-4. **Reprendre 004/005** (visuel carte) quand les logs Unity requis par le
+5. **Reprendre 004/005** (visuel carte) quand les logs Unity requis par le
    gate sont produits sur la machine propriétaire.
 
 ## Historique des révisions
@@ -83,3 +91,4 @@ et `hermes/README.md`. Câblage runtime : `docs/rules/full-auto-pipeline.md`.
 | date | auteur | changement |
 |---|---|---|
 | 2026-08-12 | hermes (rédaction initiale déléguée à Cursor, décision propriétaire) | création — état F0/F1, couches jeu, workflow quatre acteurs |
+| 2026-08-12 | hermes (rédaction déléguée à Cursor, décision propriétaire « ok pour tout ») | reflet de la demande « tableau de bord unique et pilotage » (H1-H5, ADR-0011) ; correction factuelle : secrets CI provisionnés |

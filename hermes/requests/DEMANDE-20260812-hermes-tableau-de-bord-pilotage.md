@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-12T12:10:00Z
 concerns: projet
-status: OPEN
+status: REFLECTED_IN_ROADMAP
 ---
 # Demande propriétaire — Hermes, tableau de bord unique et console de pilotage
 
@@ -132,6 +132,26 @@ d'abonnement, jamais de crédit API). Trois options pour Hermes, à trancher :
 4. Trancher **H5** : statu quo, délégation Codex CLI, ou clé API.
 5. Confirmer (ou avancer) la **sortie de phase « shadow »** de l'Hermes
    local, prévue le 2026-08-24 par sa configuration.
+
+## Décision du propriétaire (2026-08-12)
+
+« **Ok pour tout** » — les cinq arbitrages sont tranchés dans le sens
+recommandé, dans la même session :
+
+1. **H1 accepté** : brancher l'Hermes local en lecture (configuration
+   locale, hors dépôt).
+2. **H2 et H3 acceptés** : le CTO (Claude) écrira les deux briefs depuis la
+   roadmap.
+3. **H4 accepté avec ses limites** : décision enregistrée dans
+   [ADR-0011](../../docs/adr/0011-hermes-console-du-proprietaire.md) —
+   quatre actions, ordre explicite, confirmation, jeton minimal, trace.
+4. **H5 tranché : délégation** — Hermes garde son fournisseur actuel et
+   délègue les analyses lourdes au Codex CLI local connecté au compte
+   ChatGPT (pas de clé API nouvelle).
+5. **Phase « shadow » confirmée** jusqu'au 2026-08-24, avançable une fois
+   H1 et ADR-0011 en place.
+
+Reflet dans `ROADMAP.md` § « Prochaines étapes » (même session).
 
 ## Ce que cette demande ne change pas
 
