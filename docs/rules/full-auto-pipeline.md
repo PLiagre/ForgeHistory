@@ -74,7 +74,7 @@ table in `architecture/agents/README.md`): `cursor-auditor`,
 `docs/rules/harness-roles.md` already enforces for the ordinary (non-audit)
 harness loop.
 
-## How to activate `mode: full_auto_decision_only`
+## How to declare `mode: full_auto_decision_only` before runtime wiring
 
 1. Confirm Lot 006a + 006b + 006c are all merged (the FSM ledger, the
    policy table, the six role contracts, the four `pipeline-*.yml`
@@ -89,32 +89,36 @@ harness loop.
    cannot silently pretend to run without them.
 3. Edit `harness/pipeline/config.yaml`: set `mode: full_auto_decision_only`
    (brief 009 / ADR-0007 narrowed the single `full_auto` value to this
-   name). As of brief 009 Lot 009a, this activates the audit ->
-   owner-decision half of the diagram above unattended; the challenge link
-   (`claude-challenger`, `pipeline-challenge.yml`) is wired by Lot 009c,
-   not yet as of this lot -- until 009c lands, `pipeline-challenge.yml`'s
-   own invocation step is still the documented `TODO(operator...)` stub.
+   name). As of brief 009 Lot 009a, this declares the intended posture and
+   makes the value pass `full_auto_mode_guard.py`; it does not activate an
+   unattended path. No `.github/workflows/pipeline-*.yml` file reads this
+   key at runtime yet. The first runtime call site is reserved for Lot 009c
+   SC15, and `pipeline-challenge.yml`'s invocation step is still the
+   documented `TODO(operator...)` stub until that lot lands.
    The unqualified `full_auto` value is reserved and refused fail-closed by
-   `harness/pipeline/full_auto_mode_guard.py` until `forge-run`'s own
-   invocation is wired for real.
+   `harness/pipeline/full_auto_mode_guard.py` while the target workflow is
+   missing, truncated, malformed by its narrow structural heuristic, or
+   still contains the stub marker. Passing that heuristic alone is not
+   semantic proof of an agent invocation.
 4. Commit and merge that single-line change (this file IS allowed to be
    part of a normal, human-reviewed PR — flipping the switch is not itself
    a bot action).
-5. From the next `push` to `master`, the audit -> owner-decision half of
-   the diagram above runs unattended; the `[claude-challenger]` step in
-   between stays a documented stub until Lot 009c lands (see step 3).
+5. Until Lot 009c wires a workflow to read this key, a subsequent `push` to
+   `master` behaves exactly as before this declaration. The diagram above
+   describes the target pipeline, not the runtime effect of Lot 009a.
 
-## How to emergency-disable
+## How to emergency-disable once runtime wiring exists
 
-Two independent switches, either one alone stops the loop from taking a
-NEW automatic action (neither retroactively undoes anything already
-merged):
+The repository defines two intended controls. Their current implementation
+state differs; neither retroactively undoes anything already merged:
 
-1. **`mode: manual`** in `harness/pipeline/config.yaml` — falls back to the
-   ADR-0005 human loop (`/forge-audit-accept`, `/forge-audit-reject`,
-   manual `/forge-run`). This is the same `mode:` key the activation step
-   above sets; it never had that key removed as an option (brief 006
-   Non-Goals: "ne pas supprimer la boucle manuelle").
+1. **`mode: manual`** in `harness/pipeline/config.yaml` declares the
+   fallback to the ADR-0005 human loop (`/forge-audit-accept`,
+   `/forge-audit-reject`, manual `/forge-run`). As of Lot 009a no workflow
+   reads this key, so changing it does not yet stop a running automatic
+   path. Lot 009c SC15 is responsible for the first load-bearing runtime
+   check. The manual value remains available (brief 006 Non-Goals: "ne pas
+   supprimer la boucle manuelle").
 2. **Kill-switch label `pipeline/pause`** — apply it to any open PR or
    issue in this repo. Every `pipeline-*.yml` workflow's automatic-action
    steps (the Cursor/Claude invocation, the orchestrator's ledger writes,
@@ -126,8 +130,10 @@ merged):
    Lot ordering; this doc names the contract so 006c has a fixed target,
    not a paraphrase of Lot 006c's own Success Conditions.)
 
-Either switch is a single, human-authored, normally-reviewed change — not
-itself a full_auto action, so it cannot be blocked by the loop it disables.
+Either control is a single, human-authored, normally-reviewed change. The
+`mode:` control becomes an effective stop only when a workflow actually
+consults it; Lot 009a provides the declaration and validation, not that
+runtime wiring.
 
 ## Known gap (real, not narrated)
 

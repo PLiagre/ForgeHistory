@@ -188,6 +188,23 @@ def test_comment_only_structure_markers_refused_full_auto_fail_closed(tmp_path):
         validate_mode("full_auto", forge_run_workflow=comments_only)
 
 
+def test_structure_marker_prefix_garbage_does_not_count_as_yaml_key(tmp_path):
+    """Iteration-3 C3 hardening: ``jobs:garbage`` is not the ``jobs:``
+    key merely because it shares the same text prefix. The dependency-free
+    heuristic accepts only an end-of-line, whitespace, or inline comment
+    after a required marker."""
+    import pytest
+
+    malformed = tmp_path / "pipeline-forge-run.yml"
+    malformed.write_text(
+        "name: malformed\njobs:garbage\n  forge:\n    runs-on: ubuntu-latest\n"
+        "    steps:\n      - run: echo no-agent\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ModeGuardError, match="does not look like a complete"):
+        validate_mode("full_auto", forge_run_workflow=malformed)
+
+
 def test_truncated_after_runs_on_before_steps_refused_full_auto_fail_closed(tmp_path):
     """Iteration-3 fix for C3, case 2/3. A file with a REAL, uncommented
     `jobs:`/`runs-on:` pair but truncated before any `steps:` section

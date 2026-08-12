@@ -15,11 +15,12 @@ runs unattended (see brief 009's "World-Terms Requirement").
 This is deliberately NOT hardcoded to refuse `full_auto` forever: the check
 re-reads `pipeline-forge-run.yml` itself every call rather than caching a
 verdict, so once a future lot removes that TODO string for real,
-`full_auto` becomes valid again with no code change here -- proven by
+`full_auto` becomes valid again with no code change here -- exercised by
 `harness/tests/test_mode_guard.py::test_full_auto_accepted_once_forgerun_
 wired` against a FIXTURE copy of the workflow file with the string removed
-(never the real repository file, which stays a stub until forge-run is
-actually wired -- a separate, future brief).
+(never the real repository file, which stays a stub until a separate,
+future brief changes it). That fixture proves the conditional branch is
+reachable; it does not prove that an agent invocation exists.
 
 This module answers ONE question: "is this `mode:` value legal, given the
 repository's current wiring state?" It does NOT gate a running workflow's
@@ -127,15 +128,22 @@ REQUIRED_WORKFLOW_STRUCTURE_MARKERS = ("jobs:", "runs-on:", "steps:")
 
 
 def _workflow_has_real_line_starting_with(text: str, marker: str) -> bool:
-    """True iff some line of `text`, once leading/trailing whitespace is
-    stripped, itself starts with `marker` -- i.e. `marker` is a real
-    top-level-ish YAML token on its own line, not a substring buried
-    inside a comment (`# jobs:`) or elsewhere in unrelated text. This is
-    still a syntax-level heuristic (no YAML parse, per this brief's own
-    Non-Goal against a new PyYAML production import), not a guarantee the
-    line is a semantically valid GitHub Actions key -- see the module
-    docstring's iteration-3 correction."""
-    return any(line.strip().startswith(marker) for line in text.splitlines())
+    """True iff a stripped line starts with a YAML-like ``key:`` token.
+
+    The character after ``marker`` must be whitespace, ``#`` (an inline
+    comment), or the end of the line. Thus ``jobs:garbage`` does not count
+    merely because it shares a prefix with ``jobs:``. This remains a
+    syntax-level heuristic, not semantic validation of a GitHub Actions
+    workflow or proof that an agent is invoked.
+    """
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith(marker):
+            continue
+        suffix = stripped[len(marker) :]
+        if not suffix or suffix[0].isspace() or suffix.startswith("#"):
+            return True
+    return False
 
 VALID_ALWAYS = {"manual", "full_auto_decision_only"}
 CONDITIONALLY_VALID = {"full_auto"}
@@ -211,7 +219,10 @@ def validate_mode(mode: str, forge_run_workflow: Path | str | None = None) -> No
                 "Use 'full_auto_decision_only' instead (docs/adr/"
                 "0007-full-auto-mode-split.md)."
             )
-        return  # forge-run genuinely wired: full_auto accepted
+        # The narrow structural heuristic passed. This does not establish
+        # that an agent invocation exists; that semantic proof belongs to
+        # Lot 009c SC14.
+        return
 
     # Any other literal (typo, retired value, empty string already handled
     # above): unknown values are refused, never silently passed through.
