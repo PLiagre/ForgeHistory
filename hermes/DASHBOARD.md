@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 13:26 UTC.
+> Générée le 2026-08-13 13:51 UTC.
 
 ## En bref
 
@@ -35,21 +35,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 13:26:01 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:25:59 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:25:57 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:25:56 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:25:53 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 13:25:53 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:25:49 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:25:39 | harness-ci | push | master | in_progress |
-| 2026-08-13 13:25:39 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 13:25:39 | security | push | master | success |
-| 2026-08-13 13:25:39 | pipeline-audit | push | master | success |
-| 2026-08-13 13:25:39 | audit-guard | push | master | success |
-| 2026-08-13 13:25:39 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 13:25:39 | hermes-observer | pull_request_target | cursor/audit-pull-request-92-f693 | queued |
-| 2026-08-13 13:25:36 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:51:39 | hermes-dashboard | schedule | master | in_progress |
+| 2026-08-13 13:26:42 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:31 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:30 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:26 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 13:26:26 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:26 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:25 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:15 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:11 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:08 | pipeline-audit | push | master | success |
+| 2026-08-13 13:26:08 | security | push | master | success |
+| 2026-08-13 13:26:08 | audit-guard | push | master | success |
+| 2026-08-13 13:26:08 | harness-ci | push | master | success |
+| 2026-08-13 13:26:08 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
