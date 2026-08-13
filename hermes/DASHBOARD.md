@@ -5,16 +5,18 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 13:05 UTC.
+> Générée le 2026-08-13 13:09 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 34 — boucles closes : 8.
+- **Audits en cours** : 35 — boucles closes : 8.
 
 ## Ce qui attend le propriétaire
 
+- Fusionner (ou refuser) la PR #94 — « audit: critique de la pull request #87 (contre-audit de CURSOR-f978cc7) » (branche `cursor/audit-pull-request-87-f4ba`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
+- Fusionner (ou refuser) la PR #92 — « Clôture de session 2026-08-13 (après-midi) : addendum HANDOFF + correction factuelle ROADMAP » (branche `forge/cloture-session-20260813-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Fusionner (ou refuser) la PR #89 — « Tenue de registre : conversions des audits moteur de la PR #69 — graines de briefs 015 et 016 (empilée sur #77) » (branche `forge/conversions-briefs-015-016-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Fusionner (ou refuser) la PR #83 — « Brief 014 : le contre-audit comme porte observable, le refus fournisseur comme état explicite avec repli (pipeline) » (branche `forge/014-pipeline-contre-audit-porte-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Fusionner (ou refuser) la PR #77 — « Tenue de registre : clôture de l'audit CURSOR-a4de4bb après fusion du lot 013 » (branche `forge/cloture-audit-a4de4bb-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
@@ -34,21 +36,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 13:05:19 | hermes-observer | pull_request_target | cursor/audit-pull-request-85-73fd | queued |
-| 2026-08-13 13:05:18 | harness-ci | push | master | in_progress |
-| 2026-08-13 13:05:18 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 13:05:18 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 13:05:18 | audit-guard | push | master | in_progress |
-| 2026-08-13 13:05:18 | security | push | master | in_progress |
-| 2026-08-13 13:05:18 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 13:05:16 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:05:05 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:05:05 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:04:59 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:04:49 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:04:47 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 13:04:47 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:04:45 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:09:04 | security | push | master | in_progress |
+| 2026-08-13 13:09:04 | audit-guard | push | master | in_progress |
+| 2026-08-13 13:09:04 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 13:09:04 | harness-ci | push | master | in_progress |
+| 2026-08-13 13:09:04 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 13:09:04 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 13:09:03 | hermes-observer | pull_request_target | cursor/pull-request-86-audit-bc62 | pending |
+| 2026-08-13 13:09:02 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:09:01 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:08:52 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:08:52 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:08:51 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:08:51 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:08:51 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:08:50 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -90,6 +92,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-a7d1c57-pr76-approbation-sans-conversion | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-bb8fe11-hermes-console-adr-0011 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-bd34ded-pr83-porte-verte-quand-elle-devrait-mordre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-c296c47-pr86-revue-sans-preuve-citable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-cd1dcd2-forge-bot-pat-boucle-jetons | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-e2896e7-pr44-challenge-bb8fe11 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 
