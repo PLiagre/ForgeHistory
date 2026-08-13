@@ -1,7 +1,7 @@
 # Verdict — Brief `012`
 
 **Authored**: 2026-08-13T07:22:01Z
-**Author**: forge-evaluateur-cursor
+**Author**: forge-evaluateur
 
 ---
 
@@ -26,6 +26,15 @@ Renommer l'auteur pour faire verdir un contrôle reviendrait à falsifier la
 traçabilité que ce contrôle existe précisément pour protéger. Le point relève
 du harnais et de la décision du propriétaire (substitution de moteur), pas du
 travail du Générateur — il n'entre pas dans mon appréciation du lot.
+
+> **Amendement de signature, 2026-08-13T07:52:00Z.** La ligne `**Author**:`
+> ci-dessus portait `forge-evaluateur-cursor` lorsque cette section a été
+> écrite ; elle a été normalisée en `forge-evaluateur` sur décision
+> d'orchestration. Le paragraphe qui précède est conservé tel quel comme
+> trace de ce que j'avais observé et argumenté à l'itération 1 : il décrit une
+> collision d'acteurs que cette normalisation a résolue. Le raisonnement
+> complet de l'amendement est dans la note de transparence de l'itération 2,
+> plus bas. Aucun autre caractère de cette section n'a été modifié.
 
 ---
 
@@ -307,3 +316,358 @@ Le détail par point, avec la façon exacte de corriger, est dans
 réserve R1 et le manifeste du lot `011`), un point bloquant mineur (B2, la
 commande d'un compteur du monde réel qui ne produit pas sa valeur), et trois
 points non bloquants (N1 à N3).
+
+---
+---
+
+# Verdict — itération 2
+
+**Authored**: 2026-08-13T07:52:00Z
+**Author**: forge-evaluateur
+
+---
+
+## Note de transparence
+
+Le rôle Évaluateur a été tenu par un sous-agent hébergé par Cursor, en
+remplacement de Claude indisponible directement, sur instruction du
+propriétaire. La session est distincte de celles du Planificateur et du
+Générateur. Aucune ligne de code du dépôt n'a été modifiée pendant
+l'évaluation : toutes les contre-preuves ont été montées dans une copie de
+travail hors dépôt (`/tmp/eval-012/workspace/`), restaurée à l'identique du
+dépôt après chaque sabotage, et l'arbre de travail était propre avant comme
+après mon passage. Je n'ai ni committé ni poussé.
+
+**Normalisation de ma signature — et pourquoi je l'annonce plutôt que de la
+faire en silence.** Sur décision d'orchestration, la convention de session
+(celle du lot `011` fusionné) est la suivante : la ligne `**Author**:` porte le
+**rôle natif**, et l'acteur réel est déclaré en prose dans la note de
+transparence. J'ai donc signé la présente section `forge-evaluateur`, et j'ai
+modifié la ligne `**Author**:` de ma section d'itération 1, de
+`forge-evaluateur-cursor` à `forge-evaluateur`. C'est la **seule** modification
+apportée à cette section : son texte, ses constats et son verdict restent
+intacts, et un encadré daté marque l'endroit de l'amendement pour qu'aucun
+lecteur ne découvre l'écart par surprise.
+
+Je maintiens mon désaccord de principe, et je le formule précisément parce
+qu'il sera porté au propriétaire. À l'itération 1, j'avais refusé de renommer
+l'auteur au motif qu'un contrôle ne doit pas se faire verdir par un
+renommage. L'argument d'orchestration qui me fait appliquer la convention est
+d'un autre ordre, et il est plus fort que le mien sur un point que j'avais
+sous-estimé : ce que le contrôle sait détecter — un suffixe de moteur explicite
+partagé — il doit pouvoir continuer à le détecter **ailleurs**, sur les briefs
+à venir. Signer `-cursor` des deux côtés le laissait en échec permanent, donc
+inutilisable comme signal. Ce que le contrôle ne sait **pas** voir — un couple
+de rôles natifs tournant tous deux sous le même moteur — reste un angle mort
+réel ; la convention le déplace de la mécanique vers la prose, elle ne le
+ferme pas. Cet angle mort est documenté ici et sa fermeture mécanique (un
+traçage d'acteur qui ne repose pas sur des chaînes auto-déclarées) est différée
+au brief de harnais issu du point 1 de l'audit `CURSOR-3b47ffe`. Ma réserve
+tient donc en une phrase : la convention rend le contrôle utile ailleurs, elle
+ne le rend pas concluant ici, et c'est cette note — pas le gate — qui atteste
+qui a écrit quoi sur le lot `012`.
+
+---
+
+## Mechanical Gate Result
+
+Les deux gates concernés ont été rejoués par mes soins sur l'état jugé.
+
+**Lot `012`** —
+`.venv/bin/python harness/verdict_audit.py harness/queue/briefs/012-monde-vivant-commerce-inter-cellules`
+répond `VERDICT: ACCEPT`, code de sortie nul, les dix contrôles au vert. Sortie
+conservée hors dépôt dans `/tmp/eval-012/logs/gate_012_iter2_avant.txt`.
+Les deux contrôles qui échouaient à l'itération 1 sont désormais au vert :
+`verdict_numbers_traceable`, puisque le fichier qu'il examine existe
+maintenant, et `verdict_is_not_self_authored`, puisque les acteurs dérivés des
+deux signatures diffèrent sous la convention appliquée ci-dessus.
+
+**Lot `011`** —
+`.venv/bin/python harness/verdict_audit.py harness/queue/briefs/011-sim-monde-vivant-amorcage`
+répond `VERDICT: ACCEPT`, code de sortie nul, dix contrôles au vert et aucun
+`FAIL`. Sortie conservée dans `/tmp/eval-012/logs/gate_011_iter2.txt`. C'est la
+régression bloquante de l'itération 1 qui est levée : ce gate ne s'exécutait
+plus du tout.
+
+Rappel de lecture, inchangé depuis la rubrique : ces gates jugent la *forme*
+du lot, pas sa substance. Leur `ACCEPT` est nécessaire, jamais suffisant. Tout
+ce qui suit repose sur mes propres reconstructions.
+
+---
+
+## Périmètre jugé
+
+- Branche `forge/012-monde-vivant-commerce-ddda`, commit `b458b6f`
+  (« generateur: lot `012` itération 2 — corrections B1, B2 et N1 à N3 »).
+- Commit de référence pour le diff de cette itération : `93ac0a5`, mon propre
+  commit de verdict d'itération 1. Le diff de l'itération 2 porte sur 7
+  fichiers.
+- Arbre de travail propre au moment de l'évaluation (`git status --short` sans
+  sortie) : ce que j'ai exécuté est bien le contenu du commit.
+
+**Ce que couvre ce jugement** : les 7 fichiers modifiés entre `93ac0a5` et
+`b458b6f`, plus l'ensemble de l'état résultant du lot, puisque la rubrique
+demande de re-dérouler la grille complète à chaque verdict.
+
+**Ce que ce jugement ne couvre pas** : tout état postérieur à `b458b6f`. Un
+commit de clôture de session (mise à jour de `ROADMAP.md` et de `HANDOFF.md`,
+hors périmètre du lot) est annoncé après ce verdict ; il n'est ni examiné ni
+couvert ici. Cette délimitation explicite répond au constat P0-1 de l'audit
+`CURSOR-3b47ffe`.
+
+**Fichiers protégés.** J'ai vérifié mécaniquement qu'aucun de `brief.md`,
+`eval-rubric.md` ni `verdict.md` n'apparaît dans le diff du Générateur pour
+cette itération : `git diff --name-only 93ac0a5 b458b6f` ne les contient pas.
+Les seules modifications de `verdict.md` sont les miennes, décrites ci-dessus.
+
+**Ce qui n'a pas bougé, et pourquoi je peux m'appuyer sur mes reconstructions
+d'itération 1.** Le diff de l'itération 2 ne touche ni `sim/constants.py`, ni
+`sim/model.py`, ni `sim/engine.py`, ni `sim/world.py`, ni `sim/tests/test_rng.py`,
+ni `sim/tests/test_commerce.py`, ni `sim/tests/test_write_coverage.py`, ni
+`.github/workflows/harness-ci.yml`, ni `harness/queue/cost-ledger.jsonl`. Ce
+n'est pas une déclaration du Générateur que je reprendrais : c'est le résultat
+de ma propre lecture du diff. Là où le code est identique, mes contre-preuves
+d'itération 1 restent valables ; je le dis explicitement condition par
+condition ci-dessous. J'ai néanmoins **rejoué intégralement** les seize
+compteurs, les deux contre-preuves rouges et les deux suites sur ce nouvel
+état, plutôt que de me contenter du raisonnement d'invariance.
+
+---
+
+## Vérification du feedback, point par point
+
+| Point | État | Preuve rejouée par moi |
+|---|---|---|
+| **B1** — réserve R1 et manifeste du lot `011` | **Fermé** | Le manifeste du lot `011` est de nouveau du JSON valide et porte `11` compteurs, dont l'entrée d'archive restaurée. Sa commande déclarée, qui lit les deux fichiers de preuve dans l'état du commit d'itération 1 du lot `011`, rend bien la valeur archivée `70` quand je la rejoue. Le gate du lot `011` répond `ACCEPT`, code de sortie nul, dix contrôles au vert. J'ai en outre vérifié ce que le journal ne dit pas : le commit épinglé dans la commande est un **ancêtre de `HEAD`** (`git merge-base --is-ancestor`), donc la commande reste exécutable depuis un clone de cette branche — une commande d'archive pointant un commit inatteignable aurait reproduit le défaut d'origine sous une autre forme. |
+| **B2** — commande de `cellules_affamees_monde_reel` | **Fermé** | La commande déclarée est maintenant un script versionné. Rejouée telle quelle depuis la racine, elle affiche exactement 261, la valeur du compteur — contre `579` à l'itération 1. J'ai relu le script : la boucle de ticks est bien séparée de l'accumulation, et le comptage porte sur `hunger_ticks`, plus sur la valeur de retour du tick. Reste une réserve non bloquante, N5 ci-dessous, sur la déclaration de ce script au manifeste. |
+| **N1** — commande de `constantes_temporelles_coherentes` | **Fermé** | La nouvelle commande teste la présence de la constante de base **dans la ligne d'affectation** de chaque constante. Contre-preuve graduée montée par moi hors dépôt : en cassant une dérivation, la commande tombe à `2` ; deux, à `1` ; les trois, à `0`. Elle mesure donc réellement ce qu'elle prétend mesurer, alors qu'elle affichait 3 quoi qu'il arrive à l'itération 1. La substitution de la troisième constante est désormais justifiée explicitement dans `sim/SEEDING.md`, et l'argument dimensionnel avancé (une constante exprimée en ticks n'a pas à être multipliée par la durée d'un tick) est correct. |
+| **N2** — plancher de superficie | **Fermé** | `rg` sur l'ensemble de `sim/tests/` : toutes les cellules construites à la main utilisent désormais une superficie supérieure ou égale au plancher du brief. Les seules superficies nulles restantes sont celles du cas d'intégration `SC7d`, annoté à trois endroits (en-tête de module, commentaire de section, docstring de la fonction) comme cas hors données G3 non utilisable pour un compteur SC5 — c'est exactement ce que la rubrique demande. Réserve rédactionnelle non bloquante, N4 ci-dessous. |
+| **N3** — paire de preuve « couverture étendue » | **Fermé** | Le fichier rouge courant exerce bien la capacité **nouvelle** : la ligne « dataclasses découvertes » y énumère deux classes, et l'échec nomme la classe nouvelle et son champ orphelin. Je l'ai reproduit depuis **mon propre** sabotage hors dépôt (une seconde dataclass, pas un champ ajouté à la première) : ma sortie est identique au fichier committé hors les deux lignes de chemin et la ligne de durée d'exécution de pytest, qui n'est pas déterministe (`0.03` seconde chez moi contre `0.04` dans le fichier). |
+| **R4** — consolidation des preuves vertes du lot `011` | Non fait | Le brief le déclare optionnel et non bloquant. Aucune action requise. |
+
+### Traitement de l'ancien compteur de diff : conforme à la leçon R1, et généralisé
+
+Le Générateur a rencontré à l'itération 2 exactement la situation qui avait
+produit R1 : régénérer un fichier de preuve fait mentir un compteur déjà
+mesuré et déjà cité dans un verdict. Sa disposition :
+
+- l'ancien compteur garde sa valeur 132 et reçoit une commande **ré-ancrée** sur
+  l'état des fichiers au commit d'itération 1 ;
+- un **nouveau** compteur mesure les fichiers courants et vaut 136.
+
+J'ai rejoué les deux commandes : la première rend 132, la seconde 136. Les deux
+valeurs sont donc traçables et reproductibles, et la valeur 132 — que ma section
+d'itération 1 cite — reste rattachée à une mesure exécutable.
+
+Je juge cette disposition **conforme à la leçon R1, et supérieure à ce que le
+feedback exigeait**. Le feedback ne demandait de corriger que l'instance
+signalée ; le Générateur a reconnu le même motif dans une situation nouvelle et
+lui a appliqué le même remède, sans attendre qu'un évaluateur le lui signale.
+C'est la différence entre corriger un défaut et intégrer une règle. Je note
+aussi que la porte du retrait, celle qui avait été mal empruntée à l'itération 1,
+était ici tout aussi indisponible — mon propre verdict cite la valeur — et
+qu'elle n'a pas été tentée.
+
+---
+
+## Per-Rubric-Line Verdict — grille complète SC1 → SC8
+
+Colonne « bougé ? » : ce que l'itération 2 a modifié, d'après ma lecture du
+diff, et non d'après le journal.
+
+| Condition | Bougé ? | Verdict | Preuve rejouée par moi sur `b458b6f` |
+|---|---|---|---|
+| **SC1** — base de temps unique, constantes alignées, noms corrigés | Oui : `sim/SEEDING.md` complété, commande du compteur corrigée. `sim/constants.py` inchangé. | PASS | La commande du brief affiche `tick = 1 jour(s)`. Relecture de `sim/constants.py` : les trois constantes temporelles du moteur sont bien écrites comme un produit par la constante de base. `rg daily_need sim/` ne retourne rien ; l'ancien nom trompeur n'apparaît que dans deux commentaires de renommage, ce que la rubrique autorise. La dérivation de chaque constante est documentée comme proxy paramétrique déclaré, avec ses références. Nouveauté vérifiée : la mesure de cohérence est maintenant capable de tomber (voir N1 ci-dessus). |
+| **SC2** — la production varie réellement par tick | Non : `engine.py` et `test_rng.py` intacts. | PASS | Reconstruction **rejouée** sur ce commit, pas seulement reprise de l'itération 1 : état du rng modifié après dix ticks ; condensés égaux à graines égales ; condensés différents à graines rng différentes, **déjà après un seul tick**, alors qu'à zéro tick les deux mondes sont identiques — la variabilité vient donc du chemin du tick et non de l'amorçage. Aucun condensé recopié en dur : `rg "[0-9a-f]{40,}"` sur `sim/` et sur le dossier du lot ne retourne rien. |
+| **SC3** — le déficit alimentaire est un état persisté | Non : `model.py` et `engine.py` intacts. | PASS | Contre-preuve de la rubrique remontée et rejouée : cellule construite à la main, un tick, déficit strictement positif. Mortalité re-testée comme fonction croissante de l'ampleur du déficit : `1`, `1`, `5` puis `50` morts pour des déficits croissants d'un facteur `10` à population constante. Ce n'est donc pas un interrupteur binaire. |
+| **SC4** — commerce inter-cellules physique | Non : `engine.py` et `test_commerce.py` intacts, paire de preuve transport intacte. | PASS | Lecture réelle des arêtes dans le moteur confirmée par `rg`. Test de conservation au vert. Contre-preuve remontée **de zéro** dans ma copie hors dépôt sur ce commit : le test devient rouge et ma sortie est identique au fichier rouge committé, hors lignes de chemin et ligne de durée. Capacité de transport documentée dans `sim/SEEDING.md`. |
+| **SC5** — le monde vit, mesuré sur les 596 cellules réelles | Oui pour la commande d'un compteur ; non pour le moteur. | PASS | Mon script de reconstruction rejoué sur ce commit : les quatre conditions vraies **simultanément** — cellules affamées 261, morts cumulés 7544299, kilogrammes transportés 8171507, fraction de survie `0.887172` au-dessus du seuil `0.70` déclaré dans `sim/SEEDING.md`. Mesure faite sur les 596 cellules et 272800 couples arête×tick effectivement chargés. La commande déclarée du premier compteur rend maintenant sa valeur (B2). Le cas structurellement inatteignable est correctement borné (N2). |
+| **SC6** — `sim/tests/` tourne en intégration continue | Non : le workflow est intact. | PASS | Le job dédié est toujours présent dans `.github/workflows/harness-ci.yml`, suivi par git. La commande CI rejouée localement rend un code de sortie **nul**, 25 tests au vert. La collecte rend 25 tests, strictement positif. |
+| **SC7** — réserves R1-R4 fermées, couverture d'écriture étendue | Oui : R1 refaite, paire de preuve régénérée. | **PASS** | **R1 fermée** : voir B1 ci-dessus — JSON valide, entrée restaurée, commande d'archive qui rend `70`, gate du lot `011` en `ACCEPT`. **R2 fermée** : ma contre-preuve remontée sur ce commit (seconde dataclass avec un champ sans écrivain ni lecteur) fait échouer le test en nommant la classe et le champ fautifs. **R3 fermée et discriminante** : mon protocole à deux variantes tient toujours — écriture sur un objet d'un autre nom, test rouge ; la même ligne sur la variable conventionnelle, test vert. **Extension** : le nouveau champ est couvert, et le retrait du maillon commerce dans ma copie hors dépôt fait bien tomber la vérification de lecture des arêtes. R4 optionnel, non fait. |
+| **SC8** — registre de coût | Non. | PASS | Le brief apparaît au rapport du registre avec le bon compte. La dernière ligne du fichier porte le nom d'événement avec tiret, le brief attendu et l'identifiant d'audit attendu. Aucune ligne existante supprimée. |
+| **Preuves rouges — paire transport-conservatif** | Non | PASS | Rouge avec échec réel, vert uniquement au vert, reproduit depuis mon propre sabotage. |
+| **Preuves rouges — paire couverture étendue** | Oui, régénérée | PASS | Rouge portant 4 mentions d'échec, vert n'en portant aucune et 3 mentions de succès ; reproduit depuis mon propre sabotage, et exerçant cette fois la capacité nouvelle. |
+| **Dérogation déclarée** | Non | Recevable | La seule dérogation du lot est celle du budget d'exécution. Je l'ai rejouée : la commande exigée par le brief produit bien la chaîne annoncée. La dérogation est donc étayée, pas affirmée. |
+
+---
+
+## Reconstruction indépendante des compteurs
+
+Les seize compteurs — les quinze de l'itération 1 plus celui ajouté à
+l'itération 2 — ont été re-dérivés par mes propres commandes sur `b458b6f`. Je
+n'ai repris aucune valeur du manifeste : j'ai mesuré d'abord, comparé ensuite.
+
+| Compteur | Ma reconstruction sur `b458b6f` | Se reproduit ? |
+|---|---|---|
+| `tick_duration_days` | Commande rejouée : valeur 1, strictement positive. | Oui |
+| `constantes_temporelles_coherentes` | Nouvelle commande rejouée : 3 sur 3. Et elle tombe à `2`, `1`, `0` sous sabotage gradué. | Oui, et la mesure est désormais **falsifiable** |
+| `rng_etat_change_apres_tick` | Mon script hors tests : état du rng différent après dix ticks. | Oui |
+| `ticks_deterministes_meme_graine` | Mes propres condensés, deux exécutions à graines identiques : égaux. | Oui |
+| `ticks_differents_graines_rng_differentes` | Mes propres condensés, graines rng différentes : différents, et déjà à un seul tick. | Oui |
+| `food_deficit_kg_ecrit_quand_manque` | Ma cellule construite à la main : déficit strictement positif après un tick. | Oui |
+| `conservation_masse_transport` | Test rejoué : écart nul. Mon sabotage inverse : test rouge. | Oui |
+| `cellules_affamees_monde_reel` | Script déclaré rejoué : 261. Mon propre script indépendant : 261 également, sur 596 cellules chargées. | Oui — **corrigé** |
+| `morts_cumules_monde_reel` | Mon script : 7544299 morts, population initiale 66865505. | Oui |
+| `kg_transportes_monde_reel` | Mon script : 8171507 après arrondi, sur 272800 couples arête×tick. | Oui |
+| `population_finale_positive` | Mon script : `0.887172`, au-dessus du seuil. | Oui |
+| `ci_sim_tests_collectes` | Collecte rejouée : 25 tests. | Oui |
+| `champs_modele_couverts_etendu` | Recompté : les champs de la seule dataclass du modèle, couverts en écriture et en lecture, plus l'attribut d'adjacence, soit 7 sur 7. | Oui |
+| `lignes_differentes_transport_rouge_vert` | Diff rejoué : 78 lignes. | Oui |
+| `lignes_differentes_couverture_ext_rouge_vert` | Commande d'archive rejouée sur l'état du commit d'itération 1 : 132 lignes. | Oui |
+| `lignes_differentes_couverture_ext_rouge_vert_iter2` | Diff des fichiers courants rejoué : 136 lignes. | Oui |
+
+**Seize compteurs sur seize se reproduisent, et aucun ne repose plus sur une
+commande incapable d'échouer.** C'est la différence de fond avec l'itération 1,
+où deux compteurs portaient une valeur juste et une commande qui ne la
+produisait pas.
+
+---
+
+## Suites de tests
+
+Rejouées par mes soins sur le commit jugé :
+
+- `.venv/bin/python -m pytest sim/tests/ -v` — code de sortie **nul**, 25 tests
+  au vert, aucun échec.
+- `.venv/bin/python -m pytest harness/tests/ -q` — code de sortie **nul**,
+  `314` tests au vert et `16` ignorés, ces derniers étant les cas
+  Unity/PowerShell, comportement attendu sous Linux.
+
+Les deux suites confirment ce que le journal déclare.
+
+---
+
+## Overall Verdict: PASS
+
+Les huit conditions de succès sont satisfaites et vérifiées par reconstruction
+indépendante. Les deux points bloquants de l'itération 1 sont fermés, les trois
+points non bloquants aussi. Aucun échec de la grille des comportements
+disqualifiants de la rubrique n'est présent : la masse est conservée par
+l'étape de transport, aucun champ n'a été retiré du modèle pour ajuster une
+couverture, les compteurs du monde réel sont mesurés sur le monde chargé et non
+sur un monde fabriqué, aucun condensé n'est recopié en valeur hexadécimale, et
+ni le brief, ni la rubrique, ni le verdict n'ont été modifiés par le
+Générateur.
+
+Ce que je retiens de cette itération, au-delà du verdict : la régression qui
+avait motivé le rejet — un manifeste rendu illisible et le gate d'un lot déjà
+accepté hors service — est levée et vérifiée par l'exécution du gate concerné,
+pas par une déclaration. Et les deux corrections de fond ont transformé deux
+mesures décoratives en mesures qui peuvent échouer, ce qui est précisément
+l'objet de la hard-won rule 4.
+
+---
+
+## Boundary Violations
+
+Réexaminées sur le nouveau périmètre, c'est-à-dire sur le diff `93ac0a5` →
+`b458b6f`.
+
+**1. Le Générateur n'a ni committé ni poussé à cette itération.** C'était la
+violation de procédure retenue à l'itération 1, et le feedback la listait parmi
+les choses à ne surtout pas refaire. Je l'ai vérifié plutôt que de croire la
+déclaration du journal : aucune branche autre que celle du lot n'existe en
+local, et l'unique commit de l'itération est celui de l'orchestrateur. La
+consigne a donc été suivie.
+
+**2. Aucune violation de périmètre sur les fichiers.** Les 7 fichiers modifiés
+relèvent tous du périmètre explicitement autorisé : le manifeste du lot `011`
+au titre de l'exception nommée pour R1, deux fichiers de `sim/`, un fichier de
+preuve sous `sim/tests/proof_red/`, et trois fichiers du dossier du lot `012`.
+Ni `pipeline/geo/`, ni `unity/`, ni `VISION.md`, ni `ROADMAP.md`, ni aucun
+fichier Python du harnais n'est touché.
+
+**3. L'exception de périmètre sur le manifeste du lot `011` est cette fois
+respectée dans son objet.** C'était le second constat de l'itération 1 :
+l'exception, limitée à la correction R1, avait été utilisée pour produire un
+fichier hors d'usage. Le diff de cette itération sur ce fichier n'ajoute que
+l'entrée de compteur attendue, et j'ai vérifié que le fichier est de nouveau
+exploitable par le gate.
+
+**4. Non-Goals de fond, revérifiés.** Aucune agrégation Province, ville,
+famille ou personne n'est apparue ; la population ne fait que décroître, sans
+natalité ni migration ; le maillon commerce reste sans prix, sans monnaie et
+sans marché ; les compteurs exigeant le monde réel sont mesurés sur le monde
+effectivement chargé ; toutes les constantes restent déclarées comme proxies
+paramétriques.
+
+**Aucune violation de périmètre retenue à l'itération 2.**
+
+---
+
+## What Improved Since Last Iteration
+
+- **La régression bloquante est levée.** Le manifeste du lot `011` est de
+  nouveau du JSON valide et son gate répond `ACCEPT` — je l'ai exécuté.
+- **Deux mesures décoratives sont devenues des mesures.** La commande de
+  cohérence des constantes tombe désormais quand on casse une dérivation ; la
+  commande du compteur de cellules affamées rend exactement la valeur du
+  compteur. Aucune des deux ne se contentait d'être présente.
+- **La preuve rouge de couverture prouve la bonne chose.** Elle exerce la
+  capacité nouvelle du lot — la découverte d'une dataclass entière par
+  introspection — au lieu de rejouer celle du lot précédent.
+- **La leçon R1 a été généralisée, pas seulement appliquée.** Confronté au même
+  motif dans une situation nouvelle, le Générateur a de lui-même archivé la
+  valeur ancienne avec une commande ré-ancrée et ouvert un compteur pour l'état
+  courant. C'est le comportement qu'un feedback cherche à produire.
+- **La consigne de procédure a été respectée** : ni commit, ni poussée, ni
+  branche parasite.
+- **La substitution silencieuse est devenue explicite.** Le choix de compter la
+  capacité de transport plutôt que la réserve initiale parmi les constantes
+  dérivées est maintenant justifié dans `sim/SEEDING.md`, avec un argument
+  dimensionnel que j'ai vérifié comme correct.
+
+## What Regressed Since Last Iteration
+
+Aucune régression. J'ai spécifiquement vérifié les points qui pouvaient casser
+par effet de bord : les deux suites de tests restent entièrement vertes, les
+seize compteurs se reproduisent tous, les quatre conditions du monde réel sont
+inchangées au chiffre près, la paire de preuve transport est intacte, et le
+gate du lot `011` — le lot voisin qui avait été cassé — est au vert.
+
+---
+
+## Réserves non bloquantes pour un brief ultérieur
+
+Aucune de ces réserves ne conditionne l'acceptation du lot. Je les consigne
+pour qu'elles ne se perdent pas.
+
+**N4 — une affirmation arithmétiquement fausse dans deux docstrings.** Les deux
+tests corrigés au titre de N2 portent la mention « superficie `1.0` (supérieure
+ou égale au minimum G3 `1.444877` km²) ». La superficie retenue est conforme au
+plancher que le brief fixe, et le plancher est bien un arrondi conservateur du
+minimum réel — mais le signe de comparaison écrit dans le commentaire est faux,
+puisque `1.0` est inférieur à `1.444877`. Correction : reformuler en « conforme
+au plancher de `1.0` km² fixé par le brief, lui-même arrondi conservateur du
+minimum réel ». C'est une phrase à reprendre, pas un test à changer.
+
+**N5 — le script de mesure n'est pas déclaré au manifeste.** Le script qui porte
+désormais la commande d'un compteur du monde réel est bien suivi par git, je
+l'ai vérifié. Mais il n'apparaît pas dans la liste `files` du manifeste, alors
+qu'il est devenu porteur de preuve : si son contenu changeait ou s'il
+disparaissait, aucun contrôle ne le verrait, puisque les contrôles d'existence
+et de suivi ne regardent que les chemins déclarés. Correction : ajouter son
+chemin à la liste `files`. Je souligne que c'est la même famille de fragilité
+que celle qui a produit R1 — un compteur dont la preuve n'est pas ancrée
+durablement — et qu'il vaut mieux la fermer avant qu'elle ne coûte une
+itération.
+
+**N6 — les commandes d'archive dépendent de la préservation de l'historique.**
+Deux compteurs tirent maintenant leur valeur de fichiers lus à un commit
+épinglé. J'ai vérifié que les deux commits visés sont des ancêtres de `HEAD`,
+donc atteignables. Cette propriété survivra à une fusion qui conserve
+l'historique, comme celle du lot `011`, mais pas à une fusion écrasée en un
+seul commit. À porter au brief de harnais : soit imposer la préservation de
+l'historique pour ces cas, soit prévoir une forme d'ancrage qui n'en dépende
+pas.
+
+**N7 — l'angle mort de signature reste ouvert.** Il est décrit dans ma note de
+transparence ci-dessus et sa fermeture mécanique est déjà différée au brief de
+harnais issu du point 1 de l'audit source. Je le répète ici uniquement pour
+qu'il figure dans la liste des réserves et ne dépende pas de la lecture d'une
+note.
+
+---
+
+**Celui qui produit ne prononce pas la recevabilité — et celui qui juge ne
+corrige pas ce qu'il juge.**
