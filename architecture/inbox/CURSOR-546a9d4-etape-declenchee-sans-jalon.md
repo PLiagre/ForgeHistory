@@ -226,13 +226,9 @@ def check_demo_pair() -> AuditCheck:
     ran_ok = exists("harness", "demo", "fake_brief_001", "run_demo.log")
 ```
 
-Trois conséquences. (1) Sur tout clone frais — donc pour tout auditeur — la
-preuve fondatrice F0 « un faux brief est rejeté » est comptée **absente**,
-alors qu'elle passe quand on la rejoue. La CI exécute bien la démo
-(`harness-ci.yml:57-58`, job `f0-demo`), mais `harness_audit.py` n'est invoqué
-par **aucun** workflow (`grep -rn 'harness_audit' .github/workflows/` : aucune
-occurrence) : le score de maturité du harnais n'est donc jamais mesuré
-ailleurs que sur une machine de développement, là où le fichier ignoré traîne. (2) `AGENTS.md:50` documente « 23/24,
+Trois conséquences. (1) Sur tout clone frais — donc en CI et pour tout auditeur
+— la preuve fondatrice F0 « un faux brief est rejeté » est comptée **absente**,
+alors qu'elle passe quand on la rejoue. (2) `AGENTS.md:50` documente « 23/24,
 un seul FAIL, `no_premature_stub_content` » : la mesure sur clone frais donne
 20/24 et **deux** FAIL. La documentation décrit l'état d'une machine, pas celui
 du dépôt. (3) C'est exactement le défaut de compteur que les règles maison
