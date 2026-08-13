@@ -5,41 +5,40 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 08:56 UTC.
+> Générée le 2026-08-13 10:48 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 24 — boucles closes : 7.
+- **Audits en cours** : 23 — boucles closes : 8.
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #65 — « Boucle d'audit post-PR #60 : décision a4de4bb récupérée, clôture 3b47ffe, graines de briefs 013/014 » (branche `forge/boucle-audits-post-pr60-ddda`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
+- Fusionner (ou refuser) la PR #69 — « Brief 013 : le tick nourrit une fois — commerce avant consommation, transport à une arête, mortalité continue (F2) » (branche `forge/013-sim-tick-nourrit-une-fois-ddda`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-a600532-fusion-sans-contre-audit` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 08:56:19 | hermes-observer | pull_request_target | cursor/critique-pull-request-65-0a5a | queued |
-| 2026-08-13 08:56:18 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 08:56:18 | harness-ci | push | master | in_progress |
-| 2026-08-13 08:56:18 | audit-guard | push | master | in_progress |
-| 2026-08-13 08:56:18 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 08:56:18 | security | push | master | in_progress |
-| 2026-08-13 08:56:18 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 08:56:16 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:56:11 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:56:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:56:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:55:55 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:55:52 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:55:52 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 08:55:51 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:47:54 | hermes-observer | pull_request_target | forge/boucle-audits-post-pr60-ddda | queued |
+| 2026-08-13 10:47:54 | audit-guard | push | master | in_progress |
+| 2026-08-13 10:47:54 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 10:47:54 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 10:47:54 | security | push | master | in_progress |
+| 2026-08-13 10:47:54 | harness-ci | push | master | in_progress |
+| 2026-08-13 10:42:57 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:42:52 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:42:49 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 10:42:49 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:42:37 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:42:37 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:42:30 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:42:23 | hermes-observer | pull_request_target | forge/013-sim-tick-nourrit-une-fois-ddda | queued |
+| 2026-08-13 10:42:23 | harness-ci | pull_request | forge/013-sim-tick-nourrit-une-fois-ddda | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -55,8 +54,8 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-779d97c-revue-verdicts-illisibles | contre-audit rendu — attend la décision | 2026-08-12 12:30 |
 | CURSOR-e849633-hermes-demande-pilotage | retenu — à convertir en brief | 2026-08-12 15:32 |
 | CURSOR-0269d8e-hermes-console-droit-executer | retenu — à convertir en brief | 2026-08-12 15:49 |
-| CURSOR-3b47ffe-pr57-monde-sans-faim | converti en brief — travail à produire | 2026-08-13 06:25 |
-| CURSOR-a600532-fusion-sans-contre-audit | retenu — à convertir en brief | 2026-08-13 08:35 |
+| CURSOR-a600532-fusion-sans-contre-audit | converti en brief — travail à produire | 2026-08-13 08:40 |
+| CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois | converti en brief — travail à produire | 2026-08-13 08:40 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-16ff5ac-contre-audit-perdu-a-la-publication | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
@@ -68,13 +67,12 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-7e5244b-ledger-post-fusion-poussee-master | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-949ecf1-pr42-revue-non-consommable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-9e35764-pr63-contre-audit-jamais-enregistre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-bb8fe11-hermes-console-adr-0011 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-cd1dcd2-forge-bot-pat-boucle-jetons | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-e2896e7-pr44-challenge-bb8fe11 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 
-(7 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
+(8 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
 
 ## Briefs (les commandes de travail)
 
@@ -93,6 +91,8 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 010-repartition-roles-full-auto | dernier verdict tracé : ACCEPT |
 | 011-sim-monde-vivant-amorcage | dernier verdict tracé : ACCEPT |
 | 012-monde-vivant-commerce-inter-cellules | dernier verdict tracé : ACCEPT |
+| 013-sim-tick-nourrit-une-fois | pas encore de verdict |
+| 014-pipeline-contre-audit-porte | pas encore de verdict |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
