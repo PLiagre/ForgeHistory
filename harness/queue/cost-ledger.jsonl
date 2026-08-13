@@ -35,3 +35,5 @@
 {"timestamp": "2026-08-12T16:23:19.097106", "backend": "cursor", "brief": "harness/queue/briefs/011-sim-monde-vivant-amorcage", "event": "generator_run"}
 {"timestamp": "2026-08-12T16:43:38.859837", "backend": "cursor", "brief": "harness/queue/briefs/011-sim-monde-vivant-amorcage", "event": "generator-run"}
 {"timestamp": "2026-08-13T06:59:08.650798", "backend": "cursor", "brief": "harness/queue/briefs/012-monde-vivant-commerce-inter-cellules", "event": "generator-run", "audit_id": "CURSOR-3b47ffe-pr57-monde-sans-faim"}
+{"timestamp": "2026-08-13T09:17:50.450810", "backend": "cursor", "brief": "harness/queue/briefs/013-sim-tick-nourrit-une-fois", "event": "generator-run", "audit_id": "CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois"}
+{"timestamp": "2026-08-13T10:24:17.748039", "backend": "cursor", "brief": "harness/queue/briefs/013-sim-tick-nourrit-une-fois", "event": "generator-run", "audit_id": "CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois"}

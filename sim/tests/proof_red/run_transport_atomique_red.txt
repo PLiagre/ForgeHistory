@@ -1,0 +1,123 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/sabotage-013/paire-B-v2
+collecting ... collected 1 item
+
+sim/tests/test_tick_nourrit_une_fois.py::test_invariance_ordre_aretes [scénario 1] cellule 1 : stock_AB=400.0, stock_BA=400.0, écart=0.0
+[scénario 1] cellule 2 : stock_AB=0.0, stock_BA=0.0, écart=0.0
+[scénario 1] cellule 3 : stock_AB=0.0, stock_BA=0.0, écart=0.0
+[scénario 2] cellule 10 : stock_SA_SB=0.0, stock_SB_SA=0.0, écart=0.0
+[scénario 2] cellule 11 : stock_SA_SB=100.0, stock_SB_SA=60.0, écart=40.0
+[scénario 2] cellule 12 : stock_SA_SB=60.0, stock_SB_SA=100.0, écart=40.0
+etat_final_invariant_ordre_aretes (max_ecart) = 40.0
+FAILED
+
+=================================== FAILURES ===================================
+_________________________ test_invariance_ordre_aretes _________________________
+
+    def test_invariance_ordre_aretes():
+        """
+        SC2 — L'état final est invariant à l'ordre des arêtes dans adjacency.
+    
+        Scénario 1 — chaîne (existant) :
+        Deux exécutions avec [1-2, 2-3] et [2-3, 1-2] doivent produire des
+        stocks finaux identiques pour les trois cellules (écart ≤ 1×10⁻⁹ kg).
+    
+        Scénario 2 — source contestée (N1 feedback 001) :
+        Source S surplus=80, receveurs A et B besoin=60 chacun (total 120 > 80).
+        Allocation proportionnelle attendue : A=40, B=40 dans les deux ordres.
+        Ce scénario rougit dès que le snapshot est retiré (traitement arête-par-arête
+        en direct), indépendamment de la définition du besoin/surplus.
+    
+        Compteur : etat_final_invariant_ordre_aretes (max écart sur tous les tests).
+        """
+        # --- Scénario 1 : chaîne ---
+        edges_AB = [
+            {"a": 1, "b": 2, "kind": "land", "shared_length_m": 5000.0},
+            {"a": 2, "b": 3, "kind": "land", "shared_length_m": 5000.0},
+        ]
+        edges_BA = [
+            {"a": 2, "b": 3, "kind": "land", "shared_length_m": 5000.0},
+            {"a": 1, "b": 2, "kind": "land", "shared_length_m": 5000.0},
+        ]
+    
+        world_AB = _build_chain_world(edges_AB)
+        world_BA = _build_chain_world(edges_BA)
+    
+        rng_AB = random.Random(0)
+        rng_BA = random.Random(0)
+    
+        tick(world_AB, rng_AB)
+        tick(world_BA, rng_BA)
+    
+        ecarts_s1 = {}
+        for cell_id in [1, 2, 3]:
+            ecart = abs(
+                world_AB.cells[cell_id].food_stock_kg
+                - world_BA.cells[cell_id].food_stock_kg
+            )
+            ecarts_s1[cell_id] = ecart
+            print(
+                f"[scénario 1] cellule {cell_id} : "
+                f"stock_AB={world_AB.cells[cell_id].food_stock_kg}, "
+                f"stock_BA={world_BA.cells[cell_id].food_stock_kg}, écart={ecart}"
+            )
+    
+        # --- Scénario 2 : source contestée (test du mécanisme commerce seul) ---
+        # Appelle _apply_commerce directement pour comparer les stocks APRÈS COMMERCE
+        # mais AVANT CONSOMMATION. Ainsi, une livraison inégale entre les deux ordres
+        # se manifeste immédiatement dans food_stock_kg sans être masquée par la
+        # consommation (qui ramènerait les deux receveurs à 0 dans les deux cas).
+        edges_SA_SB = [
+            {"a": 10, "b": 11, "kind": "land", "shared_length_m": 5000.0},
+            {"a": 10, "b": 12, "kind": "land", "shared_length_m": 5000.0},
+        ]
+        edges_SB_SA = [
+            {"a": 10, "b": 12, "kind": "land", "shared_length_m": 5000.0},
+            {"a": 10, "b": 11, "kind": "land", "shared_length_m": 5000.0},
+        ]
+    
+        world_SA_SB = _build_contested_source_world(edges_SA_SB)
+        world_SB_SA = _build_contested_source_world(edges_SB_SA)
+    
+        _apply_commerce(world_SA_SB, [0.0])
+        _apply_commerce(world_SB_SA, [0.0])
+    
+        ecarts_s2 = {}
+        for cell_id in [10, 11, 12]:
+            ecart = abs(
+                world_SA_SB.cells[cell_id].food_stock_kg
+                - world_SB_SA.cells[cell_id].food_stock_kg
+            )
+            ecarts_s2[cell_id] = ecart
+            print(
+                f"[scénario 2] cellule {cell_id} : "
+                f"stock_SA_SB={world_SA_SB.cells[cell_id].food_stock_kg}, "
+                f"stock_SB_SA={world_SB_SA.cells[cell_id].food_stock_kg}, écart={ecart}"
+            )
+    
+        etat_final_invariant_ordre_aretes = max(
+            max(ecarts_s1.values()), max(ecarts_s2.values())
+        )
+        print(
+            f"etat_final_invariant_ordre_aretes (max_ecart) = {etat_final_invariant_ordre_aretes}"
+        )
+    
+        for cell_id, ecart in ecarts_s1.items():
+            assert ecart <= TOLERANCE, (
+                f"[scénario 1] cellule {cell_id} : écart {ecart} > {TOLERANCE} entre "
+                f"ordre [1-2,2-3] et [2-3,1-2]. Dépendance à l'ordre des arêtes."
+            )
+        for cell_id, ecart in ecarts_s2.items():
+>           assert ecart <= TOLERANCE, (
+                f"[scénario 2] cellule {cell_id} : écart {ecart} > {TOLERANCE} entre "
+                f"ordre [S→A,S→B] et [S→B,S→A]. Dépendance à l'ordre (snapshot absent ?)."
+            )
+E           AssertionError: [scénario 2] cellule 11 : écart 40.0 > 1e-09 entre ordre [S→A,S→B] et [S→B,S→A]. Dépendance à l'ordre (snapshot absent ?).
+E           assert 40.0 <= 1e-09
+
+sim/tests/test_tick_nourrit_une_fois.py:349: AssertionError
+=========================== short test summary info ============================
+FAILED sim/tests/test_tick_nourrit_une_fois.py::test_invariance_ordre_aretes
+============================== 1 failed in 0.01s ===============================

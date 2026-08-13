@@ -1,0 +1,113 @@
+{
+  "files": [
+    {"path": "../../../../sim/engine.py"},
+    {"path": "../../../../sim/constants.py"},
+    {"path": "../../../../sim/SEEDING.md"},
+    {"path": "../../../../sim/tests/test_causal_chain.py"},
+    {"path": "../../../../sim/tests/test_tick_nourrit_une_fois.py"},
+    {"path": "../../../../sim/tests/test_survie_derivee.py"},
+    {"path": "../../../../sim/tests/test_mortalite_continue.py"},
+    {"path": "../../../../sim/tests/test_kg_transportes_est_arrives.py"},
+    {"path": "../../../../sim/tests/proof_red/run_ordre_tick_red.txt"},
+    {
+      "path": "../../../../sim/tests/proof_red/run_ordre_tick_green.txt",
+      "must_differ_from": "../../../../sim/tests/proof_red/run_ordre_tick_red.txt"
+    },
+    {"path": "../../../../sim/tests/proof_red/run_transport_atomique_red.txt"},
+    {
+      "path": "../../../../sim/tests/proof_red/run_transport_atomique_green.txt",
+      "must_differ_from": "../../../../sim/tests/proof_red/run_transport_atomique_red.txt"
+    },
+    {"path": "../../../../harness/queue/cost-ledger.jsonl"},
+    {"path": "deliverables/manifest.json"},
+    {"path": "deliverables/generator-log.md"},
+    {"path": "deliverables/measure_sc6_013.py"}
+  ],
+  "counters": [
+    {
+      "name": "ecart_stock_temoin_vs_receveuse",
+      "value": 0.0,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_tick_nourrit_une_fois.py::test_ecart_temoin_vs_receveuse -v -s"
+    },
+    {
+      "name": "cellule_3_stock_apres_1_tick_chaine_1_2_3",
+      "value": 0.0,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_tick_nourrit_une_fois.py::test_chaine_1_2_3 -v -s"
+    },
+    {
+      "name": "etat_final_invariant_ordre_aretes",
+      "value": 0.0,
+      "sample_size": 3,
+      "command": ".venv/bin/python -m pytest sim/tests/test_tick_nourrit_une_fois.py::test_invariance_ordre_aretes -v -s"
+    },
+    {
+      "name": "fraction_predite_analytique",
+      "value": 0.9,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_survie_derivee.py::test_fraction_predite_analytique -v -s"
+    },
+    {
+      "name": "fraction_dans_marge_predite",
+      "value": 1,
+      "sample_size": 596,
+      "command": ".venv/bin/python -m pytest sim/tests/test_survie_derivee.py::test_fraction_dans_marge -v -s"
+    },
+    {
+      "name": "max_taux_mortalite_effectif_pop_1",
+      "value": 0.0,
+      "sample_size": 6,
+      "command": ".venv/bin/python -m pytest sim/tests/test_mortalite_continue.py::test_plafond_toute_population -v -s"
+    },
+    {
+      "name": "deficit_non_efface_en_1_tick",
+      "value": 9000.0,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_mortalite_continue.py::test_deficit_non_efface_en_1_tick -v -s"
+    },
+    {
+      "name": "ecart_kg_transportes_vs_arrives",
+      "value": 0.0,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_kg_transportes_est_arrives.py -v -s"
+    },
+    {
+      "name": "cellules_affamees_monde_reel_re",
+      "value": 536,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/013-sim-tick-nourrit-une-fois/deliverables/measure_sc6_013.py"
+    },
+    {
+      "name": "morts_cumules_monde_reel_re",
+      "value": 15666208,
+      "sample_size": 66865505,
+      "command": ".venv/bin/python harness/queue/briefs/013-sim-tick-nourrit-une-fois/deliverables/measure_sc6_013.py"
+    },
+    {
+      "name": "kg_transportes_monde_reel_re",
+      "value": 2676487,
+      "sample_size": 272800,
+      "command": ".venv/bin/python harness/queue/briefs/013-sim-tick-nourrit-une-fois/deliverables/measure_sc6_013.py"
+    },
+    {
+      "name": "fraction_survie_monde_reel_re",
+      "value": 0.765706,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/013-sim-tick-nourrit-une-fois/deliverables/measure_sc6_013.py"
+    },
+    {
+      "name": "ci_sim_tests_collectes_013",
+      "value": 35,
+      "sample_size": 35,
+      "command": ".venv/bin/python -m pytest sim/tests/ --collect-only -q"
+    }
+  ],
+  "waivers": [
+    {
+      "claim": "le budget d'exécution n'est pas mesurable sur cette machine (hors session Claude locale)",
+      "command": ".venv/bin/python harness/budget.py status --brief harness/queue/briefs/013-sim-tick-nourrit-une-fois",
+      "error": "status     : UNMEASURABLE\nreason     : no agent transcript naming 013-sim-tick-nourrit-une-fois under /home/ubuntu/.claude/projects/-workspace\nNothing is being enforced. This is not OK -- it is unmeasured."
+    }
+  ]
+}

@@ -3,8 +3,8 @@ SC7 — Chaîne causale testée maillon par maillon et de bout en bout.
 
 SC7a : production insuffisante → food_stock_kg baisse
 SC7b : food_stock_kg ≤ 0 → hunger_ticks progresse
-SC7c : food_deficit_kg > 0 → population diminue (brief 012 : mortalité
-       proportionnelle au déficit, pas interrupteur binaire seul)
+SC7c : food_deficit_kg > 0 → population diminue (brief 013 : mortalité
+       proportionnelle au déficit, sans plancher max(1, …) — SC4 brief 013)
 SC7d : intégration bout en bout — cellule à rendement nul (area_km2 = 0),
        population diminue.
        NOTE (SC5 brief 012) : area_km2 = 0.0 est un cas structurellement
@@ -13,6 +13,9 @@ SC7d : intégration bout en bout — cellule à rendement nul (area_km2 = 0),
        il ne peut pas servir de preuve pour un compteur SC5.
 
 Compteur : maillons_chaine_causale_testes_unitairement (SC7a + SC7b + SC7c = 3).
+
+Adaptation brief 013 (SC7) : commentaire SC7c corrigé pour refléter la
+suppression du plancher max(1, …) dans _apply_mortality.
 """
 
 import random
@@ -117,7 +120,7 @@ def test_sc7c_population_decreases_when_deficit_positive():
     """
     # food_deficit_kg = 500 kg, population = 100, area_km2 = 1.0
     # per_capita_deficit = 5 kg → death_rate = 5 × 0.005 = 0.025 (2.5%)
-    # deaths = max(1, int(100 × 0.025)) = max(1, 2) = 2
+    # deaths = int(100 × 0.025) = 2   (sans max(1, …) — SC4 brief 013)
     cell = Cell(
         cell_id=3,
         area_km2=1.0,
