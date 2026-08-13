@@ -5,21 +5,19 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 19:28 UTC.
+> Générée le 2026-08-13 20:20 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 40 — boucles closes : 8.
+- **Audits en cours** : 39 — boucles closes : 9.
 
 ## Ce qui attend le propriétaire
 
 - Fusionner (ou refuser) la PR #99 — « ADR-0012 : audit et contre-audit par grandes étapes — plus jamais par PR (décision propriétaire, empilée sur #92) » (branche `forge/adr-0012-audit-par-etapes-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Fusionner (ou refuser) la PR #92 — « Clôture de session 2026-08-13 (après-midi) : addendum HANDOFF + correction factuelle ROADMAP » (branche `forge/cloture-session-20260813-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Fusionner (ou refuser) la PR #89 — « Tenue de registre : conversions des audits moteur de la PR #69 — graines de briefs 015 et 016 (empilée sur #77) » (branche `forge/conversions-briefs-015-016-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
-- Fusionner (ou refuser) la PR #83 — « Brief 014 : le contre-audit comme porte observable, le refus fournisseur comme état explicite avec repli (pipeline) » (branche `forge/014-pipeline-contre-audit-porte-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
-- Fusionner (ou refuser) la PR #77 — « Tenue de registre : clôture de l'audit CURSOR-a4de4bb après fusion du lot 013 » (branche `forge/cloture-audit-a4de4bb-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -36,21 +34,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 19:28:32 | hermes-dashboard | schedule | master | in_progress |
-| 2026-08-13 15:59:14 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 15:59:11 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 15:59:11 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 15:59:08 | pipeline-forge-run | pull_request | forge/adr-0012-audit-par-etapes-e180 | skipped |
-| 2026-08-13 13:54:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:54:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:54:02 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:53:42 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:53:40 | security | pull_request | forge/adr-0012-audit-par-etapes-e180 | success |
-| 2026-08-13 13:53:40 | merge-bot | pull_request | forge/adr-0012-audit-par-etapes-e180 | skipped |
-| 2026-08-13 13:53:40 | harness-ci | pull_request | forge/adr-0012-audit-par-etapes-e180 | success |
-| 2026-08-13 13:53:40 | hermes-observer | pull_request_target | forge/adr-0012-audit-par-etapes-e180 | queued |
-| 2026-08-13 13:53:40 | audit-guard | pull_request | forge/adr-0012-audit-par-etapes-e180 | success |
-| 2026-08-13 13:53:35 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:56 | hermes-observer | pull_request_target | forge/014-pipeline-contre-audit-porte-e180 | queued |
+| 2026-08-13 20:20:40 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 20:20:40 | harness-ci | push | master | in_progress |
+| 2026-08-13 20:20:40 | security | push | master | in_progress |
+| 2026-08-13 20:20:40 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 20:20:40 | audit-guard | push | master | success |
+| 2026-08-13 20:20:40 | hermes-observer | pull_request_target | forge/cloture-audit-a4de4bb-e180 | queued |
+| 2026-08-13 20:20:32 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:32 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:31 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:29 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 20:20:29 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:21 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:21 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:20 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -67,7 +65,6 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-e849633-hermes-demande-pilotage | retenu — à convertir en brief | 2026-08-12 15:32 |
 | CURSOR-0269d8e-hermes-console-droit-executer | retenu — à convertir en brief | 2026-08-12 15:49 |
 | CURSOR-a600532-fusion-sans-contre-audit | converti en brief — travail à produire | 2026-08-13 08:40 |
-| CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois | converti en brief — travail à produire | 2026-08-13 08:40 |
 | CURSOR-16ff5ac-contre-audit-perdu-a-la-publication | retenu — à convertir en brief | 2026-08-13 11:00 |
 | CURSOR-4c45718-pr65-ledger-recupere-a-la-main | retenu — à convertir en brief | 2026-08-13 11:01 |
 | CURSOR-9e35764-pr63-contre-audit-jamais-enregistre | retenu — à convertir en brief | 2026-08-13 11:03 |
@@ -101,7 +98,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-e2896e7-pr44-challenge-bb8fe11 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-ff9b53b-pr92-etat-de-la-boucle-recopie | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 
-(8 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
+(9 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
 
 ## Briefs (les commandes de travail)
 
