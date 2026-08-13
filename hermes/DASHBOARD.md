@@ -18,26 +18,27 @@
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-16ff5ac-contre-audit-perdu-a-la-publication` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 11:00:04 | security | push | master | in_progress |
-| 2026-08-13 11:00:04 | harness-ci | push | master | in_progress |
-| 2026-08-13 11:00:04 | audit-guard | push | master | success |
-| 2026-08-13 11:00:04 | pipeline-orchestrate | push | master | in_progress |
-| 2026-08-13 11:00:04 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 11:00:04 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 11:00:04 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-16ff5ac-contre-audit-perdu-a-la-publication-31683198126 | queued |
-| 2026-08-13 11:00:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:00:03 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:00:00 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:00:00 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 11:00:00 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:59:54 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:59:54 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:59:36 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-16ff5ac-contre-audit-perdu-a-la-publication-31683198126 | cancelled |
+| 2026-08-13 11:00:40 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:39 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:37 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 11:00:37 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:34 | security | push | cursor/audit-commit-fusion-980d | in_progress |
+| 2026-08-13 11:00:34 | harness-ci | push | cursor/audit-commit-fusion-980d | in_progress |
+| 2026-08-13 11:00:34 | audit-guard | push | cursor/audit-commit-fusion-980d | in_progress |
+| 2026-08-13 11:00:29 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:29 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:26 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 11:00:26 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:24 | harness-ci | push | master | in_progress |
+| 2026-08-13 11:00:24 | audit-guard | push | master | success |
+| 2026-08-13 11:00:24 | pipeline-audit | push | master | success |
+| 2026-08-13 11:00:24 | security | push | master | in_progress |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -55,8 +56,8 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-0269d8e-hermes-console-droit-executer | retenu — à convertir en brief | 2026-08-12 15:49 |
 | CURSOR-a600532-fusion-sans-contre-audit | converti en brief — travail à produire | 2026-08-13 08:40 |
 | CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois | converti en brief — travail à produire | 2026-08-13 08:40 |
+| CURSOR-16ff5ac-contre-audit-perdu-a-la-publication | retenu — à convertir en brief | 2026-08-13 11:00 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-16ff5ac-contre-audit-perdu-a-la-publication | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-29913c0-pr69-seuil-survie-non-borne | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
