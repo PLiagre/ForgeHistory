@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 11:01 UTC.
+> Générée le 2026-08-13 11:02 UTC.
 
 ## En bref
 
@@ -19,26 +19,27 @@
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-16ff5ac-contre-audit-perdu-a-la-publication` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-4c45718-pr65-ledger-recupere-a-la-main` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 11:01:39 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-4c45718-pr65-ledger-recupere-a-la-main-31684301091 | pending |
-| 2026-08-13 11:01:39 | security | push | master | queued |
-| 2026-08-13 11:01:39 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 11:01:39 | pipeline-orchestrate | push | master | queued |
-| 2026-08-13 11:01:39 | hermes-dashboard | push | master | pending |
-| 2026-08-13 11:01:39 | audit-guard | push | master | queued |
-| 2026-08-13 11:01:39 | harness-ci | push | master | queued |
-| 2026-08-13 11:01:33 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:01:30 | security | push | master | in_progress |
-| 2026-08-13 11:01:30 | hermes-observer | pull_request_target | cursor/audit-commit-fusion-980d | queued |
-| 2026-08-13 11:01:30 | audit-guard | push | master | in_progress |
-| 2026-08-13 11:01:30 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 11:01:30 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 11:01:30 | pipeline-audit | push | master | success |
-| 2026-08-13 11:01:30 | harness-ci | push | master | in_progress |
+| 2026-08-13 11:02:08 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:04 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:04 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:04 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:02 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:01 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 11:02:01 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 11:02:01 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:01 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:01:57 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 11:01:57 | hermes-dashboard | push | master | pending |
+| 2026-08-13 11:01:57 | audit-guard | push | master | in_progress |
+| 2026-08-13 11:01:57 | harness-ci | push | master | queued |
+| 2026-08-13 11:01:57 | security | push | master | in_progress |
+| 2026-08-13 11:01:57 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -57,6 +58,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-a600532-fusion-sans-contre-audit | converti en brief — travail à produire | 2026-08-13 08:40 |
 | CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois | converti en brief — travail à produire | 2026-08-13 08:40 |
 | CURSOR-16ff5ac-contre-audit-perdu-a-la-publication | retenu — à convertir en brief | 2026-08-13 11:00 |
+| CURSOR-4c45718-pr65-ledger-recupere-a-la-main | retenu — à convertir en brief | 2026-08-13 11:01 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-29913c0-pr69-seuil-survie-non-borne | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
@@ -64,7 +66,6 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-3ce7947-pr36-hermes-skill-versionnee | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-4c45718-pr65-ledger-recupere-a-la-main | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-7e5244b-ledger-post-fusion-poussee-master | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-827d54e-contre-audit-paye-jamais-publie | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-949ecf1-pr42-revue-non-consommable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
