@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 12:53 UTC.
+> Générée le 2026-08-13 12:55 UTC.
 
 ## En bref
 
@@ -32,21 +32,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 12:53:48 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:47 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:47 | pipeline-failure-escalate | workflow_run | master | queued |
-| 2026-08-13 12:53:46 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:39 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:39 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:36 | pipeline-audit | push | master | success |
-| 2026-08-13 12:53:36 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 12:53:36 | audit-guard | push | master | in_progress |
-| 2026-08-13 12:53:36 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 12:53:36 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:36 | harness-ci | push | master | in_progress |
-| 2026-08-13 12:53:36 | security | push | master | in_progress |
-| 2026-08-13 12:53:34 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:32 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:03 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 12:55:03 | audit-guard | push | master | in_progress |
+| 2026-08-13 12:55:03 | pipeline-orchestrate | push | master | in_progress |
+| 2026-08-13 12:55:03 | security | push | master | success |
+| 2026-08-13 12:55:03 | harness-ci | push | master | in_progress |
+| 2026-08-13 12:55:03 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 12:55:02 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-f978cc7-pr77-cloture-affirmee-hors-registre-31695162454 | queued |
+| 2026-08-13 12:54:59 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:54:57 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:54:54 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:54:54 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 12:54:52 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:54:51 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:54:50 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:54:33 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-f978cc7-pr77-cloture-affirmee-hors-registre-31695162454 | cancelled |
 
 ## Agents lancés récemment (Cursor Cloud)
 
