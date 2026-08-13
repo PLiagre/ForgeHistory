@@ -201,46 +201,23 @@ lisible par la CI.
 
 ### A/B rejoué localement, sur les données réelles de production
 
-Le script n'existe que dans l'arbre de la PR ; les deux commandes tournent donc
-depuis un arbre de travail détaché au SHA audité (`/tmp/pr83`) et lisent
-l'inbox + le ledger d'un second arbre détaché sur `master` (`/tmp/master`, au
-commit `1601290`). Deux arbres figés : l'A/B reste reproductible à
-l'identique.
-
 ```
-$ cd /tmp/pr83   # arbre au SHA 70380c6
-$ /workspace/.venv/bin/python harness/pipeline/pr_audit_guard.py check \
+$ .venv/bin/python harness/pipeline/pr_audit_guard.py check \
     --head-branch forge/014-pipeline-contre-audit-porte-e180 \
     --head-commit 70380c6faf08d1c45fc654cca1acfbe39b5c8507 \
-    --inbox /tmp/master/architecture/inbox \
-    --ledger /tmp/master/architecture/audit-ledger.jsonl
+    --inbox architecture/inbox --ledger architecture/audit-ledger.jsonl
 Aucun audit ne cible cette PR — contrôle vert.
 exit=0
 
-$ /workspace/.venv/bin/python harness/pipeline/pr_audit_guard.py check \
+$ .venv/bin/python harness/pipeline/pr_audit_guard.py check \
     --head-branch forge/014-pipeline-contre-audit-porte-e180 \
     --head-commit bd34ded \
-    --inbox /tmp/master/architecture/inbox \
-    --ledger /tmp/master/architecture/audit-ledger.jsonl
+    --inbox architecture/inbox --ledger architecture/audit-ledger.jsonl
 ERREUR : audits ciblant cette PR, non adjugés :
   CURSOR-bd34ded-pr83-porte-verte-quand-elle-devrait-mordre: PROPOSED (aucune ligne au ledger)
 1 audit(s) non adjugé(s) cible(nt) cette PR — la décision doit être prise avant la fusion (contrôle rouge).
 exit=1
 ```
-
-### La démonstration s'est refermée sur moi pendant la rédaction
-
-En écrivant cet audit, je l'ai posé dans `architecture/inbox/` avec
-`target_commit: 70380c6…`. J'ai alors rejoué la première commande contre mon
-inbox de travail : elle **rougit**, en nommant cet audit-ci.
-
-C'est la mécanique du défaut, vue de l'autre côté. La porte devient juste au
-moment exact où l'audit atteint l'arbre lu par la CI — c'est-à-dire *après* la
-fusion de la PR d'audit, alors que la PR #83, elle, aura très probablement
-reçu une nouvelle poussée entre-temps (elle en a reçu deux en dix minutes
-aujourd'hui). La porte n'est donc pas « parfois fausse » : elle est en retard
-d'un cycle, structurellement, et le retard est précisément la durée pendant
-laquelle la décision serait utile.
 
 Même arbre, même inbox, même ledger : seul le SHA change. Le mécanisme
 fonctionne ; ce qu'on lui demande de comparer est faux.
@@ -266,27 +243,16 @@ quelqu'un.
 ### Aucun lecteur
 
 ```
-$ rg -n --hidden "vendor-refusal-state|vendor_refusal" \
-    --glob '!harness/queue/briefs/**' --glob '!architecture/inbox/**' \
-    --glob '!harness/pipeline/vendor_refusal.py' \
-    --glob '!harness/tests/test_vendor_refusal.py' \
-    --glob '!harness/pipeline/proof_red/**' --glob '!.git/**' .
+$ rg -n "vendor-refusal-state|vendor_refusal" \
+    --glob '!harness/queue/briefs/**' --glob '!architecture/inbox/**' .
 ```
 
-(`--hidden` est nécessaire : sans lui, `rg` saute `.github/` et on manquerait
-le workflow.)
-
-Résultat : 21 occurrences dans `.github/workflows/pipeline-challenge.yml`, qui
-sont **toutes des écritures ou des conditions** — `classify`, `log_refusal`,
-`mark_fallback_actor`, `mark_fallback_attempted`, `git add`, `git diff
---quiet`, et des tests de la sortie `classification`. Aucune n'ouvre le
-fichier pour en tirer une conclusion. Hors de là, il ne reste que des chaînes
-de caractères dans `test_pipeline_challenge_paths.py`.
-
-En particulier `harness/pipeline/orchestrator.py`,
-`.github/workflows/pipeline-failure-escalate.yml`, `hermes/dashboard.py` et
-`harness/pipeline/ci_budget_guard.py` **ne le lisent jamais**. Aucun test
-n'assure qu'un lecteur existe.
+Hors du module lui-même, de ses propres tests et du workflow qui l'écrit, les
+seules occurrences sont des chaînes dans `test_pipeline_challenge_paths.py` et
+les fichiers de preuve `proof_red/`. En particulier :
+`harness/pipeline/orchestrator.py`, `pipeline-failure-escalate.yml`,
+`hermes/dashboard.py` et `harness/pipeline/ci_budget_guard.py` **ne le lisent
+jamais**. Aucun test n'assure qu'un lecteur existe.
 
 ### Aucun chemin vers `master`
 
@@ -575,29 +541,19 @@ git merge-base origin/master 70380c6f   # -> da536505c804e3ecc937bab16e3747e09c8
 #   -> VERDICT: ACCEPT (10 contrôles PASS)
 
 # P0-1 : la porte, sur les données réelles de production
-# (script depuis /tmp/pr83 = arbre au SHA audité ; inbox+ledger depuis
-#  /tmp/master = arbre détaché sur master au commit 1601290)
-git worktree add /tmp/master origin/master
-/workspace/.venv/bin/python harness/pipeline/pr_audit_guard.py check \
+.venv/bin/python harness/pipeline/pr_audit_guard.py check \
   --head-branch forge/014-pipeline-contre-audit-porte-e180 \
   --head-commit 70380c6faf08d1c45fc654cca1acfbe39b5c8507 \
-  --inbox /tmp/master/architecture/inbox \
-  --ledger /tmp/master/architecture/audit-ledger.jsonl   # -> exit 0 (vert)
-/workspace/.venv/bin/python harness/pipeline/pr_audit_guard.py check \
+  --inbox architecture/inbox --ledger architecture/audit-ledger.jsonl   # -> exit 0 (vert)
+.venv/bin/python harness/pipeline/pr_audit_guard.py check \
   --head-branch forge/014-pipeline-contre-audit-porte-e180 \
   --head-commit bd34ded \
-  --inbox /tmp/master/architecture/inbox \
-  --ledger /tmp/master/architecture/audit-ledger.jsonl   # -> exit 1 (rouge)
-# et : l'inbox de l'arbre de la PR ne contient pas l'audit de master
-ls /tmp/pr83/architecture/inbox/ | grep -c CURSOR-bd34ded   # -> 0
+  --inbox architecture/inbox --ledger architecture/audit-ledger.jsonl   # -> exit 1 (rouge)
 
-# P1-1 : chercher un lecteur de l'état (--hidden, sinon .github/ est sauté)
-rg -n --hidden "vendor-refusal-state|vendor_refusal" \
-  --glob '!harness/queue/briefs/**' --glob '!architecture/inbox/**' \
-  --glob '!harness/pipeline/vendor_refusal.py' \
-  --glob '!harness/tests/test_vendor_refusal.py' \
-  --glob '!harness/pipeline/proof_red/**' --glob '!.git/**' .
-#   -> 21 occurrences, toutes dans le workflow qui écrit ; aucun lecteur
+# P1-1 : chercher un lecteur de l'état
+rg -n "vendor-refusal-state|vendor_refusal" \
+  --glob '!harness/queue/briefs/**' --glob '!architecture/inbox/**' .
+#   -> aucun consommateur hors module, tests et workflow d'écriture
 
 # P1-2 : déduplication des sept chemins
 #   -> libellés : 7 ; contextes distincts : 4
