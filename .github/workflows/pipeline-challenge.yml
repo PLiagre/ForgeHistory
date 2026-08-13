@@ -168,8 +168,81 @@ jobs:
             --per-invocation-cap-usd 5 \
             || echo "::warning::post-hoc cost marking refused (unreadable transcript format) -- native --max-budget-usd already capped the spend; recording skipped rather than guessed."
 
-      - name: Publish the review as a pull request (reviews/** is merge-bot allowlisted)
+      - name: Classify vendor refusal (brief 014)
+        id: classify_refusal
         if: steps.check.outputs.available == 'true'
+        env:
+          AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}
+        run: |
+          set -euo pipefail
+          classification="$(python - <<'PY'
+          import sys
+          sys.path.insert(0, "harness/pipeline")
+          import vendor_refusal
+          import os
+          result = vendor_refusal.classify(os.environ.get("RUNNER_TEMP", "/tmp") + "/challenge-transcript.jsonl")
+          print(result)
+          PY
+          )"
+          echo "classification=${classification}" >> "$GITHUB_OUTPUT"
+          echo "Transcript classification: ${classification}"
+          if [ "$classification" = "vendor_refusal" ]; then
+            python - <<'PY'
+          import sys, os
+          sys.path.insert(0, "harness/pipeline")
+          import vendor_refusal
+          vendor_refusal.log_refusal(
+              os.environ["AUDIT_ID"],
+              os.environ.get("RUNNER_TEMP", "/tmp") + "/challenge-transcript.jsonl",
+              "harness/pipeline/vendor-refusal-state.jsonl",
+          )
+          print("Refus fournisseur consigné dans vendor-refusal-state.jsonl")
+          PY
+          fi
+
+      - name: Repli Codex si refus fournisseur (brief 014)
+        id: codex_fallback
+        if: steps.check.outputs.available == 'true' && steps.classify_refusal.outputs.classification == 'vendor_refusal'
+        env:
+          AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}
+          HAS_CODEX_AUTH: ${{ secrets.CODEX_AUTH_JSON != '' }}
+          HAS_OPENAI_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ "$HAS_CODEX_AUTH" != "true" ] && [ "$HAS_OPENAI_KEY" != "true" ]; then
+            echo "::warning::Repli Codex indisponible — identifiants absents"
+            echo "::warning::Repli Codex échoué (ou absent) pour AUDIT_ID ${AUDIT_ID} — contre-audit non produit. État du refus consigné dans vendor-refusal-state.jsonl."
+            exit 1
+          fi
+          # Vérification budget avant appel Codex
+          python harness/pipeline/ci_budget_guard.py precheck || {
+            echo "::warning::Repli Codex bloqué par ci_budget_guard precheck."
+            exit 1
+          }
+          # Tentative repli Codex (même commande /forge-audit-review, sans --max-budget-usd)
+          if codex exec "/forge-audit-review ${AUDIT_ID}" 2>&1; then
+            echo "codex_success=true" >> "$GITHUB_OUTPUT"
+            echo "Repli Codex réussi pour ${AUDIT_ID}"
+            # Marquer l'acteur réel dans la revue produite
+            python - <<'PY'
+          import sys, os, glob
+          sys.path.insert(0, "harness/pipeline")
+          import vendor_refusal
+          audit_id = os.environ["AUDIT_ID"]
+          reviews = glob.glob(f"architecture/reviews/CLAUDE-{audit_id}.md")
+          for r in reviews:
+              vendor_refusal.mark_fallback_actor(r)
+              print(f"Marqueur forge-challenger-codex inséré dans {r}")
+          PY
+          else
+            echo "::warning::Repli Codex échoué (ou absent) pour AUDIT_ID ${AUDIT_ID} — contre-audit non produit. État du refus consigné dans vendor-refusal-state.jsonl."
+            exit 1
+          fi
+
+      - name: Publish the review as a pull request (reviews/** is merge-bot allowlisted)
+        if: steps.check.outputs.available == 'true' && (steps.classify_refusal.outputs.classification == 'success' || steps.codex_fallback.outputs.codex_success == 'true')
         env:
           GH_TOKEN: ${{ secrets.FORGE_BOT_PAT || secrets.GITHUB_TOKEN }}
           AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}
@@ -192,6 +265,7 @@ jobs:
           git config user.email "forge-bot@users.noreply.github.com"
           git checkout -b "$branch"
           git add architecture/reviews
+          git add harness/pipeline/vendor-refusal-state.jsonl
           git commit -m "challenge: revue CLAUDE-${AUDIT_ID} (claude-challenger headless, run ${GITHUB_RUN_ID})"
           git push -u origin "$branch"
           gh pr create \
