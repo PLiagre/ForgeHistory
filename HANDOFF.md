@@ -1,6 +1,99 @@
 # HANDOFF.md
 
-## Session la plus récente — 2026-08-13 : critique du brief 011 traitée, brief 012 (le monde vit + commerce)
+## Session la plus récente — 2026-08-13 (suite) : critique du brief 012 traitée, brief 013 (le tick nourrit une fois)
+
+**Contexte** : suite immédiate de la session du matin, même orchestration
+(agent Cursor Cloud remplaçant le CTO, trois sous-agents distincts). Fait
+nouveau : **le quota Claude est revenu** — `pipeline-challenge` fonctionne à
+nouveau et les contre-audits sont redevenus l'œuvre du vrai Claude (deux
+runs verts de ~6 min). La PR #60 (brief 012) a été fusionnée par le
+propriétaire à 08:28 UTC, sans squash (réserve N6 respectée).
+
+**Ce qui a été fait, dans l'ordre** :
+
+1. **Deux nouveaux audits Cursor traités** :
+   `CURSOR-a600532-fusion-sans-contre-audit` (post-fusion de la PR #57 —
+   la fusion s'est faite pendant la panne du contre-audit, escalade
+   invisible du propriétaire) et
+   `CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois` (critique de la
+   PR #60 — **1 P0 réel sur le moteur** : la nourriture transférée
+   annulait le déficit du tick courant ET restait en stock).
+2. **Les contre-audits de Claude étaient bloqués sur des branches
+   `forge-bot/*` sans PR** (réglage GitHub « Allow GitHub Actions to
+   create and approve pull requests » toujours inactif) : PRs #62 et #63
+   ouvertes à la main, fusionnées par le merge-bot (`reviews/**`
+   allowlisté).
+3. **Course d'orchestration détectée et réparée** : les deux fusions de
+   revues à 12 s d'écart ont déclenché deux `pipeline-orchestrate`
+   concurrents ; le second a perdu sa persistance sur un conflit de
+   rebase du ledger (run `31682710982` en échec). La décision de
+   `a4de4bb` a été rejouée localement par le même orchestrateur
+   déterministe (CHALLENGED + APPROVED, points 1 à 10, identiques au log
+   CI). **La sérialisation des orchestrations concurrentes est un trou à
+   briefer.**
+4. **Cycle `CURSOR-3b47ffe` refermé** : brief 012 fusionné →
+   `evaluateur_pass` (IMPLEMENTED, VERIFIED) → archivage. Conversions :
+   graine 013 (`sim-tick-nourrit-une-fois`, issue de `a4de4bb`) et
+   graine 014 (`pipeline-contre-audit-porte`, issue de `a600532`).
+   Le tout sur la **PR #65** (tenue de registre, séparée du lot — réponse
+   au constat 8 « PRs trop grosses »).
+5. **Brief 013 écrit et exécuté par la boucle trois rôles** (branche
+   `forge/013-sim-tick-nourrit-une-fois-ddda`, PR empilée sur la #65) :
+   commerce AVANT consommation (un kilogramme transféré nourrit
+   exactement une fois — sonde témoin/receveur à écart nul), transport
+   calculé sur instantané et limité à une arête par tick (invariance à
+   l'ordre du fichier d'adjacence, répartition proportionnelle stable par
+   `cell_id`, écrêtage côté receveur), mortalité continue sans plancher
+   `max(1, …)` et plafonnée pour toute population, déficit à mémoire
+   graduelle (`DEFICIT_RECOVERY_RATE_PER_TICK`, epsilon de coupure
+   nommé), seuil de survie DÉRIVÉ du modèle (marge = expression calculée,
+   plus aucune constante calibrée après mesure), compteur de transport =
+   kilogrammes réellement arrivés. Boucle réelle : itération 1 = REJECT
+   (B1 : marge recalibrée après mesure — échec disqualifiant, avoué au
+   journal et conservé) ; itération 2 = B1 + N1→N6 corrigés, verdict
+   PASS, gate ACCEPT (dix sur dix). Re-mesure du monde réel (graines
+   42/42, N=200) : la correction du P0 révèle la vraie famine — 536
+   cellules affamées sur 596 (contre 261 avant), 15 666 208 morts
+   (contre 7 544 299), 2 676 487 kg réellement arrivés (contre 8 171 507
+   « sauts » comptés en double), survie 0.7657 dans la fenêtre dérivée
+   [0.7489, 1.0511].
+6. **Amendements de forme consignés** : le brief 013 portait des balises
+   ` ```python ` que `no_bare_python_alias` lit comme une invocation —
+   corrigées par le Planificateur (note datée, en-tête Authored
+   inchangé) ; l'Évaluateur a amendé sa propre section d'itération 1
+   (nombres devenus orphelins après la re-mesure N3 — backticks + note
+   datée, fond intact).
+
+**Réserves de l'Évaluateur (verdict 013, non bloquantes)** : R9 — la
+composition des termes de la marge dérivée n'a pas d'homogénéité
+démontrée (l'Évaluateur déclare un conflit d'intérêt : il avait nommé les
+ingrédients dans son feedback) ; R10 — le journal se trompe dans son
+contrôle de falsifiabilité (`0.556` au lieu de `0.3475`) ; R11 — l'égalité
+kg comptés/arrivés est « à l'arrondi près » depuis l'écrêtage ; R12 — une
+docstring cite `0.80` pour une mesure de `0.020627` ; R13 — le cas étoile
+du test SC5 n'est pas une garde ; R1/N7 — **le brief 013 contient une
+contradiction SC1/SC4** (déficit identique exigé vs récupération graduelle
+qui l'interdit) — à corriger dans les modèles de briefs du Planificateur.
+
+**État de la boucle d'audit** : `3b47ffe` ARCHIVED ; `a4de4bb` CONVERTED
+(graine 013, exécutée par ce lot) ; `a600532` CONVERTED (graine 014 en
+file d'attente). Restent en souffrance : 12 audits `PROPOSED` et 3
+`CHALLENGED` hérités du 2026-08-12.
+Acteurs en dur au ledger (`claude`/`owner`) : toujours faux par
+construction (point 3 de `a4de4bb`), différé au brief 014.
+
+**Prochain pas** : fusionner la PR #65 puis la PR du lot 013 (empilée,
+elle se recible sur master à la fusion de la #65 — **pas de squash** :
+compteurs d'archive git-ancrés) ; après fusion du lot 013, rejouer
+`evaluateur_pass` pour `a4de4bb` puis archiver ; remplir et exécuter le
+brief 014 (le contre-audit comme porte, refus fournisseur = état, acteurs
+réels au ledger, comptage des verdicts sur les lignes de tableau,
+sérialisation des orchestrations concurrentes, points 1 et 7 différés de
+`3b47ffe`) ; puis agrégation Province (F2). Le propriétaire peut aussi
+activer « Allow GitHub Actions to create and approve pull requests » pour
+que les PRs de revues s'ouvrent seules.
+
+## Session précédente — 2026-08-13 (matin) : critique du brief 011 traitée, brief 012 (le monde vit + commerce)
 
 **Contexte d'exécution** : Claude (le CTO) reste indisponible — et la cause
 est maintenant mesurée : le plafond mensuel de l'abonnement est atteint
