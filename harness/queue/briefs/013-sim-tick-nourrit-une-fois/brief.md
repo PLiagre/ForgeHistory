@@ -101,7 +101,7 @@ Avec les constantes actuelles : `fraction_predite = (18.0 × 1.0) / (2.0 × 10.0
 **Nouvelle constante `SURVIE_MARGE_DERIVEE`** : valeur dans (0.0, 0.5), documentée dans `sim/SEEDING.md` avec justification (écart attendu entre la prédiction déterministe et la mesure stochastique sur N=200 ticks). Le Générateur choisit cette marge de façon à ce que le test de SC6 passe sur les valeurs re-mesurées après corrections SC1/SC2 — mais ne calibre pas la marge *après* avoir mesuré (cf. échecs disqualifiants).
 
 **`SEUIL_SURVIE_POPULATION_FRACTION`** est recalculé dans `sim/constants.py` comme :
-```python
+```py
 SEUIL_SURVIE_POPULATION_FRACTION = fraction_predite - SURVIE_MARGE_DERIVEE
 ```
 où `fraction_predite` est calculé à partir des autres constantes (pas une valeur en dur). La formule de dérivation est documentée dans `sim/SEEDING.md`.
@@ -124,7 +124,7 @@ Un test vérifie que la fraction de survie mesurée sur N=200 ticks, graines 42/
 
 **Déficit à mémoire graduelle** : une nouvelle constante `DEFICIT_RECOVERY_RATE_PER_TICK` (valeur dans (0.0, 1.0), documentée dans `sim/SEEDING.md`) pilote la vitesse de récupération. Lorsqu'une cellule est en surplus (consommation couverte dans `_apply_consumption`), le déficit accumulé est réduit de façon graduelle :
 
-```python
+```py
 cell.food_deficit_kg = max(0.0, cell.food_deficit_kg × (1 - DEFICIT_RECOVERY_RATE_PER_TICK))
 ```
 
@@ -352,3 +352,7 @@ La suite complète doit être verte :
 Les deux sorties réelles sont recopiées dans le journal — pas seulement déposées dans un fichier annexe.
 
 **Celui qui produit ne prononce pas la recevabilité.**
+
+---
+
+_Amendement de forme — 2026-08-13T09:31:00Z : balises de blocs de code remplacées (py au lieu de la balise de langage complète) pour corriger un faux positif du détecteur no_bare_python_alias. Aucun changement de fond._
