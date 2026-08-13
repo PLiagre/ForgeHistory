@@ -103,10 +103,9 @@ def test_deficit_non_efface_en_1_tick():
     deficit_non_efface_en_1_tick = deficit_residuel > 0
 
     print(f"D_initial = {D}")
-    print(f"deficit_residuel = {deficit_residuel}")
+    print(f"deficit_non_efface_en_1_tick = {deficit_residuel}")
     print(f"deficit_attendu = {deficit_attendu}")
     print(f"DEFICIT_RECOVERY_RATE_PER_TICK = {DEFICIT_RECOVERY_RATE_PER_TICK}")
-    print(f"deficit_non_efface_en_1_tick = {deficit_non_efface_en_1_tick}")
 
     assert deficit_non_efface_en_1_tick, (
         f"Le déficit a été entièrement effacé en un seul tick de surplus : "

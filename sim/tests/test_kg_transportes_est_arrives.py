@@ -1,13 +1,21 @@
 """
 SC5 brief 013 — Le compteur de transport mesure des kg arrivés, pas des sauts.
 
-test_kg_transportes_egal_deltas_positifs :
-    Sur un monde à 3 cellules avec 2 arêtes actives, l'accumulateur
-    total_transported retourné par tick() est égal à la somme des
-    variations positives de food_stock_kg pendant l'étape commerce.
-    Écart doit être ≤ 1×10⁻⁹ kg.
+test_kg_transportes_egal_deltas_positifs (N2 feedback 001) :
+    Topologie chaîne (cellule 1 → cellule 2 → cellule 3).
+    Seule topologie où un kg pourrait franchir deux arêtes dans un tick (multi-saut).
+    Avec l'ancien maillon du lot 012 : cellule 2 reçoit de cellule 1 via arête 1-2,
+    puis redistribue vers cellule 3 via arête 2-3 dans le même tick →
+    total_transported compte les deux arêtes, sur-comptant la réalité.
+    Avec le maillon brief 013 (snapshot) : la cellule 2 n'a pas de surplus au
+    snapshot → ne peut pas redistribuer → total_transported = kg reçus par les
+    cellules, écart nul.
 
     Compteur : ecart_kg_transportes_vs_arrives.
+
+test_kg_transportes_etoile (cas supplémentaire) :
+    Topologie étoile : source unique, deux receveurs. Vérifie le cas de base
+    (pas de double arête).
 """
 
 import random
@@ -22,22 +30,92 @@ from sim.world import World
 TOLERANCE = 1e-9
 
 
+def _run_commerce_ecart(world: World) -> float:
+    """Lance _apply_commerce et retourne l'écart entre kg comptés et kg arrivés."""
+    stocks_avant = {cid: c.food_stock_kg for cid, c in world.cells.items()}
+    total_transported = [0.0]
+    _apply_commerce(world, total_transported)
+
+    somme_deltas_positifs = sum(
+        max(0.0, world.cells[cid].food_stock_kg - stocks_avant[cid])
+        for cid in world.cells
+    )
+    return total_transported[0], somme_deltas_positifs
+
+
 def test_kg_transportes_egal_deltas_positifs():
     """
-    SC5 — L'accumulateur total_transported de _apply_commerce est identique
-    à la somme des variations positives de food_stock_kg (kg effectivement
-    arrivés dans les cellules receveurs).
+    SC5 / N2 — Topologie chaîne : seul le receveur direct (cellule 2) reçoit
+    de la nourriture. La cellule 3 (non adjacente à la source) ne reçoit rien
+    via snapshot. total_transported = kg reçus par cellule 2, écart nul.
 
-    Avec le transport atomique (snapshot), chaque kg traverse au plus une
-    arête. Aucun double comptage n'est possible.
+    Sans le snapshot (ancien comportement 012) : cellule 2 recevrait 200 kg
+    (CAPACITY) et en redistribuerait 100 kg à cellule 3 dans le même tick ;
+    total_transported compterait 300 kg alors que seuls 200 kg ont quitté une
+    source — sur-comptage de 100 kg. Ce test rougirait.
 
-    Monde : 3 cellules, 2 arêtes actives.
-    - Cellule 1 : source (grand surplus)
-    - Cellule 2 : receveur 1
-    - Cellule 3 : receveur 2
-    - Arêtes : 1-2 et 1-3 (cellule 1 peut donner aux deux)
+    Monde : cellule 1 (source, pop=0, stock=500), cellule 2 (pop=50, stock=0,
+    besoin_snapshot=100), cellule 3 (pop=50, stock=0, besoin_snapshot=100).
+    Arêtes : 1-2 et 2-3.
 
     Compteur : ecart_kg_transportes_vs_arrives.
+    """
+    pop = 50
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK  # 100 kg
+
+    cell_1 = Cell(
+        cell_id=1,
+        area_km2=0.0,
+        population=0,
+        food_stock_kg=500.0,  # grande réserve
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+    )
+    cell_2 = Cell(
+        cell_id=2,
+        area_km2=0.0,
+        population=pop,
+        food_stock_kg=0.0,
+        hunger_ticks=1,
+        food_deficit_kg=500.0,  # grand déficit accumulé
+    )
+    cell_3 = Cell(
+        cell_id=3,
+        area_km2=0.0,
+        population=pop,
+        food_stock_kg=0.0,
+        hunger_ticks=1,
+        food_deficit_kg=500.0,
+    )
+
+    adjacency = [
+        {"a": 1, "b": 2, "kind": "land", "shared_length_m": 5000.0},
+        {"a": 2, "b": 3, "kind": "land", "shared_length_m": 5000.0},
+    ]
+    world = World(cells={1: cell_1, 2: cell_2, 3: cell_3}, adjacency=adjacency)
+
+    transported, arrived = _run_commerce_ecart(world)
+    ecart_kg_transportes_vs_arrives = abs(transported - arrived)
+
+    print(f"total_transported = {transported}")
+    print(f"somme_deltas_positifs (kg arrivés) = {arrived}")
+    print(f"ecart_kg_transportes_vs_arrives = {ecart_kg_transportes_vs_arrives}")
+
+    assert transported > 0, (
+        "Aucune nourriture transportée alors que cellule 2 avait besoin."
+    )
+    assert ecart_kg_transportes_vs_arrives <= TOLERANCE, (
+        f"Écart entre total_transported ({transported}) et "
+        f"kg arrivés ({arrived}) = {ecart_kg_transportes_vs_arrives} > {TOLERANCE}. "
+        "Double comptage possible (transport non atomique)."
+    )
+
+
+def test_kg_transportes_etoile():
+    """
+    SC5 (cas supplémentaire) — Topologie étoile : une source, deux receveurs.
+    Aucun kg ne peut traverser deux arêtes dans cette topologie.
+    Le test vérifie que total_transported = kg reçus par les deux receveurs.
     """
     pop = 100
     besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK  # 200 kg
@@ -46,7 +124,7 @@ def test_kg_transportes_egal_deltas_positifs():
         cell_id=1,
         area_km2=0.0,
         population=0,
-        food_stock_kg=besoin * 3,  # grand surplus : peut nourrir les deux
+        food_stock_kg=besoin * 3,  # peut nourrir les deux
         hunger_ticks=0,
         food_deficit_kg=0.0,
     )
@@ -73,31 +151,12 @@ def test_kg_transportes_egal_deltas_positifs():
     ]
     world = World(cells={1: cell_1, 2: cell_2, 3: cell_3}, adjacency=adjacency)
 
-    # Snapshot des stocks avant commerce
-    stocks_avant = {cid: c.food_stock_kg for cid, c in world.cells.items()}
+    transported, arrived = _run_commerce_ecart(world)
+    ecart = abs(transported - arrived)
 
-    total_transported = [0.0]
-    _apply_commerce(world, total_transported)
+    print(f"[étoile] total_transported = {transported}")
+    print(f"[étoile] somme_deltas_positifs = {arrived}")
+    print(f"[étoile] ecart = {ecart}")
 
-    # Somme des variations positives (kg effectivement arrivés)
-    somme_deltas_positifs = sum(
-        max(0.0, world.cells[cid].food_stock_kg - stocks_avant[cid])
-        for cid in world.cells
-    )
-
-    ecart_kg_transportes_vs_arrives = abs(
-        total_transported[0] - somme_deltas_positifs
-    )
-
-    print(f"total_transported = {total_transported[0]}")
-    print(f"somme_deltas_positifs = {somme_deltas_positifs}")
-    print(f"ecart_kg_transportes_vs_arrives = {ecart_kg_transportes_vs_arrives}")
-
-    assert total_transported[0] > 0, (
-        "Aucune nourriture transportée alors que des cellules avaient besoin."
-    )
-    assert ecart_kg_transportes_vs_arrives <= TOLERANCE, (
-        f"Écart entre total_transported ({total_transported[0]}) et "
-        f"somme_deltas_positifs ({somme_deltas_positifs}) = {ecart_kg_transportes_vs_arrives} > {TOLERANCE}. "
-        "Double comptage résiduel détecté."
-    )
+    assert transported > 0
+    assert ecart <= TOLERANCE

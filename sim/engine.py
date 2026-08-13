@@ -26,6 +26,7 @@ from collections import defaultdict
 
 from sim.constants import (
     DEFICIT_RECOVERY_RATE_PER_TICK,
+    DEFICIT_ZERO_EPSILON,
     FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
     FOOD_PRODUCTION_KG_PER_KM2_PER_TICK,
     HUNGER_DEATH_SCALE,
@@ -133,8 +134,32 @@ def _apply_commerce(world, total_transported: list) -> None:
             if transfer > 0:
                 transfers.append((source_id, receiver_id, transfer))
 
+    # Passe 1d : écrêtage côté receveur (N3 feedback 001, brief 013).
+    # Une cellule ne peut pas recevoir plus que son besoin snapshot même si
+    # plusieurs sources en surplus la visent simultanément.
+    # Conservation de la masse : l'excédent reste chez la source.
+    snapshot_needs = {cid: _need(cid) for cid in world.cells}
+    by_receiver: dict[int, list[tuple[int, float]]] = defaultdict(list)
+    for src, rcv, qty in transfers:
+        by_receiver[rcv].append((src, qty))
+
+    final_transfers: list[tuple[int, int, float]] = []
+    for rcv_id in sorted(by_receiver.keys()):
+        incoming = by_receiver[rcv_id]
+        need_r = snapshot_needs[rcv_id]
+        total_in = sum(qty for _, qty in incoming)
+        if total_in > need_r and total_in > 0.0:
+            scale = need_r / total_in
+            for src_id, qty in incoming:
+                scaled = qty * scale
+                if scaled > 0.0:
+                    final_transfers.append((src_id, rcv_id, scaled))
+        else:
+            for src_id, qty in incoming:
+                final_transfers.append((src_id, rcv_id, qty))
+
     # Passe 2 : appliquer tous les transferts (jamais food_deficit_kg)
-    for source_id, receiver_id, transfer in transfers:
+    for source_id, receiver_id, transfer in final_transfers:
         world.cells[source_id].food_stock_kg -= transfer
         world.cells[receiver_id].food_stock_kg += transfer
         total_transported[0] += transfer
@@ -160,9 +185,12 @@ def _apply_consumption(cell: Cell) -> None:
     if remaining >= 0.0:
         cell.food_stock_kg = remaining
         prev_deficit = cell.food_deficit_kg if cell.food_deficit_kg > 0 else 0.0
-        cell.food_deficit_kg = max(
-            0.0, prev_deficit * (1 - DEFICIT_RECOVERY_RATE_PER_TICK)
-        )
+        new_deficit = max(0.0, prev_deficit * (1 - DEFICIT_RECOVERY_RATE_PER_TICK))
+        # Coupure epsilon : un déficit résiduel infime (< DEFICIT_ZERO_EPSILON)
+        # est ramené à zéro pour éviter l'accumulation de valeurs non physiques.
+        if new_deficit < DEFICIT_ZERO_EPSILON:
+            new_deficit = 0.0
+        cell.food_deficit_kg = new_deficit
     else:
         shortage = -remaining
         prev_deficit = cell.food_deficit_kg if cell.food_deficit_kg > 0 else 0.0

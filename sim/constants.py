@@ -75,27 +75,22 @@ INITIAL_FOOD_RESERVE_TICKS = 5
 
 # Fraction du déficit accumulé effacée par un tick de surplus.
 # Justification dans SEEDING.md (SC4 brief 013).
-# Valeur choisie AVANT mesure : 0.10 (10 % par tick de surplus),
-# soit une demi-vie du déficit d'environ 7 ticks (≈ une semaine de surplus
-# efface la moitié d'un déficit accumulé sur la même durée).
+# 10 % par tick de surplus = demi-vie du déficit ≈ 7 ticks
+# (≈ une semaine de surplus efface la moitié d'un déficit accumulé sur la même durée).
+# Valeur dérivée de la physique médiévale, sans observation de la mesure.
 DEFICIT_RECOVERY_RATE_PER_TICK = 0.10
+
+# Seuil de coupure du déficit alimentaire (SC4 brief 013 — N4 feedback 001).
+# Un déficit résiduel inférieur à cette valeur est ramené à zéro après récupération,
+# évitant l'accumulation indéfinie de déficits infinitésimaux non physiques.
+# Justification dans SEEDING.md (SC4 brief 013 — N4 feedback 001).
+DEFICIT_ZERO_EPSILON = 1e-6
 
 # --- Seuil de survie de la population (SC5 brief 012 → SC3 brief 013 dérivé) ---
 
-# Marge entre la fraction prédite analytiquement et le seuil bas.
-# Justification dans SEEDING.md (SC3 brief 013) — valeur choisie AVANT mesure.
-# La formule fraction_predite = 0.9 est un équilibre stationnaire (infini).
-# Sur N=200 ticks (transition, pas équilibre) :
-#   - Le système démarre AU-DESSUS de la capacité de charge (10 vs 9 hab/km²)
-#   - P(yield < 20/18 = 1.11) ≈ 61 % → la majorité des ticks sont déficitaires
-#   - Les déficits s'accumulent graduellement et ne se récupèrent qu'à 10 %/tick
-#   - La mortalité de transition dépassera 10 % de l'état stationnaire attendu
-# Marge choisie : 0.15 (15 points) couvre la déviation transition / équilibre.
-SURVIE_MARGE_DERIVEE = 0.15
-
-# Fraction prédite analytiquement :
-# fraction_predite = (FOOD_PRODUCTION_KG_PER_KM2_PER_TICK × rendement_moyen)
-#                    / (FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK × INITIAL_POPULATION_PER_KM2)
+# Fraction prédite analytiquement (capacité de charge malthusienne) :
+# fraction_predite = (FOOD_PRODUCTION × rendement_moyen)
+#                    / (FOOD_CONSUMPTION × INITIAL_POPULATION_PER_KM2)
 # rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2 = 1.0
 # → fraction_predite = (18.0 × 1.0) / (2.0 × 10.0) = 0.9
 # Formule complète documentée dans SEEDING.md (SC3 brief 013).
@@ -103,6 +98,44 @@ _rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2
 _fraction_predite = (
     FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * _rendement_moyen
 ) / (FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * INITIAL_POPULATION_PER_KM2)
+
+# Marge entre la fraction prédite et le seuil bas (SC3 brief 013 — itération 2).
+# EXPRESSION calculée depuis les constantes du modèle ; formula et justification
+# dans SEEDING.md (SC3 brief 013 — N4 feedback 001, itération 2).
+#
+# Deux effets quantifiés sans observation :
+#   (1) Dépassement initial de la capacité de charge :
+#       dépassement = (d0 - cap) / d0 = (10 - 9) / 10 = 0.10
+#       Fraction de la population initiale au-dessus de la cap. de charge ;
+#       cette fraction mourra pendant la fenêtre de 200 ticks.
+#       Exprimé en points de fraction_predite : dépassement × fraction_predite
+#   (2) Pression stochastique des ticks déficitaires :
+#       p_déficit = P(yield < C/P) = (C/P - RNG_LOW) / (RNG_HIGH - RNG_LOW)
+#                = (1.111 - 0.5) / 1.0 = 0.611
+#       La probabilité de déficit multipliée par le taux de récupération
+#       donne la pression nette du déficit stochastique sur la mortalité.
+#       Terme : p_déficit × DEFICIT_RECOVERY_RATE_PER_TICK
+#
+# SURVIE_MARGE_DERIVEE = _depassement_initial × _fraction_predite
+#                        + _p_tick_deficitaire × DEFICIT_RECOVERY_RATE_PER_TICK
+# Avec les constantes actuelles : 0.1×0.9 + (11/18)×0.1 = 0.09 + 0.0611 ≈ 0.1511
+_ratio_conso_prod = (
+    FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * INITIAL_POPULATION_PER_KM2
+) / FOOD_PRODUCTION_KG_PER_KM2_PER_TICK
+_p_tick_deficitaire = min(1.0, max(0.0, (
+    _ratio_conso_prod - RNG_YIELD_LOW
+) / (RNG_YIELD_HIGH - RNG_YIELD_LOW)))
+_cap_hab_km2 = (
+    FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * _rendement_moyen
+) / FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+_depassement_initial = max(0.0, (
+    INITIAL_POPULATION_PER_KM2 - _cap_hab_km2
+) / INITIAL_POPULATION_PER_KM2)
+
+SURVIE_MARGE_DERIVEE = (
+    _depassement_initial * _fraction_predite
+    + _p_tick_deficitaire * DEFICIT_RECOVERY_RATE_PER_TICK
+)
 
 # Seuil dérivé : fraction_predite - SURVIE_MARGE_DERIVEE
 # Remplace le littéral 0.70 du brief 012 (SC3 brief 013).

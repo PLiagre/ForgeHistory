@@ -99,7 +99,7 @@ def test_fraction_dans_marge():
     print(f"fraction_survie = {fraction_survie:.6f}")
     print(f"fraction_predite = {fraction_predite:.6f}")
     print(f"fenêtre = [{borne_basse:.6f}, {borne_haute:.6f}]")
-    print(f"fraction_dans_marge_predite = {fraction_dans_marge_predite}")
+    print(f"fraction_dans_marge_predite = {1 if fraction_dans_marge_predite else 0}")
 
     assert fraction_dans_marge_predite, (
         f"fraction_survie = {fraction_survie:.6f} hors de la fenêtre "

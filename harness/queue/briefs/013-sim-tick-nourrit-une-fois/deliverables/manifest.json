@@ -80,26 +80,26 @@
     },
     {
       "name": "morts_cumules_monde_reel_re",
-      "value": 15659849,
+      "value": 15666208,
       "sample_size": 66865505,
       "command": ".venv/bin/python harness/queue/briefs/013-sim-tick-nourrit-une-fois/deliverables/measure_sc6_013.py"
     },
     {
       "name": "kg_transportes_monde_reel_re",
-      "value": 2687713,
+      "value": 2676487,
       "sample_size": 272800,
       "command": ".venv/bin/python harness/queue/briefs/013-sim-tick-nourrit-une-fois/deliverables/measure_sc6_013.py"
     },
     {
       "name": "fraction_survie_monde_reel_re",
-      "value": 0.765801,
+      "value": 0.765706,
       "sample_size": 1,
       "command": ".venv/bin/python harness/queue/briefs/013-sim-tick-nourrit-une-fois/deliverables/measure_sc6_013.py"
     },
     {
       "name": "ci_sim_tests_collectes_013",
-      "value": 33,
-      "sample_size": 33,
+      "value": 35,
+      "sample_size": 35,
       "command": ".venv/bin/python -m pytest sim/tests/ --collect-only -q"
     }
   ],
