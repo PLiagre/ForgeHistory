@@ -4,8 +4,11 @@ Moteur de simulation ForgeHistory — couche 1 « monde vivant ».
 
 Ce répertoire était un stub vide jusqu'au brief 011
 (`harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md`), qui constitue
-la première autorisation d'écrire du code de simulation. Cette autorisation
-était conditionnée à l'ADR sur la clé spatiale — voir
+la première autorisation d'écrire du code de simulation. Le brief 012
+(`harness/queue/briefs/012-monde-vivant-commerce-inter-cellules/brief.md`)
+a ajouté la base de temps unique, le déficit alimentaire persisté et le
+commerce inter-cellules physique. Cette autorisation était conditionnée à
+l'ADR sur la clé spatiale — voir
 `docs/adr/0003-single-spatial-primary-key.md`.
 
 La vision complète du moteur est dans [`VISION.md`](../VISION.md). Les
@@ -22,7 +25,7 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 | `sim/constants.py` | Constantes paramétriques nommées (voir `sim/SEEDING.md`) |
 | `sim/model.py` | Dataclass `Cell` — entité géographique de base |
 | `sim/world.py` | `World` — chargement depuis les artefacts G3, sérialisation |
-| `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps |
+| `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
 | `sim/SEEDING.md` | Documentation de l'amorçage paramétrique |
 
 ---
@@ -60,8 +63,10 @@ suite de tests (artefacts de preuve, non collectés par pytest).
 - **ADR-0003** : `cell_id` est la seule clé spatiale. `Province` est une
   agrégation dérivée — jamais un champ stocké. Voir
   `docs/adr/0003-single-spatial-primary-key.md`.
-- **Pas de commerce inter-cellules** à ce stade : la nourriture est produite,
-  stockée et consommée dans la même cellule (brief 011 scope).
+- **Commerce inter-cellules physique** : les 1 364 arêtes d'adjacence G3
+  sont lues par `_apply_commerce` à chaque tick. Transfert borné par
+  `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`. Conservation stricte de la masse.
+  (Brief 012, SC4.)
 - **Population agrégée** : pas encore de familles ou de personnes individuelles.
 - **stdlib uniquement** : le moteur n'a aucune dépendance tierce (pytest est
   réservé aux tests).

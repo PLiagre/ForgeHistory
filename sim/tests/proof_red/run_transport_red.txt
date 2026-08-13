@@ -1,0 +1,79 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /tmp/sabotage-012/workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/sabotage-012/workspace
+collecting ... collected 1 item
+
+sim/tests/test_commerce.py::test_conservation_masse_transport FAILED     [100%]
+
+=================================== FAILURES ===================================
+______________________ test_conservation_masse_transport _______________________
+
+    def test_conservation_masse_transport():
+        """
+        SC4 — Conservation stricte de la masse lors du commerce.
+    
+        Mini-monde de 2 cellules adjacentes :
+        - Cellule A : surplus (food_stock_kg > 0, food_deficit_kg = 0)
+        - Cellule B : déficit (food_stock_kg = 0, food_deficit_kg > 0)
+    
+        Vérifie que sum(food_stock_kg) avant = sum(food_stock_kg) après,
+        à 1×10⁻⁹ kg près.
+    
+        Conservation : la masse totale ne doit pas changer.
+        """
+        cell_a = Cell(
+            cell_id=1,
+            area_km2=10.0,
+            population=50,
+            food_stock_kg=5000.0,
+            hunger_ticks=0,
+            food_deficit_kg=0.0,
+        )
+        cell_b = Cell(
+            cell_id=2,
+            area_km2=10.0,
+            population=200,
+            food_stock_kg=0.0,
+            hunger_ticks=5,
+            food_deficit_kg=300.0,
+        )
+    
+        # Arête d'adjacence entre A et B (format G3 : champs 'a' et 'b')
+        adjacency = [{"a": 1, "b": 2, "kind": "land", "shared_length_m": 10000.0}]
+        world = World(cells={1: cell_a, 2: cell_b}, adjacency=adjacency)
+    
+        somme_avant = sum(c.food_stock_kg for c in world.cells.values())
+    
+        total_transported = [0.0]
+        _apply_commerce(world, total_transported)
+    
+        somme_apres = sum(c.food_stock_kg for c in world.cells.values())
+    
+        ecart = abs(somme_avant - somme_apres)
+        tolerance = 1e-9
+    
+        conservation_masse_transport = ecart <= tolerance
+        print(f"somme_avant = {somme_avant}")
+        print(f"somme_apres = {somme_apres}")
+        print(f"écart = {ecart}")
+        print(f"conservation_masse_transport = {conservation_masse_transport}")
+        print(f"kg_transportes = {total_transported[0]}")
+    
+>       assert conservation_masse_transport, (
+            f"La masse n'est pas conservée : avant={somme_avant}, après={somme_apres}, "
+            f"écart={ecart} (tolérance={tolerance})"
+        )
+E       AssertionError: La masse n'est pas conservée : avant=5000.0, après=5200.0, écart=200.0 (tolérance=1e-09)
+E       assert False
+
+sim/tests/test_commerce.py:117: AssertionError
+----------------------------- Captured stdout call -----------------------------
+somme_avant = 5000.0
+somme_apres = 5200.0
+écart = 200.0
+conservation_masse_transport = False
+kg_transportes = 200.0
+=========================== short test summary info ============================
+FAILED sim/tests/test_commerce.py::test_conservation_masse_transport - Assert...
+============================== 1 failed in 0.01s ===============================

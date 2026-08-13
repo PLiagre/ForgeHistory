@@ -1,0 +1,127 @@
+{
+  "files": [
+    {"path": "../../../../sim/constants.py"},
+    {"path": "../../../../sim/model.py"},
+    {"path": "../../../../sim/world.py"},
+    {"path": "../../../../sim/engine.py"},
+    {"path": "../../../../sim/SEEDING.md"},
+    {"path": "../../../../sim/tests/test_causal_chain.py"},
+    {"path": "../../../../sim/tests/test_write_coverage.py"},
+    {"path": "../../../../sim/tests/test_rng.py"},
+    {"path": "../../../../sim/tests/test_commerce.py"},
+    {"path": "../../../../sim/tests/proof_red/run_transport_red.txt"},
+    {
+      "path": "../../../../sim/tests/proof_red/run_transport_green.txt",
+      "must_differ_from": "../../../../sim/tests/proof_red/run_transport_red.txt"
+    },
+    {"path": "../../../../sim/tests/proof_red/run_coverage_ext_red.txt"},
+    {
+      "path": "../../../../sim/tests/proof_red/run_coverage_ext_green.txt",
+      "must_differ_from": "../../../../sim/tests/proof_red/run_coverage_ext_red.txt"
+    },
+    {"path": "../../../../.github/workflows/harness-ci.yml"},
+    {"path": "../../../../harness/queue/briefs/011-sim-monde-vivant-amorcage/deliverables/manifest.json"},
+    {"path": "../../../../harness/queue/cost-ledger.jsonl"},
+    {"path": "deliverables/manifest.json"},
+    {"path": "deliverables/generator-log.md"}
+  ],
+  "counters": [
+    {
+      "name": "tick_duration_days",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -c \"from sim.constants import TICK_DURATION_DAYS; assert TICK_DURATION_DAYS > 0; print('tick =', TICK_DURATION_DAYS, 'jour(s)')\""
+    },
+    {
+      "name": "constantes_temporelles_coherentes",
+      "value": 3,
+      "sample_size": 3,
+      "command": ".venv/bin/python -c \"import pathlib; src=pathlib.Path('sim/constants.py').read_text(); names=['FOOD_PRODUCTION_KG_PER_KM2_PER_TICK','FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK','TRADE_CAPACITY_KG_PER_EDGE_PER_TICK']; print(sum(1 for n in names if n in src and 'TICK_DURATION_DAYS' in src))\""
+    },
+    {
+      "name": "rng_etat_change_apres_tick",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_rng.py::test_rng_etat_change_apres_tick -v -s"
+    },
+    {
+      "name": "ticks_deterministes_meme_graine",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_rng.py::test_ticks_deterministes_meme_graine -v -s"
+    },
+    {
+      "name": "ticks_differents_graines_rng_differentes",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_rng.py::test_ticks_differents_graines_rng_differentes -v -s"
+    },
+    {
+      "name": "food_deficit_kg_ecrit_quand_manque",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_commerce.py::test_deficit_accumule_quand_manque -v -s"
+    },
+    {
+      "name": "conservation_masse_transport",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_commerce.py::test_conservation_masse_transport -v -s"
+    },
+    {
+      "name": "cellules_affamees_monde_reel",
+      "value": 261,
+      "sample_size": 596,
+      "command": ".venv/bin/python -c \"import random; from sim.world import World; from sim.engine import tick; world=World.from_g3(rng_seed=42); rng=random.Random(42); faim=set(); [faim.update(cid for cid,c in world.cells.items() if tick(world,rng) or c.hunger_ticks>0) for _ in range(200)]; print(len(faim))\""
+    },
+    {
+      "name": "morts_cumules_monde_reel",
+      "value": 7544299,
+      "sample_size": 66865505,
+      "command": ".venv/bin/python -c \"import random; from sim.world import World; from sim.engine import tick; world=World.from_g3(rng_seed=42); rng=random.Random(42); p0=sum(c.population for c in world.cells.values()); [tick(world,rng) for _ in range(200)]; pf=sum(c.population for c in world.cells.values()); print(p0-pf)\""
+    },
+    {
+      "name": "kg_transportes_monde_reel",
+      "value": 8171507,
+      "sample_size": 272800,
+      "command": ".venv/bin/python -c \"import random; from sim.world import World; from sim.engine import tick; world=World.from_g3(rng_seed=42); rng=random.Random(42); total=[tick(world,rng) for _ in range(200)]; print(round(sum(total)))\""
+    },
+    {
+      "name": "population_finale_positive",
+      "value": 0.887172,
+      "sample_size": 1,
+      "command": ".venv/bin/python -c \"import random; from sim.world import World; from sim.engine import tick; world=World.from_g3(rng_seed=42); rng=random.Random(42); p0=sum(c.population for c in world.cells.values()); [tick(world,rng) for _ in range(200)]; pf=sum(c.population for c in world.cells.values()); print(round(pf/p0,6))\""
+    },
+    {
+      "name": "ci_sim_tests_collectes",
+      "value": 25,
+      "sample_size": 25,
+      "command": ".venv/bin/python -m pytest sim/tests/ --collect-only -q"
+    },
+    {
+      "name": "champs_modele_couverts_etendu",
+      "value": 7,
+      "sample_size": 7,
+      "command": ".venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_write_coverage_counter_etendu -v -s"
+    },
+    {
+      "name": "lignes_differentes_transport_rouge_vert",
+      "value": 78,
+      "sample_size": 78,
+      "command": "diff sim/tests/proof_red/run_transport_red.txt sim/tests/proof_red/run_transport_green.txt | wc -l"
+    },
+    {
+      "name": "lignes_differentes_couverture_ext_rouge_vert",
+      "value": 132,
+      "sample_size": 132,
+      "command": "diff sim/tests/proof_red/run_coverage_ext_red.txt sim/tests/proof_red/run_coverage_ext_green.txt | wc -l"
+    }
+  ],
+  "waivers": [
+    {
+      "claim": "le budget d'exécution n'est pas mesurable sur cette machine (hors session Claude locale)",
+      "command": ".venv/bin/python harness/budget.py status --brief harness/queue/briefs/012-monde-vivant-commerce-inter-cellules",
+      "error": "status     : UNMEASURABLE\nreason     : no agent transcript naming 012-monde-vivant-commerce-inter-cellules under /home/ubuntu/.claude/projects/-workspace\nNothing is being enforced. This is not OK -- it is unmeasured."
+    }
+  ]
+}
