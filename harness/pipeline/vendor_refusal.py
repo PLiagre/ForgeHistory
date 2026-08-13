@@ -101,6 +101,38 @@ def log_refusal(
         fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
+def mark_fallback_attempted(
+    audit_id: str,
+    state_path: "Path | str",
+) -> None:
+    """Met à jour le champ `fallback_attempted` à True pour l'audit_id donné.
+
+    Reécrit le fichier d'état en remplaçant la dernière ligne portant cet
+    audit_id par une version avec `fallback_attempted: true`. Si aucune
+    ligne ne correspond, ne fait rien (idempotent).
+    """
+    state_path = Path(state_path)
+    if not state_path.exists():
+        return
+    lines = [l for l in state_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    updated = False
+    # Parcours en sens inverse pour ne mettre à jour que la dernière occurrence
+    for i in range(len(lines) - 1, -1, -1):
+        try:
+            record = json.loads(lines[i])
+        except json.JSONDecodeError:
+            continue
+        if record.get("audit_id") == audit_id:
+            record["fallback_attempted"] = True
+            lines[i] = json.dumps(record, ensure_ascii=False)
+            updated = True
+            break
+    if updated:
+        with state_path.open("w", encoding="utf-8") as fh:
+            for line in lines:
+                fh.write(line + "\n")
+
+
 def mark_fallback_actor(
     review_path: "Path | str",
     actor: str = "forge-challenger-codex",

@@ -185,3 +185,69 @@ def test_counter_repli_codex_marque_acteur_reel(tmp_path):
     vendor_refusal.mark_fallback_actor(review)
     content = review.read_text(encoding="utf-8")
     assert "forge-challenger-codex" in content, "marqueur absent après mark_fallback_actor()"
+
+
+# --- N1 : mark_fallback_attempted ---
+
+def test_mark_fallback_attempted_updates_field(tmp_path):
+    """mark_fallback_attempted() met fallback_attempted à True pour l'audit_id donné."""
+    t = tmp_path / "t.jsonl"
+    t.write_text("", encoding="utf-8")
+    state = tmp_path / "state.jsonl"
+    # Écrire d'abord une ligne de refus
+    vendor_refusal.log_refusal("CURSOR-n1-test", t, state)
+    # Vérifier que fallback_attempted est False initialement
+    lines = [l for l in state.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert json.loads(lines[-1])["fallback_attempted"] is False
+    # Appeler mark_fallback_attempted
+    vendor_refusal.mark_fallback_attempted("CURSOR-n1-test", state)
+    # Vérifier que fallback_attempted est maintenant True
+    lines = [l for l in state.read_text(encoding="utf-8").splitlines() if l.strip()]
+    record = json.loads(lines[-1])
+    assert record["fallback_attempted"] is True, "fallback_attempted doit être True après mark_fallback_attempted()"
+    assert record["audit_id"] == "CURSOR-n1-test"
+
+
+# --- B1 : test mécanique de la séquence 429 ---
+
+def test_sequence_429_complete(tmp_path):
+    """Preuve mécanique du cas 429 (critère de re-vérification B1) :
+    1. classify() retourne 'vendor_refusal' sur un transcript 429
+    2. log_refusal() ajoute une ligne à l'état avec fallback_attempted=False
+    3. mark_fallback_attempted() passe fallback_attempted à True
+    Ce test simule la séquence complète classify → log_refusal → (repli tenté) →
+    mark_fallback_attempted, telle qu'elle serait exécutée par le workflow CI.
+    """
+    # Étape 1 : transcript 429 (modèle exact de l'audit source § 5.3)
+    transcript = tmp_path / "challenge-transcript.jsonl"
+    _write_transcript(
+        transcript,
+        {"type": "rate_limit_event", "rate_limit_info": {"status": "rejected", "rateLimitType": "five_hour"}},
+        {
+            "result": "You've hit your org's monthly spend limit · ask your admin to raise it at claude.ai/settings/usage",
+            "api_error_status": 429,
+            "is_error": True,
+            "total_cost_usd": 0,
+            "num_turns": 1,
+        },
+    )
+
+    # Étape 2 : classify → doit retourner vendor_refusal
+    classification = vendor_refusal.classify(transcript)
+    assert classification == "vendor_refusal", f"classify doit retourner 'vendor_refusal', obtenu {classification!r}"
+
+    # Étape 3 : log_refusal → ligne ajoutée, fallback_attempted=False
+    state = tmp_path / "vendor-refusal-state.jsonl"
+    vendor_refusal.log_refusal("CURSOR-b1-test", transcript, state)
+    lines = [l for l in state.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert len(lines) >= 1, "état doit contenir au moins 1 ligne après log_refusal()"
+    record = json.loads(lines[-1])
+    assert record["audit_id"] == "CURSOR-b1-test"
+    assert record["api_error_status"] == 429
+    assert record["fallback_attempted"] is False
+
+    # Étape 4 : après tentative de repli (simulée ici), mark_fallback_attempted
+    vendor_refusal.mark_fallback_attempted("CURSOR-b1-test", state)
+    lines = [l for l in state.read_text(encoding="utf-8").splitlines() if l.strip()]
+    record = json.loads(lines[-1])
+    assert record["fallback_attempted"] is True, "fallback_attempted doit être True après repli tenté"

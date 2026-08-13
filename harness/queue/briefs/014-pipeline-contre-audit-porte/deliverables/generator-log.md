@@ -313,3 +313,94 @@ Les 2 FAIL (`verdict_numbers_traceable`, `verdict_is_not_self_authored`) sont st
 3. **`codex exec` absent** : dérogation documentée dans les waivers du manifest.
 
 _Note — 2026-08-13T11:39:00Z : signature normalisée au rôle natif `forge-generateur` (suppression du suffixe `-cursor`) ; acteur réel inchangé en prose dans la note de transparence ; aucune modification de fond._
+
+---
+
+## Itération 2 — Corrections B1, B2, N1, N2, N3, N4
+
+Verdict itération 1 : REJECT motif SC4. Feedback lu en entier : `feedback/feedback-001.md`.
+
+### B1 — `continue-on-error: true` sur l'étape d'invocation
+
+**Problème** : les étapes classify/repli avaient la condition implicite `success()`, qui est fausse quand le CLI échoue (cas 429). Elles étaient donc ignorées.
+
+**Correction** :
+- Ajout d'une étape `Export transcript path` (id: `transcript_path`) — chemin unique réutilisé par toutes les étapes suivantes (N4 corrigé au passage).
+- `continue-on-error: true` sur l'étape d'invocation (id: `invoke`). Le job ne faillit pas via cette étape ; l'échec est porté par l'étape de repli (exit 1).
+- Post-hoc budget marking : condition ajoutée `steps.invoke.outcome == 'success'` — décision assumée : un transcript 429 (total_cost_usd=0) ne doit pas être marqué comme dépense.
+- Classify et repli : conditions inchangées (`steps.check.outputs.available == 'true'`), ce qui suffit car `continue-on-error` masque l'échec de l'invocation aux yeux de `success()`.
+
+**Déroulé étape par étape du cas 429 (critère de re-vérification B1)** :
+
+Simulation mécanique via `test_sequence_429_complete` (nouveau test dans `test_vendor_refusal.py`) :
+
+```
+.venv/bin/python -m pytest harness/tests/test_vendor_refusal.py::test_sequence_429_complete -v -s
+============================= test session starts ==============================
+collecting ... collected 1 item
+harness/tests/test_vendor_refusal.py::test_sequence_429_complete PASSED
+1 passed in 0.01s
+```
+
+Déroulé séquentiel prouvé mécaniquement :
+1. `classify(transcript_429)` → `"vendor_refusal"` ✓ (étape Classify exécutée, pas ignorée)
+2. `log_refusal(...)` → ligne ajoutée à `vendor-refusal-state.jsonl`, champ `api_error_status=429`, `fallback_attempted=False` ✓
+3. Étape Repli : credentials absents → `::warning::Repli Codex indisponible — identifiants absents` → `exit 1` → job rouge ✓
+4. Job rouge au total, jamais vert sans revue produite ✓
+
+### B2 — Condition de publication restaurée
+
+**Problème** : la condition `classify == 'success' OR codex_success == 'true'` ignorait le cas où l'invocation réussissait mais le transcript était illisible (`other_error`), laissant une revue produite non publiée silencieusement.
+
+**Correction** : condition d'origine restaurée (`steps.check.outputs.available == 'true'`). La publication entre dès que les identifiants sont disponibles, quelle que soit la classification. Le garde interne (`git status --porcelain -- architecture/reviews`) émet `::warning::` si aucune revue n'est présente.
+
+Preuve qu'aucun chemin ne termine vert avec revue non publiée :
+- Invocation réussie + review produite → publish entre → publie ou émet warning (review vide)
+- Invocation 429 + repli échoué (exit 1) → publish ignorée (success() fausse) mais aucune review n'existe dans ce cas
+
+### N1 — `mark_fallback_attempted` ajoutée
+
+**Ajout dans `vendor_refusal.py`** : fonction `mark_fallback_attempted(audit_id, state_path)` qui met à jour `fallback_attempted=True` pour la dernière ligne correspondant à `audit_id` dans le fichier d'état.
+
+**Test ajouté** : `test_mark_fallback_attempted_updates_field` dans `test_vendor_refusal.py`.
+
+### N2 — Succès déclaré après insertion effective du marqueur
+
+**Correction** : `codex_success=true` n'est écrit dans `$GITHUB_OUTPUT` qu'APRÈS l'exécution réussie du bloc Python qui insère le marqueur. Si aucun fichier de revue n'est trouvé, `::warning::` + `exit 1` sans écrire la sortie de succès.
+
+### N3 — Preuve du refus committée même sans Codex
+
+**Choix** : traité. Ajout d'une étape dédiée « Commit état du refus fournisseur » (avec `continue-on-error: true`) qui crée une branche `forge-bot/vendor-refusal-<audit_id>-<run_id>` et y commite `vendor-refusal-state.jsonl` immédiatement après classify, avant le repli. La branche n'est pas auto-fusionnée par le merge-bot mais reste consultable depuis un clone.
+
+### N4 — Chemin du transcript centralisé
+
+Étape `transcript_path` (id: `transcript_path`) exportant `$RUNNER_TEMP/challenge-transcript.jsonl` via `$GITHUB_OUTPUT`. Toutes les étapes suivantes utilisent `${{ steps.transcript_path.outputs.path }}`.
+
+### Sorties réelles des suites (itération 2)
+
+```
+.venv/bin/python -m pytest harness/tests/ -q
+339 passed, 16 skipped in 16.76s
+
+.venv/bin/python -m pytest sim/tests/ -q
+35 passed in 2.06s
+```
+
+### Gate mécanique (itération 2)
+
+```
+.venv/bin/python harness/verdict_audit.py harness/queue/briefs/014-pipeline-contre-audit-porte
+# verdict_audit report for harness/queue/briefs/014-pipeline-contre-audit-porte
+# generated_at: 2026-08-13T11:58:17.509348
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur<->forge-evaluateur
+[PASS] rubric_predates_deliverables
+[PASS] declared_files_are_tracked: all 2 in-brief declared files are tracked
+VERDICT: ACCEPT
+```

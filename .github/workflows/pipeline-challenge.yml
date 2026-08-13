@@ -141,8 +141,19 @@ jobs:
           npm install -g @anthropic-ai/claude-code
           claude --version
 
-      - name: Invoke claude-challenger headless (/forge-audit-review)
+      - name: Export transcript path (N4 -- chemin unique réutilisé par toutes les étapes)
+        id: transcript_path
         if: steps.check.outputs.available == 'true'
+        run: echo "path=$RUNNER_TEMP/challenge-transcript.jsonl" >> "$GITHUB_OUTPUT"
+
+      - name: Invoke claude-challenger headless (/forge-audit-review)
+        id: invoke
+        if: steps.check.outputs.available == 'true'
+        # B1 : continue-on-error permet aux étapes de classification et de repli
+        # de s'exécuter même quand le CLI retourne un code non nul (cas 429).
+        # Le job reste rouge au total via l'étape de repli (exit 1 quand pas de
+        # revue produite) -- jamais via cette étape seule.
+        continue-on-error: true
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -154,33 +165,38 @@ jobs:
             --max-turns 100 \
             --max-budget-usd 5.00 \
             --output-format stream-json --verbose \
-            | tee "$RUNNER_TEMP/challenge-transcript.jsonl"
+            | tee "${{ steps.transcript_path.outputs.path }}"
 
       - name: Post-hoc budget marking (lot 009b, arbitrage n°2)
-        if: steps.check.outputs.available == 'true'
+        # B1 (décision) : seules les invocations réussies sont marquées — un
+        # transcript issu d'un refus 429 (total_cost_usd=0) ne produirait qu'un
+        # enregistrement trompeur. Décision assumée, documentée ici.
+        if: steps.check.outputs.available == 'true' && steps.invoke.outcome == 'success'
         env:
           AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}
         run: |
           set -euo pipefail
           python harness/pipeline/ci_budget_guard.py record \
             --step-name "challenge:${AUDIT_ID}" \
-            --transcript "$RUNNER_TEMP/challenge-transcript.jsonl" \
+            --transcript "${{ steps.transcript_path.outputs.path }}" \
             --per-invocation-cap-usd 5 \
             || echo "::warning::post-hoc cost marking refused (unreadable transcript format) -- native --max-budget-usd already capped the spend; recording skipped rather than guessed."
 
       - name: Classify vendor refusal (brief 014)
         id: classify_refusal
+        # B1 : pas de fonction de statut explicite ici -- la condition par défaut
+        # success() est vraie car continue-on-error masque l'échec de l'invocation.
         if: steps.check.outputs.available == 'true'
         env:
           AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}
+          TRANSCRIPT_PATH: ${{ steps.transcript_path.outputs.path }}
         run: |
           set -euo pipefail
           classification="$(python - <<'PY'
-          import sys
+          import sys, os
           sys.path.insert(0, "harness/pipeline")
           import vendor_refusal
-          import os
-          result = vendor_refusal.classify(os.environ.get("RUNNER_TEMP", "/tmp") + "/challenge-transcript.jsonl")
+          result = vendor_refusal.classify(os.environ["TRANSCRIPT_PATH"])
           print(result)
           PY
           )"
@@ -193,12 +209,37 @@ jobs:
           import vendor_refusal
           vendor_refusal.log_refusal(
               os.environ["AUDIT_ID"],
-              os.environ.get("RUNNER_TEMP", "/tmp") + "/challenge-transcript.jsonl",
+              os.environ["TRANSCRIPT_PATH"],
               "harness/pipeline/vendor-refusal-state.jsonl",
           )
           print("Refus fournisseur consigné dans vendor-refusal-state.jsonl")
           PY
           fi
+
+      - name: Commit état du refus fournisseur (N3 -- même sans Codex)
+        # N3 : vendor-refusal-state.jsonl est commis sur une branche dédiée même
+        # quand le repli Codex échoue ou est indisponible. La branche n'est pas
+        # auto-fusionnée par le merge-bot mais reste consultable depuis un clone
+        # (exigence SC3 « preuve consultable depuis un clone »).
+        # continue-on-error : un échec de ce commit ne doit pas masquer le vrai
+        # motif de rouge du job (absence de revue).
+        if: steps.check.outputs.available == 'true' && steps.classify_refusal.outputs.classification == 'vendor_refusal'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.FORGE_BOT_PAT || secrets.GITHUB_TOKEN }}
+          AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}
+        run: |
+          set -euo pipefail
+          branch="forge-bot/vendor-refusal-${AUDIT_ID}-${GITHUB_RUN_ID}"
+          git config user.name "forge-bot"
+          git config user.email "forge-bot@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add harness/pipeline/vendor-refusal-state.jsonl
+          git diff --cached --quiet && echo "Aucune ligne nouvelle dans l'état — rien à commiter." && exit 0
+          git commit -m "state: refus fournisseur consigné pour ${AUDIT_ID} (run ${GITHUB_RUN_ID})"
+          git push -u origin "$branch" \
+            || echo "::warning::push de la branche d'état du refus fournisseur échoué — ligne visible dans le log du run."
+          git checkout -
 
       - name: Repli Codex si refus fournisseur (brief 014)
         id: codex_fallback
@@ -209,6 +250,7 @@ jobs:
           HAS_OPENAI_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
           CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TRANSCRIPT_PATH: ${{ steps.transcript_path.outputs.path }}
         run: |
           set -euo pipefail
           if [ "$HAS_CODEX_AUTH" != "true" ] && [ "$HAS_OPENAI_KEY" != "true" ]; then
@@ -223,26 +265,40 @@ jobs:
           }
           # Tentative repli Codex (même commande /forge-audit-review, sans --max-budget-usd)
           if codex exec "/forge-audit-review ${AUDIT_ID}" 2>&1; then
-            echo "codex_success=true" >> "$GITHUB_OUTPUT"
-            echo "Repli Codex réussi pour ${AUDIT_ID}"
-            # Marquer l'acteur réel dans la revue produite
+            # N2 : le succès n'est déclaré qu'APRÈS insertion effective du marqueur.
+            # Si aucun fichier de revue n'est trouvé, on émet un ::warning:: et
+            # on échoue plutôt que de publier une revue non marquée comme Codex.
             python - <<'PY'
           import sys, os, glob
           sys.path.insert(0, "harness/pipeline")
           import vendor_refusal
           audit_id = os.environ["AUDIT_ID"]
-          reviews = glob.glob(f"architecture/reviews/CLAUDE-{audit_id}.md")
+          # Motif élargi pour couvrir les noms produits par Codex
+          reviews = glob.glob(f"architecture/reviews/CLAUDE-{audit_id}*.md") + \
+                    glob.glob(f"architecture/reviews/{audit_id}*.md")
+          if not reviews:
+              print(f"::warning::Codex exec a réussi mais aucun fichier de revue trouvé pour {audit_id} — marqueur non inséré.")
+              sys.exit(1)
           for r in reviews:
               vendor_refusal.mark_fallback_actor(r)
               print(f"Marqueur forge-challenger-codex inséré dans {r}")
+          vendor_refusal.mark_fallback_attempted(audit_id, "harness/pipeline/vendor-refusal-state.jsonl")
+          print("fallback_attempted mis à True dans vendor-refusal-state.jsonl")
           PY
+            echo "codex_success=true" >> "$GITHUB_OUTPUT"
+            echo "Repli Codex réussi pour ${AUDIT_ID}"
           else
             echo "::warning::Repli Codex échoué (ou absent) pour AUDIT_ID ${AUDIT_ID} — contre-audit non produit. État du refus consigné dans vendor-refusal-state.jsonl."
             exit 1
           fi
 
       - name: Publish the review as a pull request (reviews/** is merge-bot allowlisted)
-        if: steps.check.outputs.available == 'true' && (steps.classify_refusal.outputs.classification == 'success' || steps.codex_fallback.outputs.codex_success == 'true')
+        # B2 : condition d'origine restaurée -- l'étape entre dès que les
+        # identifiants sont disponibles, quelle que soit la classification du
+        # transcript. Si aucune revue n'est dans architecture/reviews/, le garde
+        # interne (git status --porcelain) émet ::warning:: et quitte proprement.
+        # Aucun chemin ne peut finir vert avec une revue produite non publiée.
+        if: steps.check.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ secrets.FORGE_BOT_PAT || secrets.GITHUB_TOKEN }}
           AUDIT_ID: ${{ steps.resolve.outputs.audit_id }}

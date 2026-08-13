@@ -96,8 +96,8 @@
     },
     {
       "name": "ci_vendor_refusal_collectes_014",
-      "value": 12,
-      "sample_size": 12,
+      "value": 14,
+      "sample_size": 14,
       "command": ".venv/bin/python -m pytest harness/tests/test_vendor_refusal.py --collect-only -q"
     }
   ],
