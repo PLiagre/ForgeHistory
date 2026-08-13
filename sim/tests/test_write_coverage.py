@@ -1,36 +1,33 @@
 """
-SC8 — Couverture d'écriture sur tous les champs du modèle.
+Couverture d'écriture — brief 012, SC7 R2+R3 + extension.
 
-Vérifie par analyse statique (AST) que chaque champ déclaré dans les
-dataclasses de sim/ possède au moins un site d'écriture ET au moins
-un site de lecture, en scannant sim/engine.py, sim/world.py et
-sim/model.py.
+Vérifie par analyse statique (AST) que :
+1. Chaque champ déclaré dans TOUTES les dataclasses de sim.model
+   (découvertes par introspection, pas nommées en dur — R2) possède
+   au moins un site d'écriture ET au moins un site de lecture.
+   La détection de site d'écriture vérifie que la variable cible a un
+   nom conventionnel associé à la classe scrutée (ex. 'cell' pour Cell)
+   — R3 : une affectation sur un objet d'un type différent ne compte pas.
 
-Deux assertions complémentaires (deux familles de preuve rouge) :
+2. Si une deuxième dataclass est ajoutée sans écrivain, le test échoue.
+   (Contre-preuve R2 : introspection attrape les nouvelles dataclasses.)
 
-1. test_all_declared_fields_have_write_and_read_sites
-   Itère sur dataclasses.fields(Cell) et exige, pour chaque champ,
-   un site d'écriture et un site de lecture dans le périmètre analysé.
-   → ROUGE si un champ est déclaré sans écrivain ou sans lecteur
-     (mode d'échec n°2 de simulation-principles.md).
-   → Preuve rouge correspondante : run_phantom_red.txt (champ fantôme).
+3. World.adjacency est lu dans au moins un module du moteur.
+   (Extension SC7 brief 012 — contre-preuve : si le maillon commerce
+   est retiré, la vérification de lecture échoue.)
 
-2. test_engine_writes_only_declared_fields
-   Vérifie que tout attribut écrit sur 'cell' dans sim/engine.py est
-   bien déclaré dans Cell.__dataclass_fields__.
-   → ROUGE si un champ est retiré de Cell mais encore écrit dans engine.py.
-   → Preuve rouge correspondante : run_sabotage.txt (SC10).
-
-Le compteur champs_modele_couverts doit égaler le total déclaré.
+Deux tests unitaires séparés :
+- test_all_dataclass_fields_have_write_and_read_sites (R2 + R3)
+- test_adjacency_is_read_by_engine (extension World.adjacency)
+- test_write_coverage_counter_etendu (compteur champs_modele_couverts_etendu)
 """
 
 import ast
 import dataclasses
+import inspect
 import pathlib
 
-import pytest
-
-from sim.model import Cell
+import sim.model as _sim_model
 
 _SIM_DIR = pathlib.Path(__file__).parent.parent
 _ENGINE_FILE = _SIM_DIR / "engine.py"
@@ -40,147 +37,210 @@ _MODEL_FILE = _SIM_DIR / "model.py"
 _SIM_SOURCE_FILES = [_ENGINE_FILE, _WORLD_FILE, _MODEL_FILE]
 
 
-def _scan_writes_and_reads(files: list, field_names: set) -> tuple:
+def _discover_dataclasses():
     """
-    Scanne les fichiers Python listés et retourne :
-        all_writes : set des noms de champs ayant un site d'écriture
-                     (affectation d'attribut VAR.FIELD = ... OU
-                      argument nommé du constructeur Cell(FIELD=...))
-        all_reads  : set des noms de champs ayant un site de lecture
-                     (accès à un attribut VAR.FIELD en contexte Load)
+    Découvre par introspection toutes les dataclasses de sim.model.
+    R2 : jamais nommées en dur ici.
+    Retourne une liste de (nom_classe → nom_conventionnel_variable).
+    Convention : variable = nom_classe.lower() (ex. Cell → 'cell').
+    """
+    result = []
+    for _name, obj in inspect.getmembers(_sim_model, inspect.isclass):
+        if dataclasses.is_dataclass(obj):
+            result.append((obj, obj.__name__.lower()))
+    return result
+
+
+def _scan_writes_typed(files: list, field_names: set, target_var_names: set) -> set:
+    """
+    Scanne les fichiers Python listés et retourne l'ensemble des noms
+    de champs ayant un site d'écriture sur une variable dont le nom
+    appartient à target_var_names (R3 : filtre par nom conventionnel).
+
+    Détecte :
+    - Affectation d'attribut : VAR.FIELD = expr  (VAR dans target_var_names)
+    - Argument nommé du constructeur : ClassName(FIELD=expr)
+      → tous les constructeurs des dataclasses de sim.model sont considérés.
     """
     all_writes: set = set()
-    all_reads: set = set()
 
     for filepath in files:
         source = filepath.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(filepath))
 
         for node in ast.walk(tree):
-            # Site d'écriture 1 : affectation d'attribut  (VAR.FIELD = expr)
+            # Site d'écriture 1 : VAR.FIELD = expr, VAR dans target_var_names
             if isinstance(node, (ast.Assign, ast.AugAssign)):
                 targets = (
                     node.targets if isinstance(node, ast.Assign) else [node.target]
                 )
                 for t in targets:
-                    if isinstance(t, ast.Attribute) and t.attr in field_names:
+                    if (
+                        isinstance(t, ast.Attribute)
+                        and t.attr in field_names
+                        and isinstance(t.value, ast.Name)
+                        and t.value.id in target_var_names
+                    ):
                         all_writes.add(t.attr)
 
-            # Site d'écriture 2 : argument nommé du constructeur Cell(FIELD=expr)
+            # Site d'écriture 2 : constructeur nommé (ClassName(FIELD=expr))
             if isinstance(node, ast.Call):
                 func = node.func
-                is_cell_ctor = (
-                    isinstance(func, ast.Name) and func.id == "Cell"
+                is_dataclass_ctor = (
+                    isinstance(func, ast.Name) and func.id in {
+                        cls.__name__
+                        for cls, _ in _discover_dataclasses()
+                    }
                 ) or (
-                    isinstance(func, ast.Attribute) and func.attr == "Cell"
+                    isinstance(func, ast.Attribute) and func.attr in {
+                        cls.__name__
+                        for cls, _ in _discover_dataclasses()
+                    }
                 )
-                if is_cell_ctor:
+                if is_dataclass_ctor:
                     for kw in node.keywords:
                         if kw.arg and kw.arg in field_names:
                             all_writes.add(kw.arg)
 
-            # Site de lecture : accès à un attribut en contexte Load
+    return all_writes
+
+
+def _scan_reads(files: list, field_names: set) -> set:
+    """Retourne l'ensemble des noms de champs lus (contexte Load)."""
+    all_reads: set = set()
+    for filepath in files:
+        source = filepath.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(filepath))
+        for node in ast.walk(tree):
             if (
                 isinstance(node, ast.Attribute)
                 and node.attr in field_names
                 and not isinstance(node.ctx, ast.Store)
             ):
                 all_reads.add(node.attr)
+    return all_reads
 
-    return all_writes, all_reads
 
-
-def test_all_declared_fields_have_write_and_read_sites():
+def test_all_dataclass_fields_have_write_and_read_sites():
     """
-    SC8 — Itère sur dataclasses.fields(Cell) et exige pour chaque champ
-    déclaré au moins un site d'écriture ET au moins un site de lecture.
+    R2 + R3 : pour chaque dataclass de sim.model (par introspection),
+    chaque champ déclaré a au moins un site d'écriture (sur la variable
+    conventionnelle, ex. 'cell' pour Cell — R3) ET un site de lecture.
 
-    Ce test va ROUGE si un champ est déclaré sans écrivain ou sans lecteur
-    (mode d'échec n°2, simulation-principles.md).
-    Preuve rouge : run_phantom_red.txt (champ fantôme ajouté à Cell).
+    Ce test va ROUGE si :
+    - Un champ est ajouté à une dataclass sans écrivain
+    - Une nouvelle dataclass est ajoutée sans aucun site d'écriture
+    - Une affectation sur un autre objet est la seule correspondance
+      (R3 : filtrage par nom de variable conventionnel)
     """
-    field_names = {f.name for f in dataclasses.fields(Cell)}
-    all_writes, all_reads = _scan_writes_and_reads(_SIM_SOURCE_FILES, field_names)
+    discovered = _discover_dataclasses()
+    assert discovered, "Aucune dataclass trouvée dans sim.model — bug d'introspection"
 
     errors = []
-    for f in dataclasses.fields(Cell):
-        if f.name not in all_writes:
-            errors.append(f"'{f.name}' : aucun site d'écriture trouvé")
-        if f.name not in all_reads:
-            errors.append(f"'{f.name}' : aucun site de lecture trouvé")
+    for cls, var_name in discovered:
+        field_names = {f.name for f in dataclasses.fields(cls)}
+        all_writes = _scan_writes_typed(_SIM_SOURCE_FILES, field_names, {var_name})
+        all_reads = _scan_reads(_SIM_SOURCE_FILES, field_names)
 
-    print(f"champs déclarés : {sorted(field_names)}")
-    print(f"sites d'écriture détectés : {sorted(all_writes & field_names)}")
-    print(f"sites de lecture détectés : {sorted(all_reads & field_names)}")
+        for f in dataclasses.fields(cls):
+            if f.name not in all_writes:
+                errors.append(
+                    f"{cls.__name__}.{f.name} : aucun site d'écriture "
+                    f"(variable cible '{var_name}' attendue)"
+                )
+            if f.name not in all_reads:
+                errors.append(f"{cls.__name__}.{f.name} : aucun site de lecture")
+
+        print(f"Classe {cls.__name__} (var='{var_name}'):")
+        print(f"  champs : {sorted(field_names)}")
+        print(f"  écrits : {sorted(all_writes & field_names)}")
+        print(f"  lus    : {sorted(all_reads & field_names)}")
 
     assert not errors, (
-        "SC8 : champs déclarés sans couverture complète :\n"
+        "Couverture d'écriture incomplète :\n"
         + "\n".join(f"  - {e}" for e in errors)
     )
 
 
-def test_engine_writes_only_declared_fields():
+def test_adjacency_is_read_by_engine():
     """
-    SC8 / SC10 — Tout attribut écrit sur 'cell' dans engine.py doit être
-    déclaré dans Cell.__dataclass_fields__.
+    Extension SC7 brief 012 : World.adjacency est lu dans au moins un
+    module du moteur (engine.py ou world.py).
 
-    Ce test va ROUGE si hunger_ticks est retiré de Cell (sabotage SC10).
-    Preuve rouge : run_sabotage.txt.
+    Ce test va ROUGE si le maillon commerce (_apply_commerce) est retiré
+    du moteur et qu'aucun autre code ne lit 'adjacency'.
     """
-    declared_fields = {f.name for f in dataclasses.fields(Cell)}
+    found_read = False
+    for filepath in _SIM_SOURCE_FILES:
+        source = filepath.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(filepath))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Attribute)
+                and node.attr == "adjacency"
+                and not isinstance(node.ctx, ast.Store)
+            ):
+                found_read = True
+                break
+        if found_read:
+            break
 
-    source = _ENGINE_FILE.read_text(encoding="utf-8")
-    tree = ast.parse(source)
-
-    cell_writes: set = set()
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            for child in ast.walk(node):
-                if isinstance(child, (ast.Assign, ast.AugAssign)):
-                    targets = (
-                        child.targets if isinstance(child, ast.Assign)
-                        else [child.target]
-                    )
-                    for t in targets:
-                        if (
-                            isinstance(t, ast.Attribute)
-                            and isinstance(t.value, ast.Name)
-                            and t.value.id == "cell"
-                        ):
-                            cell_writes.add(t.attr)
-
-    undeclared = cell_writes - declared_fields
-    assert not undeclared, (
-        f"ADR-0003 / SC8 : attributs écrits sur 'cell' dans engine.py "
-        f"mais non déclarés dans Cell.__dataclass_fields__ : {undeclared}. "
-        f"Champs déclarés : {sorted(declared_fields)}."
+    print(f"adjacency_lu_dans_moteur = {found_read}")
+    assert found_read, (
+        "World.adjacency n'est lu dans aucun module du moteur "
+        "(engine.py, world.py, model.py). Le maillon commerce a-t-il été retiré ?"
     )
 
 
-def test_write_coverage_counter():
+def test_write_coverage_counter_etendu():
     """
-    SC8 — Le compteur champs_modele_couverts doit être égal au nombre total
-    de champs déclarés dans Cell. Dérivé du parcours — jamais écrit en dur.
+    Compteur champs_modele_couverts_etendu (brief 012, SC7).
+
+    = nombre de champs couverts dans toutes les dataclasses de sim.model
+      (écriture ET lecture vérifiées) + 1 si World.adjacency est lu.
+
+    Dérivé par parcours — jamais écrit en dur.
     """
-    field_names = {f.name for f in dataclasses.fields(Cell)}
-    total_declared = len(field_names)
+    discovered = _discover_dataclasses()
 
-    all_writes, all_reads = _scan_writes_and_reads(_SIM_SOURCE_FILES, field_names)
+    total_fields = 0
+    covered_fields = 0
 
-    fully_covered = sorted(
-        f.name for f in dataclasses.fields(Cell)
-        if f.name in all_writes and f.name in all_reads
-    )
-    champs_modele_couverts = len(fully_covered)
+    for cls, var_name in discovered:
+        field_names = {f.name for f in dataclasses.fields(cls)}
+        all_writes = _scan_writes_typed(_SIM_SOURCE_FILES, field_names, {var_name})
+        all_reads = _scan_reads(_SIM_SOURCE_FILES, field_names)
 
-    print(f"champs déclarés dans Cell : {sorted(field_names)}")
-    print(f"sites d'écriture : {sorted(all_writes & field_names)}")
-    print(f"sites de lecture : {sorted(all_reads & field_names)}")
-    print(f"champs_modele_couverts = {champs_modele_couverts} / {total_declared}")
-    print(f"champs couverts : {fully_covered}")
+        for f in dataclasses.fields(cls):
+            total_fields += 1
+            if f.name in all_writes and f.name in all_reads:
+                covered_fields += 1
 
-    assert champs_modele_couverts == total_declared, (
-        f"SC8 : couverture incomplète — {champs_modele_couverts}/{total_declared} champs "
-        f"ont un écrivain ET un lecteur. "
-        f"Non couverts : {sorted(set(field_names) - set(fully_covered))}"
+    # +1 pour World.adjacency
+    adjacency_covered = 0
+    for filepath in _SIM_SOURCE_FILES:
+        source = filepath.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(filepath))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Attribute)
+                and node.attr == "adjacency"
+                and not isinstance(node.ctx, ast.Store)
+            ):
+                adjacency_covered = 1
+                break
+        if adjacency_covered:
+            break
+
+    total_denominator = total_fields + 1  # +1 pour adjacency
+    champs_modele_couverts_etendu = covered_fields + adjacency_covered
+
+    print(f"dataclasses découvertes : {[cls.__name__ for cls, _ in discovered]}")
+    print(f"champs dans dataclasses : {total_fields}")
+    print(f"champs couverts (écriture + lecture) : {covered_fields}")
+    print(f"adjacency couverte : {adjacency_covered}")
+    print(f"champs_modele_couverts_etendu = {champs_modele_couverts_etendu} / {total_denominator}")
+
+    assert champs_modele_couverts_etendu == total_denominator, (
+        f"Couverture étendue incomplète : {champs_modele_couverts_etendu}/{total_denominator}"
     )

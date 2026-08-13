@@ -38,13 +38,17 @@ class Cell(_NoBadSpatialField):
     Unité géographique de base du monde simulé.
 
     Champs :
-        cell_id        : identifiant unique de la cellule (clé spatiale, ADR-0003).
-        area_km2       : superficie en km² (lecture seule après chargement).
-        population     : nombre d'habitants (agrégat, modifié par le moteur).
-        food_stock_kg  : stock de nourriture disponible en kg.
-                         Sentinelle -1 = non calculé (hard-won rule 8).
-        hunger_ticks   : ticks consécutifs sans nourriture suffisante.
-                         Sentinelle -1 = non initialisé (hard-won rule 8).
+        cell_id          : identifiant unique de la cellule (clé spatiale, ADR-0003).
+        area_km2         : superficie en km² (lecture seule après chargement).
+        population       : nombre d'habitants (agrégat, modifié par le moteur).
+        food_stock_kg    : stock de nourriture disponible en kg.
+                           Sentinelle -1 = non calculé (hard-won rule 8).
+        hunger_ticks     : ticks consécutifs sans nourriture suffisante.
+                           Sentinelle -1 = non initialisé (hard-won rule 8).
+        food_deficit_kg  : déficit alimentaire cumulé en kg (brief 012, SC3).
+                           Accumulé quand la consommation dépasse le stock.
+                           Remis à 0 quand la cellule dispose d'un surplus.
+                           Sentinelle -1 = non encore calculé (hard-won rule 8).
     """
 
     cell_id: int
@@ -52,3 +56,4 @@ class Cell(_NoBadSpatialField):
     population: int
     food_stock_kg: float = field(default=-1.0)
     hunger_ticks: int = field(default=-1)
+    food_deficit_kg: float = field(default=-1.0)

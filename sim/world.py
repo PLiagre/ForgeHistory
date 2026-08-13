@@ -11,7 +11,7 @@ import random
 
 from sim.constants import (
     FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
-    INITIAL_FOOD_DAYS,
+    INITIAL_FOOD_RESERVE_TICKS,
     INITIAL_POPULATION_PER_KM2,
     SEED_POPULATION_VARIATION_HIGH,
     SEED_POPULATION_VARIATION_LOW,
@@ -33,9 +33,9 @@ def _seed_population(area_km2: float, rng: random.Random) -> int:
 
 
 def _seed_food_stock(population: int) -> float:
-    """Stock alimentaire initial : INITIAL_FOOD_DAYS ticks de consommation."""
-    daily_need = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-    return daily_need * INITIAL_FOOD_DAYS
+    """Stock alimentaire initial : INITIAL_FOOD_RESERVE_TICKS ticks de consommation."""
+    tick_need = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    return tick_need * INITIAL_FOOD_RESERVE_TICKS
 
 
 class World:
@@ -78,6 +78,7 @@ class World:
                 population=pop,
                 food_stock_kg=stock,
                 hunger_ticks=0,
+                food_deficit_kg=0.0,
             )
             cells[cid] = cell
 
@@ -96,6 +97,7 @@ class World:
                     "population": c.population,
                     "food_stock_kg": c.food_stock_kg,
                     "hunger_ticks": c.hunger_ticks,
+                    "food_deficit_kg": c.food_deficit_kg,
                 }
                 for cid, c in sorted(self.cells.items())
             }
