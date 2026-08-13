@@ -5,13 +5,13 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 13:18 UTC.
+> Générée le 2026-08-13 13:26 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 39 — boucles closes : 8.
+- **Audits en cours** : 40 — boucles closes : 8.
 
 ## Ce qui attend le propriétaire
 
@@ -35,21 +35,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 13:18:43 | hermes-observer | pull_request_target | cursor/audit-de-la-pr-83-68a8 | pending |
-| 2026-08-13 13:18:43 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 13:18:43 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 13:18:43 | security | push | master | in_progress |
-| 2026-08-13 13:18:43 | audit-guard | push | master | in_progress |
-| 2026-08-13 13:18:43 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 13:18:43 | harness-ci | push | master | in_progress |
-| 2026-08-13 13:18:41 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:18:31 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:18:31 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:18:30 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:18:27 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:18:16 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:18:16 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 13:18:12 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:26:01 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:25:59 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:25:57 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:25:56 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:25:53 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 13:25:53 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:25:49 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:25:39 | harness-ci | push | master | in_progress |
+| 2026-08-13 13:25:39 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 13:25:39 | security | push | master | success |
+| 2026-08-13 13:25:39 | pipeline-audit | push | master | success |
+| 2026-08-13 13:25:39 | audit-guard | push | master | success |
+| 2026-08-13 13:25:39 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 13:25:39 | hermes-observer | pull_request_target | cursor/audit-pull-request-92-f693 | queued |
+| 2026-08-13 13:25:36 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -98,6 +98,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-cd1dcd2-forge-bot-pat-boucle-jetons | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-dcbe815-pr87-registre-refute-un-point-fantome | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-e2896e7-pr44-challenge-bb8fe11 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-ff9b53b-pr92-etat-de-la-boucle-recopie | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 
 (8 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
 
