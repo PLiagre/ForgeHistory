@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 10:58 UTC.
+> Générée le 2026-08-13 11:00 UTC.
 
 ## En bref
 
@@ -23,21 +23,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 10:58:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:57:55 | hermes-observer | pull_request_target | cursor/rapport-audit-pr-69-7817 | queued |
-| 2026-08-13 10:57:55 | audit-guard | push | master | success |
-| 2026-08-13 10:57:55 | harness-ci | push | master | in_progress |
-| 2026-08-13 10:57:55 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 10:57:55 | security | push | master | in_progress |
-| 2026-08-13 10:57:55 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 10:57:55 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 10:57:52 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:57:39 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:57:37 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:57:37 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:57:28 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:57:25 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 10:57:25 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:04 | security | push | master | in_progress |
+| 2026-08-13 11:00:04 | harness-ci | push | master | in_progress |
+| 2026-08-13 11:00:04 | audit-guard | push | master | success |
+| 2026-08-13 11:00:04 | pipeline-orchestrate | push | master | in_progress |
+| 2026-08-13 11:00:04 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 11:00:04 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 11:00:04 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-16ff5ac-contre-audit-perdu-a-la-publication-31683198126 | queued |
+| 2026-08-13 11:00:04 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:00 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:00:00 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 11:00:00 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:59:54 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:59:54 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:59:36 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-16ff5ac-contre-audit-perdu-a-la-publication-31683198126 | cancelled |
 
 ## Agents lancés récemment (Cursor Cloud)
 
