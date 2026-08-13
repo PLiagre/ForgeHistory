@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-12 19:30 UTC.
+> Générée le 2026-08-13 03:02 UTC.
 
 ## En bref
 
@@ -24,21 +24,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-12 19:30:07 | hermes-dashboard | schedule | master | in_progress |
+| 2026-08-13 03:02:06 | hermes-dashboard | schedule | master | in_progress |
+| 2026-08-12 19:30:57 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 19:30:51 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 19:30:48 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 19:30:47 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-12 19:30:47 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 19:30:43 | hermes-observer | workflow_run | master | queued |
+| 2026-08-12 19:30:29 | security | push | master | success |
+| 2026-08-12 19:30:29 | harness-ci | push | master | success |
+| 2026-08-12 19:30:29 | pipeline-audit | push | master | success |
+| 2026-08-12 19:30:29 | audit-guard | push | master | success |
+| 2026-08-12 19:30:07 | hermes-dashboard | schedule | master | success |
 | 2026-08-12 17:10:50 | hermes-observer | workflow_run | master | success |
 | 2026-08-12 17:10:47 | pipeline-failure-escalate | workflow_run | master | skipped |
 | 2026-08-12 17:10:47 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:10:06 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:10:03 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:10:01 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:09:55 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:09:54 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:09:51 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:09:51 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-12 17:09:45 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:09:44 | pipeline-failure-escalate | workflow_run | master | success |
-| 2026-08-12 17:09:44 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:09:38 | hermes-observer | workflow_run | master | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
