@@ -9,21 +9,28 @@ Instruction) — read `harness/queue/briefs/006-full-auto-agent-pipeline/brief.m
 for those.
 
 2026-08-12 (ADR-0010): the three agent-invocation workflows are wired for
-real — no `TODO(operator...)` stub remains. `pipeline-audit.yml` also fires
-on every non-draft, non-`cursor/*` pull request (Cursor critiques the PR
-against `architecture/review-guidelines.md`), not only on merges to master.
+real — no `TODO(operator...)` stub remains.
+
+2026-08-13 (ADR-0012, owner decision): the per-PR critique and the
+per-merge post-audit are **retired** — that cadence exhausted the Claude
+monthly subscription cap twice in 24 h through the counter-audits it
+triggered. `pipeline-audit.yml` now fires only when a **project milestone**
+closes (merge of a `hermes/milestones/ETAPE-*.md` marker — stages defined
+in `ROADMAP.md` § « Grandes étapes — jalons d'audit ») or on explicit
+`workflow_dispatch`. Everything downstream of the audit deposit (challenge,
+decision, conversion) is mechanically unchanged and simply follows the new,
+rarer cadence. Per-PR there remain only the free mechanical checks
+(harness-ci, security, audit-guard incl. the brief-014 `audit-check` job,
+merge-bot).
 
 ## Diagram
 
 ```
-pull request opened/updated ────▶ [cursor-auditor] critique de PR
-  │  .github/workflows/pipeline-audit.yml (pull_request)
-  │
-merge code (Claude/bot) on master
+milestone merged on master (hermes/milestones/ETAPE-*.md), or workflow_dispatch
   │
   ▼
 [cursor-auditor] ──(companion: cursor-qa-scout)──▶ architecture/inbox/CURSOR-<sha>-<slug>.md
-  │  .github/workflows/pipeline-audit.yml (push master)
+  │  .github/workflows/pipeline-audit.yml (ADR-0012: milestone/dispatch only)
   ▼
 auto-merge (merge-bot.yml, inbox/** allowlisted) ──▶ ledger AUDIT_PROPOSED (optional)
   │

@@ -115,6 +115,36 @@ moteur 015+016 (seuil de survie honnête — fusionner les deux graines sous
 un seul lot), agrégation Province dérivée (F2), purge de l'arriéré, brief
 de harnais des candidats ci-dessus.
 
+### Addendum — même session (13:43 UTC) : décision propriétaire « audit par grandes étapes » (ADR-0012)
+
+Le propriétaire tranche : l'audit/contre-audit **à chaque PR** consommait
+tout le quota Claude (plafond mensuel atteint deux fois en 24 h, mesures au
+dossier). Désormais : **un audit + contre-audit à la clôture de chaque
+grande étape** du projet, plus un audit ponctuel possible par
+`workflow_dispatch`. Traitement en session mandatée (comme ADR-0010, revue
+humaine sur la PR — pas d'auto-jugement) :
+
+1. Demande enregistrée : `hermes/requests/DEMANDE-20260813-audit-par-grandes-etapes.md`.
+2. Décision : `docs/adr/0012-audit-contre-audit-par-grandes-etapes.md`
+   (remplace « Cursor relit chaque PR » d'ADR-0010 ; amende la cadence
+   post-merge d'ADR-0005/0006 ; cycle de vie des audits inchangé).
+3. Grandes étapes définies : `ROADMAP.md` § « Grandes étapes — jalons
+   d'audit » (E1 fondations monde, **E2 le monde vivant compte juste =
+   prochain jalon**, E3 villes, E4 états, E5 armées, E6 batailles + rendu).
+   Marqueur : fichier `hermes/milestones/ETAPE-NN-<slug>.md` fusionné sur
+   `master` (contrat : `hermes/milestones/README.md`).
+4. Recâblage : `pipeline-audit.yml` ne se déclenche plus que sur jalon ou
+   dispatch (les déclencheurs `pull_request` et push-master génériques sont
+   retirés ; l'audit d'étape couvre tout ce qui est entré depuis le jalon
+   précédent). `pipeline-challenge.yml` inchangé mécaniquement — il suit la
+   cadence des dépôts, donc des jalons. Clés de politique basculées dans
+   `harness/pipeline/config.yaml`.
+5. Conséquence sur l'arriéré : les 15 audits `PROPOSED` ne sont plus une
+   dette de contre-audit individuelle — adjudication en lot au prochain
+   jalon ou purge `STALE` motivée. Ce qui reste à chaque PR : les contrôles
+   gratuits (CI, gate, `audit-check` du brief 014 — la porte reste
+   pertinente aux jalons et pour les audits ponctuels).
+
 ## Session précédente — 2026-08-13 (suite) : critique du brief 012 traitée, brief 013 (le tick nourrit une fois)
 
 **Contexte** : suite immédiate de la session du matin, même orchestration

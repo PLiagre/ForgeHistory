@@ -41,10 +41,14 @@ max_forge_run_iterations: 3
 auto_merge_audit_prs: true
 auto_merge_review_prs: true
 claude_challenge_on_inbox_merge: true
-cursor_audit_on_master_push: true
-# ADR-0010: Cursor critiques every non-draft, non-cursor/* pull request
-# against architecture/review-guidelines.md (pipeline-audit.yml).
-cursor_review_on_pr: true
+# ADR-0012 (2026-08-13, décision propriétaire) : l'audit Cursor ne tourne
+# plus ni par PR ni par push master -- uniquement à la clôture d'une grande
+# étape (fusion d'un fichier hermes/milestones/ETAPE-*.md, voir ROADMAP.md
+# § « Grandes étapes — jalons d'audit ») ou sur workflow_dispatch. Le
+# contre-audit Claude suit mécaniquement la cadence des audits déposés.
+cursor_audit_on_master_push: false
+cursor_review_on_pr: false
+cursor_audit_on_milestone: true
 
 # Auto-merge is restricted to these path prefixes (bot branches only:
 # cursor/*, forge-bot/*). Any PR touching a path outside this list is never

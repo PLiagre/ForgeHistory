@@ -12,3 +12,5 @@
 | [0008](0008-codex-as-evaluateur-under-credit-cap.md) | Codex may hold the Évaluateur role, only in a third-party-triggered session, only when Claude is credit-capped | accepted | 2026-08-11 |
 | [0009](0009-codex-as-official-generator-backend.md) | Codex as an official Générateur backend | accepted | 2026-08-11 |
 | [0010](0010-hermes-chef-de-projet-workflow-quatre-acteurs.md) | Hermes chef de projet (point d'entrée, tient `ROADMAP.md`) et chaîne à quatre acteurs Hermes → Claude → Codex → Cursor | accepted | 2026-08-12 |
+| [0011](0011-hermes-console-du-proprietaire.md) | Hermes console du propriétaire — un droit d'agir borné, sur ordre explicite | accepted | 2026-08-12 |
+| [0012](0012-audit-contre-audit-par-grandes-etapes.md) | Audit et contre-audit par grandes étapes (jalons `hermes/milestones/`) — plus jamais par PR | accepted | 2026-08-13 |
