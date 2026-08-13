@@ -134,24 +134,64 @@ Sur 200 ticks avec `rng_seed=42` et `world_seed=42` (mesuré) :
 
 ---
 
-## Déficit alimentaire et mortalité (SC3 — brief 012)
+## Déficit alimentaire et mortalité (SC3 brief 012 → SC4 brief 013)
 
 ### Champ `food_deficit_kg`
 
 Sentinelle : -1.0 = non encore calculé (hard-won rule 8 : zéro est une
 mesure réelle).
 
-**Sémantique** :
-- Si `consommation > stock` après production et avant commerce : `food_deficit_kg += (consommation - stock)` ; `food_stock_kg = 0`
-- Si la cellule dispose d'un surplus (`remaining ≥ 0`) : `food_deficit_kg = 0.0`
+**Sémantique (brief 013)** :
+- Si `consommation > stock` après production + commerce : `food_deficit_kg += (consommation - stock)` ; `food_stock_kg = 0`
+- Si la cellule dispose d'un surplus (`remaining ≥ 0`) : `food_deficit_kg` est réduit **graduellement** :
+  `food_deficit_kg = max(0.0, food_deficit_kg × (1 - DEFICIT_RECOVERY_RATE_PER_TICK))`
 
-### Formule de mortalité
+### SC4 brief 013 — Mortalité continue, déficit à mémoire graduelle
+
+**Retrait du plancher de mortalité** :
+
+La formule `deaths = max(1, int(population × death_rate))` est remplacée par
+`deaths = int(population × death_rate)`. Une famine légère (déficit < 1 kg/tête)
+ne tue plus au moins une personne : le plancher binaire est supprimé.
+Le taux effectif `deaths / population` respecte `MAX_DEATH_RATE_PER_TICK` pour
+toute population ≥ 1 (propriété préservée par construction : `death_rate ≤ MAX_DEATH_RATE_PER_TICK`
+avant la multiplication et l'arrondi par troncature vers zéro).
+
+**Formule de mortalité (brief 013)** :
+```
+if food_deficit_kg > 0 and population > 0:
+    per_capita_deficit = food_deficit_kg / population
+    death_rate = min(per_capita_deficit × HUNGER_DEATH_SCALE, MAX_DEATH_RATE_PER_TICK)
+    deaths = int(population × death_rate)   # sans max(1, …)
+    population = max(0, population - deaths)
+```
+
+**Déficit à mémoire graduelle** :
+
+Lorsqu'une cellule est en surplus (consommation couverte), le déficit accumulé
+est réduit graduellement au lieu d'être effacé instantanément :
+
+```python
+cell.food_deficit_kg = max(0.0, cell.food_deficit_kg * (1 - DEFICIT_RECOVERY_RATE_PER_TICK))
+```
+
+### SC4 brief 013 — Justification de `DEFICIT_RECOVERY_RATE_PER_TICK`
+
+| Constante | Valeur | Justification |
+|---|---|---|
+| `DEFICIT_RECOVERY_RATE_PER_TICK` | 0.10 | Taux de récupération choisi **avant mesure** : 10 % du déficit accumulé est effacé par tick de surplus. Physique médiévale : une semaine de famine (7 jours d'accumulation de déficit) ne se récupère pas en une journée d'abondance. Avec `r = 0.10`, la demi-vie de récupération est ≈ 7 ticks (ln(2)/ln(1/0.9) ≈ 6.6), ce qui signifie qu'une semaine de surplus efface la moitié d'un déficit accumulé sur une durée comparable. Ce choix est conservateur (récupération lente) et physiquement plausible pour une économie de subsistance. |
+
+**Propriété vérifiable** : pour tout `D > 0` et `DEFICIT_RECOVERY_RATE_PER_TICK < 1`,
+`D × (1 - DEFICIT_RECOVERY_RATE_PER_TICK) < D`, donc un seul tick de surplus
+ne peut pas effacer un déficit non nul.
+
+### Formule de mortalité originale (brief 012 — archivé)
 
 ```
 if food_deficit_kg > 0 and population > 0:
     per_capita_deficit = food_deficit_kg / population
     death_rate = min(per_capita_deficit × HUNGER_DEATH_SCALE, MAX_DEATH_RATE_PER_TICK)
-    deaths = max(1, int(population × death_rate))
+    deaths = max(1, int(population × death_rate))   # plancher supprimé par brief 013
     population = max(0, population - deaths)
 ```
 
@@ -160,13 +200,50 @@ if food_deficit_kg > 0 and population > 0:
 | `HUNGER_DEATH_SCALE` | 0.005 | 1/(kg/personne) | Facteur de mortalité : 1 kg de déficit par tête → 0.5 % de mortalité par tick. Proxy : famine médiévale sévère documentée à 10-30 % de mortalité annuelle sur populations très touchées (~0.03-0.08 %/jour). Le facteur 0.005 permet des déficits modestes (5–10 kg/tête) pour atteindre 2-5 % de mortalité journalière. |
 | `MAX_DEATH_RATE_PER_TICK` | 0.10 | — | Plafond de 10 % par tick : empêche l'effondrement instantané même à déficit extrême |
 
-**Propriété garantie** : la mortalité est une fonction croissante et continue
-du déficit per capita. Aucun interrupteur binaire seul — le taux monte
-proportionnellement avec l'ampleur du manque (SC3).
+---
+
+## SC3 brief 013 — Seuil de survie dérivé analytiquement
+
+**Formule analytique** (capacité de charge malthusienne) :
+
+```
+rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2
+capacite_charge_hab_km2 = (FOOD_PRODUCTION_KG_PER_KM2_PER_TICK × rendement_moyen)
+                           / FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+fraction_predite = capacite_charge_hab_km2 / INITIAL_POPULATION_PER_KM2
+```
+
+Avec les constantes actuelles :
+```
+rendement_moyen = (0.5 + 1.5) / 2 = 1.0
+capacite_charge_hab_km2 = (18.0 × 1.0) / 2.0 = 9.0 hab/km²
+fraction_predite = 9.0 / 10.0 = 0.90
+```
+
+**Justification de `SURVIE_MARGE_DERIVEE = 0.15`** (valeur choisie **avant mesure**) :
+
+La formule `fraction_predite = 0.9` est le rapport de la capacité de charge stationnaire
+(9 hab/km²) à la densité initiale (10 hab/km²). Elle décrit l'équilibre à long terme,
+pas la transition sur N=200 ticks. Deux effets physiques justifient une marge de 15 % :
+
+1. **Déficit structurel de transition** : le système démarre AU-DESSUS de la capacité de
+   charge (10 hab/km² > 9 hab/km²). Pendant les 200 premiers ticks, la population est
+   en cours de déclin vers l'équilibre ; la mortalité de transition s'ajoute à la
+   mortalité stochastique. La fraction finale sur 200 ticks est systématiquement
+   inférieure à la fraction d'équilibre.
+
+2. **Asymétrie stochastique** : avec un rendement moyen de 1.0, la consommation dépasse
+   la production quand yield < C/P = 20/18 ≈ 1.11. Avec une distribution uniforme [0.5, 1.5],
+   P(yield < 1.11) ≈ (1.11 - 0.5) / (1.5 - 0.5) ≈ 61 %. La majorité des ticks sont
+   déficitaires ; les ticks d'excédent (39 %) n'effacent qu'une fraction du déficit accumulé
+   (10 % par tick — `DEFICIT_RECOVERY_RATE_PER_TICK`). Cette asymétrie amplifie les pertes
+   par rapport à la prédiction déterministe.
+
+`SEUIL_SURVIE_POPULATION_FRACTION = fraction_predite - SURVIE_MARGE_DERIVEE = 0.90 - 0.15 = 0.75`
 
 ---
 
-## Commerce inter-cellules (SC4 — brief 012)
+## Commerce inter-cellules (SC4 brief 012 → SC1+SC2 brief 013)
 
 ### Paramètre
 
@@ -174,14 +251,41 @@ proportionnellement avec l'ampleur du manque (SC3).
 |---|---|---|---|
 | `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` | 200.0 × TICK_DURATION_DAYS | kg/arête/tick | Proxy : convoi à dos de mulet (capacité ~200 kg, une liaison rurale par jour, Pounds 1974) |
 
-### Algorithme
+### SC2 brief 013 — Commerce atomique, snapshot et allocation déterministe
 
-Pour chaque arête (a, b) des 1 364 arêtes d'adjacence G3 :
-1. Si b est en déficit (`food_deficit_kg > 0`) et a a du surplus (`food_stock_kg > 0`) :
-   `transfer = min(food_stock_kg_a, food_deficit_kg_b, TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)`
-   → a cède, b reçoit, food_deficit_kg_b diminue.
-2. Sinon, si a est en déficit et b a du surplus : symétrique.
-3. Conservation stricte : aucune nourriture n'est créée ou détruite.
+**Définition du besoin et du surplus au moment du commerce** (commerce avant consommation) :
+
+Lorsque le commerce précède la consommation, le « besoin » d'une cellule pour
+ce tick n'est plus `food_deficit_kg` (déficit cumulé des ticks précédents) mais
+le **manque prévisible du tick courant** :
+
+```
+besoin(c)  = max(0, population_c × FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK - food_stock_kg_c)
+surplus(c) = max(0, food_stock_kg_c - population_c × FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK)
+```
+
+Ces valeurs sont calculées sur le snapshot pris avant tout transfert.
+
+**Algorithme en deux passes** :
+
+1. Snapshot immuable : `{cell_id: (food_stock_kg, population)}` pour toutes les cellules, avant modification.
+2. Calcul des transferts à partir du snapshot uniquement.
+3. Application de tous les transferts en une seule passe finale.
+
+Une cellule qui vient de recevoir de la nourriture sur une arête ne peut pas
+en redistribuer sur une autre arête du même tick (transport atomique).
+
+**Allocation déterministe en cas de demandes concurrentes** :
+
+Si plusieurs cellules en besoin sont adjacentes à la même source, l'allocation est :
+- Proportionnelle à leurs besoins respectifs (calculés depuis le snapshot).
+- Traitée dans l'ordre stable des `cell_id` croissants.
+- Chaque transfert est borné par `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`.
+- Si la somme des demandes dépasse le surplus de la source, chaque receveur
+  reçoit `surplus_source × (besoin_i / total_besoin)`, plafonné à la capacité.
+
+**Invariant** : `food_deficit_kg` n'est jamais modifié par le maillon commerce
+(SC1 brief 013). Seul `food_stock_kg` est mis à jour.
 
 ---
 

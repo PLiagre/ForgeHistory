@@ -1,0 +1,22 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/sabotage-013/paire-B
+collecting ... collected 1 item
+
+sim/tests/test_tick_nourrit_une_fois.py::test_invariance_ordre_aretes FAILED [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_invariance_ordre_aretes _________________________
+sim/tests/test_tick_nourrit_une_fois.py:248: in test_invariance_ordre_aretes
+    assert ecart <= TOLERANCE, (
+E   AssertionError: Cellule 3 : écart de stock 160.0 > 1e-09 entre ordre [1-2,2-3] et [2-3,1-2]. L'état final dépend de l'ordre des arêtes.
+E   assert 160.0 <= 1e-09
+----------------------------- Captured stdout call -----------------------------
+cellule 1 : stock_AB=400.0, stock_BA=400.0, écart=0.0
+cellule 2 : stock_AB=0.0, stock_BA=0.0, écart=0.0
+cellule 3 : stock_AB=160.0, stock_BA=0.0, écart=160.0
+etat_final_invariant_ordre_aretes (max_ecart) = 160.0
+=========================== short test summary info ============================
+FAILED sim/tests/test_tick_nourrit_une_fois.py::test_invariance_ordre_aretes
+============================== 1 failed in 0.01s ===============================

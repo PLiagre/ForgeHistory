@@ -71,9 +71,39 @@ SEED_POPULATION_VARIATION_HIGH = 1.1
 # calendaire (SC1 brief 012 — correction du nom trompeur constat P3-2).
 INITIAL_FOOD_RESERVE_TICKS = 5
 
-# --- Seuil de survie de la population (SC5 brief 012) ---
+# --- Vitesse de récupération du déficit alimentaire (SC4 brief 013) ---
 
-# Fraction minimale de la population initiale devant subsister après N ticks.
-# Choix : 0.70 — autorise des pertes locales réelles sans effondrement global.
-# Justification dans SEEDING.md.
-SEUIL_SURVIE_POPULATION_FRACTION = 0.70
+# Fraction du déficit accumulé effacée par un tick de surplus.
+# Justification dans SEEDING.md (SC4 brief 013).
+# Valeur choisie AVANT mesure : 0.10 (10 % par tick de surplus),
+# soit une demi-vie du déficit d'environ 7 ticks (≈ une semaine de surplus
+# efface la moitié d'un déficit accumulé sur la même durée).
+DEFICIT_RECOVERY_RATE_PER_TICK = 0.10
+
+# --- Seuil de survie de la population (SC5 brief 012 → SC3 brief 013 dérivé) ---
+
+# Marge entre la fraction prédite analytiquement et le seuil bas.
+# Justification dans SEEDING.md (SC3 brief 013) — valeur choisie AVANT mesure.
+# La formule fraction_predite = 0.9 est un équilibre stationnaire (infini).
+# Sur N=200 ticks (transition, pas équilibre) :
+#   - Le système démarre AU-DESSUS de la capacité de charge (10 vs 9 hab/km²)
+#   - P(yield < 20/18 = 1.11) ≈ 61 % → la majorité des ticks sont déficitaires
+#   - Les déficits s'accumulent graduellement et ne se récupèrent qu'à 10 %/tick
+#   - La mortalité de transition dépassera 10 % de l'état stationnaire attendu
+# Marge choisie : 0.15 (15 points) couvre la déviation transition / équilibre.
+SURVIE_MARGE_DERIVEE = 0.15
+
+# Fraction prédite analytiquement :
+# fraction_predite = (FOOD_PRODUCTION_KG_PER_KM2_PER_TICK × rendement_moyen)
+#                    / (FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK × INITIAL_POPULATION_PER_KM2)
+# rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2 = 1.0
+# → fraction_predite = (18.0 × 1.0) / (2.0 × 10.0) = 0.9
+# Formule complète documentée dans SEEDING.md (SC3 brief 013).
+_rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2
+_fraction_predite = (
+    FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * _rendement_moyen
+) / (FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * INITIAL_POPULATION_PER_KM2)
+
+# Seuil dérivé : fraction_predite - SURVIE_MARGE_DERIVEE
+# Remplace le littéral 0.70 du brief 012 (SC3 brief 013).
+SEUIL_SURVIE_POPULATION_FRACTION = _fraction_predite - SURVIE_MARGE_DERIVEE
