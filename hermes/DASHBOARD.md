@@ -5,13 +5,13 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 11:03 UTC.
+> Générée le 2026-08-13 11:04 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 25 — boucles closes : 8.
+- **Audits en cours** : 26 — boucles closes : 8.
 
 ## Ce qui attend le propriétaire
 
@@ -26,21 +26,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 11:03:33 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:03:33 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:03:30 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:03:26 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:03:22 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:03:20 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 11:03:20 | harness-ci | push | master | in_progress |
-| 2026-08-13 11:03:20 | security | push | master | in_progress |
-| 2026-08-13 11:03:20 | audit-guard | push | master | success |
-| 2026-08-13 11:03:19 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:03:19 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:03:18 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 11:03:18 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:03:15 | security | push | master | success |
-| 2026-08-13 11:03:15 | audit-guard | push | master | success |
+| 2026-08-13 11:04:29 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion-31684016021 | queued |
+| 2026-08-13 11:04:29 | security | push | master | queued |
+| 2026-08-13 11:04:29 | pipeline-audit | push | master | queued |
+| 2026-08-13 11:04:29 | audit-guard | push | master | queued |
+| 2026-08-13 11:04:29 | harness-ci | push | master | queued |
+| 2026-08-13 11:04:29 | pipeline-orchestrate | push | master | queued |
+| 2026-08-13 11:04:29 | hermes-dashboard | push | master | queued |
+| 2026-08-13 11:04:27 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:04:23 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:04:20 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 11:04:20 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:04:18 | hermes-observer | pull_request_target | cursor/audit-commit-fusionn-6414 | queued |
+| 2026-08-13 11:04:17 | harness-ci | push | master | in_progress |
+| 2026-08-13 11:04:17 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 11:04:17 | audit-guard | push | master | in_progress |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -62,6 +62,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-4c45718-pr65-ledger-recupere-a-la-main | retenu — à convertir en brief | 2026-08-13 11:01 |
 | CURSOR-9e35764-pr63-contre-audit-jamais-enregistre | retenu — à convertir en brief | 2026-08-13 11:03 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-29913c0-pr69-seuil-survie-non-borne | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
