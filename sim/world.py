@@ -79,6 +79,9 @@ class World:
                 food_stock_kg=stock,
                 hunger_ticks=0,
                 food_deficit_kg=0.0,
+                # Monde amorcé : aucune fraction de mort en attente.
+                # La sentinelle -1.0 signifie « non calculé », jamais « nul ».
+                mortality_remainder=0.0,
             )
             cells[cid] = cell
 
@@ -98,6 +101,7 @@ class World:
                     "food_stock_kg": c.food_stock_kg,
                     "hunger_ticks": c.hunger_ticks,
                     "food_deficit_kg": c.food_deficit_kg,
+                    "mortality_remainder": c.mortality_remainder,
                 }
                 for cid, c in sorted(self.cells.items())
             }

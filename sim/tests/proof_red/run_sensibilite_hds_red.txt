@@ -1,0 +1,77 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/forge_red_a
+collecting ... collected 1 item
+
+sim/tests/test_sensibilite_survie.py::test_sensibilite_hds FAILED        [100%]
+
+=================================== FAILURES ===================================
+_____________________________ test_sensibilite_hds _____________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f997bf58920>
+
+    def test_sensibilite_hds(monkeypatch):
+        """
+        SC2 — Trois régimes de HUNGER_DEATH_SCALE (×0.5, nominal, ×2) sur le monde
+        réel, N = 200 ticks.
+    
+        (a) direction : mesure et prédiction décroissent toutes deux quand la
+            mortalité par faim augmente.
+        (b) tolérance : |mesurée − prédite| ≤ SURVIE_TOLERANCE_SENSIBILITE
+            dans chaque régime.
+    
+        Compteurs : sensibilite_hds_05_passe, sensibilite_hds_2_passe.
+        """
+        nominal = constantes.HUNGER_DEATH_SCALE
+    
+        s_bas, p_bas = _regime_hds(monkeypatch, FACTEUR_REGIME_BAS)
+        s_nom, p_nom = _regime_hds(monkeypatch, 1.0)
+        s_haut, p_haut = _regime_hds(monkeypatch, FACTEUR_REGIME_HAUT)
+    
+        assert constantes.HUNGER_DEATH_SCALE == nominal, (
+            "Le régime nominal n'a pas été restauré après le test."
+        )
+    
+        print(f"HDS nominal = {nominal}")
+        print(f"regime x{FACTEUR_REGIME_BAS} : mesure={s_bas:.6f} predite={p_bas:.6f}")
+        print(f"regime nominal  : mesure={s_nom:.6f} predite={p_nom:.6f}")
+        print(f"regime x{FACTEUR_REGIME_HAUT} : mesure={s_haut:.6f} predite={p_haut:.6f}")
+    
+        direction_mesure = s_bas > s_nom > s_haut
+        direction_predite = p_bas > p_nom > p_haut
+        ecart_bas = abs(s_bas - p_bas)
+        ecart_nom = abs(s_nom - p_nom)
+        ecart_haut = abs(s_haut - p_haut)
+    
+        sensibilite_hds_05_passe = int(
+            s_bas > s_nom and p_bas > p_nom and ecart_bas <= SURVIE_TOLERANCE_SENSIBILITE
+        )
+        sensibilite_hds_2_passe = int(
+            s_nom > s_haut and p_nom > p_haut and ecart_haut <= SURVIE_TOLERANCE_SENSIBILITE
+        )
+        print(f"ecarts = {ecart_bas:.6f}, {ecart_nom:.6f}, {ecart_haut:.6f} "
+              f"(tolerance = {SURVIE_TOLERANCE_SENSIBILITE:.6f})")
+        print(f"sensibilite_hds_05_passe = {sensibilite_hds_05_passe}")
+        print(f"sensibilite_hds_2_passe = {sensibilite_hds_2_passe}")
+    
+>       assert direction_predite, (
+            "La prédiction ne répond pas à HUNGER_DEATH_SCALE : "
+            f"{p_bas:.6f} / {p_nom:.6f} / {p_haut:.6f}. "
+            "Le critère de survie est aveugle à la mortalité."
+        )
+E       AssertionError: La prédiction ne répond pas à HUNGER_DEATH_SCALE : 0.796597 / 0.796597 / 0.796597. Le critère de survie est aveugle à la mortalité.
+E       assert False
+
+sim/tests/test_sensibilite_survie.py:112: AssertionError
+----------------------------- Captured stdout call -----------------------------
+HDS nominal = 0.005
+regime x0.5 : mesure=0.768320 predite=0.796597
+regime nominal  : mesure=0.757555 predite=0.796597
+regime x2.0 : mesure=0.740239 predite=0.796597
+ecarts = 0.028278, 0.039042, 0.056358 (tolerance = 0.201036)
+sensibilite_hds_05_passe = 0
+sensibilite_hds_2_passe = 0
+=========================== short test summary info ============================
+FAILED sim/tests/test_sensibilite_survie.py::test_sensibilite_hds - Assertion...
+============================== 1 failed in 1.07s ===============================

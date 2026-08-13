@@ -7,10 +7,13 @@ Chaîne causale (brief 013) :
     _apply_commerce    → transfère de la nourriture entre cellules adjacentes
                          (calcul en deux passes sur snapshot — SC2 brief 013)
     _apply_consumption → consomme le stock, accumule food_deficit_kg si manque ;
-                         récupération graduelle si surplus (SC4 brief 013)
-    _update_hunger     → met à jour hunger_ticks selon le stock restant
+                         rembourse la dette avec des kg réels de surplus
+                         (SC5 brief 017) et retourne la pénurie du tick
+    _update_hunger     → met à jour hunger_ticks selon la pénurie du tick
+                         (SC4 brief 017), non selon le stock restant
     _apply_mortality   → mortalité proportionnelle à food_deficit_kg,
-                         sans plancher max(1, …) — SC4 brief 013
+                         sans plancher max(1, …) — SC4 brief 013 —
+                         avec report de la fraction de mort (SC3 brief 017)
 
 Règle SC9 : aucun littéral numérique non nommé dans les fonctions de calcul.
 Toutes les constantes paramétriques sont dans sim/constants.py.
@@ -24,18 +27,21 @@ sont calculés sur un snapshot immuable (SC2).
 import random
 from collections import defaultdict
 
+from sim import constants as _constantes
 from sim.constants import (
-    DEFICIT_RECOVERY_RATE_PER_TICK,
     DEFICIT_ZERO_EPSILON,
     FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
     FOOD_PRODUCTION_KG_PER_KM2_PER_TICK,
-    HUNGER_DEATH_SCALE,
-    MAX_DEATH_RATE_PER_TICK,
     RNG_YIELD_HIGH,
     RNG_YIELD_LOW,
     TRADE_CAPACITY_KG_PER_EDGE_PER_TICK,
 )
 from sim.model import Cell
+
+# Les constantes qui gouvernent la mortalité et le remboursement du déficit
+# sont lues via le module `_constantes` (et non importées par valeur) : un test
+# de sensibilité qui remplace HUNGER_DEATH_SCALE en mémoire doit changer le
+# comportement du moteur, pas seulement celui de la prédiction (SC2 brief 017).
 
 
 def _apply_production(cell: Cell, rng: random.Random) -> None:
@@ -165,47 +171,70 @@ def _apply_commerce(world, total_transported: list) -> None:
         total_transported[0] += transfer
 
 
-def _apply_consumption(cell: Cell) -> None:
+def _apply_consumption(cell: Cell) -> float:
     """
-    Maillon 3 — Consommation (brief 013, SC1+SC4).
+    Maillon 3 — Consommation (brief 013 SC1 ; brief 017 SC4+SC5).
 
-    Lit food_stock_kg (après commerce), soustrait la consommation.
+    Lit food_stock_kg (après commerce), soustrait la consommation, et retourne
+    la pénurie du tick en kg (0.0 s'il n'y a pas eu de manque). Cette valeur
+    de retour est le critère causal de la faim : c'est elle, et non un stock
+    vide, qui dit qu'une cellule a MANQUÉ de nourriture ce tick (SC4).
 
-    Si stock ≥ consommation (surplus ou égalité) :
-        - ré-écrit le stock résiduel
-        - réduit food_deficit_kg graduellement (récupération partielle, SC4)
-          cell.food_deficit_kg *= (1 - DEFICIT_RECOVERY_RATE_PER_TICK)
-          Un seul tick d'excédent ne peut pas effacer un déficit accumulé.
+    Si stock ≥ consommation (surplus ou égalité) — SC5 brief 017 :
+        - le surplus disponible est `remaining`
+        - la dette alimentaire est remboursée par des kilogrammes RÉELS :
+          remboursement = min(dette, remaining × ratio) où le ratio nommé est
+          DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG (1 kg de dette par kg de surplus)
+        - ces kilogrammes quittent le stock (ils sont mangés en sus du besoin
+          d'entretien) : rien ne se téléporte (principe 3)
+        - un surplus d'un nanogramme ne peut donc effacer qu'un nanogramme de
+          dette, jamais 10 % d'une dette de 10 000 kg
 
     Si stock < consommation (manque) :
-        - stock = 0, le manque est ajouté à food_deficit_kg.
+        - stock = 0, le manque est ajouté à food_deficit_kg, et la pénurie
+          du tick est retournée.
     """
     tick_need = cell.population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
     remaining = cell.food_stock_kg - tick_need
+    prev_deficit = cell.food_deficit_kg if cell.food_deficit_kg > 0 else 0.0
+
     if remaining >= 0.0:
-        cell.food_stock_kg = remaining
-        prev_deficit = cell.food_deficit_kg if cell.food_deficit_kg > 0 else 0.0
-        new_deficit = max(0.0, prev_deficit * (1 - DEFICIT_RECOVERY_RATE_PER_TICK))
+        # Le ratio est borné à 1 kg de dette par kg de surplus : la réduction
+        # du déficit ne peut jamais dépasser le surplus physique du tick,
+        # quelle que soit la valeur donnée à la constante.
+        ratio = min(1.0, _constantes.DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG)
+        remboursement = min(prev_deficit, max(0.0, remaining) * ratio)
+        new_deficit = prev_deficit - remboursement
         # Coupure epsilon : un déficit résiduel infime (< DEFICIT_ZERO_EPSILON)
         # est ramené à zéro pour éviter l'accumulation de valeurs non physiques.
         if new_deficit < DEFICIT_ZERO_EPSILON:
             new_deficit = 0.0
         cell.food_deficit_kg = new_deficit
-    else:
-        shortage = -remaining
-        prev_deficit = cell.food_deficit_kg if cell.food_deficit_kg > 0 else 0.0
-        cell.food_deficit_kg = prev_deficit + shortage
-        cell.food_stock_kg = 0.0
+        cell.food_stock_kg = remaining - remboursement
+        return 0.0
+
+    shortage = -remaining
+    cell.food_deficit_kg = prev_deficit + shortage
+    cell.food_stock_kg = 0.0
+    return shortage
 
 
-def _update_hunger(cell: Cell) -> None:
+def _update_hunger(cell: Cell, penurie_kg: float) -> None:
     """
-    Maillon 4 — Faim.
-    Si food_stock_kg ≤ 0 (après la consommation), incrémente hunger_ticks.
-    Sinon, remet hunger_ticks à 0 (la cellule est rassasiée).
+    Maillon 4 — Faim (brief 017, SC4).
+
+    `penurie_kg` est le manque du tick retourné par _apply_consumption.
+    hunger_ticks progresse si et seulement si la cellule a manqué de
+    nourriture CE tick.
+
+    Une cellule ravitaillée exactement à son besoin par le commerce termine le
+    tick avec un stock nul et un déficit nul : elle a mangé sa ration, elle
+    n'est pas affamée. L'ancien critère testait le stock résiduel après
+    consommation, ce qui confondait le garde-manger vide et la
+    sous-alimentation (voir sim/SEEDING.md, SC4 brief 017).
     Traite la sentinelle -1 comme hunger_ticks = 0.
     """
-    if cell.food_stock_kg <= 0.0:
+    if penurie_kg > 0.0:
         prev = cell.hunger_ticks if cell.hunger_ticks >= 0 else 0
         cell.hunger_ticks = prev + 1
     else:
@@ -214,27 +243,41 @@ def _update_hunger(cell: Cell) -> None:
 
 def _apply_mortality(cell: Cell) -> None:
     """
-    Maillon 5 — Mortalité (brief 013, SC4).
+    Maillon 5 — Mortalité (brief 013 SC4 ; brief 017 SC3).
 
     La mortalité est proportionnelle au déficit alimentaire cumulé par habitant
-    (food_deficit_kg / population). Plus le déficit par tête est élevé,
-    plus le taux de mortalité est élevé, plafonné à MAX_DEATH_RATE_PER_TICK.
+    (food_deficit_kg / population), plafonnée à MAX_DEATH_RATE_PER_TICK.
 
-    Formule (sans plancher max(1, …) — SC4 brief 013) :
+    Formule (sans plancher max(1, …) — SC4 brief 013 ; avec report de la
+    fraction — SC3 brief 017) :
         per_capita_deficit = food_deficit_kg / population
         death_rate = min(per_capita_deficit × HUNGER_DEATH_SCALE, MAX_DEATH_RATE_PER_TICK)
-        deaths = int(population × death_rate)
+        raw    = population × death_rate + mortality_remainder
+        deaths = int(raw)
+        mortality_remainder = raw - deaths
 
-    Le taux est nul si le déficit est infime : aucune mort n'est garantie
-    par le seul fait qu'un déficit est non nul. Le plafond MAX_DEATH_RATE_PER_TICK
-    est respecté pour toute population ≥ 1.
+    Le report de la fraction supprime l'immortalité par arrondi : une cellule
+    de 5 habitants en famine totale produit 0.5 mort par tick, que `int()`
+    jetait entièrement à chaque tick. La fraction non appliquée est désormais
+    conservée et finit par tuer.
+
+    Le taux reste nul si le déficit est infime : aucune mort n'est garantie
+    par le seul fait qu'un déficit est non nul.
     """
+    remainder = cell.mortality_remainder if cell.mortality_remainder >= 0.0 else 0.0
+
     if cell.food_deficit_kg > 0 and cell.population > 0:
         per_capita_deficit = cell.food_deficit_kg / cell.population
-        death_rate = per_capita_deficit * HUNGER_DEATH_SCALE
-        death_rate = min(death_rate, MAX_DEATH_RATE_PER_TICK)
-        deaths = int(cell.population * death_rate)
+        death_rate = per_capita_deficit * _constantes.HUNGER_DEATH_SCALE
+        death_rate = min(death_rate, _constantes.MAX_DEATH_RATE_PER_TICK)
+        raw = cell.population * death_rate + remainder
+        deaths = int(raw)
+        cell.mortality_remainder = raw - deaths
         cell.population = max(0, cell.population - deaths)
+    else:
+        # Aucun décès ce tick : la fraction en attente est conservée telle
+        # quelle (et la sentinelle -1 devient une mesure réelle : 0.0).
+        cell.mortality_remainder = remainder
 
 
 def tick(world, rng: random.Random) -> float:
@@ -262,8 +305,8 @@ def tick(world, rng: random.Random) -> float:
     _apply_commerce(world, total_transported)
 
     for cell in world.cells.values():
-        _apply_consumption(cell)
-        _update_hunger(cell)
+        penurie_kg = _apply_consumption(cell)
+        _update_hunger(cell, penurie_kg)
         _apply_mortality(cell)
 
     return total_transported[0]

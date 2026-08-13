@@ -6,7 +6,11 @@ Aucun code de calcul du moteur ne doit contenir de littéral numérique
 au-delà de 0 et 1 (valeurs structurelles) — voir brief 011, SC9.
 
 Brief 012 : constantes temporelles alignées sur TICK_DURATION_DAYS.
+Brief 017 : modèle de survie stationnaire dépendant des constantes de
+mortalité, et récupération physique du déficit alimentaire.
 """
+
+import math
 
 # --- Base de temps unique (SC1 brief 012) ---
 
@@ -71,14 +75,18 @@ SEED_POPULATION_VARIATION_HIGH = 1.1
 # calendaire (SC1 brief 012 — correction du nom trompeur constat P3-2).
 INITIAL_FOOD_RESERVE_TICKS = 5
 
-# --- Vitesse de récupération du déficit alimentaire (SC4 brief 013) ---
+# --- Récupération physique du déficit alimentaire (SC5 brief 017) ---
 
-# Fraction du déficit accumulé effacée par un tick de surplus.
-# Justification dans SEEDING.md (SC4 brief 013).
-# 10 % par tick de surplus = demi-vie du déficit ≈ 7 ticks
-# (≈ une semaine de surplus efface la moitié d'un déficit accumulé sur la même durée).
-# Valeur dérivée de la physique médiévale, sans observation de la mesure.
-DEFICIT_RECOVERY_RATE_PER_TICK = 0.10
+# Successeur nommé de DEFICIT_RECOVERY_RATE_PER_TICK (brief 013, supprimée).
+# Ancienne sémantique : fraction du déficit effacée par tick de surplus,
+# indépendamment du surplus réel — un nanogramme d'excédent effaçait 10 % de
+# la dette (principe 3 violé : des kilogrammes disparaissaient sans
+# contrepartie physique).
+# Nouvelle sémantique : kilogrammes de dette alimentaire remboursés par
+# kilogramme de surplus RÉELLEMENT consommé au-delà du besoin d'entretien.
+# Voie (a) du brief 017 : ratio 1:1. Les kg remboursés quittent le stock.
+# Justification complète dans SEEDING.md (SC5 brief 017).
+DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG = 1.0
 
 # Seuil de coupure du déficit alimentaire (SC4 brief 013 — N4 feedback 001).
 # Un déficit résiduel inférieur à cette valeur est ramené à zéro après récupération,
@@ -86,57 +94,250 @@ DEFICIT_RECOVERY_RATE_PER_TICK = 0.10
 # Justification dans SEEDING.md (SC4 brief 013 — N4 feedback 001).
 DEFICIT_ZERO_EPSILON = 1e-6
 
-# --- Seuil de survie de la population (SC5 brief 012 → SC3 brief 013 dérivé) ---
-
-# Fraction prédite analytiquement (capacité de charge malthusienne) :
-# fraction_predite = (FOOD_PRODUCTION × rendement_moyen)
-#                    / (FOOD_CONSUMPTION × INITIAL_POPULATION_PER_KM2)
-# rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2 = 1.0
-# → fraction_predite = (18.0 × 1.0) / (2.0 × 10.0) = 0.9
-# Formule complète documentée dans SEEDING.md (SC3 brief 013).
-_rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2
-_fraction_predite = (
-    FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * _rendement_moyen
-) / (FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * INITIAL_POPULATION_PER_KM2)
-
-# Marge entre la fraction prédite et le seuil bas (SC3 brief 013 — itération 2).
-# EXPRESSION calculée depuis les constantes du modèle ; formula et justification
-# dans SEEDING.md (SC3 brief 013 — N4 feedback 001, itération 2).
+# --- Modèle de survie stationnaire (SC1 brief 017) ---
 #
-# Deux effets quantifiés sans observation :
-#   (1) Dépassement initial de la capacité de charge :
-#       dépassement = (d0 - cap) / d0 = (10 - 9) / 10 = 0.10
-#       Fraction de la population initiale au-dessus de la cap. de charge ;
-#       cette fraction mourra pendant la fenêtre de 200 ticks.
-#       Exprimé en points de fraction_predite : dépassement × fraction_predite
-#   (2) Pression stochastique des ticks déficitaires :
-#       p_déficit = P(yield < C/P) = (C/P - RNG_LOW) / (RNG_HIGH - RNG_LOW)
-#                = (1.111 - 0.5) / 1.0 = 0.611
-#       La probabilité de déficit multipliée par le taux de récupération
-#       donne la pression nette du déficit stochastique sur la mortalité.
-#       Terme : p_déficit × DEFICIT_RECOVERY_RATE_PER_TICK
+# Remplace SURVIE_MARGE_DERIVEE / SEUIL_SURVIE_POPULATION_FRACTION (brief 013),
+# supprimées : ces deux constantes ignoraient HUNGER_DEATH_SCALE et faisaient
+# entrer la récupération du déficit avec le mauvais signe. Motivation détaillée
+# dans SEEDING.md (SC1 brief 017) et dans le journal du Générateur.
 #
-# SURVIE_MARGE_DERIVEE = _depassement_initial × _fraction_predite
-#                        + _p_tick_deficitaire × DEFICIT_RECOVERY_RATE_PER_TICK
-# Avec les constantes actuelles : 0.1×0.9 + (11/18)×0.1 = 0.09 + 0.0611 ≈ 0.1511
-_ratio_conso_prod = (
-    FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * INITIAL_POPULATION_PER_KM2
-) / FOOD_PRODUCTION_KG_PER_KM2_PER_TICK
-_p_tick_deficitaire = min(1.0, max(0.0, (
-    _ratio_conso_prod - RNG_YIELD_LOW
-) / (RNG_YIELD_HIGH - RNG_YIELD_LOW)))
-_cap_hab_km2 = (
-    FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * _rendement_moyen
-) / FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-_depassement_initial = max(0.0, (
-    INITIAL_POPULATION_PER_KM2 - _cap_hab_km2
-) / INITIAL_POPULATION_PER_KM2)
+# Toutes les grandeurs ci-dessous sont calculées par des FONCTIONS qui relisent
+# les globales courantes du module à chaque appel. C'est indispensable au test
+# de sensibilité (SC2) : une valeur figée au chargement ne bougerait pas quand
+# un test remplace HUNGER_DEATH_SCALE en mémoire.
 
-SURVIE_MARGE_DERIVEE = (
-    _depassement_initial * _fraction_predite
-    + _p_tick_deficitaire * DEFICIT_RECOVERY_RATE_PER_TICK
-)
+# Facteurs structurels nommés (aucun littéral numérique n'est autorisé dans les
+# corps de fonctions de sim/ — voir sim/tests/test_no_hardcoded.py).
+FACTEUR_DEUX = 2.0                 # moyenne d'une loi uniforme, intégrale d'une rampe
+VARIANCE_UNIFORME_DIVISEUR = 12.0  # variance d'une loi uniforme = (b - a)² / 12
+TAU = math.tau                     # période d'un tour complet (2π)
 
-# Seuil dérivé : fraction_predite - SURVIE_MARGE_DERIVEE
-# Remplace le littéral 0.70 du brief 012 (SC3 brief 013).
-SEUIL_SURVIE_POPULATION_FRACTION = _fraction_predite - SURVIE_MARGE_DERIVEE
+
+def rendement_moyen_courant() -> float:
+    """Rendement moyen du tirage uniforme de rendement agricole."""
+    return (RNG_YIELD_LOW + RNG_YIELD_HIGH) / FACTEUR_DEUX
+
+
+def rendement_ecart_type_courant() -> float:
+    """Écart-type du tirage uniforme de rendement agricole."""
+    etendue = RNG_YIELD_HIGH - RNG_YIELD_LOW
+    return etendue / math.sqrt(VARIANCE_UNIFORME_DIVISEUR)
+
+
+def cap_hab_km2_courant() -> float:
+    """
+    Capacité de charge : densité (hab/km²) que la production moyenne nourrit
+    exactement, sans déficit ni surplus.
+    """
+    return (
+        FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * rendement_moyen_courant()
+        / FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    )
+
+
+def densite_stationnaire_courante() -> float:
+    """
+    Densité atteinte après le dépassement (« overshoot ») du transitoire.
+
+    Dérivation (documentée dans SEEDING.md, SC1 brief 017) : tant que la
+    densité d dépasse la capacité de charge, le déficit D croît au rythme
+    C·(d − cap) et la mortalité fait décroître d au rythme HDS·D. Ce couple
+    est un oscillateur : d dépasse la capacité de charge par le bas d'autant
+    qu'il la dépassait par le haut au départ. La densité au moment où le
+    déficit revient à zéro vaut donc cap − (d0 − cap).
+    """
+    cap = cap_hab_km2_courant()
+    return max(0.0, cap - (INITIAL_POPULATION_PER_KM2 - cap))
+
+
+def manque_moyen_kg_par_km2(besoin_kg_par_km2: float) -> float:
+    """
+    Espérance du manque de production sur un tick, E[max(0, besoin − F·Y)],
+    pour un rendement Y uniforme sur [RNG_YIELD_LOW, RNG_YIELD_HIGH].
+
+    Forme fermée : nulle si le pire rendement suffit, linéaire si le meilleur
+    rendement ne suffit jamais, quadratique entre les deux.
+    """
+    prod_min = FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * RNG_YIELD_LOW
+    prod_max = FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * RNG_YIELD_HIGH
+    if besoin_kg_par_km2 <= prod_min:
+        return 0.0
+    if besoin_kg_par_km2 >= prod_max:
+        return besoin_kg_par_km2 - (
+            FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * rendement_moyen_courant()
+        )
+    ecart = besoin_kg_par_km2 - prod_min
+    etendue = RNG_YIELD_HIGH - RNG_YIELD_LOW
+    return (ecart * ecart) / (
+        FACTEUR_DEUX * FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * etendue
+    )
+
+
+def probabilite_tick_deficitaire_courante() -> float:
+    """
+    Probabilité qu'un tick soit déficitaire à la densité stationnaire :
+    P(F·Y < C·d_stat). Seul ce côté de la distribution de rendement tue.
+    """
+    besoin = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * densite_stationnaire_courante()
+    seuil_rendement = besoin / FOOD_PRODUCTION_KG_PER_KM2_PER_TICK
+    etendue = RNG_YIELD_HIGH - RNG_YIELD_LOW
+    return min(1.0, max(0.0, (seuil_rendement - RNG_YIELD_LOW) / etendue))
+
+
+def compute_survie_fraction_predite_stationnaire() -> float:
+    """
+    Fraction de population survivante prédite à l'état stationnaire.
+
+    Deux termes, tous deux dérivés des constantes (jamais calibrés sur une
+    mesure — voir SEEDING.md SC1 brief 017, rédigé avant toute mesure) :
+
+    1. Dépassement déterministe : d_stat / d0, où d_stat est la densité
+       atteinte quand le déficit revient à zéro (densite_stationnaire_courante).
+
+    2. Érosion stochastique : à la densité stationnaire, un tick de mauvais
+       rendement crée un déficit moyen `manque_moyen_kg_par_km2`. Ce déficit
+       tue une fraction min(HDS × déficit_par_tête, MAX_DEATH_RATE_PER_TICK)
+       de la population, pendant le temps qu'il met à être remboursé
+       (1 / DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG ticks au ratio nominal), et
+       ce sur l'échelle de temps du tampon alimentaire
+       (INITIAL_FOOD_RESERVE_TICKS ticks, seule échelle de stockage nommée
+       du modèle).
+
+    Dépendances explicites exigées par le brief : HUNGER_DEATH_SCALE,
+    MAX_DEATH_RATE_PER_TICK, DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG,
+    FOOD_PRODUCTION_KG_PER_KM2_PER_TICK, FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
+    INITIAL_POPULATION_PER_KM2, RNG_YIELD_LOW, RNG_YIELD_HIGH.
+    """
+    if INITIAL_POPULATION_PER_KM2 <= 0:
+        return 0.0
+
+    densite_stationnaire = densite_stationnaire_courante()
+    fraction_depassement = min(1.0, densite_stationnaire / INITIAL_POPULATION_PER_KM2)
+
+    if densite_stationnaire <= 0:
+        return 0.0
+
+    besoin = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * densite_stationnaire
+    deficit_par_tete = manque_moyen_kg_par_km2(besoin) / densite_stationnaire
+    taux_mortalite = min(
+        HUNGER_DEATH_SCALE * deficit_par_tete, MAX_DEATH_RATE_PER_TICK
+    )
+
+    if DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG > 0:
+        ticks_de_remboursement = 1.0 / DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG
+    else:
+        ticks_de_remboursement = INITIAL_FOOD_RESERVE_TICKS
+
+    erosion = min(
+        1.0,
+        taux_mortalite * ticks_de_remboursement * INITIAL_FOOD_RESERVE_TICKS,
+    )
+    return max(0.0, min(1.0, fraction_depassement * (1.0 - erosion)))
+
+
+def compute_survie_tolerance_stationnaire() -> float:
+    """
+    Tolérance sur |mesuré − prédit| à l'horizon stationnaire.
+
+    Dérivation : le modèle remplace le tirage de rendement par sa moyenne.
+    L'erreur au premier ordre est la dispersion relative du rendement
+    (écart-type / moyenne), convertie en habitants via le rapport
+    capacité de charge / densité initiale, et restreinte au seul côté de la
+    distribution qui tue (probabilité qu'un tick soit déficitaire).
+    """
+    moyenne = rendement_moyen_courant()
+    if moyenne <= 0 or INITIAL_POPULATION_PER_KM2 <= 0:
+        return 0.0
+    dispersion_relative = rendement_ecart_type_courant() / moyenne
+    conversion_habitants = cap_hab_km2_courant() / INITIAL_POPULATION_PER_KM2
+    return (
+        dispersion_relative
+        * conversion_habitants
+        * probabilite_tick_deficitaire_courante()
+    )
+
+
+def compute_survie_convergence_delta() -> float:
+    """
+    Tolérance sur |s(N_STAT_SURVIE) − s(N_STAT_SURVIE ÷ 2)|.
+
+    Dérivation : à l'état stationnaire, la seule dérive restante vient des
+    fluctuations de rendement. Une fluctuation d'un écart-type expose une
+    fraction `dispersion_relative` de la population, et une population exposée
+    ne peut perdre plus que MAX_DEATH_RATE_PER_TICK par tick.
+    """
+    moyenne = rendement_moyen_courant()
+    if moyenne <= 0:
+        return 0.0
+    dispersion_relative = rendement_ecart_type_courant() / moyenne
+    return dispersion_relative * MAX_DEATH_RATE_PER_TICK
+
+
+def compute_survie_tolerance_sensibilite() -> float:
+    """
+    Tolérance sur |mesuré − prédit| dans les régimes de sensibilité (SC2),
+    mesurés à N = 200 ticks, c'est-à-dire avant amortissement complet du
+    transitoire dans les régimes à faible HUNGER_DEATH_SCALE.
+
+    Dérivation : tolérance stationnaire + amplitude du dépassement initial
+    (fraction de la population initiale au-dessus de la capacité de charge),
+    qui est encore partiellement en cours de résorption à cet horizon.
+    """
+    if INITIAL_POPULATION_PER_KM2 <= 0:
+        return compute_survie_tolerance_stationnaire()
+    depassement_initial = max(
+        0.0,
+        (INITIAL_POPULATION_PER_KM2 - cap_hab_km2_courant())
+        / INITIAL_POPULATION_PER_KM2,
+    )
+    return compute_survie_tolerance_stationnaire() + depassement_initial
+
+
+def compute_periode_oscillation_transitoire() -> float:
+    """
+    Période de l'oscillation déficit ↔ population pendant le transitoire.
+
+    Le couple (déficit D, écart de densité x = d − cap) obéit à
+    D' = C·x et x' = −HDS·D : un oscillateur de pulsation √(HDS·C).
+    La durée du transitoire est de l'ordre d'une demi-période.
+    """
+    pulsation_carree = HUNGER_DEATH_SCALE * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    if pulsation_carree <= 0:
+        return 0.0
+    return TAU / math.sqrt(pulsation_carree)
+
+
+def compute_n_stat_survie() -> int:
+    """
+    Horizon de convergence (ticks), justifié AVANT toute mesure.
+
+    Le transitoire dure au plus une période d'oscillation
+    (compute_periode_oscillation_transitoire ≈ 63 ticks avec les constantes
+    actuelles). L'horizon couvre cette période répétée 1/MAX_DEATH_RATE_PER_TICK
+    fois — l'échelle de temps au bout de laquelle toute mortalité résiduelle
+    au taux plafond est épuisée. Un plancher de N_STAT_SURVIE_PLANCHER ticks
+    est imposé par le brief 017.
+    """
+    if MAX_DEATH_RATE_PER_TICK <= 0:
+        return N_STAT_SURVIE_PLANCHER
+    horizon_derive = math.ceil(
+        compute_periode_oscillation_transitoire() / MAX_DEATH_RATE_PER_TICK
+    )
+    return max(N_STAT_SURVIE_PLANCHER, horizon_derive)
+
+
+# Plancher d'horizon imposé par le brief 017 (SC1) : jamais moins de 1000 ticks.
+N_STAT_SURVIE_PLANCHER = 1000
+
+N_STAT_SURVIE = compute_n_stat_survie()
+SURVIE_FRACTION_PREDITE_STATIONNAIRE = compute_survie_fraction_predite_stationnaire()
+SURVIE_TOLERANCE_STATIONNAIRE = compute_survie_tolerance_stationnaire()
+SURVIE_CONVERGENCE_DELTA = compute_survie_convergence_delta()
+SURVIE_TOLERANCE_SENSIBILITE = compute_survie_tolerance_sensibilite()
+
+# --- Borne de ticks pour qu'une fraction de mort devienne une mort entière ---
+# N_BOUND_MORT = ceil(1 / MAX_DEATH_RATE_PER_TICK) : au plafond de mortalité,
+# une cellule accumule au moins MAX_DEATH_RATE_PER_TICK mort par habitant et
+# par tick ; le report de la fraction (mortality_remainder) garantit qu'une
+# mort entière est appliquée en au plus ce nombre de ticks (SC3 brief 017).
+N_BOUND_MORT = math.ceil(1.0 / MAX_DEATH_RATE_PER_TICK)
