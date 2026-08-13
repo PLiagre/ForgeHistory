@@ -26,26 +26,27 @@
 - Convertir l'audit retenu `CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-29913c0-pr69-seuil-survie-non-borne` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-827d54e-contre-audit-paye-jamais-publie` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 12:53:18 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:15 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:15 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 12:53:14 | pipeline-orchestrate | push | master | in_progress |
-| 2026-08-13 12:53:14 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 12:53:14 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 12:53:14 | audit-guard | push | master | in_progress |
-| 2026-08-13 12:53:14 | harness-ci | push | master | queued |
-| 2026-08-13 12:53:14 | security | push | master | in_progress |
-| 2026-08-13 12:53:14 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite-31693887854 | queued |
-| 2026-08-13 12:53:11 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:08 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:05 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:53:02 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:52:53 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:48 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:47 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:47 | pipeline-failure-escalate | workflow_run | master | queued |
+| 2026-08-13 12:53:46 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:39 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:39 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:36 | pipeline-audit | push | master | success |
+| 2026-08-13 12:53:36 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 12:53:36 | audit-guard | push | master | in_progress |
+| 2026-08-13 12:53:36 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 12:53:36 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:36 | harness-ci | push | master | in_progress |
+| 2026-08-13 12:53:36 | security | push | master | in_progress |
+| 2026-08-13 12:53:34 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:32 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -69,8 +70,8 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion | retenu — à convertir en brief | 2026-08-13 11:04 |
 | CURSOR-29913c0-pr69-seuil-survie-non-borne | retenu — à convertir en brief | 2026-08-13 12:50 |
 | CURSOR-827d54e-contre-audit-paye-jamais-publie | retenu — à convertir en brief | 2026-08-13 12:51 |
+| CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite | retenu — à convertir en brief | 2026-08-13 12:53 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-3ce7947-pr36-hermes-skill-versionnee | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
