@@ -5,13 +5,13 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 10:49 UTC.
+> Générée le 2026-08-13 10:58 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 23 — boucles closes : 8.
+- **Audits en cours** : 24 — boucles closes : 8.
 
 ## Ce qui attend le propriétaire
 
@@ -23,21 +23,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 10:48:49 | harness-ci | push | master | in_progress |
-| 2026-08-13 10:48:49 | security | push | master | in_progress |
-| 2026-08-13 10:48:49 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 10:48:49 | audit-guard | push | master | in_progress |
-| 2026-08-13 10:48:49 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 10:48:49 | hermes-observer | pull_request_target | forge/013-sim-tick-nourrit-une-fois-ddda | queued |
-| 2026-08-13 10:48:37 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:48:28 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:48:28 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:48:28 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:48:25 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:48:25 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 10:48:22 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:48:19 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:48:16 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:58:07 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:57:55 | hermes-observer | pull_request_target | cursor/rapport-audit-pr-69-7817 | queued |
+| 2026-08-13 10:57:55 | audit-guard | push | master | success |
+| 2026-08-13 10:57:55 | harness-ci | push | master | in_progress |
+| 2026-08-13 10:57:55 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 10:57:55 | security | push | master | in_progress |
+| 2026-08-13 10:57:55 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 10:57:55 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 10:57:52 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:57:39 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:57:37 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:57:37 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:57:28 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:57:25 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 10:57:25 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -58,6 +58,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-16ff5ac-contre-audit-perdu-a-la-publication | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-29913c0-pr69-seuil-survie-non-borne | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-3ce7947-pr36-hermes-skill-versionnee | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
