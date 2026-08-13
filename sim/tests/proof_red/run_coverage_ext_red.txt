@@ -51,16 +51,20 @@ _____________ test_all_dataclass_fields_have_write_and_read_sites ______________
             + "\n".join(f"  - {e}" for e in errors)
         )
 E       AssertionError: Couverture d'écriture incomplète :
-E           - Cell.phantom_field : aucun site d'écriture (variable cible 'cell' attendue)
-E           - Cell.phantom_field : aucun site de lecture
-E       assert not ["Cell.phantom_field : aucun site d'écriture (variable cible 'cell' attendue)", 'Cell.phantom_field : aucun site de lecture']
+E           - SabotageDataclass.orphan_field : aucun site d'écriture (variable cible 'sabotagedataclass' attendue)
+E           - SabotageDataclass.orphan_field : aucun site de lecture
+E       assert not ["SabotageDataclass.orphan_field : aucun site d'écriture (variable cible 'sabotagedataclass' attendue)", 'SabotageDataclass.orphan_field : aucun site de lecture']
 
 sim/tests/test_write_coverage.py:159: AssertionError
 ----------------------------- Captured stdout call -----------------------------
 Classe Cell (var='cell'):
-  champs : ['area_km2', 'cell_id', 'food_deficit_kg', 'food_stock_kg', 'hunger_ticks', 'phantom_field', 'population']
+  champs : ['area_km2', 'cell_id', 'food_deficit_kg', 'food_stock_kg', 'hunger_ticks', 'population']
   écrits : ['area_km2', 'cell_id', 'food_deficit_kg', 'food_stock_kg', 'hunger_ticks', 'population']
   lus    : ['area_km2', 'cell_id', 'food_deficit_kg', 'food_stock_kg', 'hunger_ticks', 'population']
+Classe SabotageDataclass (var='sabotagedataclass'):
+  champs : ['orphan_field']
+  écrits : []
+  lus    : []
 ______________________ test_write_coverage_counter_etendu ______________________
 
     def test_write_coverage_counter_etendu():
@@ -120,7 +124,7 @@ E       assert 7 == 8
 
 sim/tests/test_write_coverage.py:244: AssertionError
 ----------------------------- Captured stdout call -----------------------------
-dataclasses découvertes : ['Cell']
+dataclasses découvertes : ['Cell', 'SabotageDataclass']
 champs dans dataclasses : 7
 champs couverts (écriture + lecture) : 6
 adjacency couverte : 1
@@ -128,4 +132,4 @@ champs_modele_couverts_etendu = 7 / 8
 =========================== short test summary info ============================
 FAILED sim/tests/test_write_coverage.py::test_all_dataclass_fields_have_write_and_read_sites
 FAILED sim/tests/test_write_coverage.py::test_write_coverage_counter_etendu
-========================= 2 failed, 1 passed in 0.03s ==========================
+========================= 2 failed, 1 passed in 0.04s ==========================

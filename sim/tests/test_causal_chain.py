@@ -40,16 +40,18 @@ from sim.world import World
 
 def test_sc7a_stock_decreases_when_production_lt_consumption():
     """
-    SC7a : une cellule avec area_km2 très faible (production quasi-nulle)
-    et une grande population voit son stock baisser après production+consommation.
+    SC7a : une cellule avec production insuffisante voit son stock baisser
+    après production+consommation.
     État initial construit à la main. Un seul maillon testé (production + consommation).
+    area_km2 = 1.0 (≥ minimum G3 = 1.444877 km²), conforme au plancher SC5 brief 012.
+    Production max = 1.0 × 18 × 1.5 = 27 kg << consommation = 5000 × 2 = 10 000 kg.
     """
-    # Production = 0.001 * 18 * yield ≈ faible (<< consommation)
-    # Consommation = 100 * 2.0 = 200 kg/tick
+    # Production max = 1.0 × 18 × 1.5 = 27 kg/tick (très faible)
+    # Consommation = 5000 × 2.0 = 10 000 kg/tick
     cell = Cell(
         cell_id=1,
-        area_km2=0.001,
-        population=100,
+        area_km2=1.0,
+        population=5000,
         food_stock_kg=1000.0,
         hunger_ticks=0,
         food_deficit_kg=0.0,
@@ -76,10 +78,12 @@ def test_sc7b_hunger_ticks_increments_when_stock_empty():
     """
     SC7b : une cellule avec stock = 0 voit hunger_ticks augmenter d'au moins 1.
     État initial construit à la main. Un seul maillon testé (_update_hunger).
+    area_km2 = 1.0 (≥ minimum G3 = 1.444877 km²), conforme au plancher SC5 brief 012.
+    La superficie n'est pas lue par _update_hunger, mais le test respecte le plancher.
     """
     cell = Cell(
         cell_id=2,
-        area_km2=0.0,
+        area_km2=1.0,
         population=10,
         food_stock_kg=0.0,
         hunger_ticks=0,

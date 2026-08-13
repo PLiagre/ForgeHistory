@@ -36,7 +36,7 @@
       "name": "constantes_temporelles_coherentes",
       "value": 3,
       "sample_size": 3,
-      "command": ".venv/bin/python -c \"import pathlib; src=pathlib.Path('sim/constants.py').read_text(); names=['FOOD_PRODUCTION_KG_PER_KM2_PER_TICK','FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK','TRADE_CAPACITY_KG_PER_EDGE_PER_TICK']; print(sum(1 for n in names if n in src and 'TICK_DURATION_DAYS' in src))\""
+      "command": ".venv/bin/python -c \"import pathlib; src=pathlib.Path('sim/constants.py').read_text(); names=['FOOD_PRODUCTION_KG_PER_KM2_PER_TICK','FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK','TRADE_CAPACITY_KG_PER_EDGE_PER_TICK']; print(sum(1 for line in src.splitlines() for n in names if line.startswith(n) and 'TICK_DURATION_DAYS' in line))\""
     },
     {
       "name": "rng_etat_change_apres_tick",
@@ -72,7 +72,7 @@
       "name": "cellules_affamees_monde_reel",
       "value": 261,
       "sample_size": 596,
-      "command": ".venv/bin/python -c \"import random; from sim.world import World; from sim.engine import tick; world=World.from_g3(rng_seed=42); rng=random.Random(42); faim=set(); [faim.update(cid for cid,c in world.cells.items() if tick(world,rng) or c.hunger_ticks>0) for _ in range(200)]; print(len(faim))\""
+      "command": ".venv/bin/python harness/queue/briefs/012-monde-vivant-commerce-inter-cellules/deliverables/measure_cellules_affamees.py"
     },
     {
       "name": "morts_cumules_monde_reel",
@@ -114,6 +114,12 @@
       "name": "lignes_differentes_couverture_ext_rouge_vert",
       "value": 132,
       "sample_size": 132,
+      "command": "diff <(git show 444ec45:sim/tests/proof_red/run_coverage_ext_red.txt) <(git show 444ec45:sim/tests/proof_red/run_coverage_ext_green.txt) | wc -l"
+    },
+    {
+      "name": "lignes_differentes_couverture_ext_rouge_vert_iter2",
+      "value": 136,
+      "sample_size": 136,
       "command": "diff sim/tests/proof_red/run_coverage_ext_red.txt sim/tests/proof_red/run_coverage_ext_green.txt | wc -l"
     }
   ],

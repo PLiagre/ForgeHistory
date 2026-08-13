@@ -109,6 +109,12 @@ food_produced = area_km2 × FOOD_PRODUCTION_KG_PER_KM2_PER_TICK × yield_factor
 | `RNG_YIELD_LOW` | 0.5 | — | Facteur multiplicatif minimum : mauvaise saison (sécheresse, gel) à 50 % du rendement nominal |
 | `RNG_YIELD_HIGH` | 1.5 | — | Facteur multiplicatif maximum : bonne saison à 150 % du rendement nominal |
 
+### Justification du dénominateur de `constantes_temporelles_coherentes` (N1 — itération 2)
+
+Le brief 012 cite trois constantes temporelles attendues : production, consommation et **constante de réserve initiale**. Le manifeste déclare un dénominateur de **3 constantes** couvrant production, consommation et capacité de transport (`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`), au lieu d'inclure `INITIAL_FOOD_RESERVE_TICKS`.
+
+**Justification explicite** : `INITIAL_FOOD_RESERVE_TICKS` est exprimé en **ticks** (unité canonique du moteur), ce qui était précisément la correction d'unité demandée par SC1. Sa valeur brute `5` n'est pas multipliée par `TICK_DURATION_DAYS` — la multiplier rendrait la constante dimensionnellement incorrecte (tick × tick, pas tick). Elle est **unitairement neutre** par rapport à `TICK_DURATION_DAYS`. Le dénominateur du compteur porte donc sur les trois constantes réellement dérivées via `× TICK_DURATION_DAYS` : production, consommation, capacité de transport.
+
 ### Calibration SC5
 
 Avec `FOOD_PRODUCTION_KG_PER_KM2_PER_TICK = 18.0` et

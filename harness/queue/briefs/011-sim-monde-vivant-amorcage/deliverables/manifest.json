@@ -90,6 +90,12 @@
       "sample_size": 94,
       "command": "diff sim/tests/proof_red/run_phantom_red.txt sim/tests/proof_red/run_phantom_green.txt | wc -l"
     },
+    {
+      "name": "lignes_differentes_preuve_rouge_iter1",
+      "value": 70,
+      "sample_size": 70,
+      "command": "diff <(git show aec84f1:sim/tests/proof_red/run_sabotage.txt) <(git show aec84f1:sim/tests/proof_red/run_correct.txt) | wc -l"
+    }
   ],
   "waivers": []
 }

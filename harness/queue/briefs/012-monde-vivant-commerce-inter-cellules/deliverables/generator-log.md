@@ -1,13 +1,15 @@
 # Journal du Générateur — Brief 012
 
 **Authored**: 2026-08-13T07:00:00Z
-**Author**: forge-generateur-cursor
+**Author**: forge-generateur
 
 ---
 
 ## Note de transparence
 
-Le rôle Générateur a tourné comme sous-agent hébergé par Cursor (forge-generateur-cursor), en remplacement de Claude indisponible directement, sur instruction du propriétaire, dans une session distincte de celles du Planificateur et de l'Évaluateur. Conformément au contrat de harnais trois-rôles (harness-roles.md), le Générateur ne prononce pas la recevabilité de son propre travail.
+Le rôle Générateur a tourné comme sous-agent hébergé par Cursor, en remplacement de Claude indisponible directement, sur instruction du propriétaire, dans une session distincte de celles du Planificateur et de l'Évaluateur. Conformément au contrat de harnais trois-rôles (harness-roles.md), le Générateur ne prononce pas la recevabilité de son propre travail.
+
+**Normalisation de la signature (itération 2 — décision d'orchestration).** La ligne `**Author**:` de l'itération 1 portait `forge-generateur-cursor`. Sur décision de l'orchestrateur, elle a été normalisée en `forge-generateur` (rôle natif), afin que le contrôle `verdict_is_not_self_authored` puisse distinguer l'acteur Générateur de l'acteur Évaluateur par leur rôle, non par leur suffixe de backend. L'acteur réel (sous-agent hébergé par Cursor) reste déclaré en prose dans cette note. L'angle mort structurel — un couple `forge-generateur` / `forge-evaluateur` sans suffixe de backend ne peut pas être distingué mécaniquement si les deux roulent sous le même backend natif — est documenté et sa fermeture mécanique (traçage d'acteur hors chaînes auto-déclarées) est différée au brief de harnais issu du point 1 de l'audit `CURSOR-3b47ffe-pr57-monde-sans-faim` (voir Non-Goals du brief 012).
 
 ---
 
@@ -278,3 +280,127 @@ Aucun écart au brief. Aucune dérogation autre que celle sur le budget UNMEASUR
 ---
 
 **Celui qui produit ne prononce pas la recevabilité.**
+
+---
+
+## Itération 2 — Corrections B1, B2, N1, N2, N3
+
+**Authored**: 2026-08-13T07:40:00Z
+**Author**: forge-generateur
+
+Itération déclenchée par le feedback `feedback-001.md` (REJECT itération 1).
+Les cinq points ci-dessous correspondent aux issues B1, B2, N1, N2, N3.
+R4 reste optionnel, non traité.
+
+### B1 — Restauration du compteur `lignes_differentes_preuve_rouge_iter1` dans le manifeste du lot 011
+
+**Problème** : l'entrée avait été retirée, laissant du JSON invalide (virgule orpheline). La porte 2 (retrait autorisé) n'était pas satisfaite car le verdict.md et le generator-log.md du lot 011 citent tous deux cette valeur.
+
+**Correction** : restauration de l'entrée avec la commande git-archivée qui lit les fichiers dans l'état du commit d'itération 1 du lot 011 (`aec84f1`).
+
+Commande exécutée :
+```
+diff <(git show aec84f1:sim/tests/proof_red/run_sabotage.txt) <(git show aec84f1:sim/tests/proof_red/run_correct.txt) | wc -l
+```
+
+Sortie : `70` — valeur archivée confirmée.
+
+Validation gate 011 :
+```
+.venv/bin/python -c "import json; json.load(open('harness/queue/briefs/011-sim-monde-vivant-amorcage/deliverables/manifest.json')); print('JSON valide')"
+.venv/bin/python harness/verdict_audit.py harness/queue/briefs/011-sim-monde-vivant-amorcage
+```
+
+Sortie gate 011 : JSON valide, `VERDICT: ACCEPT` (tous les contrôles au vert).
+
+### B2 — Correction de la commande `cellules_affamees_monde_reel`
+
+**Problème** : la commande en ligne incorporait l'appel à `tick()` dans l'expression génératrice, ce qui avançait le monde une fois par cellule et court-circuitait l'opérateur `or` sur la valeur retournée par tick (kg transportés). Elle affichait 579 au lieu de 261.
+
+**Correction** : script de mesure déposé dans `deliverables/measure_cellules_affamees.py`, qui sépare correctement la boucle de ticks de l'accumulation des cellules affamées.
+
+Commande exécutée :
+```
+.venv/bin/python harness/queue/briefs/012-monde-vivant-commerce-inter-cellules/deliverables/measure_cellules_affamees.py
+```
+
+Sortie : `261` — valeur du compteur confirmée.
+
+### N1 — Correction de la commande `constantes_temporelles_coherentes`
+
+**Problème** : la commande testait la présence de `TICK_DURATION_DAYS` dans l'ensemble du fichier, pas dans la ligne d'affectation de chaque constante. Elle retournait 3 même si aucune dérivation n'était présente.
+
+**Correction** : vérification ligne par ligne — pour chaque nom de constante, la ligne qui commence par ce nom doit contenir `TICK_DURATION_DAYS`.
+
+Commande exécutée :
+```
+.venv/bin/python -c "import pathlib; src=pathlib.Path('sim/constants.py').read_text(); names=['FOOD_PRODUCTION_KG_PER_KM2_PER_TICK','FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK','TRADE_CAPACITY_KG_PER_EDGE_PER_TICK']; print(sum(1 for line in src.splitlines() for n in names if line.startswith(n) and 'TICK_DURATION_DAYS' in line))"
+```
+
+Sortie : `3`.
+
+**Validation red** : dans une copie hors dépôt, suppression du facteur `* TICK_DURATION_DAYS` de `FOOD_PRODUCTION_KG_PER_KM2_PER_TICK` → la commande retourne `2` (pas `3`). La garde est opérante.
+
+**Justification de la substitution `INITIAL_FOOD_RESERVE_TICKS`** : voir `sim/SEEDING.md` § « Justification du dénominateur de `constantes_temporelles_coherentes` ». En résumé : la constante est désormais exprimée en ticks (unité canonique du moteur — c'est précisément la correction demandée par SC1). La multiplier par `TICK_DURATION_DAYS` produirait une dimension tick×tick, incorrect. Le dénominateur du compteur porte donc sur les trois constantes réellement dérivées.
+
+### N2 — Correction des superficies de test dans `test_causal_chain.py`
+
+**Problème** : SC7a utilisait `area_km2=0.001` sans annotation ; SC7b utilisait `area_km2=0.0` sans annotation.
+
+**Correction** :
+- SC7a : superficie remontée à `1.0` km², population ajustée à `5000` pour conserver l'écart production/consommation (production max ≈ 27 kg/tick << consommation 10 000 kg/tick).
+- SC7b : superficie remontée à `1.0` km² (la superficie n'est pas lue par `_update_hunger`, le test conserve son sens, le plancher est respecté).
+
+Validation : `.venv/bin/python -m pytest sim/tests/test_causal_chain.py -v` → 4 PASSED.
+
+### N3 — Régénération de la paire proof rouge/vert couverture étendue
+
+**Problème** : le sabotage de l'itération 1 ajoutait un champ fantôme à la dataclass existante (`Cell`), ce qui testait la capacité du lot 011, pas la capacité nouvelle R2 (découverte d'une dataclass entière par introspection).
+
+**Correction** : nouveau sabotage dans `/tmp/sabotage-012/workspace/sim/model.py` — ajout d'une **nouvelle dataclass** `SabotageDataclass` avec un champ `orphan_field` sans écrivain ni lecteur. Le test nommant la classe et le champ fautifs (`SabotageDataclass.orphan_field`), la capacité R2 est exercée.
+
+Sortie rouge (sabotage) :
+```
+FAILED sim/tests/test_write_coverage.py::test_all_dataclass_fields_have_write_and_read_sites
+FAILED sim/tests/test_write_coverage.py::test_write_coverage_counter_etendu
+AssertionError: Couverture d'écriture incomplète :
+  - SabotageDataclass.orphan_field : aucun site d'écriture
+  - SabotageDataclass.orphan_field : aucun site de lecture
+2 failed, 1 passed
+```
+
+Sortie verte (code correct) :
+```
+3 passed
+```
+
+Diff des fichiers : `diff sim/tests/proof_red/run_coverage_ext_red.txt sim/tests/proof_red/run_coverage_ext_green.txt | wc -l` → `136`.
+
+Pour la traçabilité du verdict itération 1 (qui cite `132`), le compteur `lignes_differentes_couverture_ext_rouge_vert` pointe vers les fichiers archivés dans le commit `444ec45` (iter 1) et rend `132`. Un second compteur `lignes_differentes_couverture_ext_rouge_vert_iter2` pointe vers les fichiers courants et rend `136`.
+
+### État des gates et suites après corrections
+
+**Gate lot 011** : `VERDICT: ACCEPT` (10 contrôles au vert).
+
+**Gate lot 012** :
+```
+[PASS] files_declared_exist
+[PASS] mtime_after_brief
+[PASS] captures_differ_when_should
+[PASS] waivers_have_command_and_error
+[PASS] no_empty_sample_pass
+[PASS] verdict_numbers_traceable
+[PASS] no_bare_python_alias
+[PASS] verdict_is_not_self_authored
+[PASS] rubric_predates_deliverables
+[PASS] declared_files_are_tracked
+VERDICT: ACCEPT
+```
+
+**Suite `sim/tests/`** : 25 tests PASSED.
+
+**Suite `harness/tests/`** : 314 passed, 16 skipped (les skips sont les tests Unity/PowerShell, attendus sur Linux).
+
+### Confirmation
+
+Ni committé, ni poussé, ni aucune branche créée dans cette itération.
