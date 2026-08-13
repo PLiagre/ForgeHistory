@@ -15,6 +15,7 @@
 
 ## Ce qui attend le propriétaire
 
+- Fusionner (ou refuser) la PR #74 — « challenge: revue de l'audit CURSOR-9e35764-pr63-contre-audit-jamais-enregistre » (branche `forge-bot/review-CURSOR-9e35764-pr63-contre-audit-jamais-enregistre-31683996328`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -25,21 +26,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 11:02:08 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:02:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:02:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:02:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:02:02 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:02:01 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 11:02:01 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 11:02:01 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:02:01 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:01:57 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 11:01:57 | hermes-dashboard | push | master | pending |
-| 2026-08-13 11:01:57 | audit-guard | push | master | in_progress |
-| 2026-08-13 11:01:57 | harness-ci | push | master | queued |
-| 2026-08-13 11:01:57 | security | push | master | in_progress |
-| 2026-08-13 11:01:57 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:27 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-9e35764-pr63-contre-audit-jamais-enregistre-31683996328 | queued |
+| 2026-08-13 11:02:27 | pipeline-audit | pull_request | forge-bot/review-CURSOR-9e35764-pr63-contre-audit-jamais-enregistre-31683996328 | queued |
+| 2026-08-13 11:02:27 | audit-guard | pull_request | forge-bot/review-CURSOR-9e35764-pr63-contre-audit-jamais-enregistre-31683996328 | queued |
+| 2026-08-13 11:02:27 | security | pull_request | forge-bot/review-CURSOR-9e35764-pr63-contre-audit-jamais-enregistre-31683996328 | queued |
+| 2026-08-13 11:02:27 | merge-bot | pull_request | forge-bot/review-CURSOR-9e35764-pr63-contre-audit-jamais-enregistre-31683996328 | queued |
+| 2026-08-13 11:02:27 | harness-ci | pull_request | forge-bot/review-CURSOR-9e35764-pr63-contre-audit-jamais-enregistre-31683996328 | queued |
+| 2026-08-13 11:02:22 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:21 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:15 | audit-guard | push | master | in_progress |
+| 2026-08-13 11:02:15 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 11:02:15 | harness-ci | push | master | in_progress |
+| 2026-08-13 11:02:15 | security | push | master | in_progress |
+| 2026-08-13 11:02:15 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:15 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 11:02:12 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
