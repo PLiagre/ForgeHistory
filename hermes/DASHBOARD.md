@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 08:28 UTC.
+> Générée le 2026-08-13 08:35 UTC.
 
 ## En bref
 
@@ -23,21 +23,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 08:28:19 | pipeline-orchestrate | push | master | in_progress |
-| 2026-08-13 08:28:19 | harness-ci | push | master | queued |
-| 2026-08-13 08:28:19 | audit-guard | push | master | in_progress |
-| 2026-08-13 08:28:19 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 08:28:19 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 08:28:19 | security | push | master | in_progress |
-| 2026-08-13 08:28:19 | hermes-observer | pull_request_target | forge/012-monde-vivant-commerce-ddda | queued |
-| 2026-08-13 08:23:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:22:58 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:22:56 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:22:47 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:22:45 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:22:45 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 08:22:40 | harness-ci | push | forge-bot/review-CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois-31681378615 | success |
-| 2026-08-13 08:22:40 | audit-guard | push | forge-bot/review-CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois-31681378615 | success |
+| 2026-08-13 08:35:11 | hermes-dashboard | push | master | pending |
+| 2026-08-13 08:35:11 | audit-guard | push | master | queued |
+| 2026-08-13 08:35:11 | security | push | master | queued |
+| 2026-08-13 08:35:11 | harness-ci | push | master | queued |
+| 2026-08-13 08:35:11 | pipeline-audit | push | master | queued |
+| 2026-08-13 08:35:11 | pipeline-orchestrate | push | master | pending |
+| 2026-08-13 08:35:11 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois-31681378615 | queued |
+| 2026-08-13 08:35:09 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:35:07 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:35:06 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:35:05 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:35:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:35:03 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 08:35:01 | audit-guard | push | master | in_progress |
+| 2026-08-13 08:35:01 | hermes-dashboard | push | master | in_progress |
 
 ## Agents lancés récemment (Cursor Cloud)
 
