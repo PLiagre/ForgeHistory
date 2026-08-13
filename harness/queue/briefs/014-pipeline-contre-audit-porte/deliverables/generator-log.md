@@ -535,3 +535,5 @@ VERDICT: ACCEPT
 ```
 
 *Note de transparence 2026-08-13 — itération 3 : cette section est rédigée par forge-generateur, acteur réel Cursor Cloud, exécutant les commandes localement sur la VM Linux.*
+
+**2026-08-13 correctif actionlint** : `.github/workflows/audit-guard.yml` job `audit-check` — `github.head_ref` et `github.event.pull_request.head.sha` passés par bloc `env:` (`PR_HEAD_BRANCH` / `PR_HEAD_COMMIT`) plutôt qu'injectés inline dans le script. Sorties rejouées : `20 passed in 0.11s` (test_pr_audit_guard + test_pipeline_challenge_paths) ; gate : `VERDICT: ACCEPT` (2026-08-13T13:01:xx).
