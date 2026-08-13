@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 08:17 UTC.
+> Générée le 2026-08-13 08:28 UTC.
 
 ## En bref
 
@@ -15,7 +15,6 @@
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #60 — « Brief 012 : le monde vivant vit — base de temps, équilibre alimentaire mesuré et commerce inter-cellules (F2) » (branche `forge/012-monde-vivant-commerce-ddda`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -24,21 +23,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 08:17:05 | hermes-observer | pull_request_target | cursor/cursor-pull-request-60-audit-f10f | queued |
-| 2026-08-13 08:17:05 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 08:17:05 | security | push | master | in_progress |
-| 2026-08-13 08:17:05 | harness-ci | push | master | in_progress |
-| 2026-08-13 08:17:05 | audit-guard | push | master | success |
-| 2026-08-13 08:17:05 | pipeline-audit | push | master | success |
-| 2026-08-13 08:17:05 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 08:17:03 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:16:54 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:16:51 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:16:50 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:16:46 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:16:42 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 08:16:42 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:16:31 | hermes-observer | pull_request_target | cursor/cursor-pull-request-60-audit-f10f | cancelled |
+| 2026-08-13 08:28:19 | pipeline-orchestrate | push | master | in_progress |
+| 2026-08-13 08:28:19 | harness-ci | push | master | queued |
+| 2026-08-13 08:28:19 | audit-guard | push | master | in_progress |
+| 2026-08-13 08:28:19 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 08:28:19 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 08:28:19 | security | push | master | in_progress |
+| 2026-08-13 08:28:19 | hermes-observer | pull_request_target | forge/012-monde-vivant-commerce-ddda | queued |
+| 2026-08-13 08:23:07 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:22:58 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:22:56 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:22:47 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:22:45 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:22:45 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 08:22:40 | harness-ci | push | forge-bot/review-CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois-31681378615 | success |
+| 2026-08-13 08:22:40 | audit-guard | push | forge-bot/review-CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois-31681378615 | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -54,10 +53,10 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-779d97c-revue-verdicts-illisibles | contre-audit rendu — attend la décision | 2026-08-12 12:30 |
 | CURSOR-e849633-hermes-demande-pilotage | retenu — à convertir en brief | 2026-08-12 15:32 |
 | CURSOR-0269d8e-hermes-console-droit-executer | retenu — à convertir en brief | 2026-08-12 15:49 |
+| CURSOR-3b47ffe-pr57-monde-sans-faim | converti en brief — travail à produire | 2026-08-13 06:25 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-3b47ffe-pr57-monde-sans-faim | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-3ce7947-pr36-hermes-skill-versionnee | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
@@ -87,6 +86,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 009-full-auto-agent-invocation | dernier verdict tracé : ACCEPT |
 | 010-repartition-roles-full-auto | dernier verdict tracé : ACCEPT |
 | 011-sim-monde-vivant-amorcage | dernier verdict tracé : ACCEPT |
+| 012-monde-vivant-commerce-inter-cellules | dernier verdict tracé : ACCEPT |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
@@ -95,7 +95,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 28 | 2026-08-11 14:07 |
-| cursor | 6 | 2026-08-12 16:43 |
+| cursor | 7 | 2026-08-13 06:59 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
