@@ -5,13 +5,13 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 08:52 UTC.
+> Générée le 2026-08-13 08:56 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 23 — boucles closes : 7.
+- **Audits en cours** : 24 — boucles closes : 7.
 
 ## Ce qui attend le propriétaire
 
@@ -25,21 +25,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 08:52:50 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:47 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:44 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:41 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 08:52:41 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:40 | security | push | master | in_progress |
-| 2026-08-13 08:52:40 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 08:52:40 | audit-guard | push | master | in_progress |
-| 2026-08-13 08:52:40 | harness-ci | push | master | in_progress |
-| 2026-08-13 08:52:36 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:35 | hermes-observer | pull_request_target | cursor/audit-de-la-pull-request-62-210c | queued |
-| 2026-08-13 08:52:35 | audit-guard | push | master | success |
-| 2026-08-13 08:52:35 | harness-ci | push | master | in_progress |
-| 2026-08-13 08:52:35 | security | push | master | in_progress |
-| 2026-08-13 08:52:35 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 08:56:19 | hermes-observer | pull_request_target | cursor/critique-pull-request-65-0a5a | queued |
+| 2026-08-13 08:56:18 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 08:56:18 | harness-ci | push | master | in_progress |
+| 2026-08-13 08:56:18 | audit-guard | push | master | in_progress |
+| 2026-08-13 08:56:18 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 08:56:18 | security | push | master | in_progress |
+| 2026-08-13 08:56:18 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 08:56:16 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:56:11 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:56:07 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:56:04 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:55:55 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:55:52 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:55:52 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 08:55:51 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -64,6 +64,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-3ce7947-pr36-hermes-skill-versionnee | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-4c45718-pr65-ledger-recupere-a-la-main | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-7e5244b-ledger-post-fusion-poussee-master | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-949ecf1-pr42-revue-non-consommable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-9e35764-pr63-contre-audit-jamais-enregistre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
