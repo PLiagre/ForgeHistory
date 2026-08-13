@@ -941,3 +941,17 @@ imparfaitement (N`9`).
 Pas de `feedback/feedback-003.md` : le lot est accepté. Les réserves N`8` à
 N`12` sont dans la section `5` ci-dessus, chacune avec sa correction attendue,
 à l'intention du Planificateur.
+
+### Note du 2026-08-13T13:05Z — correctif actionlint re-vérifié
+
+Le correctif `150fd14` (signalement actionlint sur `github.head_ref` injecté en
+ligne dans le job `audit-check`) est bien limité à ce qu'il annonce : un bloc
+`env:` (`PR_HEAD_BRANCH` / `PR_HEAD_COMMIT`) substitué à deux interpolations
+inline, plus deux lignes datées au journal du Générateur — `7` insertions et
+`2` suppressions sur `2` fichiers, rien d'autre. Le comportement est inchangé
+(mêmes deux options, mêmes valeurs) et le motif est celui que le job voisin
+`cursor-scope` utilisait déjà ; j'ai vérifié qu'aucune expression `${{ }}` ne
+subsiste dans un bloc `run:` de ce workflow. Rejoués : les deux suites ciblées
+`20` passés, le gate `VERDICT: ACCEPT`, les compteurs SC`2` inchangés (`3` jobs,
+condition du job identique). La ligne rectificative de la réserve N`8` est
+en place (le registre annonce désormais `cursor=2`). **Verdict PASS inchangé.**
