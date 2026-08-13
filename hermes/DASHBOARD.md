@@ -16,8 +16,6 @@
 ## Ce qui attend le propriétaire
 
 - Fusionner (ou refuser) la PR #99 — « ADR-0012 : audit et contre-audit par grandes étapes — plus jamais par PR (décision propriétaire, empilée sur #92) » (branche `forge/adr-0012-audit-par-etapes-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
-- Fusionner (ou refuser) la PR #92 — « Clôture de session 2026-08-13 (après-midi) : addendum HANDOFF + correction factuelle ROADMAP » (branche `forge/cloture-session-20260813-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
-- Fusionner (ou refuser) la PR #89 — « Tenue de registre : conversions des audits moteur de la PR #69 — graines de briefs 015 et 016 (empilée sur #77) » (branche `forge/conversions-briefs-015-016-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -25,30 +23,28 @@
 - Convertir l'audit retenu `CURSOR-4c45718-pr65-ledger-recupere-a-la-main` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-9e35764-pr63-contre-audit-jamais-enregistre` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-29913c0-pr69-seuil-survie-non-borne` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-827d54e-contre-audit-paye-jamais-publie` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-f978cc7-pr77-cloture-affirmee-hors-registre` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 20:21:15 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:15 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:15 | pipeline-failure-escalate | workflow_run | master | queued |
-| 2026-08-13 20:21:13 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:09 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:04 | harness-ci | push | master | in_progress |
-| 2026-08-13 20:21:04 | audit-guard | push | master | in_progress |
-| 2026-08-13 20:21:04 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 20:21:04 | security | push | master | in_progress |
-| 2026-08-13 20:21:01 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:59 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:58 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 20:20:58 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:57 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:56 | security | push | master | success |
+| 2026-08-13 20:21:40 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:38 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:36 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:35 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:35 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 20:21:33 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:28 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:28 | hermes-observer | pull_request_target | forge/conversions-briefs-015-016-e180 | queued |
+| 2026-08-13 20:21:28 | security | push | master | in_progress |
+| 2026-08-13 20:21:28 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 20:21:28 | audit-guard | push | master | success |
+| 2026-08-13 20:21:28 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 20:21:28 | harness-ci | push | master | in_progress |
+| 2026-08-13 20:21:25 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:23 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -69,9 +65,9 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-4c45718-pr65-ledger-recupere-a-la-main | retenu — à convertir en brief | 2026-08-13 11:01 |
 | CURSOR-9e35764-pr63-contre-audit-jamais-enregistre | retenu — à convertir en brief | 2026-08-13 11:03 |
 | CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion | retenu — à convertir en brief | 2026-08-13 11:04 |
-| CURSOR-29913c0-pr69-seuil-survie-non-borne | retenu — à convertir en brief | 2026-08-13 12:50 |
+| CURSOR-29913c0-pr69-seuil-survie-non-borne | converti en brief — travail à produire | 2026-08-13 12:59 |
 | CURSOR-827d54e-contre-audit-paye-jamais-publie | retenu — à convertir en brief | 2026-08-13 12:51 |
-| CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite | retenu — à convertir en brief | 2026-08-13 12:53 |
+| CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite | converti en brief — travail à produire | 2026-08-13 12:59 |
 | CURSOR-f978cc7-pr77-cloture-affirmee-hors-registre | retenu — à convertir en brief | 2026-08-13 12:55 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
@@ -119,6 +115,8 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 012-monde-vivant-commerce-inter-cellules | dernier verdict tracé : ACCEPT |
 | 013-sim-tick-nourrit-une-fois | dernier verdict tracé : ACCEPT |
 | 014-pipeline-contre-audit-porte | dernier verdict tracé : ACCEPT |
+| 015-pr69-seuil-survie-ignore-mortalite | pas encore de verdict |
+| 016-pr69-seuil-survie-non-borne | pas encore de verdict |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
