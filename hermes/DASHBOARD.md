@@ -5,13 +5,13 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 20:22 UTC.
+> Générée le 2026-08-13 20:40 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 39 — boucles closes : 9.
+- **Audits en cours** : 40 — boucles closes : 9.
 
 ## Ce qui attend le propriétaire
 
@@ -29,21 +29,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 20:22:28 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:28 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 20:22:26 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:21 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:18 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:17 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:13 | security | push | master | in_progress |
-| 2026-08-13 20:22:13 | harness-ci | push | master | in_progress |
-| 2026-08-13 20:22:13 | audit-guard | push | master | in_progress |
-| 2026-08-13 20:22:06 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:03 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:03 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:22:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:40:08 | audit-guard | push | master | success |
+| 2026-08-13 20:40:08 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 20:40:08 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 20:40:08 | harness-ci | push | master | in_progress |
+| 2026-08-13 20:40:08 | security | push | master | success |
+| 2026-08-13 20:40:06 | hermes-observer | pull_request_target | cursor/audit-de-grande-tape-9450 | queued |
+| 2026-08-13 20:40:04 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:39:54 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:39:53 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:39:53 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:39:36 | hermes-observer | pull_request_target | cursor/audit-de-grande-tape-9450 | cancelled |
+| 2026-08-13 20:39:36 | audit-guard | pull_request | cursor/audit-de-grande-tape-9450 | success |
+| 2026-08-13 20:39:36 | security | pull_request | cursor/audit-de-grande-tape-9450 | success |
+| 2026-08-13 20:39:36 | merge-bot | pull_request | cursor/audit-de-grande-tape-9450 | success |
+| 2026-08-13 20:39:36 | harness-ci | pull_request | cursor/audit-de-grande-tape-9450 | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -75,6 +75,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4b6dcff-pr73-contre-audit-recompte-a-tort | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-546a9d4-etape-declenchee-sans-jalon | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-587ee82-pr84-contre-audit-sans-pouvoir-de-refus | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-70380c6-pr83-etat-refus-sans-lecteur | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-70380c6-pr83-porte-desarmee-par-la-derive-de-sha | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
