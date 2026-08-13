@@ -37,3 +37,6 @@
 {"timestamp": "2026-08-13T06:59:08.650798", "backend": "cursor", "brief": "harness/queue/briefs/012-monde-vivant-commerce-inter-cellules", "event": "generator-run", "audit_id": "CURSOR-3b47ffe-pr57-monde-sans-faim"}
 {"timestamp": "2026-08-13T09:17:50.450810", "backend": "cursor", "brief": "harness/queue/briefs/013-sim-tick-nourrit-une-fois", "event": "generator-run", "audit_id": "CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois"}
 {"timestamp": "2026-08-13T10:24:17.748039", "backend": "cursor", "brief": "harness/queue/briefs/013-sim-tick-nourrit-une-fois", "event": "generator-run", "audit_id": "CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois"}
+{"timestamp": "2026-08-13T11:31:18.496357", "backend": "cursor", "brief": "harness/queue/briefs/014-pipeline-contre-audit-porte", "event": "generator-run", "audit_id": "CURSOR-a600532-fusion-sans-contre-audit"}
+{"timestamp": "2026-08-13T12:32:10.577540", "backend": "claude", "brief": "harness/queue/briefs/014-pipeline-contre-audit-porte", "event": "generator-run"}
+{"timestamp": "2026-08-13T12:46:31.729128", "backend": "cursor", "brief": "harness/queue/briefs/014-pipeline-contre-audit-porte", "event": "generator-run", "audit_id": "CURSOR-a600532-fusion-sans-contre-audit"}

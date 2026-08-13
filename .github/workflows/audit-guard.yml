@@ -48,3 +48,21 @@ jobs:
             exit 1
           fi
           echo "Scope OK: Cursor PR touches only architecture/inbox/."
+
+  audit-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - name: Vérifier les audits non adjugés ciblant cette PR
+        env:
+          PR_HEAD_BRANCH: ${{ github.head_ref }}
+          PR_HEAD_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python harness/pipeline/pr_audit_guard.py check \
+            --head-branch "$PR_HEAD_BRANCH" \
+            --head-commit "$PR_HEAD_COMMIT"

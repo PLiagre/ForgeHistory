@@ -1,0 +1,16 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+collecting ... collected 8 items
+
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429 sans identifiant Codex] PASSED [ 12%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429, identifiants pr\xe9sents, CLI absent] PASSED [ 25%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429, Codex r\xe9ussit] PASSED [ 37%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[erreur statut 500] PASSED [ 50%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[CLI qui plante, transcript vide] PASSED [ 62%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[transcript illisible, revue produite] PASSED [ 75%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[succ\xe8s normal] PASSED [ 87%]
+harness/tests/test_pipeline_challenge_paths.py::test_b3_step_present_in_workflow PASSED [100%]
+
+============================== 8 passed in 0.02s ===============================
