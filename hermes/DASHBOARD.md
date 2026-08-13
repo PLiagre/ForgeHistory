@@ -5,16 +5,17 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 07:57 UTC.
+> Générée le 2026-08-13 08:17 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 19 — boucles closes : 7.
+- **Audits en cours** : 20 — boucles closes : 7.
 
 ## Ce qui attend le propriétaire
 
+- Fusionner (ou refuser) la PR #60 — « Brief 012 : le monde vivant vit — base de temps, équilibre alimentaire mesuré et commerce inter-cellules (F2) » (branche `forge/012-monde-vivant-commerce-ddda`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -23,21 +24,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 07:57:00 | hermes-dashboard | schedule | master | in_progress |
-| 2026-08-13 07:56:55 | audit-guard | push | forge/012-monde-vivant-commerce-ddda | success |
-| 2026-08-13 07:56:55 | security | push | forge/012-monde-vivant-commerce-ddda | in_progress |
-| 2026-08-13 07:56:55 | harness-ci | push | forge/012-monde-vivant-commerce-ddda | in_progress |
-| 2026-08-13 07:07:25 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 07:07:19 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 07:07:15 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 07:07:02 | security | push | cursor/brief-012-commerce-inter-cellules-971b | success |
-| 2026-08-13 07:07:02 | harness-ci | push | cursor/brief-012-commerce-inter-cellules-971b | success |
-| 2026-08-13 07:07:02 | audit-guard | push | cursor/brief-012-commerce-inter-cellules-971b | success |
-| 2026-08-13 07:06:45 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 07:06:44 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 07:06:34 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 07:06:17 | harness-ci | push | cursor/brief-012-commerce-inter-cellules-971b | success |
-| 2026-08-13 07:06:17 | security | push | cursor/brief-012-commerce-inter-cellules-971b | success |
+| 2026-08-13 08:17:05 | hermes-observer | pull_request_target | cursor/cursor-pull-request-60-audit-f10f | queued |
+| 2026-08-13 08:17:05 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 08:17:05 | security | push | master | in_progress |
+| 2026-08-13 08:17:05 | harness-ci | push | master | in_progress |
+| 2026-08-13 08:17:05 | audit-guard | push | master | success |
+| 2026-08-13 08:17:05 | pipeline-audit | push | master | success |
+| 2026-08-13 08:17:05 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 08:17:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:16:54 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:16:51 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:16:50 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:16:46 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:16:42 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 08:16:42 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:16:31 | hermes-observer | pull_request_target | cursor/cursor-pull-request-60-audit-f10f | cancelled |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -62,6 +63,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-7e5244b-ledger-post-fusion-poussee-master | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-949ecf1-pr42-revue-non-consommable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-a600532-fusion-sans-contre-audit | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-bb8fe11-hermes-console-adr-0011 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-cd1dcd2-forge-bot-pat-boucle-jetons | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
