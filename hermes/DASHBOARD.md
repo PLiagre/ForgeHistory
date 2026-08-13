@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 03:02 UTC.
+> Générée le 2026-08-13 06:13 UTC.
 
 ## En bref
 
@@ -15,7 +15,6 @@
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #57 — « Brief 011 : amorçage du moteur sim/ — monde vivant, couche 1 (F2) » (branche `forge/011-sim-monde-vivant-a67c`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -24,21 +23,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 03:02:06 | hermes-dashboard | schedule | master | in_progress |
-| 2026-08-12 19:30:57 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 19:30:51 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 19:30:48 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 19:30:47 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-12 19:30:47 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 19:30:43 | hermes-observer | workflow_run | master | queued |
-| 2026-08-12 19:30:29 | security | push | master | success |
-| 2026-08-12 19:30:29 | harness-ci | push | master | success |
-| 2026-08-12 19:30:29 | pipeline-audit | push | master | success |
-| 2026-08-12 19:30:29 | audit-guard | push | master | success |
-| 2026-08-12 19:30:07 | hermes-dashboard | schedule | master | success |
-| 2026-08-12 17:10:50 | hermes-observer | workflow_run | master | success |
-| 2026-08-12 17:10:47 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-12 17:10:47 | hermes-observer | workflow_run | master | success |
+| 2026-08-13 06:13:17 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 06:13:03 | hermes-observer | pull_request_target | forge/011-sim-monde-vivant-a67c | queued |
+| 2026-08-13 06:13:02 | security | push | master | success |
+| 2026-08-13 06:13:02 | harness-ci | push | master | in_progress |
+| 2026-08-13 06:13:02 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 06:13:02 | audit-guard | push | master | success |
+| 2026-08-13 06:13:02 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 03:03:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 03:03:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 03:02:52 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 03:02:52 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 03:02:52 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 03:02:51 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 03:02:35 | audit-guard | push | master | success |
+| 2026-08-13 03:02:35 | security | push | master | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -84,6 +83,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 008-full-auto-automation-gaps | dernier verdict tracé : ACCEPT |
 | 009-full-auto-agent-invocation | dernier verdict tracé : ACCEPT |
 | 010-repartition-roles-full-auto | dernier verdict tracé : ACCEPT |
+| 011-sim-monde-vivant-amorcage | dernier verdict tracé : ACCEPT |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
@@ -92,7 +92,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 28 | 2026-08-11 14:07 |
-| cursor | 4 | 2026-07-29 17:31 |
+| cursor | 6 | 2026-08-12 16:43 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
