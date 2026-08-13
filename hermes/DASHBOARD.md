@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 06:26 UTC.
+> Générée le 2026-08-13 07:57 UTC.
 
 ## En bref
 
@@ -23,21 +23,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 06:26:41 | harness-ci | push | master | in_progress |
-| 2026-08-13 06:26:41 | audit-guard | push | master | in_progress |
-| 2026-08-13 06:26:41 | security | push | master | in_progress |
-| 2026-08-13 06:26:41 | pipeline-audit | push | master | success |
-| 2026-08-13 06:26:41 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 06:26:41 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 06:26:40 | hermes-observer | pull_request_target | cursor/audit-commit-fusionn-a269 | queued |
-| 2026-08-13 06:26:38 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 06:26:23 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 06:26:22 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 06:26:22 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 06:26:14 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 06:26:12 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 06:26:09 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 06:26:09 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 07:57:00 | hermes-dashboard | schedule | master | in_progress |
+| 2026-08-13 07:56:55 | audit-guard | push | forge/012-monde-vivant-commerce-ddda | success |
+| 2026-08-13 07:56:55 | security | push | forge/012-monde-vivant-commerce-ddda | in_progress |
+| 2026-08-13 07:56:55 | harness-ci | push | forge/012-monde-vivant-commerce-ddda | in_progress |
+| 2026-08-13 07:07:25 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 07:07:19 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 07:07:15 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 07:07:02 | security | push | cursor/brief-012-commerce-inter-cellules-971b | success |
+| 2026-08-13 07:07:02 | harness-ci | push | cursor/brief-012-commerce-inter-cellules-971b | success |
+| 2026-08-13 07:07:02 | audit-guard | push | cursor/brief-012-commerce-inter-cellules-971b | success |
+| 2026-08-13 07:06:45 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 07:06:44 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 07:06:34 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 07:06:17 | harness-ci | push | cursor/brief-012-commerce-inter-cellules-971b | success |
+| 2026-08-13 07:06:17 | security | push | cursor/brief-012-commerce-inter-cellules-971b | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
