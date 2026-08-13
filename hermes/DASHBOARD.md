@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 12:52 UTC.
+> Générée le 2026-08-13 12:53 UTC.
 
 ## En bref
 
@@ -31,21 +31,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 12:52:11 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:52:08 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 12:52:08 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:52:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:52:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:52:04 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 12:52:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:52:01 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:52:01 | audit-guard | push | master | in_progress |
-| 2026-08-13 12:52:01 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 12:52:01 | security | push | master | in_progress |
-| 2026-08-13 12:52:01 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 12:52:01 | harness-ci | push | master | queued |
-| 2026-08-13 12:51:55 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:51:53 | audit-guard | push | master | success |
+| 2026-08-13 12:53:18 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:15 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:15 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 12:53:14 | pipeline-orchestrate | push | master | in_progress |
+| 2026-08-13 12:53:14 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 12:53:14 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 12:53:14 | audit-guard | push | master | in_progress |
+| 2026-08-13 12:53:14 | harness-ci | push | master | queued |
+| 2026-08-13 12:53:14 | security | push | master | in_progress |
+| 2026-08-13 12:53:14 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite-31693887854 | queued |
+| 2026-08-13 12:53:11 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:08 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:05 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:53:02 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:52:53 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
