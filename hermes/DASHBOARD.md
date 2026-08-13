@@ -5,13 +5,13 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 13:00 UTC.
+> Générée le 2026-08-13 13:01 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 32 — boucles closes : 8.
+- **Audits en cours** : 33 — boucles closes : 8.
 
 ## Ce qui attend le propriétaire
 
@@ -34,21 +34,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 13:00:30 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:00:28 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:00:22 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:00:20 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:00:20 | hermes-observer | pull_request_target | cursor/audit-de-la-pr-83-596e | queued |
-| 2026-08-13 13:00:20 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 13:00:20 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 13:00:20 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 13:00:20 | harness-ci | push | master | in_progress |
-| 2026-08-13 13:00:20 | audit-guard | push | master | in_progress |
-| 2026-08-13 13:00:20 | security | push | master | in_progress |
-| 2026-08-13 13:00:17 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:00:14 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:00:14 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:00:14 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:01:35 | hermes-observer | pull_request_target | cursor/pr-84-audit-84fb | queued |
+| 2026-08-13 13:01:35 | pipeline-audit | push | master | success |
+| 2026-08-13 13:01:35 | security | push | master | in_progress |
+| 2026-08-13 13:01:35 | harness-ci | push | master | in_progress |
+| 2026-08-13 13:01:35 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 13:01:35 | audit-guard | push | master | success |
+| 2026-08-13 13:01:34 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 13:01:33 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:01:31 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:01:23 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:01:21 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:01:16 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:01:10 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:01:10 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:01:07 | pipeline-failure-escalate | workflow_run | master | skipped |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -81,6 +81,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4b6dcff-pr73-contre-audit-recompte-a-tort | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-587ee82-pr84-contre-audit-sans-pouvoir-de-refus | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-786ec32-pr74-verdicts-fantomes-au-registre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-7e5244b-ledger-post-fusion-poussee-master | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-8894f15-pr71-arbitrage-proprietaire-efface | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
