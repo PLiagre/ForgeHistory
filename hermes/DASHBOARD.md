@@ -5,16 +5,18 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 11:05 UTC.
+> Générée le 2026-08-13 12:55 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 26 — boucles closes : 8.
+- **Audits en cours** : 31 — boucles closes : 8.
 
 ## Ce qui attend le propriétaire
 
+- Fusionner (ou refuser) la PR #83 — « Brief 014 : le contre-audit comme porte observable, le refus fournisseur comme état explicite avec repli (pipeline) » (branche `forge/014-pipeline-contre-audit-porte-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
+- Fusionner (ou refuser) la PR #77 — « Tenue de registre : clôture de l'audit CURSOR-a4de4bb après fusion du lot 013 » (branche `forge/cloture-audit-a4de4bb-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -22,26 +24,30 @@
 - Convertir l'audit retenu `CURSOR-4c45718-pr65-ledger-recupere-a-la-main` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-9e35764-pr63-contre-audit-jamais-enregistre` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-29913c0-pr69-seuil-survie-non-borne` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-827d54e-contre-audit-paye-jamais-publie` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite` en brief (`/forge-audit-convert`).
+- Convertir l'audit retenu `CURSOR-f978cc7-pr77-cloture-affirmee-hors-registre` en brief (`/forge-audit-convert`).
 
 ## Activité GitHub récente
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 11:05:06 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:05:01 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:05:00 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:04:58 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 11:04:58 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:04:58 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:04:56 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:04:56 | audit-guard | push | master | success |
-| 2026-08-13 11:04:56 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 11:04:56 | security | push | master | success |
-| 2026-08-13 11:04:56 | harness-ci | push | master | in_progress |
-| 2026-08-13 11:04:56 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:04:55 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 11:04:55 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 11:04:55 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 12:55:39 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:37 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:37 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:36 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 12:55:36 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:36 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:36 | pipeline-failure-escalate | workflow_run | master | in_progress |
+| 2026-08-13 12:55:36 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:27 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:27 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:26 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:24 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:55:24 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 12:55:23 | security | push | master | in_progress |
+| 2026-08-13 12:55:23 | harness-ci | push | master | in_progress |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -63,17 +69,22 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-4c45718-pr65-ledger-recupere-a-la-main | retenu — à convertir en brief | 2026-08-13 11:01 |
 | CURSOR-9e35764-pr63-contre-audit-jamais-enregistre | retenu — à convertir en brief | 2026-08-13 11:03 |
 | CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion | retenu — à convertir en brief | 2026-08-13 11:04 |
+| CURSOR-29913c0-pr69-seuil-survie-non-borne | retenu — à convertir en brief | 2026-08-13 12:50 |
+| CURSOR-827d54e-contre-audit-paye-jamais-publie | retenu — à convertir en brief | 2026-08-13 12:51 |
+| CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite | retenu — à convertir en brief | 2026-08-13 12:53 |
+| CURSOR-f978cc7-pr77-cloture-affirmee-hors-registre | retenu — à convertir en brief | 2026-08-13 12:55 |
 | CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-29913c0-pr69-seuil-survie-non-borne | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-3ce7947-pr36-hermes-skill-versionnee | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-4b6dcff-pr73-contre-audit-recompte-a-tort | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-786ec32-pr74-verdicts-fantomes-au-registre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-7e5244b-ledger-post-fusion-poussee-master | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-827d54e-contre-audit-paye-jamais-publie | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-8894f15-pr71-arbitrage-proprietaire-efface | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-949ecf1-pr42-revue-non-consommable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-a7d1c57-pr76-approbation-sans-conversion | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-bb8fe11-hermes-console-adr-0011 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-cd1dcd2-forge-bot-pat-boucle-jetons | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-e2896e7-pr44-challenge-bb8fe11 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
