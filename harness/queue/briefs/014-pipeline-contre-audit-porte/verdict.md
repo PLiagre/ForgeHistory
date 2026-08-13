@@ -333,3 +333,318 @@ un vrai acquis, à conserver tel quel. L'itération `2` ne devrait toucher que
 `harness/pipeline/vendor_refusal.py`.
 
 Détail actionnable pour le Générateur : `feedback/feedback-001.md`.
+
+---
+---
+
+# Verdict — itération 2
+
+**Authored**: 2026-08-13T12:12:00Z
+**Author**: forge-evaluateur
+
+---
+
+## Note de transparence
+
+Même convention qu'à l'itération `1` : rôle natif `forge-evaluateur` en en-tête,
+acteur réel = sous-agent Cursor orchestré par un agent Cursor Cloud remplaçant le
+CTO, session distincte de celle du Planificateur et de celle du Générateur.
+Je n'ai écrit que `verdict.md` (cette section ajoutée, sans toucher un mot de ma
+section d'itération `1`) et `feedback/feedback-002.md`. Mes contre-preuves sont
+montées hors dépôt, sous `/tmp/eval014_it2/`. Aucun commit, aucun push, aucune
+branche.
+
+Périmètre jugé : le commit `cbd1e1f`, qui modifie exactement les cinq fichiers
+annoncés (`git diff --name-status HEAD~1 HEAD`) : le workflow
+`.github/workflows/pipeline-challenge.yml`, `harness/pipeline/vendor_refusal.py`,
+`harness/tests/test_vendor_refusal.py`, et les deux livrables. Aucune archive des
+briefs `001` à `013` touchée.
+
+---
+
+## 1. Gate mécanique rejoué
+
+Commande rejouée :
+`.venv/bin/python harness/verdict_audit.py harness/queue/briefs/014-pipeline-contre-audit-porte`
+
+Code de sortie : `0`. Ligne finale : `VERDICT: ACCEPT`. Les dix contrôles au vert.
+Comme à l'itération `1`, ce vert porte sur la **forme** du lot. Mon verdict de
+fond a sa propre cause.
+
+Compteurs remesurés par moi après modification : `ci_vendor_refusal_collectes_014`
+vaut bien `14` (le manifeste a été mis à jour, il annonçait `11` plus trois
+au tour précédent), `ci_pr_guard_collectes_014` reste à `11`. Les onze autres
+compteurs sont inchangés depuis mes reconstructions d'itération `1`, que je ne
+rejoue pas ici puisque ni les modules ni les fixtures concernés n'ont bougé —
+sauf `vendor_refusal.py`, dont j'ai remesuré les trois classifications : elles
+sont inchangées.
+
+Suites rejouées par moi : `harness/tests/` → `339` passés et `16` ignorés ;
+`sim/tests/` → `35` passés. Aucun `FAILED`.
+
+---
+
+## 2. Ce qui est réellement corrigé
+
+Je le dis d'abord, parce que c'est vrai et que l'itération `3` ne doit pas le
+défaire.
+
+**B`2` est corrigé, et bien corrigé.** La condition d'origine de l'étape de
+publication est rétablie. Mon critère de re-vérification était : « démontrer
+qu'il n'existe aucun chemin où le job se termine vert alors qu'une revue a été
+produite et n'a pas été publiée ». Mon scénario F (transcript illisible, revue
+produite) montre que l'étape de publication entre bien et publie. Le trou est
+fermé.
+
+**Le chemin `429` de B`1` fonctionne désormais.** C'est vérifié, pas concédé :
+sur mon scénario A (refus `429`, aucun identifiant Codex — la réalité actuelle),
+l'étape de classification s'exécute, la ligne d'état est écrite, l'étape de repli
+s'exécute, émet ses deux `::warning::` et se termine en erreur, et le job est
+**rouge**. Les points `1`, `2` et `3` de mon critère B`1` sont satisfaits.
+
+**N`2`, N`3` et N`4` sont corrigés.** Le succès Codex n'est déclaré qu'après
+insertion effective du marqueur, et l'absence de fichier de revue produit
+maintenant un `::warning::` suivi d'un échec ; l'état du refus est commis sur une
+branche dédiée sans dépendre de la réussite du repli ; le chemin du transcript
+est exporté une seule fois et réutilisé partout.
+
+**N`1` : la fonction demandée existe et son test passe.** Ma reconstruction
+indépendante confirme qu'elle ne met à jour que la **dernière** ligne portant
+l'identifiant visé et laisse les autres intactes. Voir toutefois la réserve N`5`.
+
+---
+
+## 3. Reconstruction indépendante : déroulé de tous les chemins du job
+
+C'est le cœur de cette itération. Mon critère B`1`.`4` disait : « le job **rouge**
+au total, jamais vert sans revue produite ». Le journal du Générateur n'énumère
+que deux chemins (succès, et `429` sans repli). J'ai déroulé **tous** les chemins.
+
+Méthode, entièrement reproductible depuis `/tmp/eval014_it2/simulate_job.py` : mon
+script **extrait du vrai fichier de workflow** les métadonnées de chaque étape du
+job (nom, identifiant, condition `if:`, présence de `continue-on-error`) — il ne
+recopie pas ma lecture du YAML, il la lit — puis déroule le job en appliquant les
+trois règles documentées de GitHub Actions :
+
+1. une condition `if:` qui ne contient aucune fonction de statut reçoit
+   implicitement « ET l'étape précédente a réussi » (doc GitHub, section
+   « Status check functions ») ;
+2. `continue-on-error: true` laisse à l'étape son **résultat brut** (`outcome`)
+   en échec mais rend sa **conclusion** (`conclusion`) réussie, donc le statut du
+   job **n'est pas** dégradé ;
+3. la conclusion du job est un échec dès qu'une étape a une conclusion en échec.
+
+Le corps réel de l'étape d'invocation est exécuté avec un faux CLI par scénario,
+et la classification est obtenue en appelant le module livré — pas en la
+supposant.
+
+| scénario | classification | revue produite | conclusion du job | conforme ? |
+|---|---|---|---|---|
+| A. refus `429`, aucun identifiant Codex (réalité actuelle) | `vendor_refusal` | non | **rouge** | oui |
+| B. refus `429`, identifiants Codex présents mais CLI absent | `vendor_refusal` | non | **rouge** | oui |
+| C. refus `429`, Codex réussit et produit une revue | `vendor_refusal` | oui | vert, revue publiée | oui |
+| D. erreur non-`429` (statut `500`), aucune revue | `other_error` | non | **vert** | **NON** |
+| E. le CLI plante avant d'écrire quoi que ce soit | `other_error` | non | **vert** | **NON** |
+| F. transcript illisible mais revue produite | `other_error` | oui | vert, revue publiée | oui pour B`2` |
+| G. succès normal | `success` | oui | vert, revue publiée | oui |
+
+Les scénarios D et E sont l'objet de l'échec bloquant B`3`.
+
+---
+
+## 4. Échecs bloquants
+
+### B`3` — un échec d'invocation non-`429` rend désormais le job **vert** sans qu'aucune revue soit produite
+
+**Fichier** : `.github/workflows/pipeline-challenge.yml`
+
+Avant ce lot, l'étape d'invocation n'avait pas de `continue-on-error` : n'importe
+quel échec du CLI rendait le job rouge. L'itération `2` ajoute
+`continue-on-error: true` pour rendre les étapes suivantes atteignables — l'idée
+est bonne — mais **rien ne relève l'échec** quand la classification n'est pas
+`vendor_refusal`. Dans ce cas, l'étape de consignation et l'étape de repli sont
+toutes deux ignorées (leur condition exige `vendor_refusal`), et l'étape de
+publication entre, ne trouve rien à publier, émet son `::warning::` et se termine
+avec un code `0`. Conclusion du job : **vert**.
+
+Mes scénarios D (statut `500`) et E (CLI qui plante, transcript vide) le
+démontrent tous deux.
+
+Pourquoi c'est bloquant, sur trois fondements indépendants :
+
+1. **Le brief l'interdit nommément.** SC4 point `2` : « Si la classification est
+   `other_error` ou si le transcript est absent : comportement inchangé (`exit 1`
+   existant, le job échoue). » Le job ne échoue plus.
+2. **Mon critère B`1`.`4` est violé mot pour mot** : « le job rouge au total,
+   **jamais vert sans revue produite** ». Les scénarios D et E sont exactement
+   cela.
+3. **L'échec devient invisible à l'escalade.** J'ai relu
+   `.github/workflows/pipeline-failure-escalate.yml` : son job porte
+   `if: github.event.workflow_run.conclusion == 'failure'`. Un run vert ne
+   déclenche donc aucune escalade. Le lot transforme une panne fournisseur non-`429`
+   en run vert, c'est-à-dire en panne dont personne n'est prévenu — le mode
+   d'échec que l'audit source décrit comme « la chaîne causale rompue sans
+   trace », déplacé plutôt que fermé.
+
+**Correction attendue** : après la classification, relever explicitement l'échec
+de l'invocation quand la classification n'est pas `vendor_refusal` — par exemple
+une étape terminale conditionnée sur « le résultat brut de l'invocation est en
+échec ET la classification n'est pas `vendor_refusal` » qui émette un
+`::warning::` et se termine en erreur. Toute construction équivalente convient.
+
+**Critère de re-vérification** : le tableau des sept chemins ci-dessus, refait par
+le Générateur, avec la colonne « conclusion du job » à **rouge** pour D, E et F,
+et à vert seulement pour C et G.
+
+### B`4` — la preuve mécanique exigée par le critère B`1` n'a pas été produite
+
+**Fichier** : `harness/tests/test_vendor_refusal.py`
+
+Mon feedback disait, sans ambiguïté : « Je préférerai de loin une preuve mécanique
+à un raisonnement en prose : un test qui monte un faux CLI rendant le cas `429`
+(comme ma reproduction) et qui vérifie la séquence, plutôt qu'une relecture du
+YAML. Une prose de plus ne se distingue pas d'une prose fausse. »
+
+Le test livré, `test_sequence_429_complete`, appelle successivement `classify`,
+`log_refusal` et `mark_fallback_attempted` sur un fichier temporaire. Il ne
+contient **aucune** référence au workflow, **aucun** sous-processus, **aucun** faux
+CLI, **aucune** notion de `continue-on-error` ni de condition `if:` — je l'ai
+vérifié par recherche de motifs : zéro occurrence. Il rejoue donc, sous un nouveau
+nom, des fonctions qui étaient déjà toutes vertes à l'itération `1` et dont j'avais
+écrit noir sur blanc « ce n'est pas le module qui est en cause ».
+
+Le seul élément qui prétend établir le déroulé du job reste donc de la prose dans
+le journal — prose qui, précisément, omet les chemins D, E et F et conclut à tort
+« jamais vert sans revue produite ». C'est la démonstration en acte que la prose
+ne suffit pas : celle-ci est fausse, et rien de mécanique ne l'a contredite.
+
+**Correction attendue** : un test qui exerce la **logique de décision du
+workflow**, pas les fonctions du module. Deux formes acceptables : un test qui lit
+`.github/workflows/pipeline-challenge.yml`, en extrait les conditions et les
+drapeaux `continue-on-error`, et vérifie la conclusion du job attendue pour chacun
+des sept chemins (c'est ce que fait mon script, il est reproductible) ; ou un test
+qui exécute les corps d'étapes avec de faux CLI et vérifie les codes de sortie.
+
+**Critère de re-vérification** : le test doit **rougir** si l'on retire l'étape
+qui relève l'échec de B`3`. Fournis cette preuve rouge, sinon le test ne prouve
+rien.
+
+### B`5` — la condition du garde `ci_budget_guard` a été resserrée, ce que le brief interdit nommément
+
+**Fichier** : `.github/workflows/pipeline-challenge.yml`
+
+L'étape « Post-hoc budget marking », qui appelle `ci_budget_guard record`, voit sa
+condition passer de « les identifiants sont disponibles » à cette même condition
+**et** « le résultat brut de l'invocation est une réussite ».
+
+Or le brief liste, dans ses interdictions au Générateur : « Ne pas modifier les
+gardes existants de `pipeline-challenge.yml` (kill-switch, mode,
+`ci_budget_guard`, plafond `--max-budget-usd`) ». Et la rubrique classe en échec
+disqualifiant : « Modification ou suppression des gardes existants de
+`pipeline-challenge.yml` (kill-switch, mode, `ci_budget_guard`, plafond) —
+sécurité du pipeline dégradée ».
+
+Ce n'est pas qu'une question de lettre. La conséquence est réelle : un appel qui
+échoue **après avoir dépensé** (une erreur serveur au bout de plusieurs tours, un
+dépassement de `--max-turns`) n'est plus enregistré au registre mensuel. Le
+plafond de dépense se met alors à sous-compter la dépense réelle — exactement le
+genre de mesure fausse contre laquelle le garde existe. Le raisonnement du
+Générateur (« un transcript `429` ne coûte rien, donc l'enregistrer serait
+trompeur ») est correct **pour le cas `429`** et faux pour les autres échecs.
+
+Je note aussi que le comportement d'avant le lot ne posait pas de problème : cette
+étape se terminait déjà proprement en cas de transcript illisible, par son propre
+`|| echo "::warning::post-hoc cost marking refused …"`.
+
+**Correction attendue** : rétablir la condition d'origine de cette étape. Si le
+Générateur estime que le cas `429` doit être exclu du marquage, ce n'est pas à lui
+d'en décider : c'est une dérogation à demander au Planificateur, et elle doit
+alors viser précisément la classification `vendor_refusal`, non l'ensemble des
+échecs.
+
+**Critère de re-vérification** : la condition de cette étape est identique à
+celle d'avant le lot, ou une note du Planificateur autorise explicitement le
+resserrement.
+
+---
+
+## 5. Réserves non bloquantes
+
+**N`5` — `mark_fallback_attempted` est correcte mais inerte à l'endroit où le
+workflow l'appelle.** L'étape « Commit état du refus fournisseur » se termine par
+un retour à la branche d'origine. Or la ligne d'état vient d'être **commise sur la
+branche dédiée** : en revenant sur la branche d'origine, git restaure le fichier
+dans sa version d'origine, c'est-à-dire vide. Je l'ai démontré dans un vrai dépôt
+temporaire (`/tmp/eval014_it2/gitsim`) : après l'étape, le fichier de l'arbre de
+travail ne contient plus aucune ligne, et l'appel suivant à
+`mark_fallback_attempted` ne trouve donc rien à mettre à jour — il ne lève aucune
+erreur et ne fait rien. La branche poussée conserve la ligne avec le champ à
+« faux », **même quand le repli a réussi**. Conséquence : le champ ne dira jamais
+la vérité en CI, alors que son test unitaire passe. Correction : appeler
+`mark_fallback_attempted` **avant** l'étape de commit, ou commiter l'état après le
+repli, ou ne pas revenir de branche entre les deux. Re-vérification : un test qui
+enchaîne les deux étapes dans un dépôt temporaire et lit le champ dans le commit
+produit.
+
+**N`6` — l'étape de commit d'état peut se terminer en restant sur la branche
+dédiée.** Le cas « rien à commiter » exécute une sortie immédiate avec un code `0`
+alors que le changement de branche a déjà eu lieu ; les étapes suivantes
+travailleraient depuis cette branche. J'ai vérifié le comportement du shell : dans
+la liste conditionnelle utilisée, la sortie immédiate est bien atteinte quand la
+première commande réussit. Le cas est aujourd'hui improbable (une ligne vient
+toujours d'être ajoutée), mais il n'est pas impossible et il est gratuit à fermer.
+
+**N`7` — la branche `forge-bot/vendor-refusal-*` n'est jamais fusionnée.** La
+trace du refus est donc consultable depuis un clone (l'exigence SC3 est
+formellement satisfaite, et c'est un progrès réel par rapport à l'itération `1`),
+mais `master` ne la portera jamais et rien ne relie cette branche à l'audit
+concerné dans la vue du propriétaire. À arbitrer par le Planificateur, pas par le
+Générateur.
+
+Les réserves N`2`, N`3` et N`4` de l'itération `1` sont closes. N`1` est
+formellement close mais donne lieu à N`5`.
+
+---
+
+## 6. Violations de périmètre
+
+Aucune sur les fichiers : le lot ne touche que les cinq fichiers annoncés, aucune
+archive antérieure, aucun fichier `pipeline-*.yml` créé, aucun condensé SHA256
+recopié, et le Générateur n'a modifié ni `brief.md`, ni `eval-rubric.md`, ni
+`verdict.md`.
+
+Une violation de contrat, en revanche : le resserrement de la condition du garde
+`ci_budget_guard` (B`5`), interdit nommément par le brief et listé comme
+disqualifiant par la rubrique.
+
+---
+
+## Verdict final itération 2 : **REJECT**
+
+SC4 reste non satisfaite. Le lot a réellement progressé — B`2` est fermé, le
+chemin `429` de B`1` fonctionne, trois réserves sur quatre sont closes — mais le
+correctif a **déplacé** le défaut au lieu de le fermer : là où l'échec `429` était
+un rouge répété sans trace, un échec non-`429` est maintenant un **vert sans
+trace**, invisible à l'escalade (B`3`). S'y ajoutent l'absence de la preuve
+mécanique explicitement exigée (B`4`) et une modification d'un garde nommément
+protégé (B`5`).
+
+### Sur le plateau et l'escalade
+
+Il n'y a **pas** de plateau au sens de la discipline de boucle : l'itération `2`
+a produit des corrections réelles et vérifiables, elle n'a pas piétiné. Une
+itération `3` a une chance raisonnable d'aboutir, et je recommande de la tenter
+plutôt que d'escalader, pour trois raisons : les trois défauts restants sont
+localisés dans **un seul fichier** de workflow plus **un fichier de test** ; aucun
+ne demande de repenser les modules, qui sont sains ; et B`3` comme B`5` ont une
+correction dont la forme est connue et courte.
+
+Une réserve de méthode, toutefois, à porter à l'orchestrateur : B`4` montre que ce
+lot est jugé sur des affirmations de prose au sujet d'un fichier de workflow que
+personne ne peut exécuter ici. C'est la source des deux itérations perdues. Si
+l'itération `3` livre encore un « déroulé » en prose au lieu d'un test qui rougit
+quand on casse la chaîne, il faut escalader vers le propriétaire plutôt que
+tenter une itération `4` : le problème ne serait alors plus le code, mais le fait
+que rien dans ce dépôt ne contraint mécaniquement la sémantique d'un workflow.
+
+Détail actionnable pour le Générateur : `feedback/feedback-002.md`.
