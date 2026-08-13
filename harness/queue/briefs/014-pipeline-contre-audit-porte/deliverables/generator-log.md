@@ -404,3 +404,134 @@ Preuve qu'aucun chemin ne termine vert avec revue non publiée :
 [PASS] declared_files_are_tracked: all 2 in-brief declared files are tracked
 VERDICT: ACCEPT
 ```
+
+---
+
+## Itération 3 — traitement de B3, B4, B5, N5, N6, N7
+
+### Fichiers modifiés
+
+- `.github/workflows/pipeline-challenge.yml` (B3, B5, N5, N6)
+- `harness/tests/test_pipeline_challenge_paths.py` (nouveau — B4, N5)
+- `harness/pipeline/proof_red/test_pipeline_paths_red.txt` (paire C rouge — B4)
+- `harness/pipeline/proof_red/test_pipeline_paths_green.txt` (paire C verte — B4)
+- `deliverables/manifest.json` (nouveaux fichiers et compteurs)
+- `deliverables/generator-log.md` (cette section)
+
+### B5 — Restauration du garde ci_budget_guard
+
+Condition de l'étape « Post-hoc budget marking » restaurée à l'original :
+`if: steps.check.outputs.available == 'true'`. La protection interne
+`|| echo "::warning::..."` suffit pour les transcripts illisibles.
+La décision de l'itération 2 (exclure les invocations échouées) était une
+dérogation non autorisée au garde nommé — rétabli sans dérogation.
+
+### B3 — Étape terminale pour les chemins other_error
+
+Ajout de l'étape « Relever l'échec d'invocation non-429 (B3 — brief 014) »
+APRÈS l'étape de publication. Condition :
+`if: steps.invoke.outcome == 'failure' && steps.classify_refusal.outputs.classification != 'vendor_refusal'`
+
+Sans fonction de statut → implicit `success()` ajouté → l'étape ne s'exécute
+que si aucune étape précédente n'a échoué (le chemin est donc propre). Pour
+les chemins `other_error` : invoke a échoué (coe, job_ok reste True), publish
+sort à 0 (warning interne), puis B3 s'exécute et sort à 1 → job RED.
+
+Tableau des 7 chemins après correction (vérifié mécaniquement par le test B4) :
+
+| chemin | classification | conclusion |
+|---|---|---|
+| 429, pas de Codex | vendor_refusal | failure ✓ |
+| 429, creds présents, CLI absent | vendor_refusal | failure ✓ |
+| 429, Codex réussit | vendor_refusal | success ✓ |
+| erreur 500 | other_error | failure ✓ |
+| CLI plante, transcript vide | other_error | failure ✓ |
+| transcript illisible, revue produite | other_error | failure ✓ |
+| succès normal | success | success ✓ |
+
+### N5/N6 — Réordonnancement de l'étape commit-état
+
+L'étape « Commit état du refus fournisseur » déplacée APRÈS l'étape repli
+Codex. Ainsi `mark_fallback_attempted` (appelé dans le repli, en cas de
+succès Codex) modifie `vendor-refusal-state.jsonl` dans l'arbre de travail
+AVANT le commit. Le commit capture donc le champ `fallback_attempted=true`.
+
+N6 : contrôle `git diff --quiet HEAD -- harness/pipeline/vendor-refusal-state.jsonl`
+effectué AVANT `git checkout -b` : si rien à commiter, on sort sur la
+branche d'origine (pas de branche orpheline créée).
+
+Condition de l'étape commit-état : `steps.classify_refusal.outputs.classification == 'vendor_refusal' && !cancelled()`
+(`!cancelled()` est une fonction de statut → pas d'implicit `success()` → l'étape
+s'exécute même quand le repli a échoué).
+
+### B4 — Preuve mécanique YAML-reading (forme 1 du feedback)
+
+Forme choisie : test qui lit `.github/workflows/pipeline-challenge.yml`,
+extrait `if:` et `continue-on-error` pour chaque étape du job
+`invoke-claude-challenger`, applique les trois règles GHA, et vérifie la
+conclusion attendue pour 7 chemins.
+
+Fichier : `harness/tests/test_pipeline_challenge_paths.py`
+- `test_seven_paths` (7 cas paramétrés) : vert sur le vrai workflow
+- `test_b3_step_present_in_workflow` : vérifie que l'étape B3 existe
+- `test_n5_fallback_attempted_in_commit` : dépôt git temporaire, confirme
+  `fallback_attempted=True` dans le commit produit
+
+Paire rouge/vert (paire C) :
+- Sabotage : copie du workflow sans l'étape B3 (`/tmp/pipeline-challenge-sabotage-b3.yml`)
+- Rouge : `PIPELINE_WORKFLOW_PATH=/tmp/... pytest ...` → 4 FAILED (chemins 4, 5, 6 + test_b3_step_present)
+- Vert : pytest sur le vrai workflow → 8 PASSED
+
+Sortie du test des 7 chemins (workflow réel) :
+
+```
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429 sans identifiant Codex] PASSED
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429, identifiants présents, CLI absent] PASSED
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429, Codex réussit] PASSED
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[erreur statut 500] PASSED
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[CLI qui plante, transcript vide] PASSED
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[transcript illisible, revue produite] PASSED
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[succès normal] PASSED
+harness/tests/test_pipeline_challenge_paths.py::test_b3_step_present_in_workflow PASSED
+harness/tests/test_pipeline_challenge_paths.py::test_n5_fallback_attempted_in_commit PASSED
+9 passed in 0.09s
+```
+
+### N7 — Limite renvoyée au Planificateur
+
+La branche d'état `forge-bot/vendor-refusal-*` est consultable depuis un clone
+(exigence SC3 satisfaite) mais elle n'est pas reliée à l'audit concerné dans la
+vue du propriétaire (tableau de bord, dashboard, issues). `master` ne la portera
+jamais sans une fusion explicite. Cette liaison est un arbitrage qui dépasse le
+périmètre du Générateur : renvoyée au Planificateur.
+
+### Sorties réelles des suites (itération 3)
+
+```
+.venv/bin/python -m pytest harness/tests/ -q
+348 passed, 16 skipped in 17.06s
+
+.venv/bin/python -m pytest sim/tests/ -q
+35 passed in 2.08s
+```
+
+### Gate mécanique (itération 3)
+
+```
+.venv/bin/python harness/verdict_audit.py harness/queue/briefs/014-pipeline-contre-audit-porte
+# verdict_audit report for harness/queue/briefs/014-pipeline-contre-audit-porte
+# generated_at: 2026-08-13T12:30:02.159956
+[PASS] files_declared_exist: all declared files present
+[PASS] mtime_after_brief: all deliverables postdate the brief
+[PASS] captures_differ_when_should: all declared pairs differ
+[PASS] waivers_have_command_and_error: all waivers carry a command and an error
+[PASS] no_empty_sample_pass: every counter has a real sample_size
+[PASS] verdict_numbers_traceable: all cited numbers trace to manifest.json
+[PASS] no_bare_python_alias: no bare `python` invocations found
+[PASS] verdict_is_not_self_authored: generator/evaluator actors differ on all 1 examined pair(s): forge-generateur<->forge-evaluateur
+[PASS] rubric_predates_deliverables
+[PASS] declared_files_are_tracked: all 2 in-brief declared files are tracked
+VERDICT: ACCEPT
+```
+
+*Note de transparence 2026-08-13 — itération 3 : cette section est rédigée par forge-generateur, acteur réel Cursor Cloud, exécutant les commandes localement sur la VM Linux.*

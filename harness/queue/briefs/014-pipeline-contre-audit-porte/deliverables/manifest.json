@@ -17,6 +17,12 @@
       "path": "../../../../harness/pipeline/proof_red/run_vendor_classif_green.txt",
       "must_differ_from": "../../../../harness/pipeline/proof_red/run_vendor_classif_red.txt"
     },
+    {"path": "../../../../harness/tests/test_pipeline_challenge_paths.py"},
+    {"path": "../../../../harness/pipeline/proof_red/test_pipeline_paths_red.txt"},
+    {
+      "path": "../../../../harness/pipeline/proof_red/test_pipeline_paths_green.txt",
+      "must_differ_from": "../../../../harness/pipeline/proof_red/test_pipeline_paths_red.txt"
+    },
     {"path": "../../../../harness/queue/cost-ledger.jsonl"},
     {"path": "deliverables/manifest.json"},
     {"path": "deliverables/generator-log.md"}
@@ -99,6 +105,18 @@
       "value": 14,
       "sample_size": 14,
       "command": ".venv/bin/python -m pytest harness/tests/test_vendor_refusal.py --collect-only -q"
+    },
+    {
+      "name": "ci_pipeline_paths_collectes_014",
+      "value": 9,
+      "sample_size": 9,
+      "command": ".venv/bin/python -m pytest harness/tests/test_pipeline_challenge_paths.py --collect-only -q"
+    },
+    {
+      "name": "chemins_job_rouge_sur_other_error",
+      "value": 3,
+      "sample_size": 3,
+      "command": ".venv/bin/python -m pytest 'harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[erreur statut 500]' 'harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[CLI qui plante, transcript vide]' 'harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[transcript illisible, revue produite]' -v"
     }
   ],
   "waivers": [

@@ -1,0 +1,258 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+collecting ... collected 8 items
+
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429 sans identifiant Codex] PASSED [ 12%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429, identifiants pr\xe9sents, CLI absent] PASSED [ 25%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[429, Codex r\xe9ussit] PASSED [ 37%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[erreur statut 500] FAILED [ 50%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[CLI qui plante, transcript vide] FAILED [ 62%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[transcript illisible, revue produite] FAILED [ 75%]
+harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[succ\xe8s normal] PASSED [ 87%]
+harness/tests/test_pipeline_challenge_paths.py::test_b3_step_present_in_workflow FAILED [100%]
+
+=================================== FAILURES ===================================
+_____________________ test_seven_paths[erreur statut 500] ______________________
+
+path_def = {'id': 4, 'label': 'erreur statut 500', 'ctx': {'invoke_outcome': 'failure', 'classification': 'other_error', 'check_available': True, 'codex_succeeds': False}, 'expected': 'failure'}
+
+    @pytest.mark.parametrize("path_def", SEVEN_PATHS, ids=[p["label"] for p in SEVEN_PATHS])
+    def test_seven_paths(path_def):
+        """
+        B4 : vérifie la conclusion du job pour chacun des 7 chemins.
+    
+        Rougit si l'étape B3 est absente du workflow : les chemins other_error
+        (4, 5, 6) produiraient 'success' au lieu de 'failure'.
+        """
+        if not WORKFLOW_PATH.exists():
+            pytest.skip(f"workflow introuvable : {WORKFLOW_PATH}")
+    
+        conclusion, journal = simulate_job(WORKFLOW_PATH, path_def["ctx"])
+    
+        # Afficher le journal pour debug
+        print(f"\nChemin {path_def['id']} — {path_def['label']}")
+        for line in journal:
+            print(line)
+        print(f"→ Conclusion : {conclusion} (attendu : {path_def['expected']})")
+    
+>       assert conclusion == path_def["expected"], (
+            f"Chemin {path_def['id']} ({path_def['label']}) : "
+            f"attendu {path_def['expected']!r}, obtenu {conclusion!r}.\n"
+            + "\n".join(journal)
+        )
+E       AssertionError: Chemin 4 (erreur statut 500) : attendu 'failure', obtenu 'success'.
+E           OK    uses:actions/checkout@11bd7190
+E           OK    uses:actions/setup-python@0b93
+E           OK    pause
+E           OK    mode
+E           OK    resolve
+E           OK    Monthly CI budget precheck (lo
+E           OK    check
+E           OK    Install Claude Code CLI
+E           OK    transcript_path
+E           OK(coe) invoke
+E           OK    Post-hoc budget marking (lot 0
+E           OK    classify_refusal
+E           SKIP  codex_fallback
+E           SKIP  Commit état du refus fournisse
+E           OK    Publish the review as a pull r
+E       assert 'success' == 'failure'
+E         
+E         - failure
+E         + success
+
+harness/tests/test_pipeline_challenge_paths.py:436: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+Chemin 4 — erreur statut 500
+  OK    uses:actions/checkout@11bd7190
+  OK    uses:actions/setup-python@0b93
+  OK    pause
+  OK    mode
+  OK    resolve
+  OK    Monthly CI budget precheck (lo
+  OK    check
+  OK    Install Claude Code CLI
+  OK    transcript_path
+  OK(coe) invoke
+  OK    Post-hoc budget marking (lot 0
+  OK    classify_refusal
+  SKIP  codex_fallback
+  SKIP  Commit état du refus fournisse
+  OK    Publish the review as a pull r
+→ Conclusion : success (attendu : failure)
+______________ test_seven_paths[CLI qui plante, transcript vide] _______________
+
+path_def = {'id': 5, 'label': 'CLI qui plante, transcript vide', 'ctx': {'invoke_outcome': 'failure', 'classification': 'other_error', 'check_available': True, 'codex_succeeds': False}, 'expected': 'failure'}
+
+    @pytest.mark.parametrize("path_def", SEVEN_PATHS, ids=[p["label"] for p in SEVEN_PATHS])
+    def test_seven_paths(path_def):
+        """
+        B4 : vérifie la conclusion du job pour chacun des 7 chemins.
+    
+        Rougit si l'étape B3 est absente du workflow : les chemins other_error
+        (4, 5, 6) produiraient 'success' au lieu de 'failure'.
+        """
+        if not WORKFLOW_PATH.exists():
+            pytest.skip(f"workflow introuvable : {WORKFLOW_PATH}")
+    
+        conclusion, journal = simulate_job(WORKFLOW_PATH, path_def["ctx"])
+    
+        # Afficher le journal pour debug
+        print(f"\nChemin {path_def['id']} — {path_def['label']}")
+        for line in journal:
+            print(line)
+        print(f"→ Conclusion : {conclusion} (attendu : {path_def['expected']})")
+    
+>       assert conclusion == path_def["expected"], (
+            f"Chemin {path_def['id']} ({path_def['label']}) : "
+            f"attendu {path_def['expected']!r}, obtenu {conclusion!r}.\n"
+            + "\n".join(journal)
+        )
+E       AssertionError: Chemin 5 (CLI qui plante, transcript vide) : attendu 'failure', obtenu 'success'.
+E           OK    uses:actions/checkout@11bd7190
+E           OK    uses:actions/setup-python@0b93
+E           OK    pause
+E           OK    mode
+E           OK    resolve
+E           OK    Monthly CI budget precheck (lo
+E           OK    check
+E           OK    Install Claude Code CLI
+E           OK    transcript_path
+E           OK(coe) invoke
+E           OK    Post-hoc budget marking (lot 0
+E           OK    classify_refusal
+E           SKIP  codex_fallback
+E           SKIP  Commit état du refus fournisse
+E           OK    Publish the review as a pull r
+E       assert 'success' == 'failure'
+E         
+E         - failure
+E         + success
+
+harness/tests/test_pipeline_challenge_paths.py:436: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+Chemin 5 — CLI qui plante, transcript vide
+  OK    uses:actions/checkout@11bd7190
+  OK    uses:actions/setup-python@0b93
+  OK    pause
+  OK    mode
+  OK    resolve
+  OK    Monthly CI budget precheck (lo
+  OK    check
+  OK    Install Claude Code CLI
+  OK    transcript_path
+  OK(coe) invoke
+  OK    Post-hoc budget marking (lot 0
+  OK    classify_refusal
+  SKIP  codex_fallback
+  SKIP  Commit état du refus fournisse
+  OK    Publish the review as a pull r
+→ Conclusion : success (attendu : failure)
+____________ test_seven_paths[transcript illisible, revue produite] ____________
+
+path_def = {'id': 6, 'label': 'transcript illisible, revue produite', 'ctx': {'invoke_outcome': 'failure', 'classification': 'other_error', 'check_available': True, 'codex_succeeds': False}, 'expected': 'failure'}
+
+    @pytest.mark.parametrize("path_def", SEVEN_PATHS, ids=[p["label"] for p in SEVEN_PATHS])
+    def test_seven_paths(path_def):
+        """
+        B4 : vérifie la conclusion du job pour chacun des 7 chemins.
+    
+        Rougit si l'étape B3 est absente du workflow : les chemins other_error
+        (4, 5, 6) produiraient 'success' au lieu de 'failure'.
+        """
+        if not WORKFLOW_PATH.exists():
+            pytest.skip(f"workflow introuvable : {WORKFLOW_PATH}")
+    
+        conclusion, journal = simulate_job(WORKFLOW_PATH, path_def["ctx"])
+    
+        # Afficher le journal pour debug
+        print(f"\nChemin {path_def['id']} — {path_def['label']}")
+        for line in journal:
+            print(line)
+        print(f"→ Conclusion : {conclusion} (attendu : {path_def['expected']})")
+    
+>       assert conclusion == path_def["expected"], (
+            f"Chemin {path_def['id']} ({path_def['label']}) : "
+            f"attendu {path_def['expected']!r}, obtenu {conclusion!r}.\n"
+            + "\n".join(journal)
+        )
+E       AssertionError: Chemin 6 (transcript illisible, revue produite) : attendu 'failure', obtenu 'success'.
+E           OK    uses:actions/checkout@11bd7190
+E           OK    uses:actions/setup-python@0b93
+E           OK    pause
+E           OK    mode
+E           OK    resolve
+E           OK    Monthly CI budget precheck (lo
+E           OK    check
+E           OK    Install Claude Code CLI
+E           OK    transcript_path
+E           OK(coe) invoke
+E           OK    Post-hoc budget marking (lot 0
+E           OK    classify_refusal
+E           SKIP  codex_fallback
+E           SKIP  Commit état du refus fournisse
+E           OK    Publish the review as a pull r
+E       assert 'success' == 'failure'
+E         
+E         - failure
+E         + success
+
+harness/tests/test_pipeline_challenge_paths.py:436: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+Chemin 6 — transcript illisible, revue produite
+  OK    uses:actions/checkout@11bd7190
+  OK    uses:actions/setup-python@0b93
+  OK    pause
+  OK    mode
+  OK    resolve
+  OK    Monthly CI budget precheck (lo
+  OK    check
+  OK    Install Claude Code CLI
+  OK    transcript_path
+  OK(coe) invoke
+  OK    Post-hoc budget marking (lot 0
+  OK    classify_refusal
+  SKIP  codex_fallback
+  SKIP  Commit état du refus fournisse
+  OK    Publish the review as a pull r
+→ Conclusion : success (attendu : failure)
+_______________________ test_b3_step_present_in_workflow _______________________
+
+    def test_b3_step_present_in_workflow():
+        """
+        Vérifie que l'étape terminale B3 existe dans le workflow.
+    
+        Si ce test passe mais que test_seven_paths échoue sur une copie sabotée
+        sans l'étape, la paire rouge/vert est établie.
+        """
+        if not WORKFLOW_PATH.exists():
+            pytest.skip(f"workflow introuvable : {WORKFLOW_PATH}")
+    
+        text = WORKFLOW_PATH.read_text(encoding="utf-8")
+        steps = parse_job_steps(text, JOB_NAME)
+        b3_steps = [
+            s for s in steps
+            if "relever" in s["name"].lower()
+            or "non-429" in s["name"].lower()
+            or ("b3" in s["name"].lower() and "brief" in s["name"].lower())
+        ]
+>       assert b3_steps, (
+            "L'étape B3 (Relever l'échec d'invocation non-429) est absente du "
+            f"workflow {WORKFLOW_PATH}. Le test test_seven_paths ne peut pas "
+            "détecter les chemins other_error incorrects."
+        )
+E       AssertionError: L'étape B3 (Relever l'échec d'invocation non-429) est absente du workflow /tmp/pipeline-challenge-sabotage-b3.yml. Le test test_seven_paths ne peut pas détecter les chemins other_error incorrects.
+E       assert []
+
+harness/tests/test_pipeline_challenge_paths.py:465: AssertionError
+=========================== short test summary info ============================
+FAILED harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[erreur statut 500]
+FAILED harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[CLI qui plante, transcript vide]
+FAILED harness/tests/test_pipeline_challenge_paths.py::test_seven_paths[transcript illisible, revue produite]
+FAILED harness/tests/test_pipeline_challenge_paths.py::test_b3_step_present_in_workflow
+========================= 4 failed, 4 passed in 0.04s ==========================
