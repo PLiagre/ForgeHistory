@@ -648,3 +648,296 @@ tenter une itération `4` : le problème ne serait alors plus le code, mais le f
 que rien dans ce dépôt ne contraint mécaniquement la sémantique d'un workflow.
 
 Détail actionnable pour le Générateur : `feedback/feedback-002.md`.
+
+---
+
+# Verdict — itération 3
+
+**Authored**: 2026-08-13T12:47:00Z
+**Author**: forge-evaluateur
+
+Les sections « Verdict — Brief `014` » (itération `1`) et « Verdict — itération
+`2` » ci-dessus sont laissées intactes. Cette section juge la seule itération
+`3`, contre les critères de re-vérification que j'avais écrits dans
+`feedback/feedback-002.md`.
+
+## Note de transparence
+
+Section rédigée par `forge-evaluateur`, acteur réel Cursor Cloud, exécutant les
+commandes localement sur la VM Linux avec `.venv/bin/python`. Je n'ai touché
+aucun fichier hors ce `verdict.md`. Aucun commit, aucun `push`, aucune branche
+créée. Tous mes sabotages ont été faits sur des copies hors dépôt, sous
+`/tmp/eval014_it3/`.
+
+## 1. Gate mécanique rejoué
+
+`VERDICT: ACCEPT`, code de sortie `0`, les `10` contrôles au vert. Le rapport
+complet est celui qu'imprime
+`.venv/bin/python harness/verdict_audit.py harness/queue/briefs/014-pipeline-contre-audit-porte` ;
+je ne recopie pas ses chiffres ici. Rappel de l'itération `1` : un gate vert est
+nécessaire mais jamais suffisant — « la présence n'est pas la fonction »
+(règle durement acquise n°`7`). Toute la suite est ma propre reconstruction.
+
+## 2. Le tableau des sept chemins, refait par moi
+
+J'ai repris mon simulateur d'itération `2` (il lit le **vrai** fichier
+`.github/workflows/pipeline-challenge.yml`, en extrait les conditions `if:` et
+les drapeaux `continue-on-error`, exécute pour de bon le corps de l'étape
+d'invocation contre un faux exécutable `claude`, puis applique les trois règles
+de GitHub Actions : `success()` implicite quand la condition ne contient pas de
+fonction de statut, `continue-on-error` qui laisse `outcome` à `failure` mais met
+`conclusion` à `success`, échec du job dès qu'une conclusion d'étape est
+`failure`). Je l'ai étendu pour suivre en plus si la revue est **publiée**, ce
+que ma condition B`3` exigeait explicitement.
+
+| Chemin | Classification obtenue | Revue produite | Revue publiée | Conclusion du job | Attendu |
+|---|---|---|---|---|---|
+| A. refus `429`, aucun identifiant Codex | `vendor_refusal` | non | non | **ROUGE** | rouge |
+| B. refus `429`, identifiants présents, exécutable `codex` absent | `vendor_refusal` | non | non | **ROUGE** | rouge |
+| C. refus `429`, Codex réussit | `vendor_refusal` | oui | oui | **vert** | vert |
+| D. erreur `500` (non-`429`), aucune revue | `other_error` | non | non | **ROUGE** | rouge |
+| E. le CLI plante, transcript vide | `other_error` | non | non | **ROUGE** | rouge |
+| F. transcript illisible **mais revue produite** | `other_error` | oui | **oui** | **ROUGE** | rouge |
+| G. succès normal | `success` | oui | oui | **vert** | vert |
+
+C'est exactement le tableau que je réclamais. Le point le plus difficile — le
+chemin F, où la revue doit être **à la fois publiée et le job rouge** — est
+tenu : l'étape de publication s'exécute et publie, puis l'étape terminale
+ajoutée relève l'échec. Le compteur `chemins_job_rouge_sur_other_error` du
+manifeste se reconstruit à l'identique.
+
+Le mécanisme est propre : l'étape ajoutée est placée **après** la publication et
+sa condition ne contient aucune fonction de statut, donc GitHub Actions y ajoute
+`success()` — elle n'est atteinte que si la publication a réussi, ce qui laisse
+la revue partir avant que le job ne devienne rouge. Aucun chemin ne perd de
+revue, aucun échec ne devient silencieux.
+
+## 3. Mes critères de re-vérification, un par un
+
+### B`3` — l'échec non-`429` rend-il le job rouge ? **CORRIGÉ**
+
+Voir le tableau ci-dessus : les trois chemins `other_error` (D, E, F) sont
+rouges, et seuls le succès normal (G) et le repli Codex réussi (C) sont verts.
+`pipeline-failure-escalate.yml`, qui ne se déclenche que sur une conclusion
+`failure`, verra donc désormais ces échecs. L'angle mort que je décrivais à
+l'itération `2` — un vert sans revue — est fermé.
+
+### B`4` — le test rougit-il quand on retire l'étape ? **CORRIGÉ**
+
+Critère non négociable rempli. Deux vérifications distinctes :
+
+1. **La paire committée** `harness/pipeline/proof_red/test_pipeline_paths_{red,green}.txt`
+   est authentique : le côté rouge montre les trois cas `other_error` en
+   `FAILED` avec la conclusion `success` là où `failure` était attendu, plus le
+   contrôle de structure en `FAILED` ; le côté vert montre tout au vert. Le
+   sabotage a bien été fait hors dépôt, via la variable
+   `PIPELINE_WORKFLOW_PATH` pointant sur une copie dans `/tmp`.
+2. **Mon propre sabotage**, refait indépendamment : j'ai retiré l'étape
+   terminale d'une copie du workflow placée sous `/tmp/eval014_it3/` et lancé la
+   suite dessus. Résultat : `4` échecs sur `9` tests, les mêmes trois chemins
+   `other_error` plus le contrôle de structure. Le test rougit réellement quand
+   on casse la chaîne. C'est la première fois de ce lot qu'une affirmation sur
+   la sémantique du workflow est adossée à une contrainte mécanique et non à de
+   la prose.
+
+Le compteur `ci_pipeline_paths_collectes_014` se reconstruit à l'identique.
+
+### B`5` — le garde `ci_budget_guard` est-il rendu à son état d'avant-lot ? **CORRIGÉ**
+
+La condition de l'étape « Post-hoc budget marking » est de nouveau
+`if: steps.check.outputs.available == 'true'`. Je l'ai comparée octet pour octet
+au contenu du commit d'avant-lot `d1ed1f6` avec `git show` : identique. Le seul
+reste d'écart dans cette étape est le remplacement du chemin de transcript écrit
+en dur par la sortie unique `steps.transcript_path.outputs.path` — j'ai vérifié
+que cette sortie vaut exactement l'ancien littéral, donc c'est le correctif N`4`
+demandé à l'itération `1`, pas une modification de comportement du garde. J'ai
+également revérifié que le kill-switch, la résolution d'audit et le pré-contrôle
+de budget mensuel sont identiques à l'avant-lot, commentaires exclus.
+
+### N`5` — le champ figure-t-il à vrai **dans le commit produit** ? **CORRIGÉ**
+
+Le défaut que j'avais trouvé à l'itération `2` était un ordre d'étapes : le
+commit d'état passait **avant** le repli, si bien que son `git checkout -`
+remettait le fichier à vide et que le marquage suivant s'appliquait dans le
+vide. L'itération `3` déplace le commit d'état **après** le repli. Je l'ai
+rejoué à la main dans un dépôt Git temporaire, avec l'ordre réel et les corps
+d'étapes réels du workflow : la ligne est écrite avec le champ à faux, le repli
+la passe à vrai dans l'arbre de travail, et
+`git show <branche>:harness/pipeline/vendor-refusal-state.jsonl` la lit à
+**vrai** dans le commit. Le critère est tenu au sens strict où je l'avais posé :
+lu dans le commit, pas dans l'arbre de travail.
+
+### N`6` — retour de branche avant sortie dans le cas « rien à commiter » ? **CORRIGÉ**
+
+Le contrôle `git diff --quiet HEAD -- <fichier>` a été déplacé **avant** le
+`git checkout -b`. Rejoué dans mon dépôt temporaire : dans le cas « rien à
+commiter », l'étape sort en restant sur la branche d'origine et **aucune**
+branche n'est créée. Plus de résidu de branche pour les étapes suivantes.
+
+### N`7` — traité ou limite consignée ? **CONSIGNÉ, comme mon critère l'autorisait**
+
+Le journal du Générateur consigne la limite explicitement et la renvoie au
+Planificateur : la branche d'état est consultable depuis un clone, ce qui
+satisfait SC`3`, mais elle n'est reliée à l'audit concerné dans aucune vue du
+propriétaire et `master` ne la portera jamais sans fusion explicite. C'est bien
+un arbitrage qui dépasse le Générateur. Rien à reprocher ici.
+
+## 4. Non-régression des acquis
+
+L'itération `3` ne touche que `7` fichiers, dont `3` nouveaux ; je l'ai vérifié
+avec `git diff --name-status`. Les modules et workflows portant SC`1`, SC`2` et
+SC`3` (`pr_audit_guard.py`, son test, `audit-guard.yml`, `vendor_refusal.py`,
+son test, le fichier d'état) sont **inchangés** depuis l'itération `2`, ainsi que
+les deux paires de preuves rouges d'origine. Aucun fichier des lots archivés
+`001` à `013` n'est touché.
+
+Ré-échantillonnages demandés :
+
+- **Chemin `429` de bout en bout** : avec un faux exécutable `claude` qui répond
+  un refus de quota et sort en `1`, l'étape d'invocation sort bien en `1`, la
+  classification donne `vendor_refusal` et une ligne d'état est écrite. L'acquis
+  B`1` tient.
+- **Publication** : l'étape de publication entre bien sur une classification
+  `other_error` (chemin F) et publie la revue. L'acquis B`2` tient — le chemin
+  silencieux que j'avais trouvé à l'itération `1` reste fermé.
+- **Compteurs de structure** : `pipeline_workflows_count` et
+  `audit_guard_job_count` se reconstruisent à l'identique (SC`2`).
+- **Suites complètes** (SC`6`) : `harness/tests/` donne `348` passés et `16`
+  ignorés — les ignorés sont les cas Unity/PowerShell attendus sur Linux ;
+  `sim/tests/` donne `35` passés. Rien au rouge.
+
+## 5. Réserves non bloquantes
+
+### N`8` — la ligne de registre de coût de cette itération attribue le travail au mauvais backend
+
+La ligne ajoutée à `harness/queue/cost-ledger.jsonl` déclare
+`"backend": "claude"` et **omet** l'identifiant d'audit, alors que la note de
+transparence du journal de cette même itération déclare « acteur réel Cursor
+Cloud ». `harness/backends/ledger.py report` annonce donc maintenant
+`claude=1, cursor=1` pour un lot dont les deux générations ont été faites par un
+acteur Cursor : l'instrument de mesure des coûts par backend dit désormais
+quelque chose de faux. La condition SC`7` reste tenue au fond, parce que la
+ligne conforme au brief — avec `--backend cursor` et l'identifiant d'audit —
+existe bien, ajoutée à l'itération `1` ; mais la lecture littérale de ma
+rubrique, qui inspecte « la dernière ligne ajoutée », ne passe plus.
+
+J'ai pesé le blocage et j'y renonce : le manquement porte sur un enregistrement
+**ajouté**, pas sur un enregistrement **manquant**, et SC`7` demande une ligne
+pour le lot, pas une par itération. Correction attendue, le registre étant en
+ajout seul : ajouter une ligne rectificative avec
+`--backend cursor --audit-id CURSOR-a600532-fusion-sans-contre-audit`, ou faire
+arbitrer par le Planificateur la façon d'annuler une ligne mal attribuée.
+
+### N`9` — le test garde la présence de l'étape, pas son effet
+
+Deuxième sabotage, le mien : j'ai **gardé** l'étape terminale et remplacé son
+`exit 1` par `exit 0`, c'est-à-dire une étape présente mais inoffensive. La
+suite reste **entièrement verte** (`9` passés). La cause est dans
+`_step_outcome` : l'issue de cette étape est décidée par correspondance sur son
+**nom**, pas par lecture de son corps. Le test reproduit donc, d'un cran plus
+haut, exactement le défaut que la règle n°`7` nous a appris à traquer : il
+constate une présence et en déduit une fonction. Correction : dériver l'issue de
+l'étape de son bloc `run:` — repérer un `exit` non nul — au lieu de la coder en
+dur d'après le nom.
+
+### N`10` — « sept chemins » n'exerce que quatre comportements distincts
+
+Dans `SEVEN_PATHS`, les contextes `1` et `2` sont identiques, et les contextes
+`4`, `5` et `6` le sont aussi : le simulateur du test n'a aucune notion de
+« revue produite », donc rien ne distingue le chemin où une revue existe de
+celui où il n'y en a pas. Conséquence directe : la moitié la plus exigeante de
+mon critère B`3` — sur le chemin F, la revue doit être **publiée** et le job
+rouge — n'est pas affirmée par le test ; c'est moi qui l'ai vérifiée, avec mon
+propre simulateur. Correction : ajouter un champ `revue_produite` au contexte et
+affirmer que l'étape de publication s'est exécutée sur le chemin `6`.
+
+### N`11` — un filet qui avale silencieusement les conditions non analysables
+
+`_eval_condition` se termine par `except Exception: return True`, c'est-à-dire
+« si je n'arrive pas à évaluer la condition, je suppose que l'étape s'exécute ».
+J'ai mesuré que sur les `16` étapes extraites du workflow d'aujourd'hui,
+`0` condition tombe dans ce filet : il est donc inerte pour l'instant. Mais une
+condition future que l'analyseur ne saurait pas lire dégraderait le test sans
+aucun signal. Correction : remplacer le `return True` par un `pytest.fail`
+nommant la condition en cause.
+
+### N`12` — la paire de preuves est en retard d'un test
+
+Les deux fichiers de la paire C annoncent `8` tests collectés, alors que le
+fichier en compte `9` aujourd'hui — le manifeste, lui, dit bien `9`. La paire a
+donc été capturée avant l'ajout du test N`5`. Elle reste valide sur ce qu'elle
+démontre, mais elle n'est plus le reflet exact de la suite. Correction :
+regénérer la paire.
+
+## 6. Incident de processus
+
+Consigné ici comme le verdict du lot `012` l'avait fait pour un incident
+analogue.
+
+Le Générateur de l'itération `3` a committé de lui-même sur une branche
+parasite `cursor/014-pipeline-it3-b3-b4-b5-n5n6-111d`, malgré l'interdiction
+répétée à chaque itération. L'orchestrateur a repris le contenu sur la branche
+du lot et supprimé la branche locale. **Troisième violation de rôle de la
+session**, Planificateur inclus.
+
+Deux constats de ma part, l'un confirmant et l'autre corrigeant ce qui m'a été
+rapporté :
+
+- **Confirmé** : le contenu est repris à l'identique.
+  `git diff --name-only 77fea74 HEAD` ne renvoie rien — le commit parasite et le
+  commit du lot portent le même arbre. Le fond du lot n'est donc pas affecté par
+  l'incident, et je l'ai jugé sur son contenu.
+- **Corrigé** : la branche parasite n'était **pas** « jamais poussée », et elle
+  n'est **pas** supprimée. `git ls-remote --heads origin` la renvoie toujours,
+  sur `origin`, au commit `77fea74`. Seule la copie locale a disparu. La
+  remédiation est donc **incomplète** : il reste à supprimer la branche distante.
+  C'est une action d'orchestrateur, hors de mon périmètre — je ne fais aucune
+  écriture Git.
+
+Je note aussi, sans en faire un reproche au lot : l'angle mort du traçage
+d'acteur reste un Non-Goal différé du brief, ce qui explique qu'aucun garde
+mécanique n'ait arrêté ce commit. C'est précisément ce que la réserve N`8`
+illustre au niveau du registre de coût — tant que l'acteur réel n'est pas tracé
+mécaniquement, il est déclaré à la main, et une déclaration à la main peut être
+fausse.
+
+## 7. Ce qui est réellement bien fait
+
+Je le dis parce que cela calibre la boucle, pas par politesse. L'itération `3`
+fait ce que les deux précédentes n'avaient pas fait : elle remplace une
+affirmation de prose sur un fichier que personne ne peut exécuter ici par un
+test qui lit ce fichier et **rougit** quand on le casse. J'ai vérifié ce
+rougissement moi-même, par un sabotage indépendant. Les trois blocages sont
+fermés sans qu'aucun acquis ne régresse, le garde protégé est rendu à son état
+d'origine à l'octet, et le défaut d'ordre d'étapes que j'avais trouvé (N`5`) est
+corrigé pour la bonne raison, pas contourné.
+
+## Verdict final itération 3 : **PASS**
+
+Les trois échecs bloquants de l'itération `2` (B`3`, B`4`, B`5`) sont fermés et
+vérifiés par ma propre reconstruction, non par la parole du Générateur. Les
+réserves N`5`, N`6` et N`7` de l'itération `2` sont traitées. Aucun acquis des
+itérations `1` et `2` ne régresse. Les suites complètes sont au vert. Les
+conditions de succès SC`1` à SC`7` du brief sont tenues.
+
+Les cinq réserves N`8` à N`12` sont non bloquantes et n'entrent pas dans les
+conditions de succès du brief : elles portent sur la finesse du test livré
+(N`9`, N`10`, N`11`), sur la fraîcheur d'une preuve (N`12`) et sur une ligne de
+comptabilité mal formée (N`8`). Elles doivent partir au Planificateur comme
+matière à brief de suivi, avec N`9` en tête : un test qui reste vert quand on
+neutralise l'étape qu'il est censé garder mérite d'être resserré avant que
+quelqu'un ne s'y fie.
+
+### Sur l'escalade
+
+Pas d'escalade. Le critère que j'avais posé à l'itération `2` était : « si
+l'itération `3` livre encore un déroulé en prose au lieu d'un test qui rougit
+quand on casse la chaîne, escalader vers le propriétaire ». Elle a livré le test,
+et j'ai constaté le rougissement par mon propre sabotage hors dépôt. La cause
+racine des deux itérations perdues — rien dans ce dépôt ne contraignait
+mécaniquement la sémantique d'un workflow — est désormais adressée, même
+imparfaitement (N`9`).
+
+Pas de `feedback/feedback-003.md` : le lot est accepté. Les réserves N`8` à
+N`12` sont dans la section `5` ci-dessus, chacune avec sa correction attendue,
+à l'intention du Planificateur.
