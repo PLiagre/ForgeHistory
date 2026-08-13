@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 10:48 UTC.
+> Générée le 2026-08-13 10:49 UTC.
 
 ## En bref
 
@@ -15,7 +15,6 @@
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #69 — « Brief 013 : le tick nourrit une fois — commerce avant consommation, transport à une arête, mortalité continue (F2) » (branche `forge/013-sim-tick-nourrit-une-fois-ddda`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -24,21 +23,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 10:47:54 | hermes-observer | pull_request_target | forge/boucle-audits-post-pr60-ddda | queued |
-| 2026-08-13 10:47:54 | audit-guard | push | master | in_progress |
-| 2026-08-13 10:47:54 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 10:47:54 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 10:47:54 | security | push | master | in_progress |
-| 2026-08-13 10:47:54 | harness-ci | push | master | in_progress |
-| 2026-08-13 10:42:57 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:42:52 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:42:49 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 10:42:49 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:42:37 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:42:37 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:42:30 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 10:42:23 | hermes-observer | pull_request_target | forge/013-sim-tick-nourrit-une-fois-ddda | queued |
-| 2026-08-13 10:42:23 | harness-ci | pull_request | forge/013-sim-tick-nourrit-une-fois-ddda | success |
+| 2026-08-13 10:48:49 | harness-ci | push | master | in_progress |
+| 2026-08-13 10:48:49 | security | push | master | in_progress |
+| 2026-08-13 10:48:49 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 10:48:49 | audit-guard | push | master | in_progress |
+| 2026-08-13 10:48:49 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 10:48:49 | hermes-observer | pull_request_target | forge/013-sim-tick-nourrit-une-fois-ddda | queued |
+| 2026-08-13 10:48:37 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:48:28 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:48:28 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:48:28 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:48:25 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:48:25 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 10:48:22 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:48:19 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 10:48:16 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -91,7 +90,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 010-repartition-roles-full-auto | dernier verdict tracé : ACCEPT |
 | 011-sim-monde-vivant-amorcage | dernier verdict tracé : ACCEPT |
 | 012-monde-vivant-commerce-inter-cellules | dernier verdict tracé : ACCEPT |
-| 013-sim-tick-nourrit-une-fois | pas encore de verdict |
+| 013-sim-tick-nourrit-une-fois | dernier verdict tracé : ACCEPT |
 | 014-pipeline-contre-audit-porte | pas encore de verdict |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
@@ -101,7 +100,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 28 | 2026-08-11 14:07 |
-| cursor | 7 | 2026-08-13 06:59 |
+| cursor | 9 | 2026-08-13 10:24 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
