@@ -11,11 +11,10 @@
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 22 — boucles closes : 7.
+- **Audits en cours** : 23 — boucles closes : 7.
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #67 — « cursor-auditor : critique de la PR #62 (contre-audit CURSOR-a600532) — audit PROPOSED » (branche `cursor/audit-de-la-pull-request-62-210c`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Fusionner (ou refuser) la PR #65 — « Boucle d'audit post-PR #60 : décision a4de4bb récupérée, clôture 3b47ffe, graines de briefs 013/014 » (branche `forge/boucle-audits-post-pr60-ddda`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
@@ -26,21 +25,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 08:52:32 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:20 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:19 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 08:52:19 | pipeline-challenge | push | master | queued |
-| 2026-08-13 08:52:19 | harness-ci | push | master | in_progress |
-| 2026-08-13 08:52:19 | security | push | master | in_progress |
-| 2026-08-13 08:52:19 | audit-guard | push | master | success |
-| 2026-08-13 08:52:19 | hermes-observer | pull_request_target | cursor/audit-pr-63-1f9f | queued |
-| 2026-08-13 08:52:19 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 08:52:17 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:16 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:16 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:13 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:11 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 08:52:08 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:52:50 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:52:47 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:52:44 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:52:41 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 08:52:41 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:52:40 | security | push | master | in_progress |
+| 2026-08-13 08:52:40 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 08:52:40 | audit-guard | push | master | in_progress |
+| 2026-08-13 08:52:40 | harness-ci | push | master | in_progress |
+| 2026-08-13 08:52:36 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 08:52:35 | hermes-observer | pull_request_target | cursor/audit-de-la-pull-request-62-210c | queued |
+| 2026-08-13 08:52:35 | audit-guard | push | master | success |
+| 2026-08-13 08:52:35 | harness-ci | push | master | in_progress |
+| 2026-08-13 08:52:35 | security | push | master | in_progress |
+| 2026-08-13 08:52:35 | pipeline-challenge | push | master | in_progress |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -69,6 +68,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-949ecf1-pr42-revue-non-consommable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-9e35764-pr63-contre-audit-jamais-enregistre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-a4de4bb-pr60-nourriture-comptee-deux-fois | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-bb8fe11-hermes-console-adr-0011 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-cd1dcd2-forge-bot-pat-boucle-jetons | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-e2896e7-pr44-challenge-bb8fe11 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
