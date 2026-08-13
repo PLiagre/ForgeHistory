@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 20:20 UTC.
+> Générée le 2026-08-13 20:21 UTC.
 
 ## En bref
 
@@ -34,21 +34,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 20:20:56 | hermes-observer | pull_request_target | forge/014-pipeline-contre-audit-porte-e180 | queued |
-| 2026-08-13 20:20:40 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 20:20:40 | harness-ci | push | master | in_progress |
-| 2026-08-13 20:20:40 | security | push | master | in_progress |
-| 2026-08-13 20:20:40 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 20:20:40 | audit-guard | push | master | success |
-| 2026-08-13 20:20:40 | hermes-observer | pull_request_target | forge/cloture-audit-a4de4bb-e180 | queued |
-| 2026-08-13 20:20:32 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:32 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:31 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:29 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 20:20:29 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:21 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:21 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:20:20 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:15 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:15 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:15 | pipeline-failure-escalate | workflow_run | master | queued |
+| 2026-08-13 20:21:13 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:09 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:21:04 | harness-ci | push | master | in_progress |
+| 2026-08-13 20:21:04 | audit-guard | push | master | in_progress |
+| 2026-08-13 20:21:04 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 20:21:04 | security | push | master | in_progress |
+| 2026-08-13 20:21:01 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:59 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:58 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 20:20:58 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:57 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:20:56 | security | push | master | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -118,7 +118,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 011-sim-monde-vivant-amorcage | dernier verdict tracé : ACCEPT |
 | 012-monde-vivant-commerce-inter-cellules | dernier verdict tracé : ACCEPT |
 | 013-sim-tick-nourrit-une-fois | dernier verdict tracé : ACCEPT |
-| 014-pipeline-contre-audit-porte | pas encore de verdict |
+| 014-pipeline-contre-audit-porte | dernier verdict tracé : ACCEPT |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
@@ -126,8 +126,8 @@ Non disponible dans cette génération (API Cursor non interrogée).
 
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
-| claude | 28 | 2026-08-11 14:07 |
-| cursor | 9 | 2026-08-13 10:24 |
+| claude | 29 | 2026-08-13 12:32 |
+| cursor | 11 | 2026-08-13 12:46 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
