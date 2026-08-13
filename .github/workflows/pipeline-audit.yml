@@ -1,18 +1,22 @@
 name: pipeline-audit
 
-# ADR-0010 : Cursor est le maillon CRITIQUE de la chaîne à quatre acteurs.
-# Deux déclencheurs :
-#   * pull_request (non-brouillon, hors branches cursor/*) -- Cursor relit
-#     la PR et la critique contre architecture/review-guidelines.md (bonnes
-#     pratiques d'ingénierie IA sourcées, sévérités P0-P3, preuve citée par
-#     constat).
-#   * push master -- l'audit post-merge historique (ADR-0005/0006), rôle
-#     cursor-auditor avec cursor-qa-scout en compagnon.
-# Dans les deux cas, l'agent est un Cursor Cloud Agent lancé par l'API
-# officielle (POST https://api.cursor.com/v1/agents, authentification Basic
-# avec la clé en nom d'utilisateur), avec le fichier de rôle
-# architecture/agents/cursor-auditor.md comme contrat. Son livrable reste un
-# audit sous architecture/inbox/** déposé par une PR cursor/*.
+# ADR-0012 (2026-08-13, décision propriétaire) : l'audit Cursor ne se
+# déclenche PLUS ni à chaque pull request ni à chaque push sur master --
+# cette cadence-là a consommé le plafond mensuel Claude deux fois en
+# vingt-quatre heures via les contre-audits qu'elle entraînait (mesures
+# dans hermes/requests/DEMANDE-20260813-audit-par-grandes-etapes.md).
+# Deux déclencheurs restants :
+#   * push master touchant hermes/milestones/*.md -- la clôture d'une
+#     GRANDE ÉTAPE du projet (jalon, voir ROADMAP.md § « Grandes étapes —
+#     jalons d'audit » et hermes/milestones/README.md). L'auditeur relit
+#     l'étape entière, pas un commit isolé.
+#   * workflow_dispatch -- audit ponctuel jugé crucial par un humain
+#     (incident, changement structurel entériné par ADR, doute).
+# L'agent reste un Cursor Cloud Agent lancé par l'API officielle
+# (POST https://api.cursor.com/v1/agents, authentification Basic avec la
+# clé en nom d'utilisateur), rôle architecture/agents/cursor-auditor.md,
+# compagnon cursor-qa-scout. Son livrable reste un audit sous
+# architecture/inbox/** déposé par une PR cursor/*.
 #
 # Sans CURSOR_API_KEY : dérogation consignée en ::warning::, aucun appel
 # simulé, le job réussit sans rien prétendre. Le label `pipeline/pause`
@@ -21,12 +25,15 @@ name: pipeline-audit
 on:
   push:
     branches: [master]
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'hermes/milestones/*.md'
   workflow_dispatch:
     inputs:
       target_commit:
         description: "SHA to audit (defaults to the triggering push's SHA)"
+        required: false
+      raison:
+        description: "pourquoi cet audit ponctuel (incident, ADR, doute) -- recopié dans le prompt"
         required: false
 
 permissions:
@@ -37,45 +44,13 @@ permissions:
 jobs:
   invoke-cursor-auditor:
     runs-on: ubuntu-latest
-    # Pas de critique des brouillons, et pas de boucle : une PR cursor/*
-    # est le dépôt d'un audit Cursor -- la critiquer relancerait Cursor sur
-    # sa propre production.
-    if: github.event_name != 'pull_request' || (github.event.pull_request.draft == false && !startsWith(github.event.pull_request.head.ref, 'cursor/'))
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
-      # Anti-boucle : un push sur master qui ne touche QUE les artefacts de
-      # la boucle elle-même (audits inbox, revues, décisions, archive,
-      # ledger, dashboard/rapports Hermes) est documentaire -- l'auditer
-      # relancerait un agent sur la production de la boucle, en chaîne, à
-      # chaque tour. Constaté en réel le 2026-08-12 : la fusion du premier
-      # audit a déclenché un deuxième auditeur sur cette fusion même.
-      - name: Documentary push? (loop artefacts only -- no re-audit)
-        id: docs
-        if: github.event_name == 'push'
-        env:
-          EVENT_BEFORE: ${{ github.event.before }}
-          EVENT_AFTER: ${{ github.event.after }}
-        run: |
-          set -euo pipefail
-          skip=false
-          if [ -n "${EVENT_BEFORE:-}" ] && [ "${EVENT_BEFORE}" != "0000000000000000000000000000000000000000" ]; then
-            changed="$(git diff --name-only "$EVENT_BEFORE" "$EVENT_AFTER" 2>/dev/null || true)"
-            if [ -n "$changed" ]; then
-              hors_boucle="$(printf '%s\n' "$changed" | grep -vE '^(architecture/(inbox|reviews|decisions|archive)/|architecture/audit-ledger\.jsonl$|hermes/)' || true)"
-              if [ -z "$hors_boucle" ]; then
-                skip=true
-                echo "::notice::push documentaire (artefacts de la boucle uniquement) -- pas de nouvel audit lancé."
-              fi
-            fi
-          fi
-          echo "skip=${skip}" >> "$GITHUB_OUTPUT"
-
       - name: Kill-switch -- any open pipeline/pause label stops everything
         id: pause
-        if: steps.docs.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -90,7 +65,7 @@ jobs:
 
       - name: Check Cursor Cloud Agent credentials
         id: check
-        if: steps.docs.outputs.skip != 'true' && steps.pause.outputs.paused != 'true'
+        if: steps.pause.outputs.paused != 'true'
         env:
           HAS_CURSOR: ${{ secrets.CURSOR_API_KEY != '' }}
         run: |
@@ -99,27 +74,40 @@ jobs:
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::CURSOR_API_KEY not configured -- documented waiver, no invocation attempted. Open a Cursor Cloud Agent session manually with architecture/agents/cursor-auditor.md as the role template (ADR-0010, docs/rules/full-auto-pipeline.md)."
+            echo "::warning::CURSOR_API_KEY not configured -- documented waiver, no invocation attempted. Open a Cursor Cloud Agent session manually with architecture/agents/cursor-auditor.md as the role template (ADR-0010/0012, docs/rules/full-auto-pipeline.md)."
           fi
 
+      # Le périmètre de l'audit d'étape : tout ce qui est entré sur master
+      # depuis le jalon précédent. Le jalon précédent est le dernier commit
+      # (avant celui-ci) qui a touché hermes/milestones/*.md ; pour le
+      # premier jalon, l'origine du dépôt.
+      - name: Resolve stage boundaries (previous milestone -> this one)
+        id: stage
+        if: steps.check.outputs.available == 'true'
+        env:
+          TARGET_COMMIT: ${{ github.event.inputs.target_commit || github.sha }}
+        run: |
+          set -euo pipefail
+          jalons="$(git log --format='%H' -- hermes/milestones/*.md 2>/dev/null || true)"
+          courant="$(printf '%s\n' "$jalons" | head -1 || true)"
+          precedent="$(printf '%s\n' "$jalons" | sed -n '2p' || true)"
+          echo "previous=${precedent:-<origine du dépôt>}" >> "$GITHUB_OUTPUT"
+          echo "Jalon courant: ${courant:-aucun} | jalon précédent: ${precedent:-aucun (origine)}"
+
       # Modèle : le propriétaire exige au moins Opus pour la critique
-      # (2026-08-12 -- le défaut claude-4.5-sonnet du premier tour était
-      # trop faible ; l'identifiant deviné 'claude-opus-5-thinking-high' a
-      # été refusé `invalid_model` par l'API au tour suivant). Le workflow
-      # ne devine donc plus : il interroge GET /v1/models, honore la
-      # variable de dépôt CURSOR_AUDITOR_MODEL si elle correspond à un
-      # identifiant réel, sinon prend le premier modèle « opus » (puis
-      # « grok »), et journalise la liste complète pour permettre au
-      # propriétaire de fixer la variable en connaissance de cause.
+      # (2026-08-12). Le workflow ne devine pas : il interroge GET
+      # /v1/models, honore la variable de dépôt CURSOR_AUDITOR_MODEL si
+      # elle correspond à un identifiant réel, sinon prend le premier
+      # modèle « opus » (puis « grok »), et journalise la liste complète.
       - name: Invoke cursor-auditor (Cloud Agents API v1)
         if: steps.check.outputs.available == 'true'
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           CURSOR_AUDITOR_MODEL: ${{ vars.CURSOR_AUDITOR_MODEL || '' }}
           EVENT_NAME: ${{ github.event_name }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           TARGET_COMMIT: ${{ github.event.inputs.target_commit || github.sha }}
+          RAISON: ${{ github.event.inputs.raison || '' }}
+          PREVIOUS_MILESTONE: ${{ steps.stage.outputs.previous }}
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
           set -euo pipefail
@@ -151,34 +139,32 @@ jobs:
           fi
           echo "Modèle retenu: ${model:-<défaut du compte>}"
 
-          consignes="Livrable: un audit architecture/inbox/CURSOR-<sha>-<slug>.md déposé par une PR cursor/* \
+          consignes="Livrable: UN SEUL audit architecture/inbox/CURSOR-<sha>-<slug>.md déposé par une PR cursor/* \
           qui ne touche que architecture/inbox/**. Pousse UNE seule branche cursor/* (jamais de branches \
           de brouillon multiples) et OUVRE toi-même la pull request avant de terminer -- une branche \
           poussée sans PR est un livrable incomplet. Respecte chaque section Interdits du contrat."
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            prompt="Tu es cursor-auditor (contrat: architecture/agents/cursor-auditor.md). \
-          Critique la pull request #${PR_NUMBER} (${PR_URL}) en suivant architecture/review-guidelines.md: \
-          six lentilles, sévérités P0-P3, chaque constat cite sa preuve. ${consignes}"
-            payload="$(jq -n \
-              --arg prompt "$prompt" \
-              --arg model "$model" \
-              --arg repo "$REPO_URL" \
-              --arg prurl "$PR_URL" \
-              '{prompt: {text: $prompt}, repos: [{url: $repo, prUrl: $prurl}], autoCreatePR: true}
-               | if $model != "" then . + {model: {id: $model}} else . end')"
+          if [ "$EVENT_NAME" = "push" ]; then
+            prompt="Tu es cursor-auditor (contrat: architecture/agents/cursor-auditor.md), \
+          avec cursor-qa-scout (architecture/agents/cursor-qa-scout.md) en compagnon de session. \
+          AUDIT DE GRANDE ÉTAPE (ADR-0012): un jalon vient d'être fusionné sur master au commit ${TARGET_COMMIT} \
+          (fichier hermes/milestones/, lis-le d'abord — il dit ce que l'étape devait réunir). \
+          Audite l'ÉTAPE ENTIÈRE: tout ce qui est entré sur master depuis le jalon précédent \
+          (${PREVIOUS_MILESTONE}), pas un commit isolé. Risques P0-P3, sources externes datées, \
+          au plus 3 briefs proposés — privilégie les constats de fond sur les redites de forme. ${consignes}"
           else
             prompt="Tu es cursor-auditor (contrat: architecture/agents/cursor-auditor.md), \
           avec cursor-qa-scout (architecture/agents/cursor-qa-scout.md) en compagnon de session. \
-          Audite le commit ${TARGET_COMMIT} fraîchement fusionné sur master: diff du merge, état du dépôt, \
-          risques P0-P3, sources externes datées, au plus 3 briefs proposés. ${consignes}"
-            payload="$(jq -n \
-              --arg prompt "$prompt" \
-              --arg model "$model" \
-              --arg repo "$REPO_URL" \
-              --arg ref "$TARGET_COMMIT" \
-              '{prompt: {text: $prompt}, repos: [{url: $repo, startingRef: $ref}], autoCreatePR: true}
-               | if $model != "" then . + {model: {id: $model}} else . end')"
+          AUDIT PONCTUEL demandé par un humain (workflow_dispatch, ADR-0012). Raison déclarée: ${RAISON:-non renseignée}. \
+          Audite le commit ${TARGET_COMMIT}: diff, état du dépôt, risques P0-P3, sources externes datées, \
+          au plus 3 briefs proposés. ${consignes}"
           fi
+          payload="$(jq -n \
+            --arg prompt "$prompt" \
+            --arg model "$model" \
+            --arg repo "$REPO_URL" \
+            --arg ref "$TARGET_COMMIT" \
+            '{prompt: {text: $prompt}, repos: [{url: $repo, startingRef: $ref}], autoCreatePR: true}
+             | if $model != "" then . + {model: {id: $model}} else . end')"
           # (auth_header défini en tête de step -- Basic, clé en nom
           # d'utilisateur, mot de passe vide, en en-tête pour ne pas
           # déclencher le faux positif gitleaks `curl-auth-user`.)

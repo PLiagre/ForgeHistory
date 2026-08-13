@@ -54,14 +54,39 @@ Codex — GPT-5.6 Sol (exécutant)                Générateur : code, tests, me
   ▼
 Claude Code (CTO)                              gate mécanique + verdict + PR
   ▼
-Cursor (critique)                              relit chaque PR contre
-  │                                            architecture/review-guidelines.md
-  ▼
-fusion (CI verte + gate ACCEPT + verdict d'un acteur ≠ producteur + audit Cursor)
+Cursor (critique)                              audite chaque GRANDE ÉTAPE close
+  │                                            (jalon hermes/milestones/, ADR-0012)
+  ▼                                            — plus jamais chaque PR
+fusion (CI verte + gate ACCEPT + verdict d'un acteur ≠ producteur)
 ```
 
 Détail des rôles et des interdits : `docs/adr/0010-hermes-chef-de-projet-workflow-quatre-acteurs.md`
 et `hermes/README.md`. Câblage runtime : `docs/rules/full-auto-pipeline.md`.
+
+## Grandes étapes — jalons d'audit (ADR-0012)
+
+Décision propriétaire du 2026-08-13
+(`hermes/requests/DEMANDE-20260813-audit-par-grandes-etapes.md`) : l'audit
+Cursor et le contre-audit Claude ne tournent plus à chaque PR — trop de
+jetons, trop d'allers-retours — mais à la **clôture de chaque grande
+étape**, marquée par un fichier `hermes/milestones/ETAPE-NN-<slug>.md`
+fusionné sur `master` (contrat : `hermes/milestones/README.md`). Un audit
+ponctuel reste possible à tout moment par `workflow_dispatch` (incident,
+changement structurel entériné par ADR, doute).
+
+| jalon | ce que l'étape doit réunir pour être close | statut |
+|---|---|---|
+| **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓ et des cellules G3 ✓) ; artefacts consommables par `sim/` ; visuel carte repris (briefs 004/005) si les logs Unity sont disponibles | à venir |
+| **E2 — Le monde vivant compte juste** (clôt F2, couche 1) | seuil de survie honnête (graines 015/016 traitées) ; agrégation Province dérivée (ADR-0003) ; monde mesuré stable et falsifiable sur les 596 cellules réelles | **prochain jalon** |
+| **E3 — Villes** (couche 2) | urbanisation, entreprises, métiers, routes, infrastructures — émergeant de la couche 1 | à venir |
+| **E4 — États** (couche 3) | fiscalité, lois, diplomatie, technologies, culture, religion | à venir |
+| **E5 — Armées** (couche 4) | recrutement, logistique, ravitaillement, stratégie | à venir |
+| **E6 — Batailles + rendu branché** (couche 5) | batailles tactiques sur les mêmes données ; Unity rend l'état du moteur (client mince, zéro logique) | à venir |
+
+Moments cruciaux supplémentaires (audit par `workflow_dispatch`, sans
+jalon) : tout changement structurel du harnais ou du pipeline entériné par
+un ADR ; tout incident de boucle (perte de données, garde contournée) ;
+toute veille de décision irréversible du propriétaire.
 
 ## Prochaines étapes (dans l'ordre)
 
@@ -101,3 +126,4 @@ et `hermes/README.md`. Câblage runtime : `docs/rules/full-auto-pipeline.md`.
 | 2026-08-12 | hermes (rédaction initiale déléguée à Cursor, décision propriétaire) | création — état F0/F1, couches jeu, workflow quatre acteurs |
 | 2026-08-12 | hermes (rédaction déléguée à Cursor, décision propriétaire « ok pour tout ») | reflet de la demande « tableau de bord unique et pilotage » (H1-H5, ADR-0011) ; correction factuelle : secrets CI provisionnés |
 | 2026-08-12 | orchestrateur Cursor (remplaçant du CTO Claude, indisponible — instruction propriétaire) | correction factuelle uniquement : brief 011 (F2, amorçage `sim/`) livré et accepté — statuts couche 1, F2 et étape 4 mis à jour |
+| 2026-08-13 | hermes (rédaction déléguée à l'orchestrateur Cursor, décision propriétaire — `DEMANDE-20260813-audit-par-grandes-etapes.md`) | audit/contre-audit par grandes étapes (ADR-0012) : section « Grandes étapes — jalons d'audit » (E1-E6), chaîne quatre acteurs mise à jour (Cursor audite les jalons, plus chaque PR) |
