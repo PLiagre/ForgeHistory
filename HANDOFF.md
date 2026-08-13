@@ -1,5 +1,67 @@
 # HANDOFF.md
 
+## Session la plus récente — 2026-08-12 (soirée) : brief 011, premier code de `sim/` (F2 lancée)
+
+**Contexte d'exécution** : Claude (le CTO) était indisponible ; sur
+instruction du propriétaire (« claude est inutilisable, tu le remplaces en
+attendant »), l'orchestration a été tenue par un agent Cursor Cloud qui a
+rejoué la boucle trois rôles localement, avec trois sous-agents distincts
+(Planificateur, Générateur, Évaluateur — jamais le même dans la même passe).
+Transparence : les trois rôles ont tourné sur l'infrastructure Cursor ;
+les signatures `forge-generateur` / `forge-evaluateur` sont les rôles natifs
+(sessions séparées, orchestrées de l'extérieur), la note de remplacement est
+écrite en prose dans `generator-log.md` et `verdict.md`. C'est le troisième
+angle mort connu du contrôle d'auto-jugement (couple natif sans suffixe
+d'acteur) — toujours ouvert, toujours documenté, à ne pas croire fermé.
+
+**Ce qui a été livré** — le brief 011
+(`harness/queue/briefs/011-sim-monde-vivant-amorcage/`), premier brief F2,
+amorçage du moteur `sim/` (couche 1 « monde vivant ») :
+
+1. Paquet `sim/` stdlib pur (modèle, monde, moteur, constantes) : le monde
+   se charge depuis les artefacts G3 committés du pipeline géo
+   (`cells_g3.json` / `adjacency_g3.json`, `cell_id` seule clé spatiale,
+   ADR-0003 gardée par une classe de base qui refuse tout champ
+   `province*`) ; population amorcée paramétriquement (formule documentée
+   dans `sim/SEEDING.md`, déclarée proxy non historique) ; tick
+   déterministe (même graine → condensés SHA256 égaux) ; économie physique
+   de la nourriture (production → stock → consommation → faim → mortalité,
+   chaque maillon écrit puis lu, sentinelles `-1`).
+2. Vingt tests sous `sim/tests/` (chargement, conformité ADR, amorçage,
+   déterminisme, chaîne causale maillon par maillon + bout en bout,
+   couverture d'écriture des champs, inspection anti-compteurs-en-dur),
+   preuves rouge/vert committées sous `sim/tests/proof_red/`.
+3. Boucle réelle : itération 1 = REJECT de l'Évaluateur (SC8 : le test de
+   couverture ne rougissait pas sur un champ fantôme ; hash recopié en dur
+   dans le journal) ; itération 2 = corrections B1/B2 + N1→N6, verdict
+   PASS, gate mécanique ACCEPT (dix contrôles sur dix).
+4. `ROADMAP.md` : correction factuelle des statuts (couche 1 commencée,
+   F2 en cours, étape 4 faite) — signalée au message de commit.
+
+**Validation rejouée sur l'état final** :
+- `.venv/bin/python harness/verdict_audit.py harness/queue/briefs/011-sim-monde-vivant-amorcage` → ACCEPT.
+- `.venv/bin/python -m pytest sim/tests/ -q` → 20 passed.
+- `.venv/bin/python -m pytest harness/tests/ -q` → 314 passed, 16 skipped
+  (la base a grossi depuis le 305 noté plus bas : tests ajoutés par les
+  briefs fusionnés entre-temps ; les 16 skips restent les tests
+  Unity/PowerShell attendus sur Linux).
+
+**Réserves consignées par l'Évaluateur (non bloquantes, pour un brief
+ultérieur)** : le compteur d'archive `lignes_differentes_preuve_rouge_iter1`
+porte une étiquette de commande fausse (la valeur vient du commit de
+l'itération 1, pas de la commande déclarée) ; le contrôle SC8 nomme la
+dataclass `Cell` au lieu de découvrir les dataclasses ; la détection des
+sites d'écriture ne vérifie pas l'objet écrit ; les deux preuves vertes
+sont un doublon. Autre trou connu : `harness-ci` ne collecte que
+`harness/tests/` — les tests `sim/` ne tournent pas encore en CI (les
+preuves committées et le verdict couvrent ce lot ; câbler `sim/tests/` en
+CI est un candidat naturel au prochain brief).
+
+**Prochain pas** : le CTO (ou son remplaçant) écrit le brief F2 suivant
+depuis `ROADMAP.md` — commerce inter-cellules ou agrégation Province
+dérivée — et la critique Cursor de la PR de ce lot alimente la boucle
+d'audit comme d'habitude.
+
 ## Addendum — 2026-08-12 (fin de journée) : premiers tours réels + tableau de bord
 
 Les secrets d'abonnement ont été provisionnés par le propriétaire et la
@@ -40,7 +102,7 @@ interroge `GET /v1/models`, honore la variable de dépôt
 choisit le premier modèle « opus » (puis « grok »), et journalise la liste
 complète des identifiants valides dans chaque run.
 
-## Session la plus récente — 2026-08-12 (après-midi) : ADR-0010, câblage réel, nettoyage
+## Session précédente — 2026-08-12 (après-midi) : ADR-0010, câblage réel, nettoyage
 
 Sur demande explicite du propriétaire (enregistrée dans
 `hermes/requests/DEMANDE-20260812-workflow-quatre-acteurs.md`), Cursor a
