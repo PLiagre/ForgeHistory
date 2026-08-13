@@ -5,13 +5,13 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 13:17 UTC.
+> Générée le 2026-08-13 13:18 UTC.
 
 ## En bref
 
 - **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 38 — boucles closes : 8.
+- **Audits en cours** : 39 — boucles closes : 8.
 
 ## Ce qui attend le propriétaire
 
@@ -35,21 +35,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 13:17:12 | hermes-observer | pull_request_target | cursor/audit-pull-request-89-d313 | queued |
-| 2026-08-13 13:17:11 | pipeline-challenge | push | master | in_progress |
-| 2026-08-13 13:17:11 | audit-guard | push | master | in_progress |
-| 2026-08-13 13:17:11 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 13:17:11 | security | push | master | in_progress |
-| 2026-08-13 13:17:11 | harness-ci | push | master | in_progress |
-| 2026-08-13 13:17:11 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 13:17:09 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:16:58 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:16:57 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:16:57 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:16:46 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:16:43 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 13:16:43 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 13:16:40 | security | pull_request | cursor/audit-pull-request-89-d313 | success |
+| 2026-08-13 13:18:43 | hermes-observer | pull_request_target | cursor/audit-de-la-pr-83-68a8 | pending |
+| 2026-08-13 13:18:43 | pipeline-challenge | push | master | in_progress |
+| 2026-08-13 13:18:43 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 13:18:43 | security | push | master | in_progress |
+| 2026-08-13 13:18:43 | audit-guard | push | master | in_progress |
+| 2026-08-13 13:18:43 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 13:18:43 | harness-ci | push | master | in_progress |
+| 2026-08-13 13:18:41 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:18:31 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:18:31 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:18:30 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:18:27 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:18:16 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 13:18:16 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 13:18:12 | hermes-observer | workflow_run | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -83,6 +83,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-4b6dcff-pr73-contre-audit-recompte-a-tort | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-587ee82-pr84-contre-audit-sans-pouvoir-de-refus | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
+| CURSOR-70380c6-pr83-etat-refus-sans-lecteur | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-70380c6-pr83-porte-desarmee-par-la-derive-de-sha | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-786ec32-pr74-verdicts-fantomes-au-registre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
 | CURSOR-7e5244b-ledger-post-fusion-poussee-master | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
