@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 12:50 UTC.
+> Générée le 2026-08-13 12:51 UTC.
 
 ## En bref
 
@@ -30,21 +30,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 12:50:18 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:50:16 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:50:15 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:50:15 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 12:50:11 | harness-ci | push | master | in_progress |
-| 2026-08-13 12:50:11 | audit-guard | push | master | in_progress |
-| 2026-08-13 12:50:11 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 12:50:11 | security | push | master | queued |
-| 2026-08-13 12:50:11 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 12:50:10 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:50:09 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:50:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 12:50:07 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 12:49:54 | harness-ci | push | master | success |
-| 2026-08-13 12:49:54 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:51:41 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:51:39 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 12:51:39 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:51:35 | pipeline-orchestrate | push | master | in_progress |
+| 2026-08-13 12:51:35 | audit-guard | push | master | in_progress |
+| 2026-08-13 12:51:35 | hermes-dashboard | push | master | in_progress |
+| 2026-08-13 12:51:35 | harness-ci | push | master | in_progress |
+| 2026-08-13 12:51:35 | security | push | master | in_progress |
+| 2026-08-13 12:51:35 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 12:51:35 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-827d54e-contre-audit-paye-jamais-publie-31693684053 | queued |
+| 2026-08-13 12:51:33 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:51:31 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:51:25 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:51:24 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 12:51:07 | hermes-observer | pull_request_target | forge-bot/review-CURSOR-827d54e-contre-audit-paye-jamais-publie-31693684053 | cancelled |
 
 ## Agents lancés récemment (Cursor Cloud)
 
