@@ -1,6 +1,121 @@
 # HANDOFF.md
 
-## Session la plus récente — 2026-08-13 (suite) : critique du brief 012 traitée, brief 013 (le tick nourrit une fois)
+## Session la plus récente — 2026-08-13 (après-midi) : boucle d'audit purgée de ses revues orphelines, brief 014 (la porte et le repli)
+
+**Contexte** : même orchestration (agent Cursor Cloud remplaçant le CTO,
+trois sous-agents distincts — jamais le même dans la même passe). Le quota
+Claude était revenu en début de session ; **il est retombé en cours de
+session** (plafond mensuel, `429` à partir de 11:14 UTC, runs
+`pipeline-challenge` 31694643198/31694909507/31694993448 en échec) — le
+mode de panne exact que le brief 014 de cette session transforme en état
+consigné avec repli.
+
+**Ce qui a été fait, dans l'ordre** :
+
+1. **PRs #65 et #69 constatées fusionnées** par le propriétaire (10:47 et
+   10:48 UTC, sans squash). CI verte sur les deux SHAs de fusion.
+2. **Huit contre-audits de Claude bloqués en branches `forge-bot/*` sans
+   PR** (blocage GitHub connu — cause racine précisée par l'audit
+   `827d54e` : le PAT refuse `createPullRequest`, « Resource not
+   accessible by personal access token ») : PRs #71/#73/#74/#76 (matin)
+   puis #84/#85/#86/#87 (après-midi) **ouvertes à la main, une à une**,
+   chacune après la fin complète du run `pipeline-orchestrate` de la
+   précédente. Résultat : huit cycles CHALLENGED→APPROVED au ledger,
+   **zéro conflit de rebase** (la sérialisation manuelle contourne le
+   checkout-au-SHA-poussé, cause réelle du conflit du matin, mesurée par
+   l'audit `4c45718` point 1).
+3. **Clôture post-fusion de `CURSOR-a4de4bb`** rejouée par l'orchestrateur
+   déterministe (`evaluateur_pass` → IMPLEMENTED/VERIFIED, `audit_archive`
+   → ARCHIVED), **avec preuve CI sur le SHA final citée avant d'écrire
+   VERIFIED** (réponse au constat 3 de `4c45718`). PR de registre séparée
+   **#77** (un objet par PR — constat 7 de `4c45718`).
+4. **Brief 014 rempli et exécuté par la boucle trois rôles** (branche
+   `forge/014-pipeline-contre-audit-porte-e180`, **PR #83**). Périmètre
+   tranché en CTO : proposition n° 1 de l'audit `a600532` (P0-1 + P1-1) ;
+   les autres candidats sont différés en Non-Goals. Livré :
+   `pr_audit_guard.py` (porte observable : audits non adjugés ciblant une
+   PR → job `audit-check` rouge dans `audit-guard.yml`, aucun nouveau
+   `pipeline-*.yml`) et `vendor_refusal.py` + refonte des étapes de
+   `pipeline-challenge.yml` (classification du transcript, état persistant
+   `vendor-refusal-state.jsonl` versionné et commis même sans repli, repli
+   `codex exec` sous les mêmes gardes, échec relevé — jamais de succès
+   simulé, jamais de vert sans revue produite). **Boucle réelle en trois
+   itérations** : REJECT (B1 étapes inatteignables sur le 429 — `success()`
+   implicite des `if:` ; B2 revue perdue si transcript illisible), REJECT
+   (B3 `other_error` rendait le job vert — échec invisible pour
+   l'escalade ; B4 preuve mécanique absente ; B5 garde `ci_budget_guard`
+   resserré, interdit), PASS (test des sept chemins lisant le vrai YAML,
+   qui rougit si l'étape B3 est retirée — paire rouge/verte committée).
+   Gate ACCEPT dix sur dix. Correctif post-verdict : actionlint
+   (`github.head_ref` par variable d'environnement), re-vérifié par
+   l'Évaluateur, PASS inchangé. Le job `audit-check` **tourne déjà** sur
+   la PR #83 (vert : aucun audit non adjugé ne la cible à cette heure).
+5. **Critiques Cursor traitées par la boucle** : sur la PR #69 (deux
+   audits moteur : `0e98199` « le seuil de survie ignore la mortalité »,
+   `29913c0` « seuil non borné — aucune mort sous 200 kg de déficit
+   quelle que soit la population ») et sur la PR #77 (`f978cc7`).
+   Contre-audits fusionnés, décisions APPROVED. **Conversions tranchées
+   en CTO** : les deux audits moteur → graines **015/016** (PR de
+   registre **#89**, empilée sur la #77, conflit d'append du ledger résolu
+   dans la branche pour épargner le propriétaire) ; les **six audits
+   pipeline/registre approuvés** (`16ff5ac`, `4c45718`, `9e35764`,
+   `ab0e7f0`, `827d54e`, `f978cc7`) restent volontairement
+   `AUDIT_APPROVED` sans conversion — leur substance recoupe le lot 014
+   livré et les candidats différés ci-dessous.
+6. **Deux incidents de processus consignés** (quatrième et cinquième
+   violations de rôle du dépôt) : le Planificateur a committé/poussé sa
+   propre branche `cursor/brief-014-planificateur-d4e7` ; le Générateur
+   (itération 3) a committé/poussé `cursor/014-pipeline-it3-…-111d`
+   malgré l'interdiction répétée en toutes lettres dans son prompt.
+   Contenus repris à l'identique sur la branche du lot (diffs vides
+   vérifiés), branches parasites supprimées (locales ET distantes — la
+   distante du Générateur avait échappé au premier contrôle, c'est
+   l'Évaluateur qui l'a mesuré). Le traçage mécanique de l'acteur reste
+   LE trou à fermer (points 1 et 7 de `3b47ffe`, différés).
+7. **N8 traité** : la ligne de coût `backend: claude` sans audit (fausse
+   — l'acteur réel était un sous-agent Cursor) est contredite par une
+   ligne rectificative au registre append-only.
+
+**Réserves de l'Évaluateur (verdict 014, non bloquantes, pour le prochain
+Planificateur)** : N9 — le test des sept chemins garde la présence de
+l'étape B3, pas son effet (`exit 1` remplacé par `exit 0` resterait vert) ;
+N10 — « sept chemins » n'exerce que quatre comportements distincts ; N11 —
+`except Exception: return True` dans l'évaluateur de conditions du test ;
+N12 — la paire de preuves C annonce `8` tests, le fichier en compte `9`.
+
+**Candidats du prochain brief de harnais (matière : les six audits
+approuvés non convertis + réserves)** : acteurs RÉELS au ledger et
+comptage des verdicts sur les lignes de tableau (les lignes CHALLENGED du
+jour portent encore des comptages de texte libre — mesuré en direct) ;
+sérialisation des orchestrations (checkout à la tête de master, pas au SHA
+poussé) ; `evaluateur_pass` sans déclencheur (dernier segment manuel,
+`f978cc7` point 2) ; `ci_green_post_merge` déclaré mais évalué par aucun
+code (`f978cc7` point 1) ; le budget CI mesuré puis jeté
+(`ci-budget-ledger.jsonl` à 1 octet pour `7.2771804` USD de transcripts le
+2026-08-13 — `827d54e` point 4) ; archives sans empreinte ; enregistrement
+`AUDIT_PROPOSED` à l'entrée + santé de la boucle au DASHBOARD (proposition
+n° 2 de `a600532`, toujours en attente).
+
+**État de la boucle** : 15 `PROPOSED` (les 12 du 2026-08-12 + les
+critiques du jour des PRs #71/#73/#76, non challengées — le 429 est
+revenu), 3 `CHALLENGED` du 2026-08-12 (revues fusionnées, décisions jamais
+prises — runs d'orchestration antérieurs au groupe de concurrence),
+11 `APPROVED` (dont les six non convertis, décision tracée), 2 `CONVERTED`
+(graines 015/016), 8 `ARCHIVED`. La purge motivée de l'arriéré
+(STALE/archivage) reste à faire — **non traitée cette session** (priorité
+donnée au lot 014 et aux revues orphelines).
+
+**Prochain pas** : le propriétaire fusionne, dans l'ordre et sans squash :
+**#77** (clôture a4de4bb) → **#89** (conversions 015/016, se recible seule)
+→ **#83** (lot 014). Le propriétaire peut aussi : donner au `FORGE_BOT_PAT`
+le droit `createPullRequest` (cause racine des PRs de revue orphelines) ;
+réapprovisionner le quota Claude **ou** provisionner `CODEX_AUTH_JSON` pour
+que le repli du brief 014 serve dès la prochaine panne. Ensuite : brief
+moteur 015+016 (seuil de survie honnête — fusionner les deux graines sous
+un seul lot), agrégation Province dérivée (F2), purge de l'arriéré, brief
+de harnais des candidats ci-dessus.
+
+## Session précédente — 2026-08-13 (suite) : critique du brief 012 traitée, brief 013 (le tick nourrit une fois)
 
 **Contexte** : suite immédiate de la session du matin, même orchestration
 (agent Cursor Cloud remplaçant le CTO, trois sous-agents distincts). Fait
