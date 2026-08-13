@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-13 20:21 UTC.
+> Générée le 2026-08-13 20:22 UTC.
 
 ## En bref
 
@@ -15,7 +15,6 @@
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #99 — « ADR-0012 : audit et contre-audit par grandes étapes — plus jamais par PR (décision propriétaire, empilée sur #92) » (branche `forge/adr-0012-audit-par-etapes-e180`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -30,21 +29,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-13 20:21:40 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:38 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:36 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:35 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:35 | pipeline-failure-escalate | workflow_run | master | skipped |
-| 2026-08-13 20:21:33 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:28 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:28 | hermes-observer | pull_request_target | forge/conversions-briefs-015-016-e180 | queued |
-| 2026-08-13 20:21:28 | security | push | master | in_progress |
-| 2026-08-13 20:21:28 | hermes-dashboard | push | master | in_progress |
-| 2026-08-13 20:21:28 | audit-guard | push | master | success |
-| 2026-08-13 20:21:28 | pipeline-audit | push | master | in_progress |
-| 2026-08-13 20:21:28 | harness-ci | push | master | in_progress |
-| 2026-08-13 20:21:25 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 20:21:23 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:22:04 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:22:04 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:22:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:22:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:22:03 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:22:01 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 20:22:01 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:22:00 | hermes-observer | workflow_run | master | queued |
+| 2026-08-13 20:22:00 | pipeline-failure-escalate | workflow_run | master | skipped |
+| 2026-08-13 20:22:00 | pipeline-audit | push | master | in_progress |
+| 2026-08-13 20:22:00 | harness-ci | push | master | in_progress |
+| 2026-08-13 20:22:00 | hermes-observer | pull_request_target | forge/adr-0012-audit-par-etapes-e180 | queued |
+| 2026-08-13 20:21:59 | hermes-dashboard | push | master | pending |
+| 2026-08-13 20:21:59 | security | push | master | in_progress |
+| 2026-08-13 20:21:59 | audit-guard | push | master | queued |
 
 ## Agents lancés récemment (Cursor Cloud)
 
