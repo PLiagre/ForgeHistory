@@ -11,6 +11,11 @@
 > `verdict_is_not_self_authored` compare les acteurs de part et d'autre d'un
 > lot, et un couple de signatures suffixées serait refusé.
 
+**Amendement en vigueur :** ce brief est amendé par
+`amendment-001-escalade-empreinte-g3.md`, qui ouvre la dérogation d'escalade que
+D2 annonçait sur l'empreinte du littoral et récrit SC7 en deux branches ; lire
+cet amendement avant SC7.
+
 ---
 
 ## Provenance
@@ -661,10 +666,29 @@ Résultat attendu : `run_proof_g4.py` sort avec le code 0.
 - `controles_g4_avec_preuve_rouge_non_vide` vaut **8** sur 8 : chaque contrôle a
   été vu rougir (D12), `G4-B` par le cas naturel.
 - `code_sortie_run_proof_g4` vaut **0**.
-- `empreinte_terre_g4_egale_entree_g3` vaut 1 : l'empreinte du littoral corrigé
-  employé par G4 est égale à celle que `MANIFEST_g3.json` déclare comme entrée
-  des cellules, les deux étant lues à l'exécution (D2). Aucune valeur
-  hexadécimale n'est recopiée nulle part.
+- `empreinte_terre_g4_egale_entree_g3` : deux branches, **une seule** est à
+  satisfaire (amendée par `amendment-001-escalade-empreinte-g3.md`). Aucune
+  valeur hexadécimale n'est recopiée nulle part, dans l'une comme dans l'autre.
+
+  - **Branche égale (monde unique).** Le compteur vaut **1** : l'empreinte du
+    littoral corrigé employé par G4 est égale à celle que `MANIFEST_g3.json`
+    déclare comme entrée des cellules, les deux étant lues à l'exécution (D2).
+  - **Branche escalade (chaîne amont incohérente).** Le compteur vaut **0**, et
+    toutes les exigences suivantes valent **ensemble** : ce `0` est une **mesure**
+    et jamais la sentinelle `-1` ; la dérogation d'escalade de la table des
+    dérogations est invoquée, avec sa commande rejouable et son message d'erreur,
+    l'un et l'autre dépourvus de toute valeur hexadécimale, le message nommant
+    ses **deux** sources ; `empreinte_terre_g4_egale_sortie_declaree_g2b` vaut
+    **1**, ce qui situe l'écart en amont du lot ; aucun artefact G3 n'est
+    réécrit, régénéré ni retouché (D16) ; la comparaison n'est **pas** retargetée
+    vers `MANIFEST_g2b.json` pour faire dire 1 au compteur ; le constat est
+    **ouvert** — nommé dans le journal de preuve, dans
+    `deliverables/generator-log.md` et dans `pipeline/geo/README.md`.
+
+    Cette branche **satisfait SC7 pour ce lot**. Elle ne vaut pas égalité : elle
+    n'autorise en aucun cas à écrire, dans un document ou dans un artefact, que
+    la mer et les cellules décrivent le même monde. La réparation de la
+    provenance de G3 est un brief ultérieur dédié (non-objectif n° 18).
 - `zones_hors_bornes_intention` et `zones_exemptees_bassin_entier` sont mesurées
   et rapportées (D13). Si la première n'est pas nulle, le journal et
   `README.md` l'inscrivent comme constat ouvert, sans déplacer aucune borne.
@@ -792,6 +816,12 @@ Ce brief ne doit explicitement PAS :
     un commentaire (règle n° 12). Les empreintes se comparent à l'exécution.
 17. Committer, pousser, créer ou changer de branche. L'orchestrateur seul
     dépose.
+18. Réparer la provenance de G3, ni trancher lequel des deux artefacts committés
+    est faux quand l'empreinte du littoral diffère de ce que `MANIFEST_g3.json`
+    déclare. C'est un **brief ultérieur dédié**, hors 019 : il touchera des
+    cellules déjà consommées par `sim/`, ce que ce lot n'a pas le droit de faire.
+    Ici, l'écart se mesure, s'escalade et s'inscrit comme constat ouvert
+    (SC7, branche escalade) — il ne se répare pas.
 
 ---
 
@@ -811,7 +841,7 @@ constantes.
 | `zones_mer_denombrees` | entrées de `artifacts/sea_zones_g4.json` | `[SEA_ZONE_COUNT_MIN, SEA_ZONE_COUNT_MAX]` lues de `constants.py` ; doit s'y situer |
 | `composantes_mer_totales` | composantes d'eau retenues comme mer de 1400 (D2) | leur nombre ; doit être > 0 |
 | `composantes_mer_couvertes` | composantes portant au moins une zone | `composantes_mer_totales` (doit être égal) |
-| `plans_eau_exclus_lacs` | plans d'eau enclavés non reclassés en mer par les corrections de 1400 | plans d'eau enclavés examinés ; fait mesuré |
+| `plans_eau_exclus_lacs` | plans d'eau enclavés non reclassés en mer par les corrections de 1400 | tous les plans d'eau examinés au-dessus de la tolérance de découpe, soit les plans exclus **plus** les composantes retenues comme mer — un ensemble qui contient donc le compteur ; fait mesuré, sans seuil |
 | `collisions_id_mer_terre` | `zone_id` confrontés à l'ensemble des `cell_id` de `cells_g3.json` | `zones_mer_denombrees` ; **doit valoir 0**, mesure réelle |
 | `ids_mer_sous_la_base` | `zone_id` inférieurs à `SEA_ZONE_ID_BASE` lu de `constants.py` | `zones_mer_denombrees` ; **doit valoir 0** |
 | `aretes_totales` | arêtes de `artifacts/adjacency_g4.json` | leur nombre ; doit être > 0 |
@@ -843,7 +873,8 @@ constantes.
 | `controles_g4_verts` | tableau `checks` de `logs/v1_050_qa.json` | 8 entrées (doit valoir 8) |
 | `controles_g4_avec_preuve_rouge_non_vide` | champ `red_proof` de chaque entrée du même tableau | 8 entrées (doit valoir 8) |
 | `code_sortie_run_proof_g4` | code de sortie de `tests/run_proof_g4.py` | 1 exécution ; **doit valoir 0** |
-| `empreinte_terre_g4_egale_entree_g3` | empreinte du littoral corrigé employé par G4 vs `MANIFEST_g3.json`'s `inputs.coastline_1400`, les deux lues à l'exécution | 1 comparaison ; doit valoir 1 |
+| `empreinte_terre_g4_egale_entree_g3` | empreinte du littoral corrigé employé par G4 vs `MANIFEST_g3.json`'s `inputs.coastline_1400`, les deux lues à l'exécution | 1 comparaison ; vaut **1** si égal, **0** si escalade documentée (SC7, dérogation d'escalade) ; ce 0 est une mesure, jamais la sentinelle |
+| `empreinte_terre_g4_egale_sortie_declaree_g2b` | même empreinte du littoral relu vs la sortie que `MANIFEST_g2b.json` déclare pour `coastline_1400.json`, les deux lues à l'exécution | 1 comparaison ; **doit valoir 1** si la branche escalade de SC7 est invoquée |
 | `zones_hors_bornes_intention` | zones hors `G4_SEA_AREA_FLOOR_KM2` / `G4_SEA_AREA_CEIL_KM2` / `G4_SEA_COMPACTNESS_MIN` lues de `constants.py`, exemptions de D13 appliquées | `zones_mer_denombrees` ; fait mesuré, non bloquant, inscrit comme constat ouvert s'il n'est pas nul |
 | `zones_exemptees_bassin_entier` | zones constituant à elles seules un bassin enfermé entier (exemption déclarée en D13) | `zones_mer_denombrees` ; fait mesuré |
 | `captures_regardees_et_decrites` | captures de D9 dont le journal décrit ce qu'elles montrent | captures produites (doit être égal) |
@@ -865,10 +896,42 @@ durement acquise n° 9).
 | « la pile scientifique n'est pas installée sur cette machine » | `.venv/bin/python -c "import shapely, geopandas, pyproj; print('ok')"` depuis la racine | le message d'erreur exact (`ModuleNotFoundError` nommant le module) ; si invoqué, **aucune** condition de succès n'est excusée : sans exécution il n'y a pas de mesure, et le lot s'arrête sur ce constat |
 | « les artefacts de cellules ne sont pas lisibles » | `.venv/bin/python -c "import json; json.load(open('pipeline/geo/artifacts/cells_g3.json'))"` depuis la racine | le message d'erreur exact (`FileNotFoundError` ou équivalent) |
 | « le littoral corrigé de 1400 ne se régénère pas » | depuis `pipeline/geo/` : `../../.venv/bin/python tests/run_proof_g2b.py` | la sortie réelle complète montrant l'échec, code de sortie inclus |
+| « l'empreinte du littoral corrigé de 1400 relu par G4 diffère de l'entrée que `MANIFEST_g3.json` déclare » — **dérogation d'escalade**, ouverte par `amendment-001-escalade-empreinte-g3.md` pour tenir la promesse de D2 | depuis la racine : `.venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/check_provenance_coastline_019.py` (contrat fixé sous la table) | le message d'écart que la commande imprime, **nommant ses deux sources et dépourvu de toute valeur hexadécimale** — de la forme « écart entre `artifacts/coastline_1400.json` calculé et `MANIFEST_g3.json` `inputs.coastline_1400` » — avec le code de sortie 1. Si invoquée : `empreinte_terre_g4_egale_entree_g3` reste le `0` **mesuré** (jamais 1, jamais la sentinelle `-1`), `empreinte_terre_g4_egale_sortie_declaree_g2b` vaut 1, aucun artefact G3 n'est réécrit ni régénéré, la comparaison n'est pas retargetée vers `MANIFEST_g2b.json`, et le constat est **ouvert** dans le journal de preuve, dans `deliverables/generator-log.md` et dans `pipeline/geo/README.md`. Ce n'est **pas** un succès d'égalité : c'est l'escalade que D2 annonçait |
 | « le fichier Unity de noms de mer est introuvable » | `.venv/bin/python -c "import pathlib; print(pathlib.Path('unity/game_unity/Assets/StreamingAssets/data/sea_zones.json').read_bytes()[:1])"` depuis la racine | le message d'erreur exact (`FileNotFoundError`) |
 | « le nombre de zones de mer ne peut pas tomber dans la fourchette déclarée avec les paramètres de semis lus » | depuis `pipeline/geo/` : `../../.venv/bin/python tests/run_proof_g4.py` | la sortie réelle et la ligne de `logs/v1_050_qa.json` nommant le compte hors fourchette, **plus** le relevé des tentatives faites à paramètres inchangés. Si invoqué : la borne n'est pas déplacée, `constants.py` n'est pas modifié, et le constat est **escaladé au Planificateur** — jamais auto-accordé comme un succès |
 | « un bassin enfermé reste injoignable malgré les liens déclarés » | même commande | la sortie de `G4-B` nommant le bassin injoignable, plus le contenu de `logs/v1_050_g4b_links_on.txt`. Si invoqué : le contrôle n'est pas relâché, la géométrie du littoral n'est pas retouchée, et le constat est escaladé |
 | « le budget d'exécution n'est pas mesurable sur cette machine » | `.venv/bin/python harness/budget.py status --brief harness/queue/briefs/019-geo-adjacence-g4` | la sortie contient la chaîne `UNMEASURABLE` |
+
+**Contrat de la commande d'escalade.** Le Générateur écrit le script ; le brief
+fixe son comportement, et rien de plus. Un seul appel bloquant, depuis la racine :
+
+```py
+.venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/check_provenance_coastline_019.py
+```
+
+- Il **lit** trois choses, en lecture seule : le
+  `pipeline/geo/artifacts/coastline_1400.json` vivant (celui que la chaîne vient
+  de régénérer), l'entrée `inputs.coastline_1400` déclarée par
+  `pipeline/geo/artifacts/MANIFEST_g3.json`, et la sortie que
+  `pipeline/geo/artifacts/MANIFEST_g2b.json` déclare pour ce même fichier.
+- Il **calcule** l'empreinte du fichier vivant à l'exécution et la compare aux
+  deux valeurs déclarées. Il n'imprime, n'écrit et ne consigne **aucune** valeur
+  hexadécimale, nulle part : seulement des noms de source et des résultats de
+  comparaison (règles n° 9 et n° 12 tenues ensemble).
+- **Si les deux empreintes sont égales** : il l'énonce en nommant ses deux
+  sources et sort avec le code **0**.
+- **Sinon** : il imprime le message d'écart nommant ses deux sources, puis une
+  seconde ligne disant si le fichier vivant correspond bien à la sortie que
+  `MANIFEST_g2b.json` déclare — la source du compteur
+  `empreinte_terre_g4_egale_sortie_declaree_g2b` — et sort avec le code **1**.
+- **Si le fichier vivant ou `MANIFEST_g2b.json` est absent** (les deux sont
+  ignorés par git, donc absents d'un clone frais) : il le dit, nomme la commande
+  qui les régénère (`../../.venv/bin/python tests/run_proof_g2b.py` depuis
+  `pipeline/geo/`) et sort avec le code **2** — jamais 1, pour qu'une absence ne
+  soit jamais confondue avec un écart mesuré.
+
+C'est cette sortie-là, et non celle d'une assertion brute, qui est consignée dans
+le champ d'erreur de la dérogation du manifeste.
 
 Aucune autre dérogation n'est recevable. En particulier :
 
@@ -884,6 +947,11 @@ Aucune autre dérogation n'est recevable. En particulier :
 - « les bornes d'intention de surface ou de compacité ne sont pas toutes
   respectées » **n'est pas une dérogation** : c'est un constat ouvert à
   inscrire, non bloquant, et surtout pas un motif de recalibration (D13).
+- « l'empreinte du littoral diffère de ce que G3 déclare » n'est recevable que
+  sous la **forme exacte** de la ligne d'escalade ci-dessus : la commande, son
+  message sans hexadécimal, les deux compteurs et le constat ouvert. Accordée
+  autrement — ou muée en égalité en changeant de cible — ce n'est pas une
+  dérogation, c'est un maquillage.
 
 ---
 
@@ -957,6 +1025,9 @@ par le Générateur) doit contenir :
   dérogations éventuelles avec commande et erreur ;
 - `measure_g4_019.py` — script rejouable imprimant chaque compteur avec son
   dénominateur (SC10) ;
+- `check_provenance_coastline_019.py` — la commande de la dérogation d'escalade,
+  exigée **seulement** si la branche escalade de SC7 est invoquée ; son
+  comportement est fixé par le contrat de la table des dérogations ;
 - `pre-edit/pipeline-geo-README.md.orig` — instantané du README avant édition ;
 - `generator-log.md` — journal d'exécution en **français clair** : ce qui a été
   fait, pourquoi, ce qui reste ; les sorties réelles des commandes de SC1, SC8

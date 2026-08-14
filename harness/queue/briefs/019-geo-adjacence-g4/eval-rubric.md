@@ -14,6 +14,11 @@ Claude Opus 5), orchestré par un agent Cursor Cloud qui remplace le CTO Claude
 contrôle mécanique `verdict_is_not_self_authored` compare les acteurs de part et
 d'autre d'un lot, et un couple suffixé serait refusé.
 
+Amendement en vigueur : cette rubrique est amendée par
+`amendment-001-escalade-empreinte-g3.md`, qui rend SC7 à deux branches sur
+l'empreinte du littoral et remplace la ligne correspondante des échecs
+disqualifiants ; lire cet amendement avant d'appliquer SC7.
+
 ---
 
 ## Guide de lecture
@@ -516,19 +521,41 @@ son fichier étiqueté.
    Une re-exécution propre qui ne produit aucune différence est l'état vert
    attendu, pas un signe que rien n'a tourné.
 
-3. Vérifier l'égalité d'empreinte entre la terre employée par G4 et l'entrée
-   déclarée de G3, **par calcul** :
+3. Vérifier la provenance du littoral, **par calcul** et **sans citer aucune
+   valeur** (règle n° 12). La commande est celle de la dérogation d'escalade du
+   brief, dont le brief fixe le contrat ; elle nomme ses sources et n'imprime que
+   des résultats de comparaison. Depuis la racine :
+   ```py
+   .venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/check_provenance_coastline_019.py
    ```
-   .venv/bin/python -c "
-   import hashlib, json, pathlib
-   art = pathlib.Path('pipeline/geo/artifacts')
-   m3 = json.load(open(art/'MANIFEST_g3.json'))
-   m4 = json.load(open(art/'MANIFEST_g4.json'))
-   vivant = hashlib.sha256((art/'coastline_1400.json').read_bytes()).hexdigest() if (art/'coastline_1400.json').exists() else None
-   print('g3_inputs == g4_inputs :', m3['inputs']['coastline_1400'] == m4['inputs'].get('coastline_1400'))
-   print('artefact vivant identique :', vivant == m3['inputs']['coastline_1400'] if vivant else 'artefact absent (regenerable)')
-   "
-   ```
+   Le littoral vivant et `MANIFEST_g2b.json` sont ignorés par git, donc absents
+   d'un clone frais : s'ils manquent, la commande sort avec le code 2 et nomme
+   la commande qui les régénère (depuis `pipeline/geo/` :
+   `../../.venv/bin/python tests/run_proof_g2b.py`). Un code 2 n'est pas un écart
+   mesuré ; il faut régénérer puis rejouer.
+
+   **Deux issues sont recevables, et deux seulement** (SC7 est à deux branches
+   depuis `amendment-001-escalade-empreinte-g3.md`) :
+
+   - **égalité** : code de sortie 0, et `empreinte_terre_g4_egale_entree_g3`
+     vaut 1 ;
+   - **escalade** : code de sortie 1 avec le message d'écart nommant ses deux
+     sources et sans aucune valeur hexadécimale ; `empreinte_terre_g4_egale_entree_g3`
+     vaut 0 et ce 0 est une **mesure**, pas la sentinelle `-1` ;
+     `empreinte_terre_g4_egale_sortie_declaree_g2b` vaut 1 ; la dérogation figure
+     dans `deliverables/manifest.json` avec cette commande et cette sortie, sans
+     hexadécimal dans son champ d'erreur ; le constat est ouvert dans le journal
+     de preuve, dans `deliverables/generator-log.md` et dans
+     `pipeline/geo/README.md` ; et aucun artefact G3 n'a bougé, ce qui se vérifie
+     par :
+     ```
+     git status --porcelain -- pipeline/geo/artifacts/MANIFEST_g3.json pipeline/geo/artifacts/cells_g3.json pipeline/geo/artifacts/stats_g3.json pipeline/geo/artifacts/adjacency_g3.json
+     ```
+     Sortie attendue : vide.
+
+   Toute autre issue est un échec : un compteur à 1 que la mesure contredit, une
+   comparaison retargetée vers `MANIFEST_g2b.json` pour obtenir ce 1, un artefact
+   G3 aligné, un hexadécimal recopié, ou l'écart passé sous silence.
 
 4. Vérifier qu'aucune constante n'a bougé :
    ```
@@ -551,6 +578,14 @@ décrire les fichiers réellement présents. Il vérifie, en lisant
 et que celui de `G4-B` passe par la dérivation liens coupés et non par une
 mutation.
 
+Sur la provenance du littoral, il **calcule les trois empreintes lui-même**, dans
+son relevé hors dépôt : celle du `artifacts/coastline_1400.json` vivant, celle que
+`MANIFEST_g3.json` déclare en entrée, celle que `MANIFEST_g2b.json` déclare en
+sortie pour ce même fichier. Il conclut sur les deux comparaisons, et ne les cite
+— dans son verdict comme dans son feedback — que par **nom de source** et par
+résultat, jamais par valeur (règle n° 12). Une reconstruction qui se contenterait
+de relire le compteur du manifeste ne mesurerait rien.
+
 **Contre-preuve disqualifiante :**
 Dans une copie hors dépôt, forcer une empreinte différente entre les deux passes
 (par exemple en introduisant un ordre de tri instable dans un export) : `Q10`
@@ -562,8 +597,20 @@ un contrôle rendu vert par une modification de `qa/checks.py` ; une valeur de
 tout déterminisme impossible à revérifier demain).
 
 **Résultat attendu :** PASS si les huit contrôles sont verts et mordants, si les
-deux passes coïncident, si la re-exécution ne produit aucune différence, et si
-aucun fichier partagé n'a bougé.
+deux passes coïncident, si la re-exécution ne produit aucune différence, si aucun
+fichier partagé n'a bougé, **et** si la provenance du littoral se conclut par
+l'une des deux issues recevables du point 3 :
+
+- égalité mesurée (compteur à 1) ; ou
+- inégalité mesurée et **escaladée** selon la dérogation d'escalade : compteur à
+  0 mesuré, compteur G2-bis à 1, dérogation portant commande et erreur sans
+  hexadécimal, artefacts G3 intouchés, constat ouvert dans le journal et le
+  README. Cette seconde issue satisfait SC7 pour ce lot — elle ne permet pas
+  d'affirmer que la mer et les cellules décrivent le même monde, et la réparation
+  de la provenance G3 relève d'un brief ultérieur.
+
+FAIL si l'inégalité n'est pas documentée sous cette forme, ou si l'égalité est
+obtenue en changeant de cible.
 
 ---
 
@@ -809,7 +856,7 @@ c'est SC9 qui le fait, à la main.
 | Le fichier de divergence lu par un autre code, ou traité comme autorité spatiale | Frontière dure du brief, pas une préférence de style |
 | Un `red_proof` vide avec `passed: true` | Règle n° 4 : un contrôle qui ne peut pas rougir ne prouve rien |
 | Une paire d'empreintes inégale, vide, ou un total de paires nul | Le déterminisme n'est pas prouvé, il est espéré (mode d'échec n° 6) |
-| L'empreinte du littoral employé par G4 différente de l'entrée déclarée de G3 | La mer et les cellules ne décrivent pas le même monde |
+| Une inégalité d'empreinte du littoral **non documentée** : `empreinte_terre_g4_egale_entree_g3` déclaré à `1` alors que la mesure dit le contraire ; comparaison retargetée vers `MANIFEST_g2b.json` pour obtenir ce `1` ; un artefact G3 réécrit, régénéré ou aligné ; une valeur hexadécimale recopiée pour l'établir ; la sentinelle `-1` à la place du `0` mesuré ; ou l'écart passé sous silence (aucune dérogation, aucun constat ouvert) | La mer et les cellules ne décriraient pas le même monde, et le constat serait maquillé au lieu d'être escaladé. L'inégalité **mesurée et escaladée** selon la dérogation d'escalade (`amendment-001-escalade-empreinte-g3.md`) n'est plus disqualifiante pour ce lot |
 | Une valeur hexadécimale d'empreinte recopiée dans un test, un document ou un commentaire | Règle n° 12 : piège pour tout brief ultérieur, exactement ce qui est arrivé à l'empreinte citée par le brief 007 |
 | Une preuve laissée dans un chemin ignoré par git, ou absente d'un clone frais | Une preuve qui n'existe que dans un répertoire de travail n'est pas une preuve |
 | `pipeline/geo/.gitignore` assoupli pour faire entrer les preuves | Le mécanisme décidé est l'ajout forcé, pas l'assouplissement de la règle |
