@@ -1,4 +1,4 @@
-# Verdict — Brief 018 : la Province dérivée (agrégation de cellules)
+# Verdict — Brief `018` : la Province dérivée (agrégation de cellules)
 
 **Authored**: 2026-08-14T07:02:30Z
 **Author**: forge-evaluateur
@@ -27,7 +27,7 @@ Le commit jugé est celui du Générateur, `5432df7`. Le commit du Planificateur
 `bf6ec07`, n'est pas jugé ici.
 
 **Un mot sur l'état initial du poste de travail.** En ouvrant la session, j'ai
-trouvé un `verdict.md` non suivi par git, daté de 06:46, laissé par une session
+trouvé un `verdict.md` non suivi par git, daté de `06:46`, laissé par une session
 d'évaluation antérieure sur cette même machine, ainsi que ses fichiers de
 travail sous `/tmp/eval-018/`. Je ne l'ai ni relu comme source, ni repris. Je
 l'ai déplacé hors du dépôt (`/tmp/eval-018b/prior_verdict_NOT_MINE.md`) pour
@@ -43,9 +43,7 @@ la complaisance que ce rôle existe pour empêcher.
 
 Commande, exécutée **avant** la rédaction de ce fichier, sur un dépôt propre :
 
-```py
-.venv/bin/python harness/verdict_audit.py harness/queue/briefs/018-sim-province-derivee
-```
+`.venv/bin/python harness/verdict_audit.py harness/queue/briefs/018-sim-province-derivee`
 
 Rapport conservé : `/tmp/eval-018b/logs/gate_pre_verdict.txt`. Code de sortie 1,
 `VERDICT: REJECT`, sur **exactement deux** contrôles :
@@ -71,8 +69,8 @@ Deux limites de la porte que j'ai comblées moi-même, parce qu'un contrôle qui
 s'arrête à mi-chemin n'a pas contrôlé :
 
 - `declared_files_are_tracked` n'a vérifié que les 5 fichiers internes au
-  dossier du brief et a explicitement laissé de côté les 12 déclarés à
-  l'extérieur. J'ai vérifié les **17** : tous existent, tous sont suivis par
+  dossier du brief et a explicitement laissé de côté les `12` déclarés à
+  l'extérieur. J'ai vérifié les **`17`** : tous existent, tous sont suivis par
   git.
 - `no_empty_sample_pass` vérifie que les échantillons ne sont pas nuls, pas
   qu'ils sont exacts. J'ai reconstruit les 22 compteurs (section 2).
@@ -97,7 +95,7 @@ Sorties : `/tmp/eval-018b/logs/recon_sc1.txt` et `recon_sc3.txt`.
 | `cellules_avec_province` | 596 / 596 | 596 / 596 ; `cellules_en_double` = 0 | oui |
 | `cellules_sans_province` | 0 / 596 | 0 / 596 | oui |
 | `cellules_position_absente` | 0 / 596 | 0 / 596 | oui |
-| `refus_position_absente_leve` | 1 / 1 | 1 / 1, sur **ma** cellule (9788), nommée dans le message | oui |
+| `refus_position_absente_leve` | 1 / 1 | 1 / 1, sur **ma** cellule (`9788`), nommée dans le message | oui |
 | `provinces_non_vides` | 50 / 50 | 50 / 50 ; plus petit groupe peuplé = 2 cellules | oui |
 | `champs_province_sur_entites` | 0 / 14 | 0 / 14 (7 `Cell` + 4 `CentreAdministratif` + 3 `Regroupement`) | oui |
 | `dataclasses_inspectees` | 3 | 3, découvertes par mon propre balayage | oui |
@@ -113,7 +111,7 @@ Sorties : `/tmp/eval-018b/logs/recon_sc1.txt` et `recon_sc3.txt`.
 | `egalites_de_distance_monde_reel` | 0 / 596 | 0 / 596 (voir réserve N2) | oui |
 | `compteurs_en_dur_trouves` | 0 / 41 | 0 ; **41** fonctions recomptées par mon propre balayage AST | oui (voir réserve N5) |
 | `tests_sim_passed_018` | 65 / 65 | 65 collectés, 65 passés | oui |
-| `tests_harness_passed_018` | 348 / 364 | 348 passés + 16 ignorés = 364 collectés | oui |
+| `tests_harness_passed_018` | 348 / 364 | 348 passés + `16` ignorés = 364 collectés | oui |
 
 **Les 22 compteurs sont reproduits.** Aucun ne m'a résisté. Surtout,
 l'appartenance calculée par `sim/aggregation.py` coïncide avec la mienne sur
@@ -140,8 +138,8 @@ ni d'un monde à zéro cellule.
 | `provinces_non_vides` sans plancher exigé | PASS | seul assert : `0 < provinces_non_vides <= centroides_lus` ; aucun littéral `50` dans les tests du lot |
 
 **Contre-preuve D5, montée par moi** (`/tmp/eval-018b/logs/contre_preuve_d5.txt`) :
-j'ai retiré en mémoire la position de la cellule **9788** — mon choix, pas
-celui du Générateur, qui avait employé la 1175. `positions_du_monde` **et**
+j'ai retiré en mémoire la position de la cellule **`9788`** — mon choix, pas
+celui du Générateur, qui avait employé la `1175`. `positions_du_monde` **et**
 `agregat_depuis_monde` lèvent tous deux `PositionCelluleInconnue`, et le
 message **nomme la cellule**. Aucune province par défaut, aucun écart
 silencieux. Le refus n'est pas cantonné à la fonction interne : c'est le chemin
@@ -150,7 +148,7 @@ complet qui refuse.
 **Sur le 50 / 50, que la rubrique m'invite explicitement à suspecter.** J'ai
 vérifié qu'il s'agit d'un fait géométrique et non d'un plancher déguisé. Le
 plus petit regroupement peuplé compte **2** cellules, la distribution des
-tailles va de 2 à 48, et leur somme vaut exactement 596. Avec 596 cellules pour
+tailles va de 2 à `48`, et leur somme vaut exactement 596. Avec 596 cellules pour
 50 centres sur ce territoire, qu'aucun centre ne reste vide est le résultat
 attendu de la géométrie. Aucun test n'impose de plancher. Voir tout de même les
 réserves N3 et N4.
@@ -160,7 +158,7 @@ réserves N3 et N4.
 | point de la rubrique | état | preuve |
 |---|---|---|
 | aucun champ `province*` sur `Cell` | PASS | 7 champs, aucun fautif |
-| `TypeError` citant l'ADR-0003 sur sous-classe fabriquée | PASS | 6 variantes essayées par moi, toutes lèvent en citant l'ADR-0003 |
+| `TypeError` citant l'`ADR-0003` sur sous-classe fabriquée | PASS | 6 variantes essayées par moi, toutes lèvent en citant l'`ADR-0003` |
 | vérification **introspective**, pas nominative | PASS | `inspect.getmembers` ; le préfixe est **dérivé** de `_NoBadSpatialField._FORBIDDEN_PREFIX`, jamais recopié |
 | couvre aussi les types du module d'agrégation | PASS | `CentreAdministratif` et `Regroupement` héritent de la garde et sont balayées |
 | `test_adr_compliance.py` non affaibli | PASS | `git diff bf6ec07 5432df7` : **purement additif**. La seule ligne retirée de tout le commit est une ligne de `sim/README.md` reformulée |
@@ -176,14 +174,14 @@ réellement quelque chose.
 
 J'ai également vérifié que la garde s'applique à une dataclass **gelée** — la
 forme qu'ont `CentreAdministratif` et `Regroupement` : `TypeError` citant
-l'ADR-0003.
+l'`ADR-0003`.
 
 ### SC3 — Redessin : l'agrégat change, les cellules ne sont pas réécrites : PASS
 
 Scénario monté **par moi**, avec ma propre implémentation de l'appartenance
 (`/tmp/eval-018b/recon_sc3.py`, sortie `/tmp/eval-018b/logs/recon_sc3.txt`) :
 centre de plus petit `id` (1, Île-de-France) déplacé en mémoire sur la position
-exacte de la cellule 1175, qui relevait du centre 12.
+exacte de la cellule `1175`, qui relevait du centre `12`.
 
 | fait exigé | mon résultat |
 |---|---|
@@ -196,7 +194,7 @@ exacte de la cellule 1175, qui relevait du centre 12.
 
 Je souligne que le script du Générateur **dérive** sa cellule cible (première
 cellule triée ne relevant pas du centre de plus petit `id`) au lieu de la
-coder en dur : le 1175 n'est pas un nombre magique, et ma propre dérivation
+coder en dur : le `1175` n'est pas un nombre magique, et ma propre dérivation
 indépendante retombe dessus.
 
 **Contre-preuve paire B, montée par moi** (`/tmp/eval-018b/logs/sabotage_b.txt`) :
@@ -226,7 +224,7 @@ ce trou, et il est présent.
 | suite `-k "determinisme or departage or purete"` verte | PASS | incluse dans les 65 verts |
 | déterminisme : 2 appels + ordre inverse | PASS | reconstruit ; j'ai ajouté un ordre **aléatoire** : 596 / 596 identiques sur quatre appels |
 | pureté : les entrées ne sont pas modifiées | PASS | dictionnaire de positions et liste de centres inchangés après appel |
-| départage documenté dans `SEEDING.md` **avant** toute citation de compteur | PASS | la section 018 énonce la règle et ne cite **aucune** valeur mesurée du lot |
+| départage documenté dans `SEEDING.md` **avant** toute citation de compteur | PASS | la section `018` énonce la règle et ne cite **aucune** valeur mesurée du lot |
 | cas synthétique équidistant, deux ordres, plus petit `id` gagne | PASS | gagnants `[3, 3]` ; j'ai vérifié que l'égalité des carrés est **exacte**, sans quoi le test ne mesurerait rien |
 | `egalites_de_distance_monde_reel` sans sentinelle | PASS | 0 / 596, réellement calculé (réserve N2) |
 | `test_no_hardcoded.py` PASSED, `compteurs_en_dur_trouves = 0` | PASS | 0 / 41 ; aucun littéral `47.5`, `180` ni `pi` dans `sim/aggregation.py` |
@@ -241,11 +239,11 @@ résultat.
 
 ### SC5 — Source déclarée comme proxy : PASS
 
-La section « Brief 018 » de `sim/SEEDING.md` dit explicitement : centres
+La section « Brief `018` » de `sim/SEEDING.md` dit explicitement : centres
 **hérités du jeu**, lus de
 `pipeline/geo/legacy_game_data/province_coordinates.json` ; **pas** des
-frontières historiques de 1400 et aucune prétention au statut de source savante
-ni de reconstitution d'époque (la seule occurrence de « 1400 » du texte est
+frontières historiques de `1400` et aucune prétention au statut de source savante
+ni de reconstitution d'époque (la seule occurrence de « `1400` » du texte est
 dans cette négation) ; la projection employée et le fait que son paramètre est
 **lu du fichier** ; la règle de départage ; la politique de refus de deviner ;
 et la distinction entre le zéro mesuré et la sentinelle `-1`.
@@ -291,16 +289,16 @@ copies.
 | chaque compteur imprimé porte son dénominateur | PASS pour les 2 scripts | voir réserve N5 pour `compteurs_en_dur_trouves`, produit par un autre test |
 | `sample_size` réel, non nul, hors sentinelle | PASS | 22 compteurs, aucun à 0 ni à −1 |
 | `pytest sim/tests/ -v` | PASS | 65 passés, 0 échec |
-| `pytest harness/tests/ -q` | PASS | 348 passés, 16 ignorés (Unity/Linux, déclarés), 0 échec |
-| archives 011–017 intactes | PASS | absentes du diff, `git status` propre |
+| `pytest harness/tests/ -q` | PASS | 348 passés, `16` ignorés (Unity/Linux, déclarés), 0 échec |
+| archives `011`–`017` intactes | PASS | absentes du diff, `git status` propre |
 | `sim/engine.py` inchangé | PASS | absent du diff |
 | le Générateur n'a ni committé, ni poussé, ni créé de branche | PASS | les 2 commits du lot portent l'identité de l'orchestrateur (`Cursor Agent`) ; branches locales : `forge/018-province-derivee-779a` (fournie) et `master` |
 
-Périmètre du commit : **17 fichiers**, tous autorisés. J'ai vérifié
+Périmètre du commit : **`17` fichiers**, tous autorisés. J'ai vérifié
 explicitement qu'aucun fichier interdit n'est touché : `sim/engine.py`,
 `pipeline/geo/`, `unity/`, `architecture/`, `harness/pipeline/`, tout
 `harness/*.py`, `VISION.md`, `ROADMAP.md`, `HANDOFF.md`, `.github/`, et les
-archives 011 à 017. Ni `brief.md` ni `eval-rubric.md` n'ont été modifiés.
+archives `011` à `017`. Ni `brief.md` ni `eval-rubric.md` n'ont été modifiés.
 
 Le journal du Générateur est signé `forge-generateur`, porte sa note de
 transparence, et **ne prononce pas la recevabilité** — il constate au contraire
@@ -363,7 +361,7 @@ serait caduc.
 - aucune constante de survie, de nourriture ou de population retouchée ;
   `sim/constants.py` n'est pas dans le diff ;
 - garde et tests ADR élargis, jamais restreints ;
-- archives 011–017 intactes ; la réserve N1 du lot 017 n'est pas traitée, comme
+- archives `011`–`017` intactes ; la réserve N1 du lot `017` n'est pas traitée, comme
   exigé.
 
 Une observation de forme, sans conséquence : le brief définit le dénominateur
@@ -376,7 +374,7 @@ non plus laxe — j'y vois une extension légitime, pas un écart.
 
 ## 6. Réserves non bloquantes (pour le prochain Planificateur)
 
-Aucune de ces réserves ne contredit une condition de succès du brief 018 : les
+Aucune de ces réserves ne contredit une condition de succès du brief `018` : les
 SC tiennent. Elles nomment des trous de robustesse qu'un lot ultérieur devrait
 fermer avant que la Province ne devienne un acteur économique.
 
@@ -420,8 +418,8 @@ honnête : il est réellement calculé, la sentinelle n'est pas employée. Mais 
 coordonnées réelles est structurellement quasi impossible : ce zéro serait
 sorti identique même si le départage était faux. J'ai mesuré l'écart relatif
 entre le premier et le deuxième centre le plus proche, cellule par cellule : le
-minimum observé est **3,5 × 10⁻³** (cellule 1324, centres 34 contre 35), soit
-environ **1,6 × 10¹³ fois l'epsilon machine**. S'ajoute que l'assertion du test
+minimum observé est **`3,5 × 10⁻³`** (cellule `1324`, centres `34` contre `35`),
+soit environ **`1,6 × 10¹³` fois l'epsilon machine**. S'ajoute que l'assertion du test
 est `assert egalites >= 0`, vraie par construction. Deux lectures :
 
 - rassurante — aucune attribution du monde réel ne peut basculer par bruit de
@@ -465,7 +463,7 @@ résultat.
 commande qui produit le compteur.** Le manifeste déclare 41 fonctions
 inspectées, mais `test_no_hardcoded.py` n'imprime que la liste des 6 fichiers.
 J'ai dû recompter par balayage AST pour vérifier : c'est **exactement 41**
-(`aggregation.py` 14, `constants.py` 12, `engine.py` 9, `world.py` 5,
+(`aggregation.py` 14, `constants.py` `12`, `engine.py` 9, `world.py` 5,
 `model.py` 1, `__init__.py` 0). Le nombre est juste, mais il n'est pas
 re-vérifiable en lisant la sortie du test — seulement en réécrivant le
 balayage.
@@ -485,7 +483,7 @@ fonction sera appelée par cellule et par tick.
 *Comment corriger, le jour où ce sera pertinent :* exposer l'appartenance
 `cell_id → id` (déjà produite par `appartenance_depuis_regroupements`) comme
 chemin de consultation, et garder `province_de_cellule` pour l'usage ponctuel.
-Ce n'est pas un cache d'état persistant — donc pas une violation de l'ADR-0003
+Ce n'est pas un cache d'état persistant — donc pas une violation de l'`ADR-0003`
 — mais une valeur de retour recalculée. Le distinguer explicitement évitera
 qu'un lot ultérieur croie devoir stocker l'appartenance « pour la
 performance », ce que l'ADR interdit.
@@ -507,7 +505,7 @@ garde resterait le test, mais la tentation disparaîtrait du type.
 
 ## 7. Ce qui s'est amélioré / régressé
 
-**Amélioré depuis le lot 017 :**
+**Amélioré depuis le lot `017` :**
 
 - *Le sabotage est enfin choisi pour discriminer, pas seulement pour rougir.*
   La paire B emploie `zone_admin`, un nom que la garde de préfixe ne rattrape
