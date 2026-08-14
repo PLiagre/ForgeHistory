@@ -15,11 +15,11 @@
 ## Le jeu — cinq couches, dans l'ordre
 
 Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
-2026-08-12 :
+2026-08-14 :
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
-| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **commencé** : le pipeline géographique produit le littoral 1400 et les cellules/adjacence ; le moteur `sim/` est amorcé (brief 011 : monde chargé depuis les cellules G3, population amorcée, tick déterministe, nourriture physique, chaîne faim→mortalité), vit (brief 012 : base de temps unique, rendement variable, déficit persistant, mortalité proportionnelle au manque, commerce physique entre cellules adjacentes — mesuré sur les 596 cellules réelles) et compte juste (brief 013, issu de l'audit de la PR #60 : le commerce précède la consommation — un kilogramme transféré ne nourrit qu'une fois —, transport limité à une arête par tick et invariant à l'ordre du fichier, mortalité continue plafonnée, seuil de survie dérivé du modèle) | `pipeline/geo/`, `sim/` |
+| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **commencé** : le pipeline géographique produit le littoral 1400 et les cellules/adjacence ; le moteur `sim/` est amorcé (brief 011), vit (brief 012, mesuré sur les 596 cellules réelles), compte juste (brief 013 : un kilogramme transféré ne nourrit qu'une fois ; brief 017, fusion des graines 015/016, PR #101 fusionnée le 2026-08-14 : seuil de survie honnête — prédiction stationnaire, accumulateur de mortalité, faim = pénurie, récupération physique) et agrège les terres en provinces dérivées (brief 018 : appartenance recalculée depuis les centroïdes, jamais un champ stocké — ADR-0003) | `pipeline/geo/`, `sim/` |
 | 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | non commencé | `sim/` |
 | 3 | **États** — fiscalité, lois, diplomatie, technologies, culture, religion | non commencé | `sim/` |
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
@@ -35,7 +35,7 @@ contiendra jamais de logique de simulation.
 |---|---|---|
 | **F0** — Harnais | Trois rôles (Planificateur / Générateur / Évaluateur), gate mécanique `verdict_audit.py`, briefs 001→010, boucle d'audit Cursor, pipeline full-auto (FSM, orchestrateur, budgets) | **terminé** |
 | **F1** — Fondations monde | Pipeline géographique (littoral `1400` ✓, cellules G3 ✓, suite : relief, climat, ressources), portage Unity ✓, refonte visuelle carte (briefs 004/005, reprise conditionnée aux logs Unity) | **en cours** |
-| **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — brief 011 (amorçage `sim/`) livré et accepté le 2026-08-12 ; brief 012 (base de temps, équilibre alimentaire mesuré, commerce inter-cellules) livré, accepté et fusionné le 2026-08-13 ; brief 013 (correction du P0 « la nourriture transférée nourrit deux fois », transport à une arête, mortalité continue) livré, accepté et fusionné le 2026-08-13 ; brief 014 (pipeline : le contre-audit comme porte observable, le refus fournisseur comme état avec repli) livré et accepté le 2026-08-13, PR en revue ; en file : graines 015/016 (seuil de survie du moteur, issues des audits de la PR #69) ; suites : agrégation Province dérivée, relief/climat/ressources côté geo |
+| **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — briefs 011, 012, 013 livrés et fusionnés ; brief 014 (pipeline : contre-audit comme porte, refus fournisseur comme état) livré, accepté et fusionné le 2026-08-13 (PR #83) ; brief 017 (seuil de survie honnête, fusion des graines 015/016) livré, accepté et fusionné le 2026-08-14 (PR #101, sans squash) ; brief 018 (Province dérivée, ADR-0003) livré et accepté le 2026-08-14, PR en revue ; les graines 015/016 ne s'exécutent plus (elles pointent vers 017) ; suites F2 moteur : aucune restante pour clôturer E2 ; reste F1 geo (relief/climat/ressources) |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles — chaque couche émerge de la précédente | à venir |
 
 ## Le workflow — quatre acteurs (ADR-0010)
@@ -77,7 +77,7 @@ changement structurel entériné par ADR, doute).
 | jalon | ce que l'étape doit réunir pour être close | statut |
 |---|---|---|
 | **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓ et des cellules G3 ✓) ; artefacts consommables par `sim/` ; visuel carte repris (briefs 004/005) si les logs Unity sont disponibles | à venir |
-| **E2 — Le monde vivant compte juste** (clôt F2, couche 1) | seuil de survie honnête (graines 015/016 traitées) ; agrégation Province dérivée (ADR-0003) ; monde mesuré stable et falsifiable sur les 596 cellules réelles | **prochain jalon** |
+| **E2 — Le monde vivant compte juste** (clôt F2, couche 1) | seuil de survie honnête (graines 015/016 traitées) ; agrégation Province dérivée (ADR-0003) ; monde mesuré stable et falsifiable sur les 596 cellules réelles | **critères réunis** — seuil honnête ✓ (017) ; Province dérivée ✓ (018) ; monde mesuré sur 596 cellules ✓ — jalon à déposer (`hermes/milestones/`, PR séparée) |
 | **E3 — Villes** (couche 2) | urbanisation, entreprises, métiers, routes, infrastructures — émergeant de la couche 1 | à venir |
 | **E4 — États** (couche 3) | fiscalité, lois, diplomatie, technologies, culture, religion | à venir |
 | **E5 — Armées** (couche 4) | recrutement, logistique, ravitaillement, stratégie | à venir |
@@ -112,10 +112,14 @@ toute veille de décision irréversible du propriétaire.
    ~~Suite F2 : commerce inter-cellules~~ — **fait le 2026-08-13** :
    brief 012 (`harness/queue/briefs/012-monde-vivant-commerce-inter-cellules/`,
    issu de l'audit `CURSOR-3b47ffe`) passé par la boucle trois rôles ;
-   verdict PASS à l'itération 2, gate ACCEPT. Suites F2 : agrégation
-   Province dérivée, et un brief de harnais pour les points d'audit
+   verdict PASS à l'itération 2, gate ACCEPT. ~~Seuil de survie honnête~~ —
+   **fait le 2026-08-14** : brief 017 (`017-sim-seuil-survie-honnete/`,
+   fusion des graines 015/016, PR #101). ~~Agrégation Province dérivée~~ —
+   **fait le 2026-08-14** : brief 018 (`018-sim-province-derivee/`).
+   Les critères du jalon E2 sont réunis ; le fichier de jalon se dépose
+   à part. Suites hors E2 : brief de harnais pour les points d'audit
    différés (traçage d'acteur des rôles, gate sur les fichiers déclarés
-   hors dossier de brief).
+   hors dossier de brief) ; F1 geo (relief/climat/ressources).
 5. **Reprendre 004/005** (visuel carte) quand les logs Unity requis par le
    gate sont produits sur la machine propriétaire.
 

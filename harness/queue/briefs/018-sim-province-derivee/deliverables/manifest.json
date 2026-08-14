@@ -1,0 +1,190 @@
+{
+  "files": [
+    {"path": "../../../../sim/aggregation.py"},
+    {"path": "../../../../sim/README.md"},
+    {"path": "../../../../sim/SEEDING.md"},
+    {"path": "../../../../sim/tests/test_province_aggregation.py"},
+    {"path": "../../../../sim/tests/test_redessin_province.py"},
+    {"path": "../../../../sim/tests/test_determinisme_departage_purete.py"},
+    {"path": "../../../../sim/tests/test_adr_compliance.py"},
+    {"path": "../../../../sim/tests/proof_red/run_garde_province_red.txt"},
+    {
+      "path": "../../../../sim/tests/proof_red/run_garde_province_green.txt",
+      "must_differ_from": "../../../../sim/tests/proof_red/run_garde_province_red.txt"
+    },
+    {"path": "../../../../sim/tests/proof_red/run_redessin_red.txt"},
+    {
+      "path": "../../../../sim/tests/proof_red/run_redessin_green.txt",
+      "must_differ_from": "../../../../sim/tests/proof_red/run_redessin_red.txt"
+    },
+    {"path": "../../../../harness/queue/cost-ledger.jsonl"},
+    {"path": "deliverables/measure_sc1_018.py"},
+    {"path": "deliverables/measure_sc3_018.py"},
+    {"path": "deliverables/manifest.json"},
+    {"path": "deliverables/generator-log.md"},
+    {"path": "deliverables/progress.jsonl"}
+  ],
+  "counters": [
+    {
+      "name": "cellules_chargees_g3",
+      "value": 596,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc1_018.py",
+      "note": "cellules chargees par World.from_g3(rng_seed=42) ; denominateur = cell_count lu dans pipeline/geo/artifacts/stats_g3.json, egalite verifiee par le script et par sim/tests/test_province_aggregation.py::test_province_couverture_totale_monde_reel"
+    },
+    {
+      "name": "centroides_lus",
+      "value": 50,
+      "sample_size": 50,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc1_018.py",
+      "note": "entrees du tableau coordinates de pipeline/geo/legacy_game_data/province_coordinates.json ; denominateur = longueur de ce meme tableau, relue du fichier"
+    },
+    {
+      "name": "cellules_avec_province",
+      "value": 596,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc1_018.py",
+      "note": "cellules apparaissant dans exactement un regroupement ; le script compte aussi cellules_en_double = 0 / 596, de sorte que 'exactement une' exclut le deux comme le zero"
+    },
+    {
+      "name": "cellules_sans_province",
+      "value": 0,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc1_018.py",
+      "note": "mesure reelle : chaque cellule chargee a ete regardee. La sentinelle 'non calcule' du projet est -1 (regle durement acquise n. 8) ; ce zero affirme une couverture totale, il n'avoue pas une absence de mesure. Documente dans sim/SEEDING.md, section brief 018"
+    },
+    {
+      "name": "cellules_position_absente",
+      "value": 0,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc1_018.py",
+      "note": "cellules chargees absentes du dictionnaire de positions lu dans cells_g3.json ; mesure reelle, sentinelle non employee"
+    },
+    {
+      "name": "refus_position_absente_leve",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python -m pytest sim/tests/test_province_aggregation.py::test_province_refus_position_absente -v -s",
+      "note": "cas synthetique : la position de la cellule 1175 est retiree du dictionnaire en memoire ; PositionCelluleInconnue est levee et son message nomme la cellule. Aucune province par defaut, aucun ecart silencieux (D5)"
+    },
+    {
+      "name": "provinces_non_vides",
+      "value": 50,
+      "sample_size": 50,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc1_018.py",
+      "note": "regroupements comptant au moins une cellule ; denominateur = centroides_lus. Fait mesure : le test verifie seulement 0 < valeur <= centroides_lus, aucun plancher n'est exige et l'algorithme n'a pas ete ajuste pour peupler les centres (D6)"
+    },
+    {
+      "name": "champs_province_sur_entites",
+      "value": 0,
+      "sample_size": 14,
+      "command": ".venv/bin/python -m pytest sim/tests/test_province_aggregation.py::test_province_aucun_champ_province_sur_entites -v -s",
+      "note": "denominateur = 14 champs inspectes (7 de Cell, 4 de CentreAdministratif, 3 de Regroupement), decouverts par introspection ; le prefixe interdit est derive de _NoBadSpatialField._FORBIDDEN_PREFIX, jamais recopie"
+    },
+    {
+      "name": "dataclasses_inspectees",
+      "value": 3,
+      "sample_size": 3,
+      "command": ".venv/bin/python -m pytest sim/tests/test_province_aggregation.py::test_province_aucun_champ_province_sur_entites -v -s",
+      "note": "Cell (sim.model), CentreAdministratif et Regroupement (sim.aggregation), decouvertes par inspect.getmembers ; aucune liste de noms ecrite a la main"
+    },
+    {
+      "name": "garde_prefixe_variantes_rouges",
+      "value": 5,
+      "sample_size": 5,
+      "command": ".venv/bin/python -m pytest sim/tests/test_province_aggregation.py::test_province_garde_prefixe_variantes_rouges -v -s",
+      "note": "variantes essayees : province_id, ProvinceId, province, province_code, provinceCode ; chacune leve une TypeError citant l'ADR-0003"
+    },
+    {
+      "name": "champs_vue_couverts",
+      "value": 7,
+      "sample_size": 7,
+      "command": ".venv/bin/python -m pytest sim/tests/test_province_aggregation.py::test_province_champs_vue_couverts -v -s",
+      "note": "balayage AST de sim/aggregation.py et sim/world.py : chaque champ des types declares par le module d'agregation a un site de construction (argument nomme du constructeur) et un site de lecture. Le balayage couvre les deux dataclasses du module, superset de la seule vue derivee ; il est donc plus strict, jamais plus laxe"
+    },
+    {
+      "name": "redessin_change_agregat",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc3_018.py",
+      "note": "1 scenario : le centre id=1 est deplace en memoire sur la position exacte de la cellule 1175, qui relevait du centre 12"
+    },
+    {
+      "name": "cellules_changeant_de_province_apres_redessin",
+      "value": 22,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc3_018.py",
+      "note": "cellules dont l'appartenance differe entre A et B ; fait mesure, strictement positif"
+    },
+    {
+      "name": "redessin_cellules_intactes",
+      "value": 1,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc3_018.py",
+      "note": "json.dumps(world.to_dict(), sort_keys=True) identique avant / apres, ET releve vars(cell) identique cellule par cellule sur les 596 cellules"
+    },
+    {
+      "name": "attributs_dynamiques_sur_cellules",
+      "value": 0,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc3_018.py",
+      "note": "set(vars(cell)) compare aux noms de champs dataclass, pour chaque cellule ; mesure reelle. C'est ce compteur qui rougit sous le sabotage de la paire B (cell.zone_admin), ou il vaut 596 / 596"
+    },
+    {
+      "name": "fichier_centroides_inchange_apres_redessin",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/018-sim-province-derivee/deliverables/measure_sc3_018.py",
+      "note": "1 comparaison des octets de province_coordinates.json relus avant et apres le redessin ; aucune valeur de condense n'est recopiee"
+    },
+    {
+      "name": "determinisme_agregation_deux_passes",
+      "value": 1,
+      "sample_size": 596,
+      "command": ".venv/bin/python -m pytest sim/tests/test_determinisme_departage_purete.py::test_determinisme_agregation_deux_passes -v -s",
+      "note": "deux appels identiques plus un troisieme avec la liste des centres inversee ; les trois appartenances coincident sur les 596 cellules"
+    },
+    {
+      "name": "departage_egalite_plus_petit_id",
+      "value": 1,
+      "sample_size": 2,
+      "command": ".venv/bin/python -m pytest sim/tests/test_determinisme_departage_purete.py::test_departage_egalite_plus_petit_id -v -s",
+      "note": "denominateur = 2 ordres de parcours essayes sur 1 cas synthetique ; le centre id=3 gagne dans les deux ordres. Un test voisin verifie que l'egalite de distance est exacte, faute de quoi le departage ne serait pas mesure"
+    },
+    {
+      "name": "egalites_de_distance_monde_reel",
+      "value": 0,
+      "sample_size": 596,
+      "command": ".venv/bin/python -m pytest sim/tests/test_province_aggregation.py::test_province_egalites_de_distance_monde_reel -v -s",
+      "note": "cellules dont le carre de distance minimal est atteint par au moins deux centres (egalite exacte en flottant) ; fait mesure, calcule sur les 596 cellules. Zero est ici un resultat, pas la sentinelle -1"
+    },
+    {
+      "name": "compteurs_en_dur_trouves",
+      "value": 0,
+      "sample_size": 41,
+      "command": ".venv/bin/python -m pytest sim/tests/test_no_hardcoded.py -v -s",
+      "note": "denominateur = 41 fonctions inspectees dans les 6 modules de sim/ hors tests (__init__, aggregation, constants, engine, model, world) ; aucun litteral numerique hors {0, 1, -1} dans un corps de fonction"
+    },
+    {
+      "name": "tests_sim_passed_018",
+      "value": 65,
+      "sample_size": 65,
+      "command": ".venv/bin/python -m pytest sim/tests/ -v",
+      "note": "65 collectes, 65 PASSED, 0 FAILED, 0 SKIP"
+    },
+    {
+      "name": "tests_harness_passed_018",
+      "value": 348,
+      "sample_size": 364,
+      "command": ".venv/bin/python -m pytest harness/tests/ -q",
+      "note": "364 collectes : 348 PASSED et 16 SKIP propres a Linux (tests Unity, qui exigent Unity et PowerShell sous Windows), 0 FAILED"
+    }
+  ],
+  "waivers": [
+    {
+      "claim": "le budget d'execution n'est pas mesurable sur cette machine",
+      "command": ".venv/bin/python harness/budget.py status --brief harness/queue/briefs/018-sim-province-derivee",
+      "error": "status : UNMEASURABLE -- reason : no agent transcript naming 018-sim-province-derivee under /home/ubuntu/.claude/projects/-workspace"
+    }
+  ]
+}

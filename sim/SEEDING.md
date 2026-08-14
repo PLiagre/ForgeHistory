@@ -595,6 +595,101 @@ c'est l'objet de la re-mesure SC6 du brief 017.
 
 ---
 
+## Brief 018 — la Province dérivée : provenance des centres administratifs
+
+Cette section décrit d'où viennent les données de l'agrégation, comment elle
+calcule, et ce qu'elle refuse de faire. Elle est écrite avant toute citation
+d'un compteur mesuré du lot 018 : une justification rédigée après la mesure
+serait une calibration déguisée.
+
+### Provenance : des données héritées du jeu, pas des frontières de 1400
+
+Les centres administratifs sont lus dans
+`pipeline/geo/legacy_game_data/province_coordinates.json`. Ce sont des
+**données héritées du jeu**, reprises telles quelles et en lecture seule.
+
+Ce ne sont **pas** des frontières historiques de 1400. Rien ici ne prétend au
+statut de source savante, de reconstitution d'époque, ni de découpage
+administratif attesté. Le fichier lui-même se décrit comme des
+« coordonnées approximatives, corrigeables à vue ». Ces centres sont un
+**proxy** : un point de départ commode pour éprouver le mécanisme
+d'agrégation, destiné à être remplacé par une source documentée quand le
+projet en aura une. Leur nombre n'est pas recopié ici : il est celui du
+tableau `coordinates` du fichier, lu à chaque exécution.
+
+De même, le nombre de cellules du monde n'est écrit nulle part dans le code :
+il est lu de `pipeline/geo/artifacts/stats_g3.json` (`cell_count`) et dérivé
+du chargement par `World.from_g3()`.
+
+### Projection : celle que le fichier documente lui-même
+
+Le fichier de centres déclare sa propre projection sous la clé `projection` :
+équirectangulaire, `x = lon × cos(mid_latitude)`, `y = −lat`. C'est cette
+projection qu'emploie `sim/aggregation.py`, et son paramètre
+`projection.mid_latitude` est **lu du fichier** par
+`charger_latitude_moyenne()`. Aucune valeur de latitude moyenne n'apparaît
+comme littéral dans un corps de fonction — `sim/tests/test_no_hardcoded.py`
+parcourt récursivement les modules de `sim/` hors tests et refuse tout
+littéral numérique autre que 0, 1 et −1.
+
+Les distances sont comparées **au carré** : même ordre que la distance, sans
+racine carrée. La conversion des degrés en radians passe par la bibliothèque
+standard (`math.radians`), jamais par un facteur recopié à la main.
+
+### Règle de départage des égalités (D4)
+
+Une cellule relève du centre le plus proche d'elle. Si deux centres ou plus
+sont à distance **exactement** égale, la cellule relève de celui dont l'`id`
+est le **plus petit**.
+
+Cette règle est stable : elle ne dépend pas de l'ordre dans lequel les centres
+sont parcourus. La comparaison retenue est
+`carré < meilleur` **ou** (`carré == meilleur` **et** `id < meilleur_id`). Un
+simple « le premier rencontré gagne » donnerait le même résultat dans un ordre
+de parcours et un autre résultat dans l'ordre inverse : le déterminisme serait
+espéré, pas prouvé. `sim/tests/test_determinisme_departage_purete.py` monte le
+cas d'égalité exacte et l'essaie dans les deux ordres.
+
+### Refus de deviner (D5)
+
+Si une cellule chargée par `World.from_g3()` n'a pas de position dans les
+artefacts géographiques, le code lève `PositionCelluleInconnue` en **nommant
+la cellule**. Il n'attribue pas de province par défaut et n'écarte pas la
+cellule en silence : une couverture obtenue en jetant les cellules gênantes
+n'est pas une couverture. Quand une donnée manque, l'absence se déclare — elle
+ne s'invente pas.
+
+### Zéro mesuré contre sentinelle « non calculé »
+
+Le compteur `cellules_sans_province` doit valoir **0**. Ce zéro est une
+**mesure réelle** : le code a bien regardé chaque cellule chargée et n'en a
+trouvé aucune sans province. La sentinelle « non calculé » du projet est
+`-1`, jamais `0` ; un `0` rapporté ici affirme donc quelque chose, il n'avoue
+pas une absence de mesure. La même distinction vaut pour
+`cellules_position_absente`, `attributs_dynamiques_sur_cellules` et
+`egalites_de_distance_monde_reel` : ce dernier peut légitimement valoir zéro
+sans que cela signifie qu'on ne l'a pas calculé.
+
+### Provinces peuplées : un fait mesuré, pas un plancher
+
+Toute cellule relève d'une province ; l'inverse n'est pas exigé. Un centre
+peut n'attirer aucune cellule. Le nombre de provinces peuplées est donc
+rapporté tel qu'il sort de la mesure, avec le nombre de centres lus pour
+dénominateur. Aucun test n'impose de plancher, et l'algorithme n'est en aucun
+cas ajusté pour peupler tous les centres.
+
+### Ce que l'agrégation ne fait pas
+
+Elle ne modifie aucun objet reçu, n'écrit aucun fichier, et n'ajoute aucun
+champ à `Cell`. La vue dérivée (`Regroupement`) vit dans `sim/aggregation.py`,
+hors de `sim.model`, parce que `sim.model` contient les entités **persistées**
+que le moteur fait évoluer : y déclarer la Province inviterait à la traiter
+comme un état stockable, exactement ce que l'ADR-0003 interdit. Le pas de
+temps (`tick`) ne consomme pas l'agrégation : la Province est ici une vue du
+monde, pas encore un acteur économique.
+
+---
+
 ## Référence de code
 
 Tous les paramètres ci-dessus sont définis comme constantes nommées dans

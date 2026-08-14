@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+collecting ... collected 2 items
+
+sim/tests/test_redessin_province.py::test_redessin_change_agregat_sans_reecrire_les_cellules centre deplace : id=1 nom=Île-de-France
+cellule cible : 1175 (relevait du centre 12)
+redessin_change_agregat = 1 / 1
+cellules_changeant_de_province_apres_redessin = 22 / 596
+redessin_cellules_intactes = 1 / 1 (596 cellules comparees)
+attributs_dynamiques_sur_cellules = 0 / 596
+fichier_centroides_inchange_apres_redessin = 1 / 1
+PASSED
+sim/tests/test_redessin_province.py::test_redessin_naffecte_pas_les_enregistrements_lus enregistrements_de_centres_modifies = 0 / 50
+PASSED
+
+============================== 2 passed in 0.07s ===============================

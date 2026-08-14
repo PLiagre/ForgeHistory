@@ -1,6 +1,83 @@
 # HANDOFF.md
 
-## Session la plus récente — 2026-08-13 (après-midi) : boucle d'audit purgée de ses revues orphelines, brief 014 (la porte et le repli)
+## Session la plus récente — 2026-08-14 : brief 018 (Province dérivée), critères E2 réunis
+
+**Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
+CTO Claude. Trois sous-agents distincts, modèle Claude Opus 5
+(`claude-opus-5-thinking-high`) pour Planificateur, Générateur et
+Évaluateur — jamais le même dans la même passe, jamais inherit/Grok pour
+un rôle du harnais (décision propriétaire du 2026-08-13 soir).
+
+**HANDOFF était en retard.** La session du 2026-08-13 soir / 2026-08-14
+n'avait pas d'addendum. Rattrapage factuel, puis le travail de ce matin.
+
+### Rattrapage — soirée 2026-08-13 / matin 2026-08-14 (avant cette passe)
+
+1. **PR #99** (ADR-0012, audit par grandes étapes) fusionnée le 2026-08-13
+   à 20:21 UTC, sans squash.
+2. **PR #100** : le dispositif d'étape ADR-0012 s'est déclenché sans jalon
+   (`CURSOR-546a9d4`). Connu, **non réparé** dans le lot 018 (hors
+   périmètre, adjudication au jalon).
+3. **Brief 017** (seuil de survie honnête, fusion des graines 015+016) :
+   boucle trois rôles, verdict PASS à l'itération 1, gate ACCEPT dix sur
+   dix. **PR #101** fusionnée le 2026-08-14 à 05:53 UTC, **sans squash**.
+   Master à jour, aucune PR ouverte au début de cette passe. Les graines
+   015/016 ne s'exécutent plus : elles pointent vers 017.
+4. **Réserve N1 du verdict 017** (prédiction trop peu sensible à
+   `HUNGER_DEATH_SCALE`) : hors périmètre de cette passe, brief ultérieur.
+
+### Ce qui a été fait cette passe (2026-08-14 matin)
+
+1. **Brief 018** — agrégation Province DÉRIVÉE (ADR-0003), un seul lot
+   `sim/` (+ lecture seule geo). Branche
+   `forge/018-province-derivee-779a`, **PR #102**.
+   - Planificateur (Opus 5) : brief + rubrique ; vue hors `sim.model` ;
+     départage au plus petit `id` de centre ; source déclarée proxy.
+   - Générateur (Opus 5, autre passe) : `sim/aggregation.py`, couverture
+     596/596, redessin 22 cellules sans réécrire `Cell`, deux paires
+     rouge/vert. `sim/engine.py` intact.
+   - Gate : ACCEPT dix sur dix (après amendement de forme du verdict :
+     nombres ≥ 2 chiffres hors manifeste entre backticks).
+   - Évaluateur (Opus 5, 3e passe) : **PASS** itération 1. 22 compteurs
+     reconstruits, y compris une géométrie indépendante à 0 désaccord sur
+     596 cellules. Trois contre-preuves hors dépôt rougissent.
+   - Les trois rôles n'ont ni committé, ni poussé, ni créé de branche.
+     Aucune branche `cursor/*` parasite.
+2. **Correction factuelle de `ROADMAP.md`** (ce commit) : 017 fusionné ;
+   015/016 plus en file ; couche 1 / F2 / E2 mis à jour. **Sans** ligne
+   d'historique.
+3. **Jalon E2** : les trois critères sont réunis (seuil honnête ✓ 017 +
+   Province dérivée ✓ 018 + monde mesuré sur 596 cellules ✓). Le fichier
+   `hermes/milestones/ETAPE-02-*.md` est préparé **sur une PR séparée
+   (#103)**, empilée sur #102. Ne pas fusionner soi-même. Ne pas
+   fusionner #103 avant #102.
+
+**Réserves de l'Évaluateur (verdict 018, non bloquantes)** : N1 — la
+détection de lecture de la couverture de vue ignore le type de l'objet
+(faux vert possible sur un champ homonyme) ; N2 — le compteur d'égalités
+monde réel n'a presque aucun pouvoir discriminant ; N3 — branche « centre
+vide » non exercée par un test ; N4 — 50/50 provinces peuplées
+indistinguable d'un plancher au seul vu du nombre ; N5 — dénominateur de
+`compteurs_en_dur_trouves` non imprimé par le test ; N6 —
+`province_de_cellule` linéaire ; N7 — l'adaptateur reçoit le `World`
+vivant.
+
+**Hors périmètre respecté** : F1 geo (relief/climat/ressources) ; N1 du
+017 ; briefs de harnais ; arriéré d'audits PROPOSED ; réparation PR #100.
+
+**Validation rejouée** :
+- `.venv/bin/python harness/verdict_audit.py harness/queue/briefs/018-sim-province-derivee` → ACCEPT (dix sur dix).
+- `.venv/bin/python -m pytest sim/tests/ -q` → 65 passed.
+- `.venv/bin/python -m pytest harness/tests/ -q` → 348 passed, 16 skipped (Unity/Linux, attendus).
+
+**Prochain pas** : le propriétaire fusionne **#102** (lot 018 + cette
+correction de feuille de route), **sans squash**. Puis **#103** (jalon
+E2 — déclenche l'audit d'étape ADR-0012). Ensuite : F1 geo, ou brief
+de harnais, ou N1 du 017 — pas d'audit Cursor à attendre sur #102.
+
+---
+
+## Session précédente — 2026-08-13 (après-midi) : boucle d'audit purgée de ses revues orphelines, brief 014 (la porte et le repli)
 
 **Contexte** : même orchestration (agent Cursor Cloud remplaçant le CTO,
 trois sous-agents distincts — jamais le même dans la même passe). Le quota
