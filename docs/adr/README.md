@@ -14,4 +14,4 @@
 | [0010](0010-hermes-chef-de-projet-workflow-quatre-acteurs.md) | Hermes chef de projet (point d'entrée, tient `ROADMAP.md`) et chaîne à quatre acteurs Hermes → Claude → Codex → Cursor | accepted | 2026-08-12 |
 | [0011](0011-hermes-console-du-proprietaire.md) | Hermes console du propriétaire — un droit d'agir borné, sur ordre explicite | accepted | 2026-08-12 |
 | [0012](0012-audit-contre-audit-par-grandes-etapes.md) | Audit et contre-audit par grandes étapes (jalons `hermes/milestones/`) — plus jamais par PR | accepted | 2026-08-13 |
-| [0013](0013-forgepilot-hermes-grok-cursor.md) | Pilote Hermes léger, Grok en lecture et Cursor comme unique exécutant | accepted | 2026-08-14 |
+| [0013](0013-forgepilot-hermes-claude-cursor.md) | Pilote Hermes léger, Claude Code en lecture et Cursor comme unique exécutant | accepted | 2026-08-14 |

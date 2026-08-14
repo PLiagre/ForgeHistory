@@ -34,7 +34,7 @@ def parser() -> argparse.ArgumentParser:
     doctor.add_argument("--repo", type=_path, default=Path.cwd())
     doctor.add_argument("--check-auth", action="store_true")
 
-    plan = commands.add_parser("plan", help="faire préparer un plan par Grok")
+    plan = commands.add_parser("plan", help="faire préparer un plan par Claude Code")
     plan.add_argument("task", type=_path)
     plan.add_argument("--repo", type=_path, default=Path.cwd())
     plan.add_argument("--run", action="store_true")
@@ -46,7 +46,7 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--task-name", required=True)
     execute.add_argument("--run", action="store_true")
 
-    review = commands.add_parser("review", help="faire relire un diff par Grok")
+    review = commands.add_parser("review", help="faire relire un diff par Claude Code")
     review.add_argument("plan", type=_path)
     review.add_argument("--repo", type=_path, default=Path.cwd())
     review.add_argument("--base")
@@ -75,8 +75,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings = load_settings(args.config)
         if args.command == "doctor":
-            if os.environ.get("XAI_API_KEY"):
-                print("REFUS : XAI_API_KEY est défini ; le pilote doit tester l'abonnement SuperGrok.")
+            if os.environ.get("ANTHROPIC_API_KEY"):
+                print("REFUS : ANTHROPIC_API_KEY est défini ; le pilote doit utiliser l'abonnement Claude Pro.")
                 return 2
             missing = list(missing_binaries(settings))
             branch = git(args.repo, "branch", "--show-current")
@@ -89,12 +89,12 @@ def main(argv: list[str] | None = None) -> int:
             print("Binaires : OK")
             if args.check_auth:
                 for command in (
-                    [settings.grok_binary, "models"],
+                    [settings.claude_binary, "auth", "status"],
                     [settings.cursor_binary, "status"],
                     ["gh", "auth", "status"],
                 ):
                     run_command(command, cwd=args.repo, timeout_seconds=60)
-                print("Authentifications Grok, Cursor et GitHub : OK")
+                print("Authentifications Claude Code, Cursor et GitHub : OK")
             return 0
 
         if args.command == "plan":

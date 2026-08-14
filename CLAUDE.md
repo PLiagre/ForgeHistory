@@ -50,8 +50,8 @@ pass. See [docs/rules/harness-roles.md](docs/rules/harness-roles.md) and
 [harness/backends/README.md](harness/backends/README.md).
 
 Depuis ADR-0013, ce harnais reste disponible en mode manuel et comme archive de
-preuves. Le workflow pilote nominal vit dans `control-plane/` : Grok planifie
-et relit en deux invocations distinctes et en lecture seule ; Cursor est le
+preuves. Le workflow pilote nominal vit dans `control-plane/` : Claude Code
+planifie et relit en deux invocations distinctes et en lecture seule ; Cursor est le
 seul exécutant. Le producteur ne fusionne jamais son propre travail.
 
 ## Architecture
@@ -62,9 +62,11 @@ seul exécutant. Le producteur ne fusionne jamais son propre travail.
 - **hermes/** — the project lead's writing contract: reports and evolution
  requests, versioned and author-traceable. Never code, CI, briefs or
  verdicts. See `hermes/README.md`.
-- **control-plane/** — ForgePilot, le pilote minimal ADR-0013. Il lance Grok
+- **control-plane/** — ForgePilot, le pilote minimal ADR-0013. Il lance Claude Code
   en lecture seule et Cursor dans un worktree isolé ; son état local sous
-  `.forgepilot/` n'est jamais une source de vérité produit.
+  `.forgepilot/` n'est jamais une source de vérité produit. Le déploiement
+  progressif PC Linux → VPS/hybride vit dans
+  `docs/operations/forgepilot-hosting.md`.
 - **sim/** — the simulation engine, testable without Unity. Empty stub (F1+).
 - **pipeline/geo/** — geo/map pipeline, incl. sources.lock. Empty stub (F1).
 - **harness/** — brief queue, three-role agents' shared contract, the

@@ -10,7 +10,7 @@ une draft PR, relire.
 | composant | responsabilité | accès en écriture |
 |---|---|---|
 | Hermes | dialogue propriétaire, choix de la tâche, lancement des commandes | aucun code |
-| Grok Build | plan avant le code, puis revue d'un diff dans une nouvelle invocation | aucun (`read-only`) |
+| Claude Code | plan avant le code, puis revue d'un diff dans une nouvelle invocation | aucun (`Read,Glob,Grep`) |
 | Cursor CLI | implémentation dans un worktree `agent/*` isolé | worktree du lot |
 | ForgePilot | commit, push et ouverture déterministe d'une draft PR | branche `agent/*` |
 | CI | tests mécaniques | artefacts de CI seulement |
@@ -18,31 +18,41 @@ une draft PR, relire.
 
 ACP n'est pas utilisé pour le pilote. Hermes sait servir ACP, mais ne sait pas
 encore piloter un agent externe comme client ACP générique. Hermes lance donc
-les modes headless documentés de Grok et Cursor avec des arguments, jamais une
-commande construite par le modèle et passée à un shell.
+les modes headless documentés de Claude Code et Cursor avec des arguments,
+jamais une commande construite par le modèle et passée à un shell.
 
-## Installation sur un petit serveur Linux persistant
+## Installation locale, puis VPS éventuel
 
-Le serveur conserve les sessions d'abonnement sans laisser Hermes ou un modèle
-chargé sur le PC du propriétaire.
+Le pilote commence sur la partition Linux du propriétaire. Le VPS n'est loué
+qu'après trois lots concluants ; le choix d'hébergement et la future variante
+hybride sont détaillés dans
+[`docs/operations/forgepilot-hosting.md`](../docs/operations/forgepilot-hosting.md).
+
+Sur le PC comme sur le futur serveur :
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -e ./control-plane
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+npm install -g @anthropic-ai/claude-code
 curl https://cursor.com/install -fsS | bash
 sudo apt-get install gh
 hermes setup
-grok login --device-auth
+claude auth login
 agent login
 gh auth login
 ```
 
 Dans `hermes setup`, choisir un fournisseur distant léger, pas un modèle local :
-Hermes ne fait que dialoguer et lancer ForgePilot. Grok Build doit être
-authentifié avec le compte SuperGrok. Si `grok` réclame
-une `XAI_API_KEY`, le pilote consommerait l'API facturée séparément : arrêter et
-corriger l'authentification au lieu de continuer silencieusement.
+Hermes ne fait que dialoguer et lancer ForgePilot. Ce fournisseur n'est pas
+Claude Pro : l'OAuth Anthropic natif de Hermes exige Claude Max et de l'usage
+supplémentaire. Hermes peut aussi rester facultatif et ForgePilot être lancé
+directement.
+
+Claude Code doit être authentifié avec le compte Claude.ai Pro. Ne pas utiliser
+`claude auth login --console` et ne pas définir `ANTHROPIC_API_KEY` : ces deux
+chemins basculent vers la facturation API. ForgePilot utilise `claude -p` sans
+mode `--bare`, car le mode bare ignore l'authentification d'abonnement.
 
 ## Premier essai
 
@@ -67,7 +77,8 @@ agent. Les sorties réelles vont dans `.forgepilot/runs/`, ignoré par Git.
 - une seule tâche à la fois ;
 - aucun cron pendant les trois premiers lots ;
 - aucune fusion automatique ;
-- le plan et la revue Grok sont en lecture seule ;
+- le plan et la revue Claude Code sont en lecture seule (`--permission-mode
+  plan`, outils `Read,Glob,Grep`, MCP et commandes personnalisées désactivés) ;
 - Cursor ne travaille que dans un worktree propre ;
 - un contrôle absent bloque la fusion ;
 - après trois lots, comparer qualité, latence, consommation et interventions

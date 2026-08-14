@@ -2,7 +2,7 @@
 name: forgehistory-suivi
 description: >
   Piloter ForgeHistory avec ForgePilot. Utiliser quand le propriétaire demande
-  l'état du projet, veut préparer une tâche avec Grok Build, la faire exécuter
+  l'état du projet, veut préparer une tâche avec Claude Code, la faire exécuter
   par Cursor, relire le diff ou décider d'une fusion.
 ---
 
@@ -33,17 +33,22 @@ Dire qu'une donnée est absente au lieu de la déduire.
    succès. Publier seulement une draft PR avec
    `forgepilot publish --repo <worktree> --title <titre> --run`.
 8. Lancer `forgepilot review <plan.json> --repo <worktree> --base <base> --run`.
-   Cette commande ouvre une nouvelle invocation Grok en lecture seule.
+   Cette commande ouvre une nouvelle invocation Claude Code en lecture seule.
 9. Présenter le verdict, les contrôles et le diff au propriétaire. Ne jamais
    fusionner automatiquement.
 
 ## Transport et sécurité
 
-- Appeler Grok en CLI headless. Ne pas essayer de connecter Hermes à Grok comme
-  client ACP : Hermes expose ACP mais ce mode client générique n'est pas livré.
-- Refuser une configuration qui exige `XAI_API_KEY` lorsque le but est de tester
-  l'abonnement SuperGrok ; l'API est une facturation différente.
+- Appeler Claude Code en CLI headless. Ne pas essayer de le connecter à Hermes
+  comme provider ou client ACP : Claude Pro fonctionne via `claude -p`, pas via
+  l'OAuth Anthropic natif de Hermes.
+- Refuser `ANTHROPIC_API_KEY` ; Claude Code doit être connecté au compte
+  Claude.ai Pro et non à la Console facturée à l'API.
 - Ne pas employer de cron pendant les trois lots pilotes.
+- Pendant ces trois lots, exécuter sur la partition Linux du propriétaire. Ne
+  pas provisionner Render ni louer un VPS avant le bilan écrit. Si le VPS est
+  ensuite retenu, traiter le PC comme worker SSH facultatif et bloquer
+  explicitement toute tâche qui l'exige lorsqu'il est hors ligne.
 - Ne jamais transmettre de secret au prompt, au résultat ou au worktree Cursor.
 - Ne jamais réactiver `mode: full_auto` sans nouvelle décision propriétaire.
 

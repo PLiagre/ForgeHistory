@@ -6,8 +6,8 @@ default_base_ref = "origin/master"
 default_base_branch = "master"
 
 [tools]
-grok_binary = "grok"
+claude_binary = "claude"
 cursor_binary = "agent"
-grok_model = ""
+claude_model = ""
 cursor_model = "auto"
 timeout_seconds = 1800

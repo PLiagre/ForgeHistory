@@ -11,13 +11,7 @@ from .config import Settings
 from .process import PilotError, git, resolve_binary, run_command
 
 
-READ_ONLY_GROK_ENV = {
-    "GROK_WRITE_FILE": "0",
-    "GROK_SANDBOX": "read-only",
-    "GROK_SUBAGENTS": "0",
-    "GROK_MEMORY": "0",
-    "GROK_DISABLE_AUTOUPDATER": "1",
-}
+READ_ONLY_CLAUDE_TOOLS = "Read,Glob,Grep"
 
 
 @dataclass(frozen=True)
@@ -47,29 +41,34 @@ def _slug(value: str) -> str:
     return slug[:48] or "task"
 
 
-def _grok_argv(settings: Settings, repo: Path, prompt: str) -> list[str]:
+def _claude_argv(settings: Settings, prompt: str) -> list[str]:
     argv = [
-        settings.grok_binary,
-        "--no-auto-update",
+        settings.claude_binary,
         "-p",
         prompt,
-        "--cwd",
-        str(repo),
         "--output-format",
         "json",
-        "--sandbox",
-        "read-only",
+        "--permission-mode",
+        "plan",
+        "--tools",
+        READ_ONLY_CLAUDE_TOOLS,
+        "--disallowedTools",
+        "mcp__*",
+        "--safe-mode",
+        "--disable-slash-commands",
+        "--no-chrome",
+        "--no-session-persistence",
     ]
-    if settings.grok_model:
-        argv.extend(["--model", settings.grok_model])
+    if settings.claude_model:
+        argv.extend(["--model", settings.claude_model])
     return argv
 
 
 def plan_invocation(settings: Settings, repo: Path, task: Path) -> Invocation:
     task_body = _task_text(task)
     prompt = _read_prompt("planner.md").replace("{{TASK}}", task_body)
-    argv = _grok_argv(settings, repo, prompt)
-    return Invocation("planner", tuple(argv), str(repo), dict(READ_ONLY_GROK_ENV))
+    argv = _claude_argv(settings, prompt)
+    return Invocation("planner", tuple(argv), str(repo), {})
 
 
 def review_invocation(settings: Settings, repo: Path, plan: Path, base: str) -> Invocation:
@@ -83,8 +82,8 @@ def review_invocation(settings: Settings, repo: Path, plan: Path, base: str) -> 
         .replace("{{BASE}}", base)
         .replace("{{DIFF}}", diff)
     )
-    argv = _grok_argv(settings, repo, prompt)
-    return Invocation("reviewer", tuple(argv), str(repo), dict(READ_ONLY_GROK_ENV))
+    argv = _claude_argv(settings, prompt)
+    return Invocation("reviewer", tuple(argv), str(repo), {})
 
 
 def executor_invocation(settings: Settings, worktree: Path, plan: Path) -> Invocation:
@@ -174,7 +173,7 @@ def format_invocation(invocation: Invocation) -> str:
 
 
 def missing_binaries(settings: Settings) -> Iterable[str]:
-    for name in ("git", "gh", settings.grok_binary, settings.cursor_binary):
+    for name in ("git", "gh", settings.claude_binary, settings.cursor_binary):
         try:
             resolve_binary(name)
         except PilotError:

@@ -2,7 +2,7 @@
 
 > Ce document régit le harnais historique sous `harness/`, conservé en mode
 > manuel. Le pilote ADR-0013 applique la même séparation par deux invocations
-> Grok en lecture seule autour d'un Cursor exécutant ; son contrat vit sous
+> Claude Code en lecture seule autour d'un Cursor exécutant ; son contrat vit sous
 > `control-plane/`.
 
 Core principle: "Celui qui produit ne prononce pas la recevabilité"

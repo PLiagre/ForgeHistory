@@ -1,7 +1,7 @@
 # hermes/ — le chef de projet et son contrat d'écriture
 
 Hermes est le **chef de projet** de ForgeHistory (décision propriétaire,
-[ADR-0013](../docs/adr/0013-forgepilot-hermes-grok-cursor.md)) :
+[ADR-0013](../docs/adr/0013-forgepilot-hermes-claude-cursor.md)) :
 le point d'entrée du propriétaire, le porteur du contexte global, et le
 teneur de la feuille de route. C'est par lui que passent les demandes
 d'évolution ; c'est lui qui reflète les décisions dans
@@ -10,7 +10,8 @@ d'évolution ; c'est lui qui reflète les décisions dans
 Ce dossier est la mise en œuvre de l'arbitrage n°4 du 2026-08-11
 (« dossier dédié, versionné, format imposé, auteur traçable »), étendu par
 ADR-0010 du statut d'observateur à celui de chef de projet, puis par ADR-0013
-du poste Windows local vers un pilote léger sur serveur persistant.
+vers un pilote léger : d'abord sur la partition Linux du propriétaire, puis sur
+un VPS seulement si le bilan des trois lots le justifie.
 
 ## Ce qu'Hermes écrit — et rien d'autre
 
@@ -49,7 +50,7 @@ Aucun workflow n'exécute ce que Hermes écrit.
 
 Hermes est la **console du propriétaire**. Pendant le pilote, il lance les
 commandes déterministes de `control-plane/` : `doctor`, `plan`, `execute`,
-`publish` et `review`. Grok est en lecture seule ; Cursor est le seul exécutant et travaille
+`publish` et `review`. Claude Code est en lecture seule ; Cursor est le seul exécutant et travaille
 dans un worktree `agent/*`. Hermes ne lance jamais `--run` sans un ordre
 explicite et ne fusionne aucune PR automatiquement. ADR-0011 reste applicable
 aux actions GitHub du propriétaire.
@@ -83,9 +84,9 @@ le propriétaire tranche (garder / amender / rejeter)
   ▼
 Hermes met à jour ROADMAP.md             (status: REFLECTED_IN_ROADMAP)
   ▼
-Grok prépare un plan pré-écrit           (status: HANDED_TO_CTO)
+Claude Code prépare un plan pré-écrit    (status: HANDED_TO_CTO)
   ▼
-Cursor exécute ; Grok relit ; CI mesure  (status: CLOSED une fois fusionné)
+Cursor exécute ; Claude relit ; CI mesure (status: CLOSED une fois fusionné)
 ```
 
 ## Pourquoi ces bornes

@@ -10,7 +10,7 @@ from forgepilot.cli import main
 from forgepilot.config import Settings
 from forgepilot.process import PilotError
 from forgepilot.workflow import (
-    READ_ONLY_GROK_ENV,
+    READ_ONLY_CLAUDE_TOOLS,
     create_worktree,
     executor_invocation,
     plan_invocation,
@@ -24,20 +24,20 @@ SETTINGS = Settings(
     city_repository="owner/city",
     default_base_ref="origin/main",
     default_base_branch="main",
-    grok_binary="grok",
+    claude_binary="claude",
     cursor_binary="agent",
-    grok_model="",
+    claude_model="",
     cursor_model="auto",
     timeout_seconds=30,
 )
 
 
 class WorkflowTests(unittest.TestCase):
-    def test_doctor_refuses_xai_api_billing(self):
-        with patch.dict("os.environ", {"XAI_API_KEY": "must-not-be-used"}, clear=False):
+    def test_doctor_refuses_anthropic_api_billing(self):
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "must-not-be-used"}, clear=False):
             self.assertEqual(2, main(["doctor"]))
 
-    def test_grok_is_read_only(self):
+    def test_claude_code_is_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             task = root / "task.md"
@@ -45,9 +45,16 @@ class WorkflowTests(unittest.TestCase):
             invocation = plan_invocation(SETTINGS, root, task)
 
         self.assertEqual("planner", invocation.role)
-        self.assertEqual(READ_ONLY_GROK_ENV, invocation.environment)
-        self.assertIn("read-only", invocation.argv)
-        self.assertNotIn("--always-approve", invocation.argv)
+        self.assertEqual("claude", invocation.argv[0])
+        self.assertEqual({}, invocation.environment)
+        self.assertIn("--safe-mode", invocation.argv)
+        self.assertIn("--no-session-persistence", invocation.argv)
+        permission_index = invocation.argv.index("--permission-mode")
+        self.assertEqual("plan", invocation.argv[permission_index + 1])
+        tools_index = invocation.argv.index("--tools")
+        self.assertEqual(READ_ONLY_CLAUDE_TOOLS, invocation.argv[tools_index + 1])
+        self.assertNotIn("Edit", invocation.argv[tools_index + 1])
+        self.assertNotIn("Bash", invocation.argv[tools_index + 1])
 
     def test_cursor_is_only_executor_and_uses_sandbox(self):
         with tempfile.TemporaryDirectory() as tmp:

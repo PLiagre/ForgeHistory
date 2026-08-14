@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "forgepilot"
-version = "0.1.0"
-description = "Control plane minimal pour Hermes, Grok Build et Cursor CLI"
+version = "0.2.0"
+description = "Control plane minimal pour Hermes, Claude Code et Cursor CLI"
 requires-python = ">=3.11"
 dependencies = []
 

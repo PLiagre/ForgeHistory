@@ -38,20 +38,20 @@ contiendra jamais de logique de simulation.
 | **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — briefs 011, 012, 013 livrés et fusionnés ; brief 014 (pipeline : contre-audit comme porte, refus fournisseur comme état) livré, accepté et fusionné le 2026-08-13 (PR #83) ; brief 017 (seuil de survie honnête, fusion des graines 015/016) livré, accepté et fusionné le 2026-08-14 (PR #101, sans squash) ; brief 018 (Province dérivée, ADR-0003) livré et accepté le 2026-08-14, PR en revue ; les graines 015/016 ne s'exécutent plus (elles pointent vers 017) ; suites F2 moteur : aucune restante pour clôturer E2 ; reste F1 geo (relief/climat/ressources) |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles — chaque couche émerge de la précédente | à venir |
 
-## Le workflow pilote — Hermes, Grok, Cursor (ADR-0013)
+## Le workflow pilote — Hermes, Claude Code, Cursor (ADR-0013)
 
 Chaîne nominale pendant trois lots d'essai :
 
 ```
 Propriétaire ──▶ Hermes léger                 point d'entrée et choix de la tâche
   ▼
-Grok Build (lecture seule)                    plan pré-écrit et critères mesurables
+Claude Code (lecture seule)                   plan pré-écrit et critères mesurables
   ▼
 Cursor CLI (worktree agent/*)                 unique exécutant : code et tests
   ▼
 CI                                             contrôles mécaniques
   ▼
-Grok Build (nouvelle invocation, lecture seule) revue du diff contre le plan
+Claude Code (nouvelle invocation, lecture seule) revue du diff contre le plan
   ▼
 Propriétaire                                  décision de fusion
 ```
@@ -87,16 +87,18 @@ toute veille de décision irréversible du propriétaire.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. Installer ForgePilot, Hermes, Grok Build et Cursor CLI sur un petit serveur
-   Linux persistant ; authentifier Grok par le compte SuperGrok et Cursor par
-   le compte Cursor. Ne pas fournir `XAI_API_KEY` au pilote.
+1. Installer ForgePilot, Hermes, Claude Code et Cursor CLI sur la partition
+   Linux du propriétaire ; authentifier Claude Code avec le compte Claude.ai
+   Pro et Cursor avec son compte. Ne pas fournir `ANTHROPIC_API_KEY` au pilote.
 2. Exécuter `forgepilot doctor`, puis un premier lot réel avec les commandes
    `plan`, `execute` et `review`, sans cron et sans auto-merge.
 3. Refaire deux lots de portée comparable. Mesurer qualité du plan, retouches
    humaines, durée, limites d'usage et incidents d'authentification.
-4. Après trois lots, décider : conserver, ajuster ou supprimer ForgePilot. Ne
-   réactiver l'ancien full-auto que par une nouvelle décision propriétaire.
-5. Côté produit, poursuivre F1 géographique (relief, climat, ressources), puis
+4. Après trois lots, décider : supprimer ForgePilot, le garder local ou migrer
+   Hermes sur un VPS 4 Go autour de 6 €/mois. Render n'est pas retenu pour
+   Hermes. Le PC peut ensuite rester worker SSH facultatif pour Unity.
+5. Ne réactiver l'ancien full-auto que par une nouvelle décision propriétaire.
+6. Côté produit, poursuivre F1 géographique (relief, climat, ressources), puis
    brancher VictoriaCityLab comme vue de ville sur les contrats ForgeHistory.
 
 ## Historique des révisions
@@ -107,4 +109,5 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-12 | hermes (rédaction déléguée à Cursor, décision propriétaire « ok pour tout ») | reflet de la demande « tableau de bord unique et pilotage » (H1-H5, ADR-0011) ; correction factuelle : secrets CI provisionnés |
 | 2026-08-12 | orchestrateur Cursor (remplaçant du CTO Claude, indisponible — instruction propriétaire) | correction factuelle uniquement : brief 011 (F2, amorçage `sim/`) livré et accepté — statuts couche 1, F2 et étape 4 mis à jour |
 | 2026-08-13 | hermes (rédaction déléguée à l'orchestrateur Cursor, décision propriétaire — `DEMANDE-20260813-audit-par-grandes-etapes.md`) | audit/contre-audit par grandes étapes (ADR-0012) : section « Grandes étapes — jalons d'audit » (E1-E6), chaîne quatre acteurs mise à jour (Cursor audite les jalons, plus chaque PR) |
-| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire — `DEMANDE-20260814-pilote-forgepilot.md`) | pilote ADR-0013 : Hermes léger, Grok plan/revue en lecture seule, Cursor unique exécutant ; ancien full-auto en mode manuel |
+| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire — `DEMANDE-20260814-pilote-forgepilot.md`) | pilote ADR-0013 corrigé : Hermes léger, Claude Code Pro plan/revue en lecture seule, Cursor unique exécutant ; ancien full-auto en mode manuel |
+| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire) | hébergement progressif : trois lots sur le PC Linux, VPS 4 Go seulement si concluant, PC worker SSH facultatif ; Render écarté pour Hermes |
