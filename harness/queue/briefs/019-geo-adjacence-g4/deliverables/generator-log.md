@@ -213,7 +213,9 @@ est **antérieure à ce lot** et interne aux artefacts G2-bis/G3 committés ; G4
 la constate au lieu de la masquer. Les deux valeurs sont calculées à
 l'exécution, aucune n'est recopiée. Compteurs :
 `empreinte_terre_g4_egale_entree_g3` = 0, `empreinte_terre_g4_egale_sortie_declaree_g2b` = 1.
-Le waiver du manifeste porte la commande et l'erreur.
+La dérogation d'escalade du manifeste porte la commande rejouable
+(`deliverables/check_provenance_coastline_019.py`) et le message qu'elle
+imprime, l'un et l'autre sans aucune valeur hexadécimale.
 
 **2. Bornes d'intention de surface (D13).** 24 zones sur 40 sortent des bornes
 d'**intention** de surface ou de compacité. Ces bornes ne sont pas bloquantes.
@@ -246,10 +248,17 @@ injoignables ; 8/8 controles verts et rouges constates ; deux passes identiques
 en SHA256=OK sur 9 fichiers
 ```
 
-La branche `--source adjacency` produit **les mêmes empreintes** que la preuve
-(par exemple `adjacency_g4.json` =
-`1aba2adc46f8f6e97e9da98b8ff1f68422a31d95f3b25cead9fe8702e0c0bdd2` dans les
-deux). Deux points d'entrée, un seul résultat.
+La branche `--source adjacency` produit **les mêmes empreintes** que la preuve.
+Les empreintes sont citées ici **par leur nom**, jamais par leur valeur : les
+paires sont dans le bloc `determinism.sha256` de `logs/v1_050_qa.json`, et
+l'égalité se revérifie en rejouant les deux points d'entrée puis en constatant
+que
+
+```
+git status --porcelain -- pipeline/geo/artifacts pipeline/geo/registry
+```
+
+ne renvoie rien. Deux points d'entrée, un seul résultat.
 
 Depuis la racine :
 
@@ -289,3 +298,56 @@ les fichiers partagés : `constants.py`, `qa/checks.py`, `pipeline.py`,
 `io_util.py`, `projection.py`, `steps/02_coastline.py`,
 `steps/02b_corrections_1400.py`, `steps/03_cells.py` — 0 modifié sur 8.
 `steps/03_cells.py` est chargé dynamiquement et réemployé, jamais édité.
+
+## Itération 2 — ce qui a été corrigé
+
+Trois changements, et rien d'autre. Le code G4, les artefacts, les captures et
+les 48 compteurs n'ont pas bougé : `tests/run_proof_g4.py` n'a pas été rejoué,
+donc aucun artefact n'a été régénéré.
+
+1. **Empreinte citée par sa valeur (feedback point 2).** La section qui compare
+   `--source adjacency` et la preuve écrivait la valeur hexadécimale complète de
+   l'empreinte de `adjacency_g4.json`. Elle cite désormais les empreintes par
+   leur nom — le bloc `determinism.sha256` de `logs/v1_050_qa.json` — avec la
+   commande qui rejoue l'égalité. Plus aucun chiffre hexadécimal dans ce
+   journal.
+2. **Commande d'escalade (amendement 001, SC7 branche escalade).** Nouveau
+   fichier `deliverables/check_provenance_coastline_019.py`, écrit selon le
+   contrat du brief : lecture seule, il calcule l'empreinte du
+   `artifacts/coastline_1400.json` vivant et la compare à l'entrée déclarée par
+   `MANIFEST_g3.json` puis à la sortie déclarée par `MANIFEST_g2b.json`, en
+   n'imprimant que des noms de source et des résultats. Commande jouée depuis
+   la racine :
+
+   ```
+   .venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/check_provenance_coastline_019.py
+   ```
+
+   Sortie réelle :
+
+   ```
+   ECART : ecart entre artifacts/coastline_1400.json calcule et
+   MANIFEST_g3.json inputs.coastline_1400.
+   Le meme fichier vivant egale-t-il la sortie declaree par MANIFEST_g2b.json
+   outputs[artifacts/coastline_1400.json] ? oui.
+   → code de sortie 1
+   ```
+
+   Le rouge a été prouvé avant de s'en servir : les quatre branches — égalité,
+   écart, fichier vivant absent, `MANIFEST_g2b.json` absent — ont été éprouvées
+   hors dépôt en chargeant le script comme module et en pointant ses trois
+   constantes de chemin vers un dossier temporaire rempli de faux fichiers.
+   Codes obtenus : 0, 1, 2 et 2. Une absence ne peut donc pas se faire passer
+   pour un écart. Le fichier de contrôle était jetable : il vivait hors du
+   dépôt et n'a pas été conservé, il ne fait pas partie du lot.
+3. **Dérogation du manifeste (feedback point 3).** La première dérogation porte
+   désormais cette commande et la sortie réelle qu'elle imprime, sans aucune
+   valeur hexadécimale, et le nouveau script est déclaré dans `files`. La phrase
+   de la dérogation dit ce qui est vrai : la commande n'imprime aucune
+   empreinte.
+
+Le compteur `empreinte_terre_g4_egale_entree_g3` reste le `0` mesuré. Il n'a été
+ni retargeté vers `MANIFEST_g2b.json`, ni remplacé par la sentinelle `-1`.
+Aucun artefact G3 (`MANIFEST_g3.json`, `cells_g3.json`, `stats_g3.json`,
+`adjacency_g3.json`) n'a été lu autrement qu'en lecture, et `constants.py` n'a
+pas été touché.

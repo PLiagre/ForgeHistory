@@ -43,3 +43,4 @@
 {"timestamp": "2026-08-13T21:10:32.556980", "backend": "cursor", "brief": "harness/queue/briefs/017-sim-seuil-survie-honnete", "event": "generator-run", "audit_id": "CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite"}
 {"timestamp": "2026-08-14T06:22:44.781531", "backend": "cursor", "brief": "harness/queue/briefs/018-sim-province-derivee", "event": "generator-run"}
 {"timestamp": "2026-08-14T09:53:58.504755", "backend": "cursor", "brief": "harness/queue/briefs/019-geo-adjacence-g4", "event": "generator-run"}
+{"timestamp": "2026-08-14T10:36:00.862589", "backend": "cursor", "brief": "harness/queue/briefs/019-geo-adjacence-g4", "event": "generator-run"}

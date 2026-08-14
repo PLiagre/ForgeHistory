@@ -71,6 +71,9 @@
       "path": "deliverables/measure_g4_019.py"
     },
     {
+      "path": "deliverables/check_provenance_coastline_019.py"
+    },
+    {
       "path": "deliverables/generator-log.md"
     },
     {
@@ -420,9 +423,9 @@
   ],
   "waivers": [
     {
-      "claim": "SC7 — egalite d'empreinte entre le littoral corrige de 1400 relu par G4 et l'entree que MANIFEST_g3.json declare. L'egalite est FAUSSE et le compteur empreinte_terre_g4_egale_entree_g3 vaut 0. L'empreinte calculee est en revanche EGALE a la sortie que MANIFEST_g2b.json declare pour ce meme fichier (empreinte_terre_g4_egale_sortie_declaree_g2b = 1), donc l'incoherence est anterieure a ce lot et interne aux artefacts G2-bis/G3 deja committes. Aucune borne deplacee, aucun artefact G3 reecrit, aucune empreinte recopiee : les deux valeurs sont calculees a l'execution.",
-      "command": "cd pipeline/geo && ../../.venv/bin/python -c \"import hashlib, json, pathlib; live = hashlib.sha256(pathlib.Path('artifacts/coastline_1400.json').read_bytes()).hexdigest(); g3 = json.load(open('artifacts/MANIFEST_g3.json'))['inputs']['coastline_1400']; assert live == g3, f'ecart: calcule={live} != MANIFEST_g3.inputs.coastline_1400={g3}'\"",
-      "error": "AssertionError: ecart: calcule=f8057f3cc241457cb143162575f822bb951e71cdaf2a2ced6538488542632bc8 != MANIFEST_g3.inputs.coastline_1400=c5bb03c12cf09e5e5308afc4b9eb63e78070c4b363ab34e6e143d0a33081013e (code de sortie 1). La meme empreinte calculee est bien celle que MANIFEST_g2b.json declare pour artifacts/coastline_1400.json."
+      "claim": "Derogation d'escalade (ligne d'escalade de la table des Waivers du brief, ouverte par amendment-001-escalade-empreinte-g3.md) : l'empreinte du littoral corrige de 1400 relu par G4 differe de l'entree que MANIFEST_g3.json declare sous inputs.coastline_1400. Le compteur empreinte_terre_g4_egale_entree_g3 reste le 0 MESURE (jamais 1, jamais la sentinelle -1) et la comparaison n'est pas retargetee. Le meme littoral relu EGALE la sortie que MANIFEST_g2b.json declare pour ce fichier (empreinte_terre_g4_egale_sortie_declaree_g2b = 1), ce qui situe l'ecart en amont du lot, dans les artefacts G2-bis/G3 deja committes. Aucun artefact G3 reecrit ni regenere, aucune borne deplacee. La commande declaree ci-dessous nomme ses deux sources et n'imprime aucune valeur d'empreinte. Le constat est ouvert dans deliverables/generator-log.md et dans pipeline/geo/README.md.",
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/check_provenance_coastline_019.py",
+      "error": "ECART : ecart entre artifacts/coastline_1400.json calcule et MANIFEST_g3.json inputs.coastline_1400.\nLe meme fichier vivant egale-t-il la sortie declaree par MANIFEST_g2b.json outputs[artifacts/coastline_1400.json] ? oui.\n(code de sortie 1)"
     },
     {
       "claim": "Budget d'execution non mesurable sur cette machine : budget.py lit des transcripts de session Claude locaux qui n'existent pas dans l'environnement Cursor Cloud. La progression a donc ete enregistree a la main dans deliverables/progress.jsonl.",
