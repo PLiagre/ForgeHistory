@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-14 03:01 UTC.
+> Générée le 2026-08-14 05:53 UTC.
 
 ## En bref
 
@@ -15,7 +15,6 @@
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #101 — « Brief 017 : le seuil de survie honnête (fusion des graines 015 + 016) » (branche `forge/017-seuil-survie-honnete-ba01`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -30,21 +29,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-14 03:01:35 | hermes-dashboard | schedule | master | in_progress |
+| 2026-08-14 05:53:14 | harness-ci | push | master | in_progress |
+| 2026-08-14 05:53:14 | audit-guard | push | master | in_progress |
+| 2026-08-14 05:53:14 | hermes-dashboard | push | master | in_progress |
+| 2026-08-14 05:53:14 | security | push | master | in_progress |
+| 2026-08-14 05:53:14 | hermes-observer | pull_request_target | forge/017-seuil-survie-honnete-ba01 | queued |
+| 2026-08-14 03:02:25 | hermes-observer | workflow_run | master | queued |
+| 2026-08-14 03:02:19 | hermes-observer | workflow_run | master | queued |
+| 2026-08-14 03:02:14 | hermes-observer | workflow_run | master | queued |
+| 2026-08-14 03:01:57 | audit-guard | push | master | success |
+| 2026-08-14 03:01:57 | security | push | master | success |
+| 2026-08-14 03:01:57 | harness-ci | push | master | success |
+| 2026-08-14 03:01:35 | hermes-dashboard | schedule | master | success |
 | 2026-08-13 21:31:21 | hermes-observer | workflow_run | master | queued |
 | 2026-08-13 21:31:19 | hermes-observer | workflow_run | master | queued |
 | 2026-08-13 21:31:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 21:31:06 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 21:31:04 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 21:31:01 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 21:31:00 | hermes-observer | workflow_run | master | queued |
-| 2026-08-13 21:30:50 | harness-ci | pull_request | forge/017-seuil-survie-honnete-ba01 | success |
-| 2026-08-13 21:30:50 | security | pull_request | forge/017-seuil-survie-honnete-ba01 | success |
-| 2026-08-13 21:30:50 | merge-bot | pull_request | forge/017-seuil-survie-honnete-ba01 | skipped |
-| 2026-08-13 21:30:50 | audit-guard | pull_request | forge/017-seuil-survie-honnete-ba01 | success |
-| 2026-08-13 21:30:48 | hermes-observer | pull_request_target | forge/017-seuil-survie-honnete-ba01 | queued |
-| 2026-08-13 21:30:48 | security | push | forge/017-seuil-survie-honnete-ba01 | success |
-| 2026-08-13 21:30:47 | audit-guard | push | forge/017-seuil-survie-honnete-ba01 | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -118,6 +117,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 014-pipeline-contre-audit-porte | dernier verdict tracé : ACCEPT |
 | 015-pr69-seuil-survie-ignore-mortalite | pas encore de verdict |
 | 016-pr69-seuil-survie-non-borne | pas encore de verdict |
+| 017-sim-seuil-survie-honnete | dernier verdict tracé : ACCEPT |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
@@ -126,7 +126,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 29 | 2026-08-13 12:32 |
-| cursor | 11 | 2026-08-13 12:46 |
+| cursor | 12 | 2026-08-13 21:10 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
