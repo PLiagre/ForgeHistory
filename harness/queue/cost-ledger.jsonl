@@ -44,3 +44,4 @@
 {"timestamp": "2026-08-14T06:22:44.781531", "backend": "cursor", "brief": "harness/queue/briefs/018-sim-province-derivee", "event": "generator-run"}
 {"timestamp": "2026-08-14T09:53:58.504755", "backend": "cursor", "brief": "harness/queue/briefs/019-geo-adjacence-g4", "event": "generator-run"}
 {"timestamp": "2026-08-14T10:36:00.862589", "backend": "cursor", "brief": "harness/queue/briefs/019-geo-adjacence-g4", "event": "generator-run"}
+{"timestamp": "2026-08-14T12:17:30.952960", "backend": "cursor", "brief": "harness/queue/briefs/020-geo-provenance-littoral-g3", "event": "generator-run"}

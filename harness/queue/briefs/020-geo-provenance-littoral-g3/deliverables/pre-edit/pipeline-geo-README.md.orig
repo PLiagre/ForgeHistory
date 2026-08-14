@@ -262,67 +262,13 @@ graphe hérité.
   `constants.py` n'a été modifiée ; le constat est inscrit, pas maquillé.
   2 zones sont exemptées du plancher parce qu'elles constituent à elles seules
   un bassin enfermé entier.
-
-## Livré (brief 020) — la terre déclarée par les cellules est la terre produite
-
-*Section rédigée en français clair, conformément à `CLAUDE.md` › « Langue et
-clarté ». Elle décrit ce qui existe et ce que cela lit.*
-
-### Le constat d'empreinte du littoral ouvert par 019 est **fermé**
-
-Le brief 019 avait mesuré que `artifacts/MANIFEST_g3.json` déclarait, sous
-`inputs.coastline_1400`, une terre que la chaîne ne produisait plus : la
-question « quelle terre a produit ces cellules ? » recevait deux réponses, celle
-que la chaîne calcule et celle que le manifeste raconte. Ce constat est
-désormais fermé, et voici comment.
-
-- **Ce qui a été mesuré avant de toucher quoi que ce soit.** La terre du
-  littoral vivant a été comparée à l'union des cellules committées, en
-  projection EPSG:3035. La part de l'union des cellules qui sort de la terre est
-  nulle, et la terre qu'aucune cellule ne couvre est un résidu très largement
-  inférieur à `G3_AREA_EPS_M2`, **lue** de `constants.py`. La terre n'a donc pas
-  bougé : ce sont les octets qui la sérialisent qui avaient changé. La surface
-  mesurée coïncide avec le `land_area_km2` que porte l'artefact du littoral, ce
-  qui écarte une mesure faite sur une géométrie vide.
-- **Ce qui a été réparé.** Un seul champ : `inputs.coastline_1400` de
-  `artifacts/MANIFEST_g3.json` reçoit l'empreinte du littoral vivant, calculée à
-  l'exécution depuis le fichier lui-même — jamais recopiée d'un autre manifeste,
-  ce qui ferait réussir la comparaison sans avoir jamais lu la terre. Le bloc
-  `outputs` et le `fixed_timestamp` du manifeste ne sont pas touchés.
-- **Ce qui n'a pas été rejoué.** La maille des cellules n'a pas été régénérée :
-  `artifacts/cells_g3.json`, `adjacency_g3.json`, `stats_g3.json` et
-  `registry/cell_registry.json` sont sans modification, donc les identifiants de
-  cellule que `sim/` consomme sont ceux du fichier committé, par construction.
-  Le graphe G4 n'a pas été rejoué non plus : ni semis de zones, ni recalcul
-  d'arêtes, ni compteur de zones « amélioré ».
-- **Ce que G4 relit.** `artifacts/MANIFEST_g4.json`
-  (`coastline_1400_sha_declared_by_g3`, `coastline_1400_sha_equal`) et
-  `artifacts/stats_g4.json` (`coastline_1400_sha_equals_g3_input`) relisent la
-  déclaration réparée. Les deux drapeaux sont **dérivés** de la comparaison, pas
-  posés à la main.
-
-### Ce que ce lot ajoute
-
-- `steps/03b_align_coastline_provenance.py` — l'alignement de la déclaration,
-  lançable seul, idempotent : une seconde exécution ne change aucun octet. Il
-  réécrit trois fichiers, dans un ordre contraint (`stats_g4.json` avant
-  `MANIFEST_g4.json`, parce que le second déclare l'empreinte du premier).
-- `tests/run_proof_coastline_provenance.py` — la garde durable. Elle recalcule
-  l'empreinte du littoral vivant à chaque exécution, lit les déclarations depuis
-  les manifestes du disque et ne porte aucune valeur attendue en dur. Elle sort
-  au code 0 si tout concorde, 1 en nommant les sources en désaccord, 2 si une
-  source manque du disque — un code d'absence n'est jamais un écart mesuré.
-- `logs/v1_051_provenance.json`, `logs/v1_051_provenance_vert.txt` — le rapport
-  et la sortie verte de cette garde sur le dépôt réparé.
-- `logs/v1_051_provenance_rouge.txt` — la même garde sous sabotage de la
-  déclaration d'entrée, monté dans une copie **hors du dépôt** : elle rougit.
-  Le sabotage porte sur la déclaration, jamais sur le code de la garde.
-
-Aucune valeur d'empreinte n'est citée ici, ni dans le code, ni dans les
-journaux : les empreintes se comparent à l'exécution et se nomment par leur
-source. Aucune valeur de `constants.py` n'a été modifiée. Le jalon E1 n'est pas
-clos, et ce lot ne livre ni relief, ni climat, ni ressources, ni fleuves, ni
-villes : il rend au monde une seule réponse à la question « quelle terre ? ».
+- **Empreinte du littoral de 1400** : l'empreinte de
+  `artifacts/coastline_1400.json` régénéré ici est **égale** à celle que
+  `artifacts/MANIFEST_g2b.json` déclare comme sortie de l'étape qui le produit,
+  et **différente** de celle que `artifacts/MANIFEST_g3.json` déclare comme
+  entrée des cellules. Les deux comparaisons sont calculées à l'exécution.
+  L'artefact que G3 avait sous la main n'est pas suivi par git et n'existe plus
+  dans le dépôt. Aucun artefact G3 n'a été touché ; le constat est escaladé.
 
 ## Not yet landed
 
