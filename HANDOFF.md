@@ -1,6 +1,74 @@
 # HANDOFF.md
 
-## Session la plus récente — 2026-08-14 : brief 018 (Province dérivée), critères E2 réunis
+## Session la plus récente — 2026-08-14 : brief 019 (adjacence maritime G4), premier lot E1
+
+**Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
+CTO Claude. Trois rôles, jamais le même agent dans la même passe, modèle
+Claude Opus 5 (`claude-opus-5-thinking-high`) — jamais inherit/Grok pour
+un rôle du harnais. Branche `forge/` (pas `cursor/*` : le job
+`cursor-scope` réserve ce préfixe aux PRs `architecture/inbox/`).
+
+**Décision CTO.** E2 est clos sur `master` (briefs 017+018, PRs #101 / #102
+/ #103 fusionnées, sans squash). Prochain jalon = **E1 — Fondations
+monde**. E1 entier est trop gros : premier lot atomique seulement =
+**G4 adjacence maritime** (zones de mer + graphe typé). Motif : G5
+fleuves et G6 relief dépendent des cellules **et** de l'adjacence. G3
+est livré (596 cellules) ; le lot 007b n'a jamais été exécuté. Brief
+**neuf 019**, pas une réouverture du 007.
+
+### Ce qui a été fait
+
+1. **Planificateur** : brief + rubrique (`95215a2`). Dix SC, D1–D16,
+   46+ compteurs, reconstruction contre la barre QA déjà portée.
+2. **Générateur itération 1** (`5e54571`) : `steps/04_adjacency.py`,
+   40 zones (5000–5039), 2085 arêtes (917 terre-terre, 437 terre-mer,
+   63 mer-mer, 668 détroits), 2 liens déclarés (Zuiderzee / Lauwerszee).
+   Preuve rouge d'abord, déterminisme deux passes, `pipeline.py` et
+   `constants.py` intacts.
+3. **Évaluateur passe 1** : **REJECT** (`3a6a397`). Porte ACCEPT (forme).
+   Huit SC sur dix tiennent ; 48/48 compteurs reconstruits sans écart.
+   SC7 : empreinte du littoral relu ≠ entrée déclarée par G3
+   (incohérence antérieure au lot, D16 interdit de toucher G3). SC10 :
+   une empreinte de parité citée par sa valeur dans le journal (règle 12).
+   Les 24 zones hors bornes d'intention : constat ouvert, pas un rejet.
+4. **Planificateur amendement 001** (`6654af2`) : reçoit l'escalade D2.
+   SC7 à deux branches (égalité, ou 0 mesuré + constat ouvert). G3
+   intouché. Réparation de provenance = brief ultérieur (non-objectif 18).
+   Horodatages `Authored` d'origine conservés.
+5. **Générateur itération 2** (`61b387b`) : hex retiré ; script
+   `check_provenance_coastline_019.py` (codes 0/1/2, aucune valeur
+   imprimée) ; waiver aligné. Artefacts G4 non régénérés.
+6. **Évaluateur passe 2** : **PASS** (`1c5cd46`). Porte ACCEPT dix sur
+   dix. SC7 par la **branche escalade**, jamais par égalité. SC10 : zéro
+   chaîne hexadécimale dans les livrables. Les trois rôles n'ont ni
+   committé, ni poussé, ni créé de branche.
+
+**Branche / PR** : `forge/019-geo-adjacence-g4-d07d`, **PR #105**. Ne
+pas fusionner soi-même. Fusion **sans squash**. E1 n'est **pas** clos.
+
+**Réserves (verdict 019, non bloquantes)** : semis saturé sur
+`SEA_ZONE_COUNT_MAX` (fenêtre ~5,1 millions de km² vs calibration
+d'intention) ; journal d'adjacence porteur d'une durée d'horloge ;
+manifeste qui ne décrit le fichier de divergence qu'indirectement ;
+cas rouge de `Q4` trop grossier ; `MANIFEST_g4.json` propage l'empreinte
+périmée que G3 déclare.
+
+**Suites (pas ce lot)** : brief de réparation de la provenance G3
+(non-objectif 18) ; G5 fleuves / G6 relief ; recalibrage éventuel des
+bornes de semis ; N1 du 017 ; briefs de harnais ; réparation PR #100.
+
+**Validation rejouée** :
+- `.venv/bin/python harness/verdict_audit.py harness/queue/briefs/019-geo-adjacence-g4` → ACCEPT (dix sur dix).
+- `.venv/bin/python -m pytest harness/tests/ -q` → 348 passed, 16 skipped (Unity/Linux, attendus).
+
+**Prochain pas** : le propriétaire fusionne **#105** (lot 019 + cette
+correction de feuille de route), **sans squash**. Ensuite : provenance
+G3, ou G5/G6, ou brief de harnais — pas d'audit Cursor à attendre sur
+#105 (ADR-0012 : audit à la clôture d'étape, E1 n'est pas close).
+
+---
+
+## Session précédente — 2026-08-14 matin : brief 018 (Province dérivée), critères E2 réunis
 
 **Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
 CTO Claude. Trois sous-agents distincts, modèle Claude Opus 5
