@@ -77,7 +77,7 @@ changement structurel entériné par ADR, doute).
 | jalon | ce que l'étape doit réunir pour être close | statut |
 |---|---|---|
 | **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓ et des cellules G3 ✓) ; artefacts consommables par `sim/` ; visuel carte repris (briefs 004/005) si les logs Unity sont disponibles | à venir |
-| **E2 — Le monde vivant compte juste** (clôt F2, couche 1) | seuil de survie honnête (graines 015/016 traitées) ; agrégation Province dérivée (ADR-0003) ; monde mesuré stable et falsifiable sur les 596 cellules réelles | **critères réunis** — seuil honnête ✓ (017) ; Province dérivée ✓ (018) ; monde mesuré sur 596 cellules ✓ — jalon à déposer (`hermes/milestones/`, PR séparée) |
+| **E2 — Le monde vivant compte juste** (clôt F2, couche 1) | seuil de survie honnête (graines 015/016 traitées) ; agrégation Province dérivée (ADR-0003) ; monde mesuré stable et falsifiable sur les 596 cellules réelles | **clos** — critères réunis (017 + 018) ; la fusion de `hermes/milestones/ETAPE-02-monde-vivant-compte-juste.md` déclenche l'audit d'étape (ADR-0012) |
 | **E3 — Villes** (couche 2) | urbanisation, entreprises, métiers, routes, infrastructures — émergeant de la couche 1 | à venir |
 | **E4 — États** (couche 3) | fiscalité, lois, diplomatie, technologies, culture, religion | à venir |
 | **E5 — Armées** (couche 4) | recrutement, logistique, ravitaillement, stratégie | à venir |
@@ -116,8 +116,9 @@ toute veille de décision irréversible du propriétaire.
    **fait le 2026-08-14** : brief 017 (`017-sim-seuil-survie-honnete/`,
    fusion des graines 015/016, PR #101). ~~Agrégation Province dérivée~~ —
    **fait le 2026-08-14** : brief 018 (`018-sim-province-derivee/`).
-   Les critères du jalon E2 sont réunis ; le fichier de jalon se dépose
-   à part. Suites hors E2 : brief de harnais pour les points d'audit
+   Les critères du jalon E2 sont réunis ; le fichier
+   `hermes/milestones/ETAPE-02-monde-vivant-compte-juste.md` clôt l'étape
+   (fusion = déclencheur d'audit ADR-0012). Suites hors E2 : brief de harnais pour les points d'audit
    différés (traçage d'acteur des rôles, gate sur les fichiers déclarés
    hors dossier de brief) ; F1 geo (relief/climat/ressources).
 5. **Reprendre 004/005** (visuel carte) quand les logs Unity requis par le
