@@ -1,0 +1,318 @@
+{
+  "brief": "020-geo-provenance-littoral-g3",
+  "role": "forge-generateur",
+  "note_mesure": "Tous les compteurs sont imprimes, avec leur denominateur, par deliverables/measure_g3_provenance_020.py, joue depuis la racine du depot. Le champ sample_size reprend le denominateur imprime par ce script. Aucune valeur n'est recopiee a la main, aucune valeur d'empreinte n'est citee, et l'epsilon de surface est LUE de pipeline/geo/constants.py.",
+  "files": [
+    {"path": "../../../../pipeline/geo/steps/03b_align_coastline_provenance.py"},
+    {"path": "../../../../pipeline/geo/tests/run_proof_coastline_provenance.py"},
+    {"path": "../../../../pipeline/geo/logs/v1_051_provenance.json"},
+    {"path": "../../../../pipeline/geo/logs/v1_051_provenance_vert.txt"},
+    {
+      "path": "../../../../pipeline/geo/logs/v1_051_provenance_rouge.txt",
+      "must_differ_from": "../../../../pipeline/geo/logs/v1_051_provenance_vert.txt"
+    },
+    {"path": "deliverables/pre-edit/MANIFEST_g3.json.orig"},
+    {
+      "path": "../../../../pipeline/geo/artifacts/MANIFEST_g3.json",
+      "must_differ_from": "deliverables/pre-edit/MANIFEST_g3.json.orig"
+    },
+    {"path": "deliverables/pre-edit/stats_g4.json.orig"},
+    {
+      "path": "../../../../pipeline/geo/artifacts/stats_g4.json",
+      "must_differ_from": "deliverables/pre-edit/stats_g4.json.orig"
+    },
+    {"path": "../../../../pipeline/geo/artifacts/MANIFEST_g4.json"},
+    {"path": "deliverables/pre-edit/pipeline-geo-README.md.orig"},
+    {
+      "path": "../../../../pipeline/geo/README.md",
+      "must_differ_from": "deliverables/pre-edit/pipeline-geo-README.md.orig"
+    },
+    {"path": "deliverables/pre-edit/check_provenance_avant.txt"},
+    {
+      "path": "deliverables/check_provenance_apres.txt",
+      "must_differ_from": "deliverables/pre-edit/check_provenance_avant.txt"
+    },
+    {"path": "deliverables/pre-edit/cell_ids_actifs.txt"},
+    {"path": "deliverables/check_provenance_coastline_020.py"},
+    {"path": "deliverables/measure_g3_provenance_020.py"},
+    {"path": "deliverables/generator-log.md"},
+    {"path": "deliverables/manifest.json"},
+    {"path": "deliverables/progress.jsonl"},
+    {"path": "../../../../harness/queue/cost-ledger.jsonl"}
+  ],
+  "counters": [
+    {
+      "name": "cellules_lues_g3",
+      "value": 596,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur lu : cell_count de artifacts/stats_g3.json"
+    },
+    {
+      "name": "terre_vivante_m2",
+      "value": 6667146530455.9,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 mesure geometrique de la terre du littoral vivant en projection EPSG:3035 ; recoupee avec land_area_km2 lu de l'artefact (6667146.53 km2), ce qui ecarte une mesure sur geometrie vide"
+    },
+    {
+      "name": "depassement_cellules_hors_terre_m2",
+      "value": 0.0,
+      "sample_size": 6667146530455.9,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : terre_vivante_m2 ; zero MESURE (union des cellules entierement contenue dans la terre), jamais la sentinelle -1 ; a comparer a l'epsilon LUE 10000.0"
+    },
+    {
+      "name": "terre_non_couverte_m2",
+      "value": 554.304,
+      "sample_size": 6667146530455.9,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : terre_vivante_m2 ; residu tres largement sous l'epsilon LUE 10000.0"
+    },
+    {
+      "name": "epsilon_surface_g3_m2",
+      "value": 10000.0,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 valeur LUE de pipeline/geo/constants.py (G3_AREA_EPS_M2) ; elle n'apparait en litteral ni dans le script de mesure, ni dans l'alignement, ni dans la garde"
+    },
+    {
+      "name": "ecart_est_serialisation",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 comparaison composee : les deux aires mesurees sont toutes deux sous l'epsilon lue, donc la terre n'a pas bouge et l'ecart etait de serialisation"
+    },
+    {
+      "name": "code_sortie_ecart_avant",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/check_provenance_coastline_020.py",
+      "note": "1 execution jouee AVANT toute ecriture ; sortie committee sous deliverables/pre-edit/check_provenance_avant.txt, dont le verdict imprime (ECART) redonne le code"
+    },
+    {
+      "name": "code_sortie_ecart_apres",
+      "value": 0,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/check_provenance_coastline_020.py",
+      "note": "1 execution de la MEME commande inchangee apres alignement ; sortie committee sous deliverables/check_provenance_apres.txt"
+    },
+    {
+      "name": "cellules_actives_instantane",
+      "value": 596,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur lu : cell_count de artifacts/stats_g3.json ; instantane pris avant toute ecriture, sous deliverables/pre-edit/cell_ids_actifs.txt"
+    },
+    {
+      "name": "cellules_actives_inchangees",
+      "value": 596,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : identifiants de l'instantane ; intersection avec les cell_id lus apres le lot"
+    },
+    {
+      "name": "cellules_actives_ajoutees",
+      "value": 0,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "zero MESURE par difference d'ensembles, jamais la sentinelle -1"
+    },
+    {
+      "name": "cellules_actives_retirees",
+      "value": 0,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "zero MESURE par difference d'ensembles, jamais la sentinelle -1"
+    },
+    {
+      "name": "artefacts_maille_diff_vides",
+      "value": 4,
+      "sample_size": 4,
+      "command": "git status --porcelain -- pipeline/geo/artifacts/cells_g3.json pipeline/geo/artifacts/adjacency_g3.json pipeline/geo/artifacts/stats_g3.json pipeline/geo/registry/cell_registry.json",
+      "note": "denominateur : les 4 fichiers de maille ; la maille n'a pas ete rejouee, ni run_cells ni tests/run_proof_g3.py n'ont ete lances dans le depot"
+    },
+    {
+      "name": "fichiers_sim_modifies",
+      "value": 0,
+      "sample_size": 50,
+      "command": "git status --porcelain -- sim/",
+      "note": "denominateur : fichiers suivis sous sim/, comptes par git ls-files sim ; zero MESURE, sim/ est reste en lecture seule"
+    },
+    {
+      "name": "tests_sim_passed_020",
+      "value": 65,
+      "sample_size": 65,
+      "command": ".venv/bin/python -m pytest sim/tests/ -q",
+      "note": "denominateur : tests collectes dans sim/tests/, lu du resume pytest ; aucun FAILED, aucun SKIP"
+    },
+    {
+      "name": "empreinte_entree_g3_egale_vivant",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/check_provenance_coastline_020.py",
+      "note": "1 comparaison : empreinte du littoral vivant calculee a l'execution vs MANIFEST_g3.json inputs.coastline_1400 ; aucune des deux valeurs n'est imprimee"
+    },
+    {
+      "name": "empreinte_vivant_egale_sortie_g2b",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 comparaison : meme empreinte vs la sortie que MANIFEST_g2b.json declare pour artifacts/coastline_1400.json ; la comparaison n'a PAS ete retargetee, l'entree de G3 a ete alignee"
+    },
+    {
+      "name": "sorties_g3_conformes",
+      "value": 5,
+      "sample_size": 5,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : entrees du bloc outputs lues de MANIFEST_g3.json ; empreintes recalculees a l'execution, le bloc outputs n'a pas ete retouche"
+    },
+    {
+      "name": "champs_manifeste_g3_modifies",
+      "value": 1,
+      "sample_size": 17,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : feuilles JSON du manifeste publie ; le seul chemin different de l'instantane pre-edit est .inputs.coastline_1400, et fixed_timestamp reste 1970-01-01T00:00:00Z"
+    },
+    {
+      "name": "roundtrip_serialisation_neutre",
+      "value": 3,
+      "sample_size": 3,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : artefacts reecrits par l'alignement, LU de sa sortie (fichiers_ecrits) ; chacun relu puis reecrit par io_util.write_json sans changer aucune valeur reste octet-identique. Preuve d'abord jouee hors depot AVANT la premiere ecriture reelle"
+    },
+    {
+      "name": "provenance_g4_egale_entree_g3",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 comparaison : MANIFEST_g4.json coastline_1400_sha_declared_by_g3 vs MANIFEST_g3.json inputs.coastline_1400"
+    },
+    {
+      "name": "drapeau_egalite_manifeste_g4",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 champ lu de MANIFEST_g4.json (coastline_1400_sha_equal, entier) ; il est DERIVE de la comparaison par l'alignement, jamais pose a la main"
+    },
+    {
+      "name": "drapeau_egalite_stats_g4",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 champ lu de stats_g4.json (coastline_1400_sha_equals_g3_input, entier) ; derive de la meme comparaison"
+    },
+    {
+      "name": "sorties_g4_conformes",
+      "value": 6,
+      "sample_size": 6,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : entrees du bloc outputs lues de MANIFEST_g4.json ; l'empreinte de la seule sortie reecrite par ce lot (artifacts/stats_g4.json) a ete recalculee apres son ecriture"
+    },
+    {
+      "name": "artefacts_g4_modifies_hors_liste",
+      "value": 0,
+      "sample_size": 13,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : fichiers G4 suivis par git (git ls-files pipeline/geo, noms portant g4 ou sea_zone) ; zero MESURE hors stats_g4.json et MANIFEST_g4.json"
+    },
+    {
+      "name": "graphe_g4_diff_vides",
+      "value": 16,
+      "sample_size": 16,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : fichiers de graphe G4 listes en D5 (4 artefacts, le registre des zones de mer, les journaux v1_050_* et les captures suivis par git) ; tous sans diff face a HEAD"
+    },
+    {
+      "name": "code_sortie_garde_verte",
+      "value": 0,
+      "sample_size": 1,
+      "command": "depuis pipeline/geo/ : ../../.venv/bin/python tests/run_proof_coastline_provenance.py",
+      "note": "1 execution sur le depot repare ; sortie committee sous pipeline/geo/logs/v1_051_provenance_vert.txt"
+    },
+    {
+      "name": "code_sortie_garde_rouge_hors_depot",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 execution de la MEME garde sur une copie hors depot dont la seule declaration d'entree de G3 est mutee ; strictement positif. Le script de mesure remonte ce sabotage a chaque execution, la preuve rouge est donc reproductible et non recopiee. Sortie committee sous pipeline/geo/logs/v1_051_provenance_rouge.txt"
+    },
+    {
+      "name": "passes_alignement_identiques",
+      "value": 3,
+      "sample_size": 3,
+      "command": "depuis pipeline/geo/ : ../../.venv/bin/python steps/03b_align_coastline_provenance.py",
+      "note": "denominateur LU de la sortie de l'alignement (fichiers_ecrits) ; les trois fichiers sont octet-identiques entre deux executions successives"
+    },
+    {
+      "name": "diff_apres_seconde_passe",
+      "value": 0,
+      "sample_size": 3,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : fichiers ecrits par l'alignement. Zero MESURE : la seconde passe ne change aucun octet par rapport a l'etat d'apres la premiere. Lecture assumee et expliquee dans generator-log.md : git status --porcelain -- pipeline/geo/artifacts montre encore trois lignes face a HEAD, parce que ce sont les trois fichiers reparee et non committes (le Generateur ne commite pas). Aucun autre fichier de artifacts/ n'a de diff"
+    },
+    {
+      "name": "constats_ouverts_README",
+      "value": 1,
+      "sample_size": 2,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : meme compte derive de deliverables/pre-edit/pipeline-geo-README.md.orig ; strictement inferieur. L'entree fermee est l'empreinte du littoral ; celle sur les bornes d'intention reste ouverte"
+    },
+    {
+      "name": "readme_differe_instantane",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "1 comparaison d'empreintes calculees a l'execution du README publie et de son instantane ; aucune des deux n'est imprimee. Couple must_differ_from declare"
+    },
+    {
+      "name": "valeurs_hexadecimales_citees",
+      "value": 0,
+      "sample_size": 14,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : fichiers de texte et de code produits ou modifies par ce lot et balayes. Exclus du balayage, et pour une raison nommee : les artefacts JSON de la chaine (porter des empreintes est leur metier) et les deux instantanes pre-edit/MANIFEST_g3.json.orig et pre-edit/stats_g4.json.orig, qui sont des copies machine d'artefacts et non des citations"
+    },
+    {
+      "name": "alias_python_nu",
+      "value": 0,
+      "sample_size": 14,
+      "command": ".venv/bin/python harness/queue/briefs/020-geo-provenance-littoral-g3/deliverables/measure_g3_provenance_020.py",
+      "note": "denominateur : les memes fichiers balayes ; l'alias nu de l'interpreteur et les chemins de lanceur Windows sont recherches ensemble. La machine est Linux et toutes les commandes passent par .venv/bin/"
+    },
+    {
+      "name": "fichiers_hors_perimetre_modifies",
+      "value": 0,
+      "sample_size": 21,
+      "command": "git status --porcelain",
+      "note": "denominateur : lignes totales de git status --porcelain, confrontees au perimetre de D10. Zero MESURE : les 21 lignes sont les trois artefacts alignes, le README, les deux scripts neufs, les trois journaux v1_051_*, les deliverables du lot et la ligne du registre de cout"
+    },
+    {
+      "name": "fichiers_preuve_suivis_par_git",
+      "value": 9,
+      "sample_size": 9,
+      "command": "git ls-files pipeline/geo",
+      "note": "denominateur : preuves declarees sous pipeline/geo/ (2 scripts, 3 journaux v1_051_*, 3 artefacts alignes, le README). logs/ et artifacts/ sont exclus par .gitignore : l'ajout est force (git add -f) et le suivi est prouve par git ls-files. Le Generateur ne commite pas ; l'index est l'etat livre a l'orchestrateur"
+    },
+    {
+      "name": "tests_harness_passed_020",
+      "value": 348,
+      "sample_size": 364,
+      "command": ".venv/bin/python -m pytest harness/tests/ -q",
+      "note": "denominateur : tests collectes dans harness/tests/, lu du resume pytest (348 passed, 16 skipped). Les 16 SKIP sont declares : tous dans harness/tests/test_run_unity.py, motif powershell.exe absent de cette plateforme Linux. Aucun FAILED"
+    },
+    {
+      "name": "ligne_ledger_ajoutee",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/backends/ledger.py append --backend cursor --brief harness/queue/briefs/020-geo-provenance-littoral-g3 --event generator-run",
+      "note": "1 ligne verifiee : la derniere de harness/queue/cost-ledger.jsonl porte backend cursor, event generator-run et un chemin de brief contenant 020. Aucun --audit-id : ce brief nait du constat escalade par 019"
+    }
+  ],
+  "waivers": [
+    {
+      "claim": "Le budget d'execution n'est pas mesurable sur cette machine : harness/budget.py lit des transcriptions de session Claude locales, qui n'existent pas dans un environnement Cursor Cloud. La derogation ne couvre que la mesure du budget : aucune condition de succes n'est excusee, et les progres ont ete enregistres malgre tout dans deliverables/progress.jsonl.",
+      "command": ".venv/bin/python harness/budget.py status --brief harness/queue/briefs/020-geo-provenance-littoral-g3",
+      "error": "status     : UNMEASURABLE\nreason     : no agent transcript naming 020-geo-provenance-littoral-g3 under /home/ubuntu/.claude/projects/-workspace\nNothing is being enforced. This is not OK -- it is unmeasured."
+    }
+  ]
+}

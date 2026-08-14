@@ -1,0 +1,5 @@
+{"timestamp": "2026-08-14T12:07:06.458796", "kind": "plan_step_done", "evidence": "brief lu, s\u00e9quence D8 commenc\u00e9e", "tool_calls_at": -1}
+{"timestamp": "2026-08-14T12:08:44.877230", "kind": "deliverable_created", "evidence": "pre-edit/ (4 instantan\u00e9s) + check_provenance_coastline_020.py, \u00e9cart mesur\u00e9 au code 1, roundtrip neutre 3/3", "tool_calls_at": -1}
+{"timestamp": "2026-08-14T12:10:37.369836", "kind": "red_to_green", "evidence": "check_provenance_coastline_020.py : code 1 avant alignement, code 0 apres", "tool_calls_at": -1}
+{"timestamp": "2026-08-14T12:12:14.785420", "kind": "gate_check_gained", "evidence": "garde durable run_proof_coastline_provenance.py : verte code 0, rouge code 1 sous sabotage hors depot, absence code 2", "tool_calls_at": -1}
+{"timestamp": "2026-08-14T12:26:42.517220", "kind": "deliverable_created", "evidence": "manifest.json (38 compteurs, 5 couples must_differ_from, 1 derogation budget) + generator-log.md + measure_g3_provenance_020.py", "tool_calls_at": -1}

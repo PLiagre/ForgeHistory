@@ -1,6 +1,77 @@
 # HANDOFF.md
 
-## Session la plus récente — 2026-08-14 : brief 019 (adjacence maritime G4), premier lot E1
+## Session la plus récente — 2026-08-14 : brief 020 (provenance du littoral G3)
+
+**Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
+CTO Claude. Trois rôles, jamais le même agent dans la même passe, modèle
+Claude Opus 5 (`claude-opus-5-thinking-high`) — jamais inherit/Grok pour
+un rôle du harnais. Signatures natives `forge-planificateur` /
+`forge-generateur` / `forge-evaluateur`, sans suffixe. Note de
+transparence Cursor Cloud. Les rôles n'ont ni committé, ni poussé, ni
+créé de branche — l'orchestrateur seul dépose. Branche `forge/` (pas
+`cursor/*` : le job `cursor-scope` réserve ce préfixe aux PRs
+`architecture/inbox/`).
+
+**Décision CTO.** E2 est clos sur `master` (briefs 017+018, PRs #101 /
+#102 / #103 fusionnées, sans squash). Brief 019 (adjacence maritime G4)
+PASS, **PR #105 fusionnée** le 2026-08-14 (sans squash) — le lot 020
+était autorisé. Un seul lot : **réparer la provenance du littoral G3**
+(trou mesuré et escaladé par 019, amendement 001, non-objectif 18). E1
+n'est **pas** clos. Pas de villes (E3). Pas de réouverture du 007. Pas
+de fusion par l'orchestrateur. Fusion **sans squash**.
+
+### Ce qui a été fait
+
+1. **Planificateur** (`3ac7c77`) : brief neuf
+   `harness/queue/briefs/020-geo-provenance-littoral-g3/`. Mesures avant
+   réécriture : écart de **sérialisation** (union des cellules vs terre
+   du littoral vivant sous l'epsilon **lue**), pas de géométrie — maille
+   non rejouée ; les identifiants consommés par `sim/` restent ceux du
+   fichier committé ; G4 relit les champs de provenance, graphe intact.
+   Sept SC, `38` compteurs. `split-check` : `SIZE_OK`.
+2. **Générateur itération 1** (`a32f598`) : script neuf
+   `steps/03b_align_coastline_provenance.py` (un seul champ G3 :
+   `inputs.coastline_1400` calculé sur le fichier vivant). Garde
+   `tests/run_proof_coastline_provenance.py` (codes 0/1/2, vue rouge hors
+   dépôt). Commande d'écart : code `1` avant, code `0` après. Maille
+   `4`/`4` diffs vides. Graphe G4 `16`/`16` diffs vides. `sim/` lecture
+   seule (`65 passed`). Harnais `348 passed`, `16 skipped`.
+3. **Évaluateur passe 1** : **PASS** (`verdict.md`). Porte ACCEPT dix
+   sur dix, couple `forge-generateur<->forge-evaluateur`. Reconstruction
+   hors dépôt : `38` compteurs, aucun écart. Sabotage de la déclaration :
+   garde code `1` ; absence : code `2`. Mutation d'un octet du littoral :
+   écart code `1`. Idempotence : seconde passe octet-identique.
+
+**Branche / PR** : `forge/020-geo-provenance-g3-2099`, **PR #106**
+brouillon. Ne pas fusionner soi-même. Fusion **sans squash**. E1 n'est
+**pas** clos.
+
+**Réserves (verdict 020, non bloquantes)** : formulation SC5
+(`porcelain` vide) piège un rôle qui n'a pas le droit de committer —
+défaut du brief, pas du travail ; `code_sortie_ecart_avant` dérivé du
+texte committé ; `progress.jsonl` hors ensemble de balayage hex (propre
+quand même) ; rejeu de la maille G3 hors dépôt non tenté (facultatif,
+lot dédié possible).
+
+**Suites (pas ce lot)** : G5 fleuves / G6 relief ; recalibrage
+`SEA_ZONE_COUNT_MAX` (bornes d'intention toujours ouvertes) ; N1 du
+017 ; briefs de harnais ; réparation PR #100 ; audits PROPOSED ;
+clôture E1.
+
+**Validation rejouée** :
+- `.venv/bin/python harness/verdict_audit.py harness/queue/briefs/020-geo-provenance-littoral-g3` → ACCEPT (dix sur dix).
+- `.venv/bin/python -m pytest harness/tests/ -q` → 348 passed, 16 skipped (Unity/Linux, attendus).
+- `.venv/bin/python -m pytest sim/tests/ -q` → 65 passed.
+
+**Prochain pas** : le propriétaire fusionne **#106** (lot 020 + cette
+correction de feuille de route), **sans squash**. Ensuite : G5/G6, ou
+recalibrage des bornes de semis, ou brief de harnais — pas d'audit
+Cursor à attendre sur #106 (ADR-0012 : audit à la clôture d'étape, E1
+n'est pas close).
+
+---
+
+## Session précédente — 2026-08-14 : brief 019 (adjacence maritime G4), premier lot E1
 
 **Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
 CTO Claude. Trois rôles, jamais le même agent dans la même passe, modèle
