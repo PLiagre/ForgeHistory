@@ -30,7 +30,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Legacy mode check — ADR-0013 disables auto-merge
+        id: legacy-mode
+        run: |
+          set -euo pipefail
+          mode="$(sed -n 's/^mode:[[:space:]]*//p' harness/pipeline/config.yaml | head -n1)"
+          if [ "$mode" = "full_auto" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Auto-merge suspendu : mode=$mode."
+          fi
+
       - name: Diff changed paths against the allowlist and denylist
+        if: steps.legacy-mode.outputs.enabled == 'true'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
@@ -64,6 +77,7 @@ jobs:
       # breaking the full-auto chain. Falls back to GITHUB_TOKEN when the
       # secret is absent -- same soft-failure behaviour as before.
       - name: gh pr merge --auto
+        if: steps.legacy-mode.outputs.enabled == 'true'
         env:
           GH_TOKEN: ${{ secrets.FORGE_BOT_PAT || secrets.GITHUB_TOKEN }}
         run: |

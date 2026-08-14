@@ -284,15 +284,11 @@ def test_empty_mode_refused():
         validate_mode("", forge_run_workflow=REAL_FORGE_RUN_WORKFLOW)
 
 
-def test_config_yaml_current_mode_is_now_full_auto():
-    """Regression guard, updated 2026-08-12 (ADR-0010): config.yaml now
-    declares `full_auto`, and that value must pass the guard against the
-    REAL, wired forge-run workflow. If someone re-stubs the workflow, this
-    test goes red together with the control case above -- the declaration
-    and the wiring can never silently disagree."""
+def test_config_yaml_current_mode_is_manual_during_forgepilot():
+    """ADR-0013 pauses the legacy full-auto loop during the three-lot pilot."""
     sys.path.insert(0, str(HARNESS / "pipeline"))
     import policy_loader  # noqa: E402
 
     config = policy_loader.load_flat_yaml(HARNESS / "pipeline" / "config.yaml")
-    assert config.get("mode") == "full_auto"
+    assert config.get("mode") == "manual"
     validate_mode(config["mode"], forge_run_workflow=REAL_FORGE_RUN_WORKFLOW)

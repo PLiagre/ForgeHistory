@@ -7,17 +7,10 @@ name: hermes-dashboard
 # clé est disponible, des agents Cursor récents. Il commite uniquement ce
 # fichier ; tout autre diff fait échouer le job au lieu de pousser.
 #
-# Anti-boucle : le déclencheur push ignore hermes/DASHBOARD.md, donc le
-# commit produit ici ne redéclenche pas ce workflow, et pipeline-audit.yml
-# classe les poussées hermes/** comme documentaires (pas de nouvel audit).
+# ADR-0013 : régénération manuelle uniquement pendant le pilote. Le tableau
+# reste disponible, mais ne crée plus de commits en arrière-plan.
 
 on:
-  push:
-    branches: [master]
-    paths-ignore:
-      - 'hermes/DASHBOARD.md'
-  schedule:
-    - cron: '17 */6 * * *'
   workflow_dispatch:
 
 permissions:

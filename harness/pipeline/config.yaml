@@ -5,32 +5,10 @@
 # harness/pipeline/policy_loader.py (`load_flat_yaml`) -- no PyYAML
 # dependency in this repo, see generator-log.md.
 #
-# `mode:` is a declaration validated by full_auto_mode_guard.py. As of brief
-# 009 Lot 009a, no workflow reads it at runtime; `manual` therefore records
-# the intended fallback but is not yet an operational emergency stop. The
-# first load-bearing workflow check is reserved for Lot 009c SC15. Current
-# implementation state: docs/rules/full-auto-pipeline.md
-#
-# `mode: full_auto` was declared on 2026-08-12 (ADR-0010) once the three
-# invocation workflows stopped being documented stubs: pipeline-forge-run.yml
-# (Claude CTO headless + Codex Générateur), pipeline-challenge.yml
-# (claude-challenger headless, consultation runtime de cette clé -- lot 009c
-# SC15) and pipeline-audit.yml (Cursor critique de chaque PR + audit
-# post-merge) each carry a real agent invocation, each behind the
-# `pipeline/pause` kill-switch, this `mode:` key, the monthly
-# ci_budget_guard precheck and a per-call --max-budget-usd cap. Without the
-# repository credentials (subscription-first: CLAUDE_CODE_OAUTH_TOKEN,
-# CODEX_AUTH_JSON, CURSOR_API_KEY; API-key fallbacks ANTHROPIC_API_KEY /
-# OPENAI_API_KEY -- see docs/rules/full-auto-pipeline.md) every invocation
-# step logs a documented waiver and no-ops -- full_auto never silently
-# pretends to run. The value passes
-# harness/pipeline/full_auto_mode_guard.py because the forge-run workflow no
-# longer carries the stub marker (ADR-0007's fail-closed reservation was
-# exactly for this moment). `full_auto_decision_only` remains valid as the
-# narrower fallback posture; `manual` remains the emergency stop -- and is
-# now load-bearing: pipeline-forge-run.yml and pipeline-challenge.yml read
-# this key at runtime and skip their invocation when it says manual.
-mode: full_auto
+# `mode:` est lu à l'exécution par les anciens workflows. ADR-0013 conserve
+# leur code comme solution de retour arrière, mais suspend toutes leurs
+# invocations pendant les trois lots ForgePilot.
+mode: manual
 
 # Ceiling on how many times the orchestrator (Lot 006b) may re-invoke
 # claude-developer on the SAME brief after a REJECT/plateau before it must
@@ -38,9 +16,9 @@ mode: full_auto
 # three_consecutive_mechanical_rejects).
 max_forge_run_iterations: 3
 
-auto_merge_audit_prs: true
-auto_merge_review_prs: true
-claude_challenge_on_inbox_merge: true
+auto_merge_audit_prs: false
+auto_merge_review_prs: false
+claude_challenge_on_inbox_merge: false
 # ADR-0012 (2026-08-13, décision propriétaire) : l'audit Cursor ne tourne
 # plus ni par PR ni par push master -- uniquement à la clôture d'une grande
 # étape (fusion d'un fichier hermes/milestones/ETAPE-*.md, voir ROADMAP.md
@@ -48,7 +26,7 @@ claude_challenge_on_inbox_merge: true
 # contre-audit Claude suit mécaniquement la cadence des audits déposés.
 cursor_audit_on_master_push: false
 cursor_review_on_pr: false
-cursor_audit_on_milestone: true
+cursor_audit_on_milestone: false
 
 # Auto-merge is restricted to these path prefixes (bot branches only:
 # cursor/*, forge-bot/*). Any PR touching a path outside this list is never

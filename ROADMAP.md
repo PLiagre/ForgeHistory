@@ -38,30 +38,35 @@ contiendra jamais de logique de simulation.
 | **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — briefs 011, 012, 013 livrés et fusionnés ; brief 014 (pipeline : contre-audit comme porte, refus fournisseur comme état) livré, accepté et fusionné le 2026-08-13 (PR #83) ; brief 017 (seuil de survie honnête, fusion des graines 015/016) livré, accepté et fusionné le 2026-08-14 (PR #101, sans squash) ; brief 018 (Province dérivée, ADR-0003) livré, accepté et fusionné le 2026-08-14 (PR #102, sans squash) ; les graines 015/016 ne s'exécutent plus (elles pointent vers 017) ; suites F2 moteur : aucune restante pour clôturer E2 ; reste F1 geo (fleuves, relief, climat, ressources ; provenance G3 livrée par le brief 020, PR #106 en attente de fusion) |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles — chaque couche émerge de la précédente | à venir |
 
-## Le workflow — quatre acteurs (ADR-0010)
+## Le workflow pilote — Hermes, Claude Code, Cursor (ADR-0013)
 
-Chaîne nominale d'une évolution, du besoin à la fusion :
+Chaîne nominale pendant trois lots d'essai :
 
 ```
-Propriétaire ──▶ Hermes (chef de projet)      point d'entrée, contexte global,
-  │                                            tient ROADMAP.md + hermes/
+Propriétaire ──▶ Hermes léger                 point d'entrée et choix de la tâche
   ▼
-Claude Code (CTO)                              lit la roadmap, écrit les briefs,
-  │                                            orchestre /forge-run, évalue, ouvre les PR
+Claude Code (lecture seule)                   plan pré-écrit et critères mesurables
   ▼
-Codex — GPT-5.6 Sol (exécutant)                Générateur : code, tests, mesures
-  │                                            (backend `--backend codex`)
+Cursor CLI (worktree agent/*)                 unique exécutant : code et tests
   ▼
-Claude Code (CTO)                              gate mécanique + verdict + PR
+CI portable                                   contrôles mécaniques ForgeHistory
+  ▼ si le lot touche VictoriaCityLab / Unity
+Worker Unity Windows                          commit exact, LFS, tests batchmode
   ▼
-Cursor (critique)                              audite chaque GRANDE ÉTAPE close
-  │                                            (jalon hermes/milestones/, ADR-0012)
-  ▼                                            — plus jamais chaque PR
-fusion (CI verte + gate ACCEPT + verdict d'un acteur ≠ producteur)
+Claude Code (nouvelle invocation, lecture seule) revue du diff et des preuves
+  ▼
+Propriétaire                                  décision de fusion
 ```
 
-Détail des rôles et des interdits : `docs/adr/0010-hermes-chef-de-projet-workflow-quatre-acteurs.md`
-et `hermes/README.md`. Câblage runtime : `docs/rules/full-auto-pipeline.md`.
+L'ancien pipeline ADR-0010 reste disponible en mode `manual` comme solution de
+retour arrière. L'observateur Windows est suspendu. Le pilote n'utilise ni ACP,
+ni cron, ni auto-merge : `control-plane/README.md` est le runbook.
+
+Unity 6000.0.43f1 reste installé nativement sous Windows. Un lot qui touche
+VictoriaCityLab n'est jamais déclaré validé par les seuls contrôles Linux : il
+attend un worker Windows dédié et une preuve Unity. Le contrat cible est décrit
+dans `docs/operations/unity-windows-worker.md` ; son implémentation appartient à
+une PR VictoriaCityLab séparée.
 
 ## Grandes étapes — jalons d'audit (ADR-0012)
 
@@ -90,44 +95,25 @@ toute veille de décision irréversible du propriétaire.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. ~~**Provisionner les secrets CI**~~ — **fait le 2026-08-12** (quota
-   d'abonnement : `CLAUDE_CODE_OAUTH_TOKEN`, `CODEX_AUTH_JSON`,
-   `CURSOR_API_KEY` ; premiers tours réels consignés dans `HANDOFF.md`).
-2. **Rejouer la boucle sur un brief réel** : déclencher
-   `pipeline-forge-run` sur un brief F1 restant et vérifier la chaîne
-   complète Claude → Codex → gate → PR → critique Cursor.
-3. **Hermes tableau unique** (demande du 2026-08-12, tranchée « ok pour
-   tout » — `hermes/requests/DEMANDE-20260812-hermes-tableau-de-bord-pilotage.md`,
-   ADR-0011) :
-   - le propriétaire branche son Hermes local en lecture (H1, configuration
-     hors dépôt — skill de suivi + crons) ;
-   - le CTO écrit les briefs H2 (export machine du tableau de bord +
-     section agents Cursor réellement interrogée) et H3 (liste d'attentes
-     propriétaire exhaustive) ;
-   - le câblage « console du propriétaire » (H4) se fait dans
-     l'installation locale, dans les bornes d'ADR-0011.
-4. ~~**Premier brief F2**~~ — **fait le 2026-08-12** : brief 011
-   (`harness/queue/briefs/011-sim-monde-vivant-amorcage/`) écrit et passé
-   par la boucle trois rôles ; verdict PASS à l'itération 2, gate ACCEPT.
-   ~~Suite F2 : commerce inter-cellules~~ — **fait le 2026-08-13** :
-   brief 012 (`harness/queue/briefs/012-monde-vivant-commerce-inter-cellules/`,
-   issu de l'audit `CURSOR-3b47ffe`) passé par la boucle trois rôles ;
-   verdict PASS à l'itération 2, gate ACCEPT. ~~Seuil de survie honnête~~ —
-   **fait le 2026-08-14** : brief 017 (`017-sim-seuil-survie-honnete/`,
-   fusion des graines 015/016, PR #101). ~~Agrégation Province dérivée~~ —
-   **fait le 2026-08-14** : brief 018 (`018-sim-province-derivee/`).
-   Les critères du jalon E2 sont réunis ; le fichier
-   `hermes/milestones/ETAPE-02-monde-vivant-compte-juste.md` clôt l'étape
-   (fusion = déclencheur d'audit ADR-0012).    ~~Premier lot E1 : adjacence
-   maritime G4~~ — **fait le 2026-08-14** : brief 019
-   (`019-geo-adjacence-g4/`, PR #105 fusionnée le 2026-08-14, sans squash).
-   ~~Réparation de la provenance G3~~ — **fait le 2026-08-14** : brief 020
-   (`020-geo-provenance-littoral-g3/`, PR #106, accepté, en attente de
-   fusion). Suites hors E2 : G5 fleuves / G6 relief ; brief de harnais
-   pour les points d'audit différés (traçage d'acteur des rôles, gate sur
-   les fichiers déclarés hors dossier de brief).
-5. **Reprendre 004/005** (visuel carte) quand les logs Unity requis par le
-   gate sont produits sur la machine propriétaire.
+1. Garder Windows démarré pour préserver Unity. Installer le pilote soit
+   nativement sous Windows, soit dans WSL2 ; ne plus dépendre du double démarrage
+   sur la partition Linux. Authentifier Claude Code avec le compte Claude.ai Pro
+   et Cursor avec son compte ; ne pas définir `ANTHROPIC_API_KEY`.
+2. Exécuter `forgepilot doctor`, puis trois petits lots ForgeHistory avec
+   `plan`, `execute` et `review`, sans cron et sans auto-merge.
+3. Si un lot touche VictoriaCityLab avant que son worker existe, le bloquer.
+   La première PR CityLab d'infrastructure doit ajouter un runner GitHub
+   auto-hébergé Windows, Git LFS et les tests Unity 6000.0.43f1 en batchmode,
+   déclenchés manuellement uniquement sur une branche de confiance.
+4. Après trois lots, décider : supprimer ForgePilot, le garder sur Windows/WSL2
+   ou migrer Hermes et ForgePilot sur un VPS 4 Go. Le PC Windows devient alors
+   le worker Unity ; lorsqu'il est éteint, la validation reste en attente.
+5. Render n'est pas retenu pour Hermes. Unity Build Automation reste une
+   alternative payante si le propriétaire veut supprimer la dépendance au PC.
+6. Ne réactiver l'ancien full-auto que par une nouvelle décision propriétaire.
+7. Côté produit, terminer la provenance G3 déjà acceptée (brief 020, PR #106),
+   puis poursuivre F1 avec G5 fleuves, G6 relief, climat et ressources. Brancher
+   ensuite VictoriaCityLab comme vue mince sur les contrats ForgeHistory.
 
 ## Historique des révisions
 
@@ -137,3 +123,6 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-12 | hermes (rédaction déléguée à Cursor, décision propriétaire « ok pour tout ») | reflet de la demande « tableau de bord unique et pilotage » (H1-H5, ADR-0011) ; correction factuelle : secrets CI provisionnés |
 | 2026-08-12 | orchestrateur Cursor (remplaçant du CTO Claude, indisponible — instruction propriétaire) | correction factuelle uniquement : brief 011 (F2, amorçage `sim/`) livré et accepté — statuts couche 1, F2 et étape 4 mis à jour |
 | 2026-08-13 | hermes (rédaction déléguée à l'orchestrateur Cursor, décision propriétaire — `DEMANDE-20260813-audit-par-grandes-etapes.md`) | audit/contre-audit par grandes étapes (ADR-0012) : section « Grandes étapes — jalons d'audit » (E1-E6), chaîne quatre acteurs mise à jour (Cursor audite les jalons, plus chaque PR) |
+| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire — `DEMANDE-20260814-pilote-forgepilot.md`) | pilote ADR-0013 corrigé : Hermes léger, Claude Code Pro plan/revue en lecture seule, Cursor unique exécutant ; ancien full-auto en mode manuel |
+| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire) | hébergement progressif : trois lots locaux, VPS 4 Go seulement si concluant ; Render écarté pour Hermes |
+| 2026-08-14 | hermes (rédaction déléguée, correction propriétaire — `DEMANDE-20260814-worker-unity-windows.md`) | correction de plateforme : Unity reste sous Windows ; pilote local Windows/WSL2, puis VPS facultatif + worker Unity Windows manuel et bloquant |

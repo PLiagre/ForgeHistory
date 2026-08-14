@@ -1,40 +1,16 @@
-name: hermes-observer
+name: hermes-observer-retired
 
+# ADR-0013 retire l'observateur Windows qui réveillait le PC du propriétaire
+# pour chaque événement. Le fichier reste déclenchable manuellement pendant le
+# pilote afin que le retrait soit visible et réversible dans l'historique.
 on:
-  pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review, closed]
-  workflow_run:
-    workflows:
-      - audit-guard
-      - harness-ci
-      - merge-bot
-      - pipeline-audit
-      - pipeline-challenge
-      - pipeline-failure-escalate
-      - pipeline-forge-run
-      - pipeline-orchestrate
-      - security
-    types: [completed]
+  workflow_dispatch:
 
 permissions:
-  actions: read
-  checks: read
   contents: read
-  pull-requests: read
-
-concurrency:
-  group: hermes-observer-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.workflow_run.id || github.run_id }}
-  cancel-in-progress: true
 
 jobs:
-  reconcile:
-    name: Reconcile local Hermes state
-    runs-on: [self-hosted, Windows, X64, hermes-observer]
-    timeout-minutes: 30
+  retired:
+    runs-on: ubuntu-latest
     steps:
-      - name: Forward event to the read-only observer
-        shell: powershell
-        run: >-
-          & 'C:\Users\liagr\Documents\ChatGPT\hermes\scripts\runner-event.ps1'
-          -EventName '${{ github.event_name }}'
-          -EventPath '${{ github.event_path }}'
+      - run: echo "Observateur Hermes local suspendu par ADR-0013 ; utiliser control-plane/."

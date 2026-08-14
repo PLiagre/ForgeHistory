@@ -34,3 +34,7 @@ harness/pipeline/demo/output/
 # versionné ; le lanceur documenté reste `py` sur Windows, `.venv/bin/python`
 # sur Linux (voir AGENTS.md).
 .venv/
+
+# État local du pilote Hermes/Grok/Cursor : sessions, résultats et worktrees.
+# Les décisions autoritaires restent dans la roadmap, les issues et les PR.
+.forgepilot/
