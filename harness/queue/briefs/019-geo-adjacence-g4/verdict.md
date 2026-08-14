@@ -1,111 +1,113 @@
 **Author**: forge-evaluateur
-**Authored**: 2026-08-14T10:30:00Z
+**Authored**: 2026-08-14T11:05:00Z
 
-# Verdict — Brief `019` : l'adjacence maritime (G4)
+# Verdict — Brief `019` : l'adjacence maritime (G4) — passe `2`
 
 > **Note de transparence.** Le harnais tourne ici via Cursor Cloud : l'acteur
 > réel de ce verdict est un sous-agent Cursor Cloud endossant le rôle natif
-> `forge-evaluateur`, aucun suffixe n'étant ajouté à la signature pour que le
+> `forge-evaluateur`, sans aucun suffixe ajouté à la signature, pour que le
 > contrôle mécanique `verdict_is_not_self_authored` puisse comparer les acteurs
 > de part et d'autre du lot.
+
+**Ce qui est jugé.** L'état du dépôt à `61b387b` (itération `2` du Générateur),
+contre le `brief.md` et l'`eval-rubric.md` **tels qu'amendés** par
+`amendment-001-escalade-empreinte-g3.md`. Le commit du Planificateur `6654af2`
+n'est pas du travail de Générateur et n'est pas jugé comme tel. Ce verdict est
+neuf : il remplace celui de l'itération `1` (REJECT), qui valait contre le texte
+antérieur à l'amendement et qui reste consultable dans l'historique git.
+
+**Session distincte.** Je n'ai repris aucune valeur de la passe `1`, ni du
+manifeste. Tout ce qui suit a été re-mesuré dans cette session.
 
 ---
 
 ## Porte mécanique
 
-Jouée **en premier**, avant toute lecture de fond, puis rejouée après
-l'écriture de ce verdict. Rapports intégraux, hors dépôt :
-`/tmp/019-eval/gate_avant.txt` et `/tmp/019-eval/gate_apres.txt` (copiés aussi
-sous `/opt/cursor/artifacts/eval_019/`).
+Jouée **en premier**, avant toute lecture de fond. Rapport intégral, hors dépôt :
+`/tmp/019-eval2/gate_avant.txt`, copié sous
+`/opt/cursor/artifacts/eval_019_pass2/gate_avant.txt`.
 
-**Avant l'existence de ce fichier** : `VERDICT: REJECT`, avec deux contrôles au
-rouge — `verdict_numbers_traceable` (« verdict.md missing ») et
-`verdict_is_not_self_authored` (« Author frontmatter missing on
-generator-log.md or verdict.md »). J'ai vérifié que le second rougissait bien
-pour la seule absence de ce fichier, et non pour une signature manquante côté
-Générateur : `deliverables/generator-log.md` porte `**Author**:
-forge-generateur` en première ligne, et le code de
-`check_verdict_not_self_authored` échoue dès que **l'une** des deux listes
-d'auteurs est vide. **Aucun autre contrôle mécanique n'était au rouge** : les
-huit autres passaient.
+`VERDICT: ACCEPT`, code de sortie `0`, dix contrôles applicables au vert, aucun
+échec — ni sur les contrôles `verdict_*`, ni sur les autres. La porte signale,
+comme prévu, que `20` chemins déclarés sortent du dossier du brief et ne sont
+donc pas vérifiés par elle : c'est SC9 qui les vérifie, à la main, et je l'ai
+fait (voir plus bas).
 
-**Après l'écriture de ce fichier** : `VERDICT: ACCEPT`, dix contrôles sur dix au
-vert.
-
-Deux conséquences, à ne pas confondre. D'une part, le REJECT prononcé ci-dessous
-n'est pas un REJECT mécanique recyclé : la porte accepte la **forme** du lot, et
-mon refus porte sur le **fond**, contre la rubrique — cas que la rubrique prévoit
-explicitement (« un lot peut obtenir `ACCEPT` de la porte et `FAIL` de
-l'Évaluateur »). D'autre part, un `ACCEPT` de la porte ne m'autorise à rien
-relâcher : la porte ne sait pas lire une empreinte citée par sa valeur dans une
-phrase, ni comparer une empreinte de littoral à celle qu'un manifeste amont
-déclare.
+Cet `ACCEPT` ne m'autorise à rien relâcher : la porte juge la forme, pas le
+fond. Elle ne sait ni recompter une arête, ni comparer une empreinte de littoral
+à celle qu'un manifeste amont déclare, ni regarder une capture.
 
 ---
 
-## Ce que j'ai reconstruit moi-même
+## Ce que j'ai reconstruit et rejoué moi-même
 
-Je n'ai importé aucune valeur du manifeste. J'ai écrit mon propre relevé hors
-dépôt (`/tmp/019-eval/recount.py`, sortie dans
-`/tmp/019-eval/recount_out.txt`, compteurs sérialisés dans
-`/tmp/019-eval/evaluateur_counters.json`), qui re-dérive les compteurs des
-artefacts, des constantes lues et de git. J'ai ensuite seulement comparé.
+Mon relevé indépendant vit hors dépôt : `/tmp/019-eval2/recount.py` (le script),
+`/tmp/019-eval2/recount_out.txt` (sa sortie), `/tmp/019-eval2/evaluateur_counters.json`
+(mes compteurs sérialisés), `/tmp/019-eval2/comparaison.txt` (la confrontation).
+Tout est aussi sous `/opt/cursor/artifacts/eval_019_pass2/`. **Mon script ne lit
+jamais `deliverables/manifest.json`** : il re-dérive des artefacts, des
+constantes lues et de git. Je n'ai comparé qu'à la fin.
 
-Ce que j'ai rejoué de ma main :
+Rejoué de ma main :
 
-- `../../.venv/bin/python tests/run_proof_g4.py` depuis `pipeline/geo/` —
-  code de sortie `0`, durée mesurée d'environ `76` secondes
-  (`/tmp/019-eval/rerun_proof_g4.txt`). Les huit contrôles ressortent verts,
-  chacun avec sa preuve rouge, et les `9` paires d'empreintes de la double
-  passe sont égales.
-- Empreintes des `41` fichiers de `pipeline/geo/{artifacts,logs,capture,registry,legacy_game_data}`
-  relevées **avant** ma ré-exécution (`/tmp/019-eval/sha_before_rerun.json`)
-  puis après : **un seul écart**, `logs/v1_050_adjacency.log`, et uniquement
-  sur la ligne de durée d'exécution. Les artefacts et le registre sont
-  octet pour octet identiques. J'ai remis ce journal dans son état committé
-  (`git checkout --`) ; l'arbre est propre.
-- `../../.venv/bin/python pipeline.py --source adjacency` — sortie complète
-  dans `/tmp/019-eval/hook_out.txt`. Après ce **second point d'entrée**, les
-  artefacts restent encore octet pour octet identiques : le déterminisme tient
-  aussi entre deux chemins d'appel différents, pas seulement entre deux passes
-  d'une même exécution.
-- `.venv/bin/python -m pytest harness/tests/ -q` — `348` passés, `16` ignorés
-  (`/tmp/019-eval/pytest_out.txt`).
-- `.venv/bin/python .../deliverables/measure_g4_019.py` —
-  `/tmp/019-eval/measure_out.txt`.
-- Les huit preuves rouges : rejouées par `run_proof_g4.py`, et j'ai relu
-  `tests/test_qa_red_g4.py` ligne par ligne pour vérifier qu'il existe un cas
-  par identifiant de contrôle et qu'aucun ne modifie `qa/checks.py`.
-- Les trois captures, regardées de mes yeux (voir plus bas).
+- `../../.venv/bin/python tests/run_proof_g4.py` depuis `pipeline/geo/` — code
+  de sortie `0` (`/tmp/019-eval2/rerun_proof_g4.txt`).
+- Empreintes des `41` fichiers de
+  `pipeline/geo/{artifacts,logs,capture,registry,legacy_game_data}` relevées
+  avant et après cette ré-exécution (`sha_before_rerun.txt` /
+  `sha_after_rerun.txt`) : **un seul écart**, `logs/v1_050_adjacency.log`, et le
+  `git diff` montre que la seule ligne changée est la durée d'horloge de la
+  preuve. Artefacts, registre et captures : octet pour octet identiques. J'ai
+  remis ce journal dans son état committé (`git checkout --`) ; l'arbre est
+  redevenu propre.
+- `../../.venv/bin/python pipeline.py --source adjacency` depuis `pipeline/geo/`
+  (`/tmp/019-eval2/hook_out.txt`) — code de sortie `0`. Après ce **second point
+  d'entrée**, l'arbre reste propre : le déterminisme tient entre deux chemins
+  d'appel différents, pas seulement entre deux passes d'une même exécution.
+- `.venv/bin/python .../deliverables/check_provenance_coastline_019.py`
+  (`/tmp/019-eval2/provenance_out.txt`).
+- `.venv/bin/python .../deliverables/measure_g4_019.py`
+  (`/tmp/019-eval2/measure_out.txt`).
+- `.venv/bin/python -m pytest harness/tests/ -q` (`/tmp/019-eval2/pytest_out.txt`).
+- Les trois captures, ouvertes et regardées (règle durement acquise n° `11`).
 
-### Compteurs : manifeste contre reconstruction
+### Compteurs : ma reconstruction contre le manifeste
 
-Le manifeste déclare `48` compteurs (les `46` exigés, plus
-`noms_hors_liste_attestee` et `empreinte_terre_g4_egale_sortie_declaree_g2b`).
-J'en ai re-dérivé `42` directement et de façon strictement indépendante, et
-j'ai établi les `6` autres autrement (exécution réelle, ou lecture croisée du
-code de découpe de l'eau).
+Le manifeste déclare `48` compteurs. J'en ai re-dérivé **`43`** de façon
+strictement indépendante, dans toutes les familles demandées (dénombrement de
+zones, types d'arêtes, géométrie des détroits, atteignabilité, noms, frontière
+ADR-`0003`, déterminisme, empreintes de provenance, suivi git). Les `5` restants
+ont été établis autrement : `code_sortie_run_proof_g4` par mon exécution réelle
+(`0`), `tests_harness_passed_019` par ma propre exécution de la suite
+(`348` passés, `16` ignorés, donc `364` collectés), `captures_regardees_et_decrites`
+en regardant les trois PNG et en comparant aux descriptions du journal, et le
+couple `composantes_mer_totales` / `plans_eau_exclus_lacs` par vérification
+arithmétique de la découpe de l'eau (`107` lacs exclus `+` `5` composantes
+retenues `=` `112` plans d'eau examinés ; `112` `+` `4` éclats sous la
+tolérance `=` `116` composantes d'eau brutes).
 
-**Écart constaté entre mes valeurs et le manifeste : aucun, sur les `48`.**
-Aucun `sample_size` nul, aucune sentinelle `-1` sur un compteur calculé.
-Quelques reconstructions notables, choisies dans des familles différentes :
+**Écart entre mes valeurs et le manifeste : aucun, sur les `43` re-dérivés.**
+Aucun `sample_size` nul ni à la sentinelle, aucune sentinelle `-1` sur un
+compteur calculé, aucun compteur du manifeste absent de la sortie du script de
+mesure, aucun compteur imprimé sans dénominateur.
 
-| compteur | manifeste | ma reconstruction | comment je l'ai obtenu |
+Quelques reconstructions que je signale parce qu'elles refont vraiment le
+travail plutôt que de relire un chiffre :
+
+| compteur | manifeste | ma reconstruction | méthode |
 |---|---|---|---|
-| `zones_mer_denombrees` | `40` | `40` | entrées de `sea_zones_g4.json`, fourchette relue de `constants.py` |
-| `collisions_id_mer_terre` | `0` | `0` | intersection des `zone_id` et des `cell_id`, calculée : vide |
-| `ids_mer_sous_la_base` | `0` | `0` | `zone_id` comparés à `SEA_ZONE_ID_BASE` lu |
-| `aretes_terre_terre` | `917` | `917` | et **identiques une pour une** à celles de `adjacency_g3.json` (différence symétrique vide) |
-| `cellules_littorales` | `372` | `372` | re-dérivées des seules arêtes `land-sea`, **exactement** l'ensemble déclaré |
-| `ecart_min_detroit_m` | `297.134615` | `297.134615` | et les `668` largeurs recalculées sur la géométrie des cellules concordent à `0.000000` m près |
-| `detroits_entre_masses_differentes` | `551` | `551` | composantes connexes de la terre re-calculées des arêtes `land-land` (`212` masses) |
-| `bassins_enfermes_non_atteignables_liens_inactifs` | `2` | `2` | parcours refait sur les seules arêtes `sea-sea` **non déclarées** |
-| `zones_nommees` | `40` | `40` | attribution du plus-proche-ancrage entièrement refaite : `40` sur `40` identiques |
+| `aretes_terre_terre` | `917` | `917` | et **différence symétrique vide** avec les arêtes `land-land` de `adjacency_g3.json` : le lot les lit, il ne les recalcule pas |
+| `cellules_littorales` | `372` | `372` | re-dérivées des seules arêtes `land-sea` ; l'ensemble obtenu est **exactement** celui que `stats_g4.json` déclare, et il est strictement compris entre `0` et `596` |
+| `ecart_min_detroit_m` | `297.134615` | `297.134615` | j'ai rechargé les géométries de `cells_g3.json` et recalculé les `668` distances : écart maximal entre largeur déclarée et distance recalculée = `0.000000` m ; `0` détroit entre deux cellules contiguës ; `0` au-dessus du seuil lu |
+| `detroits_entre_masses_differentes` | `551` | `551` | composantes connexes de la terre recalculées des arêtes `land-land` (`212` masses) |
+| `bassins_enfermes_non_atteignables_liens_inactifs` | `2` | `2` | parcours refait sur les **seules** arêtes `sea-sea` non déclarées, depuis les zones de mer extérieure : `5025` et `5027` sont alors injoignables ; en réinjectant les arêtes déclarées, elles le deviennent. Le lien est bien la **cause** de l'atteignabilité, pas un ornement |
+| `zones_nommees` | `40` | `40` | attribution du plus-proche-ancrage entièrement refaite (moyenne des coordonnées riveraines héritées, projetée en `EPSG:3035`, départage par le plus petit identifiant) : `40` sur `40` identiques, `0` écart |
 | `occurrences_province_dans_divergence` | `263` | `263` | balayage refait ; et `0` sur les six autres artefacts |
-| `aretes_heritees_confirmees` / `_contredites` / `_manquantes` | `5` / `53` / `14` | idem | dénominateur `72` recompté depuis `province_adjacency.json` ; la somme fait bien `72` |
-| `zones_hors_bornes_intention` | `24` | `24` | bornes relues, exemption de bassin entier appliquée |
-| `fichiers_preuve_suivis_par_git` | `14` | `14` | `git ls-files` croisé avec la liste de D9 |
-| `empreinte_terre_g4_egale_entree_g3` | `0` | `0` | trois empreintes calculées par moi (voir constat A) |
+| `aretes_heritees_confirmees` / `_contredites` / `_manquantes` | `5` / `53` / `14` | idem | dénominateur `72` recompté moi-même depuis `province_adjacency.json` ; la somme fait exactement `72` |
+| `zones_hors_bornes_intention` | `24` | `24` | trois bornes relues de `constants.py`, exemption de bassin enfermé entier appliquée (`2` zones) |
+| `empreinte_terre_g4_egale_entree_g3` | `0` | `0` | trois empreintes calculées et lues par moi à l'exécution, aucune recopiée nulle part |
+| `empreinte_terre_g4_egale_sortie_declaree_g2b` | `1` | `1` | même méthode |
+| `fichiers_preuve_suivis_par_git` | `14` | `14` | `git ls-files` croisé avec la liste de preuves de D9 |
 
 ---
 
@@ -113,117 +115,122 @@ Quelques reconstructions notables, choisies dans des familles différentes :
 
 | Condition | Verdict | Preuve |
 |---|---|---|
-| **SC1** — zones dénombrées dans la fourchette lue, sans collision | PASS | `40` zones dans la fourchette relue ; intersection identifiants mer/terre vide ; `0` identifiant sous la base ; `5` composantes d'eau, `5` couvertes ; copie de noms octet pour octet vérifiée par calcul ; `596` cellules lues égales à `cell_count`. Aucune borne de `constants.py` en littéral dans les trois fichiers de code (vérifié). Voir aussi l'observation n° 1. |
-| **SC2** — graphe typé, quatre natures mesurées | PASS | `2085` arêtes, les quatre types strictement positifs ; `0` arête portant l'identifiant fourre-tout ; littoralité re-dérivée exactement égale à la liste déclarée et strictement comprise entre `0` et `596` ; `land-land` identiques une pour une à G3 ; `Q4`, `Q7`, `G4-A` verts avec preuve rouge non vide. |
-| **SC3** — détroit : seuil lu, largeur mesurée, au moins un inter-masses | PASS | seuil lu, jamais écrit en littéral ; les `668` largeurs déclarées concordent avec la distance géométrique que je recalcule ; `0` détroit entre deux cellules contiguës ; `0` au-dessus du seuil ; `551` relient deux masses terrestres distinctes. |
-| **SC4** — le lien déclaré est porteur | PASS | `2` déclarations lues, `2` appliquées, chacune portant identifiant, source, date et certitude. Atteignabilité **reconstruite par moi** : sans les arêtes déclarées, les zones `5025` et `5027` sont injoignables depuis la mer extérieure ; avec elles, elles le deviennent. Les deux arêtes déclarées joignent chacune un bassin enfermé à une zone de la mer extérieure au nom attesté — `0` lien décoratif. Les deux journaux diffèrent et celui des liens coupés **nomme** les bassins par leur eau historique. Le cas rouge de `G4-B` vient de la troisième passe réelle liens coupés, pas d'une mutation. |
-| **SC5** — noms : proxy hérité déclaré avant mesure | PASS | j'ai refait l'attribution complète (ancrage = moyenne des coordonnées riveraines projetée, plus proche gagne, plus petit identifiant en cas d'égalité) : `40` zones sur `40` identiques à l'artefact. `0` nom hors de la liste attestée. `README.md` déclare la provenance, la nature de proxy, la règle et le départage **avant** toute citation de compteur ; aucun plancher de noms employés n'est imposé. |
-| **SC6** — ADR-`0003` dans les artefacts | PASS | `0` occurrence de `province` dans les six artefacts, `263` dans le seul fichier de divergence, qui porte `"qa_only": true` ; `0` lecteur hors QA sur `20` fichiers de code balayés (seuls le module qui l'écrit et la preuve QA le mentionnent) ; les trois constats sont rendus sans seuil. |
-| **SC7** — déterminisme, huit contrôles mordants, empreinte du littoral | **FAIL** | Tout est vert **sauf un point**, et ce point est nommément disqualifiant par la rubrique : `empreinte_terre_g4_egale_entree_g3` vaut `0`. Détail au constat A. Le reste tient : `8` contrôles sur `8` verts avec preuve rouge non vide, `9` paires d'empreintes sur `9` égales et non vides, re-exécution sans aucune différence sur les artefacts, `constants.py` intact, constat ouvert des bornes d'intention inscrit dans le journal et dans le README. |
-| **SC8** — le crochet existant est réellement satisfait | PASS | `pipeline.py --source adjacency` exécuté par moi : il affiche projection, nombre de zones, arêtes par type, cellules littorales, atteignabilité, puis les captures et les empreintes. J'ai relu la branche `adjacency` du crochet et retrouvé chaque clé qu'elle consulte dans la sortie réelle. `git diff` sur `pipeline.py` vide ; `fichiers_partages_modifies` = `0` sur `8`. |
-| **SC9** — preuves committées, README sans sur-revendication | PASS | les `25` fichiers déclarés existent et sont **tous** suivis par git, y compris les `14` preuves sous `pipeline/geo/` que `.gitignore` exclut ; aucune preuve G4 produite mais non déclarée ; `.gitignore` intact ; l'instantané `pre-edit` est bien le README d'avant le lot (identique à celui de `master`) et diffère du README publié ; le README énumère ce qui n'est pas livré et dit explicitement que le jalon E1 n'est pas clos ; `test_single_source_of_instruction` passe. |
-| **SC10** — mesure rejouable, manifeste complet, suites vertes, registre | **FAIL** | La mesure se rejoue, imprime `48` compteurs chacun avec son dénominateur, ne code aucune valeur en dur et emploie bien la sentinelle `-1` quand un compteur n'est pas calculé ; les trois couples `must_differ_from` sont déclarés et diffèrent ; la suite du harnais est verte (`348` sur `364`) ; le registre de coût porte la ligne attendue ; aucun fichier hors périmètre n'a bougé. **Mais** une empreinte est citée par sa valeur hexadécimale dans un document livré — motif disqualifiant explicite de la rubrique. Détail au constat C. |
+| **SC1** — zones dénombrées dans la fourchette lue, sans collision | PASS | `40` zones, fourchette relue de `constants.py` à l'exécution ; intersection des identifiants de mer et de terre **vide** ; `0` identifiant sous la base lue ; `5` composantes d'eau, `5` couvertes ; copie des noms hérités égale au fichier Unity, égalité **calculée** des deux côtés ; `596` cellules lues = `cell_count` de `stats_g3.json`. Vérifié aussi : aucune des bornes (`SEA_ZONE_COUNT_MIN`, `SEA_ZONE_COUNT_MAX`, `SEA_ZONE_ID_BASE`, `G4_STRAIT_MAX_WIDTH_M`) n'apparaît en littéral dans `steps/04_adjacency.py`, `tests/run_proof_g4.py` ni `tests/test_qa_red_g4.py` — elles sont toutes importées de `constants.py`. |
+| **SC2** — graphe typé, quatre natures mesurées | PASS | `2085` arêtes, les quatre types strictement positifs (`917` / `437` / `63` / `668`) ; `0` arête portant l'identifiant fourre-tout de mer de G3 ; littoralité re-dérivée **exactement** égale à celle déclarée ; `land-land` identiques une pour une à `adjacency_g3.json` ; `Q4`, `Q7` et `G4-A` verts avec preuve rouge non vide. |
+| **SC3** — détroit : seuil lu, largeur mesurée, au moins un inter-masses | PASS | seuil lu de `constants.py`, jamais écrit en littéral ; les `668` largeurs déclarées coïncident au millionième de mètre près avec la distance géométrique que je recalcule ; aucune arête `strait` entre deux cellules contiguës ; aucune au-dessus du seuil ; `551` relient deux masses terrestres distinctes sur `212` masses recalculées. |
+| **SC4** — le lien déclaré est porteur | PASS | `2` corrections `declare_topology_link` lues, `2` appliquées, chacune portant identifiant, source, date et certitude. Atteignabilité **reconstruite par moi** dans les deux configurations (voir tableau ci-dessus). Les deux liens visent la **même** zone de mer extérieure au nom attesté « Mer du Nord », et partent chacun d'un bassin enfermé : `0` lien décoratif. Les deux journaux `G4-B` diffèrent et celui des liens coupés **nomme** les bassins par leur eau historique (IJsselmeer, Lauwerszee). Le cas rouge de `G4-B` est alimenté par la troisième passe réelle liens coupés (`unreachable_off` passé à `run_all_red_g4`), jamais par une mutation. |
+| **SC5** — noms : proxy hérité déclaré avant mesure | PASS | attribution complète refaite : `40` zones sur `40` identiques à l'artefact, `0` écart. `0` nom hors de la liste attestée. `README.md` déclare la provenance héritée, la nature de proxy, la règle du plus-proche-ancrage et le départage d'égalité **avant** toute citation de compteur mesuré ; aucun plancher de noms employés n'est imposé (`13` sur `14`, `1` non employé, constaté et non corrigé). |
+| **SC6** — ADR-`0003` dans les artefacts | PASS | `0` occurrence de la sous-chaîne `province` dans les six artefacts G4 hors divergence ; `263` dans le seul fichier de divergence, qui porte `"qa_only": true` dans son propre contenu ; `0` lecteur hors QA sur `20` fichiers de code balayés sous `pipeline/geo/` (seuls le module qui l'écrit et la preuve QA le mentionnent) ; les trois constats de comparaison sont rendus sans aucun seuil. Réserve nommée plus bas (observation n° `3`). |
+| **SC7** — déterminisme, huit contrôles mordants, empreinte du littoral | **PASS** (par la **branche escalade**, pas par égalité) | Voir la section dédiée ci-dessous. |
+| **SC8** — le crochet existant est réellement satisfait | PASS | `pipeline.py --source adjacency` exécuté par moi : il affiche la projection, le nombre de zones, les arêtes par type, les cellules littorales et l'atteignabilité, puis les captures et les empreintes. J'ai relu la branche `adjacency` du crochet dans le dépôt et retrouvé, une par une, chaque clé qu'elle consulte dans la sortie réelle. `pipeline.py` inchangé ; `fichiers_partages_modifies` = `0` sur `8`, vérifié par mon propre `git status`. |
+| **SC9** — preuves committées, README sans sur-revendication | PASS | les `26` fichiers déclarés existent et sont **tous** suivis par git, y compris les `14` preuves sous `pipeline/geo/` que `.gitignore` exclut ; aucune preuve G4 produite mais non déclarée (`git ls-files` croisé dans les deux sens) ; `.gitignore` intact ; l'instantané `pre-edit` est octet pour octet le README de `master` et diffère du README publié ; le README énumère ce qui n'est pas livré (fleuves, relief et climat, ressources, villes, propriété, LOD, textures d'identifiants, QA de chaîne complète) et ne revendique nulle part le jalon E1 ; `test_single_source_of_instruction` passe. |
+| **SC10** — mesure rejouable, manifeste complet, suites vertes, registre | **PASS** | Voir la section dédiée ci-dessous. |
 
-## Verdict global : REJECT
+## Verdict global : PASS
 
-Deux motifs, tous deux nommés dans la table « Échecs disqualifiants » de la
-rubrique, laquelle a été écrite avant le code et que je n'ai pas le pouvoir
-d'assouplir.
+Les dix conditions de succès sont satisfaites contre le brief amendé. Les deux
+motifs de rejet de l'itération `1` sont l'un et l'autre levés, et pour des
+raisons différentes : l'un par un amendement du Planificateur qui ouvre la porte
+que D2 annonçait, l'autre par une correction réelle du Générateur que j'ai
+vérifiée par balayage, pas par confiance.
 
 ---
 
-## Constats motivant le rejet
+## SC7 en détail — une inégalité mesurée et escaladée, jamais une égalité
 
-### A — L'empreinte du littoral employé par G4 diffère de l'entrée déclarée par G3
+C'est le point que l'amendement `001` a rendu jugeable, et il mérite d'être dit
+sans ambiguïté.
 
-**Ce que j'ai mesuré moi-même**, en calculant les trois empreintes à
-l'exécution, sans en recopier aucune :
+**Ce que j'ai mesuré moi-même**, en calculant l'empreinte du fichier vivant et
+en lisant les deux valeurs déclarées à l'exécution, sans en recopier aucune :
 
-- l'empreinte de `artifacts/coastline_1400.json` régénéré est **égale** à
-  celle que `artifacts/MANIFEST_g2b.json` déclare comme sortie de l'étape qui
-  produit ce fichier ;
-- elle est **différente** de celle que `artifacts/MANIFEST_g3.json` déclare
-  comme `inputs.coastline_1400` ;
-- et les deux manifestes G2-bis et G3 sont l'un et l'autre antérieurs à ce lot
-  (`MANIFEST_g3.json` est suivi par git et n'a aucune modification ;
-  `MANIFEST_g2b.json` n'est pas suivi, c'est un artefact régénéré).
+- l'empreinte de `artifacts/coastline_1400.json` régénéré ici **diffère** de
+  celle que `artifacts/MANIFEST_g3.json` déclare sous `inputs.coastline_1400` ;
+- elle est **égale** à celle que `artifacts/MANIFEST_g2b.json` déclare comme
+  sortie de l'étape qui produit ce fichier.
 
-**Donc oui, l'incohérence est antérieure au lot** : le Générateur ne l'a pas
-créée, et il ne peut pas la réparer dans le périmètre de D16, qui met
-`MANIFEST_g3.json` et les artefacts G3 en lecture seule. Son comportement a
-été correct sur ce point : compteur rapporté à `0` — un zéro **mesuré**, pas la
-sentinelle —, constat ouvert inscrit dans le journal de preuve, dans
-`README.md` et dans une dérogation portant sa commande et son erreur réelles.
+Les deux compteurs du brief tombent donc à `0` et `1`, et c'est exactement ce
+que le manifeste déclare.
 
-**Et pourtant SC7 n'est pas satisfaite.** SC7 exige la valeur `1`. La rubrique
-range l'inégalité parmi les échecs disqualifiants, au motif que « la mer et les
-cellules ne décrivent pas le même monde ». La table des dérogations recevables
-du brief ne contient aucune entrée pour cette affirmation, et elle se clôt sur
-« aucune autre dérogation n'est recevable » ; D2 route explicitement ce cas
-vers une **escalade au Planificateur**, « jamais auto-accordé comme un succès ».
-Ni le Générateur ni moi ne pouvons l'accorder.
+**Les six exigences de la branche escalade valent ensemble** — je les ai
+vérifiées une par une, aucune n'est prise sur parole :
 
-Conséquence à ne pas laisser passer sous silence : `MANIFEST_g4.json` fige
-désormais, dans un artefact neuf et committé, l'empreinte périmée que G3
-déclarait (`coastline_1400_sha_declared_by_g3`). Elle a été **lue** à
-l'exécution, pas recopiée à la main, donc ce n'est pas une infraction à la
-règle n° `12` ; mais cela propage la valeur morte d'un cran.
+1. **Le `0` est une mesure, pas la sentinelle.** Je l'ai re-dérivé moi-même ;
+   aucun compteur du manifeste ne porte `-1`.
+2. **La dérogation d'escalade est invoquée avec une commande rejouable et son
+   message d'erreur, sans aucun hexadécimal.** J'ai joué la commande depuis la
+   racine : code de sortie `1`, message d'écart nommant ses **deux** sources
+   (`artifacts/coastline_1400.json` calculé contre `MANIFEST_g3.json`
+   `inputs.coastline_1400`), puis une seconde ligne répondant « oui » à la
+   question de l'égalité avec la sortie déclarée par `MANIFEST_g2b.json`. J'ai
+   balayé sa sortie : `0` occurrence d'une chaîne hexadécimale, même en
+   abaissant le seuil de détection à huit caractères. Le champ `error` de la
+   dérogation reproduit fidèlement cette sortie et n'en contient pas davantage.
+   J'ai relu le script : il est en lecture seule, calcule l'empreinte à
+   l'exécution et n'imprime que des noms de source et des résultats de
+   comparaison. Il distingue bien l'absence (code `2`) de l'écart (code `1`),
+   ce que le contrat du brief exigeait pour qu'une absence ne puisse jamais se
+   faire passer pour une mesure.
+3. **`empreinte_terre_g4_egale_sortie_declaree_g2b` vaut `1`**, mesuré par moi :
+   l'écart est bien situé **en amont** du lot.
+4. **Aucun artefact G3 n'a été réécrit, régénéré ni retouché.** `git status` est
+   vide sur les quatre, et `git log master..HEAD` ne porte aucun commit les
+   concernant.
+5. **La comparaison n'a pas été retargetée.** Le compteur exigé compare toujours
+   le littoral relu à `MANIFEST_g3.json` ; la comparaison à `MANIFEST_g2b.json`
+   est un **second** compteur, distinct, jamais substitué au premier.
+6. **Le constat est ouvert aux trois endroits exigés** : dans le journal de
+   preuve `logs/v1_050_adjacency.log`, dans `deliverables/generator-log.md` et
+   dans la section « Constats ouverts » de `pipeline/geo/README.md`. J'ai lu les
+   trois : ils disent l'écart, nomment les deux manifestes, et **aucun** n'écrit
+   ni ne laisse entendre que la mer et les cellules décrivent le même monde. Les
+   artefacts sont cohérents avec cela : `stats_g4.json` porte
+   `coastline_1400_sha_equals_g3_input: 0` et `MANIFEST_g4.json`
+   `coastline_1400_sha_equal: 0`.
 
-**Ce que je demande** — au Planificateur, pas au Générateur : trancher lequel
-des deux artefacts committés est faux. Soit `MANIFEST_g3.json` décrit un
-littoral que la chaîne ne produit plus (et il faut un lot dédié pour
-régénérer G3 ou corriger sa provenance), soit `steps/02b_corrections_1400.py`
-a changé de sortie depuis G3 sans que G3 soit rejoué. Tant que ce n'est pas
-tranché, SC7 restera hors d'atteinte pour ce lot, quel que soit le nombre
-d'itérations : la relancer à l'identique ne peut rien changer.
+**Ce que ce PASS ne dit pas.** Il ne dit pas que l'empreinte est bonne. Il dit
+que l'incohérence de la chaîne amont a été **mesurée, nommée et escaladée** dans
+la forme exacte que l'amendement `001` a ouverte. La mer et les cellules ne
+décrivent pas le même monde, et ce fait reste entier. Le réparer — trancher
+lequel des deux artefacts committés est faux, et à quel prix pour les
+consommateurs de la maille actuelle — est un brief ultérieur dédié
+(non-objectif n° `18`), pas un acquis de ce lot.
 
-### B — Les `24` zones hors bornes d'intention ne sont **pas** un motif de rejet
+Le reste de SC7 tient par ailleurs : `8` contrôles sur `8` verts, chacun avec
+une preuve rouge non vide et un cas par identifiant (`Q1`, `Q4`, `Q7`, `Q10`,
+`G4-A`, `G4-B`, `G4-C`, `G4-D`) ; `9` paires d'empreintes sur `9` égales et non
+vides ; ma ré-exécution ne produit aucune différence sur les artefacts, le
+registre et les captures ; `constants.py` intact ; le constat ouvert des bornes
+d'intention inscrit dans le journal **et** dans le README ; `MANIFEST_g4.json`
+porte un horodatage figé, jamais une horloge courante, et ses six empreintes de
+sortie correspondent aux fichiers réellement présents (recalculées par moi).
 
-Décision explicite, puisque la question m'est posée. J'ai reconstruit le
-compteur moi-même et je retrouve `24` sur `40`, en relisant les trois bornes de
-`constants.py` et en appliquant l'exemption de bassin entier (`2` zones).
+---
 
-La rubrique n'en fait **pas** un critère de rejet : elle en fait un compteur à
-reconstruire (SC7, point `5`) et exige seulement que, s'il n'est pas nul, il
-figure comme constat ouvert dans le journal **et** dans `README.md`, sans
-qu'aucune borne ait bougé. J'ai vérifié les trois : le journal de preuve
-l'inscrit, la section « Constats ouverts » du README l'inscrit avec sa cause
-mesurée, et `git status` sur `constants.py` est vide. D13 le déclare non
-bloquant avant toute mesure, et la clause de fin de brief dit noir sur blanc
-que le non-respect des bornes d'intention « n'est pas une dérogation : c'est un
-constat ouvert à inscrire ».
+## SC10 en détail — l'hexadécimal a bien disparu
 
-**Donc : PASS sur ce point.** Ce serait maquiller la rubrique après coup que
-d'en faire un rejet. J'en tire en revanche une observation de fond pour le
-Planificateur, ci-dessous (observation n° 1) : la cause est réelle et mérite un
-lot.
+C'était le second motif de rejet de l'itération `1`, et le seul qui était dans
+les mains du Générateur. Je l'ai vérifié **par balayage, pas par confiance**.
 
-### C — Une empreinte citée par sa valeur, dans un document livré
+Balayage d'une chaîne hexadécimale de `64` caractères sur
+`deliverables/` (dossier entier), `pipeline/geo/README.md`,
+`steps/04_adjacency.py`, `tests/run_proof_g4.py` et `tests/test_qa_red_g4.py` :
+**aucune occurrence**. Même résultat en abaissant le seuil à seize caractères.
+Le champ `error` de chacune des deux dérogations du manifeste : `0` occurrence,
+seuil `64` comme seuil `8`. La démonstration de parité entre les deux points
+d'entrée est désormais faite par nom (le bloc `determinism.sha256` de
+`logs/v1_050_qa.json`) et par une commande rejouable — c'est aussi ainsi que je
+l'ai vérifiée de mon côté, et cela marche.
 
-`deliverables/generator-log.md` écrit, en prose : « la branche
-`--source adjacency` produit **les mêmes empreintes** que la preuve (par
-exemple `adjacency_g4.json` = `1aba2adc…` dans les deux) », la valeur
-hexadécimale étant donnée en entier.
-
-C'est exactement la forme que la règle durement acquise n° `12` interdit : une
-empreinte de parité citée par sa **valeur** au lieu de son **nom**, et citée
-précisément pour affirmer une égalité. Le brief l'interdit à son non-objectif
-n° `16` ; la rubrique la range parmi les échecs disqualifiants, avec le motif
-inscrit d'avance : « piège pour tout brief ultérieur, exactement ce qui est
-arrivé à l'empreinte citée par le brief `007` ». La démonstration voulue est de
-toute façon déjà faite ailleurs, et mieux : le bloc `determinism.sha256` de
-`logs/v1_050_qa.json` porte les paires, et j'ai vérifié la parité entre les
-deux points d'entrée en recalculant les empreintes, sans qu'aucun texte n'ait
-eu besoin de les contenir.
-
-Cas voisin, à trancher et non à ignorer : le champ `error` de la première
-dérogation du manifeste contient les **deux** empreintes du constat A, parce
-que c'est la sortie littérale d'un `AssertionError`. Il y a là une tension
-réelle entre la règle n° `9` (une impossibilité s'éprouve par une commande
-**et** son message d'erreur) et la règle n° `12`. Je ne la tranche pas seul,
-mais je relève que la dérogation se contredit elle-même : sa propre phrase
-affirme « aucune empreinte recopiée » alors que son champ `error` en contient
-deux. Voir le feedback pour la correction que je recommande.
+Le reste de SC10 tient : le script de mesure se rejoue depuis la racine et
+imprime les `48` compteurs **chacun avec son dénominateur**, en lisant les
+artefacts, les constantes et git plutôt qu'en récitant des valeurs ; les trois
+couples `must_differ_from` sont déclarés et diffèrent réellement ; la suite du
+harnais est verte (`348` passés, `16` ignorés — les cas Unity/PowerShell,
+attendus sur Linux, et déclarés) ; le registre de coût porte en dernière ligne
+un événement `generator-run` sur le backend `cursor` pour ce brief ; aucun
+fichier hors du périmètre de D16 n'a bougé ; et le Générateur n'a ni committé,
+ni poussé, ni créé de branche.
 
 ---
 
@@ -231,106 +238,138 @@ deux. Voir le feedback pour la correction que je recommande.
 
 Rien à signaler, et je l'ai vérifié activement plutôt que supposé :
 
-- `constants.py`, `qa/checks.py`, `pipeline.py`, `io_util.py`,
-  `projection.py`, `steps/02_coastline.py`,
-  `steps/02b_corrections_1400.py`, `steps/03_cells.py` : `git status` vide sur
-  les huit.
+- `constants.py`, `qa/checks.py`, `pipeline.py`, `io_util.py`, `projection.py`,
+  `steps/02_coastline.py`, `steps/02b_corrections_1400.py`, `steps/03_cells.py`
+  — `git status` vide sur les huit.
+- Les artefacts G3 (`cells_g3.json`, `stats_g3.json`, `adjacency_g3.json`,
+  `MANIFEST_g3.json`) : ni modifiés, ni jamais committés par ce lot.
 - `sim/`, `unity/`, `docs/adr/`, `architecture/`, `ROADMAP.md`, `HANDOFF.md`,
-  `VISION.md`, `.github/`, `harness/verdict_audit.py`, `pipeline/geo/data/`,
-  `pipeline/geo/sources.lock`, `pipeline/geo/.gitignore` : aucun n'a bougé. Le
-  fichier de noms de mer d'Unity est lu, non modifié ; sa copie lui est égale
-  octet pour octet, égalité que j'ai recalculée.
-- Les `27` fichiers que la branche ajoute par rapport à `master` sont tous dans
-  le périmètre de D16 (les deux exceptions apparentes, `brief.md` et
-  `eval-rubric.md`, viennent du commit du Planificateur, pas du Générateur).
-- Aucun barème, aucun bonus, aucun pourcentage de jeu dans les artefacts.
+  `VISION.md`, `.github/`, `harness/*.py`, `harness/pipeline/`,
+  `pipeline/geo/data/`, `pipeline/geo/sources.lock`, `pipeline/geo/.gitignore`,
+  archives des briefs `001` à `018` : aucun n'apparaît dans le diff de la
+  branche. Le fichier de noms de mer d'Unity est lu, jamais écrit ; sa copie lui
+  est égale octet pour octet, égalité que j'ai recalculée.
+- Aucun barème, aucun bonus, aucun malus, aucun pourcentage de jeu dans les
+  artefacts G4 (le seul mot capté par mon balayage est le verbe « modifier »
+  dans la phrase « sans modifier le trait de côte » d'une déclaration
+  historique).
 - Aucune brèche dans le trait de côte : les deux captures du Zuiderzee montrent
-  **la même** géométrie, seuls les liens changent.
-- Aucun `python` nu, aucun chemin `.venv/Scripts/` dans les livrables.
+  **la même** géométrie au pixel près, seuls les liens changent.
+- Aucun alias nu de l'interpréteur, aucun chemin `.venv/Scripts/` dans les
+  livrables.
+- Le diff de l'itération `2` porte sur cinq fichiers exactement — le script
+  d'escalade (nouveau), le journal, le manifeste, `progress.jsonl` et le
+  registre de coût. Aucun artefact n'a été régénéré pour cette itération, ce
+  qui est cohérent avec ce que le journal annonce.
 
 ---
 
 ## Les captures, regardées de mes yeux (règle n° `11`)
 
 - `capture/v1_050_sea_zones_window.png` : la fenêtre pilote entière, de
-  l'Atlantique ibérique à la mer Noire et du Maghreb à la Baltique. Les zones
-  sont des polygones de Voronoï nets, sans trou ni chevauchement visible, qui
-  s'arrêtent sur le trait de côte sans mordre sur la terre. Les arêtes
-  `sea-sea` sont tracées en pointillés, et **un seul segment rouge** — le lien
-  déclaré — apparaît, aux Pays-Bas. On voit à l'œil la cause du constat B :
-  des zones comme la Méditerranée orientale couvrent plusieurs centaines de
-  milliers de kilomètres carrés, très au-delà du plafond d'intention. On voit
-  aussi que les noms sont bien un proxy et non une géographie : une zone au
-  nord de la Baltique porte « Mer de Norvège ». Le journal du Générateur
-  signale ce même point de lui-même, ce que je note à son crédit.
-- `capture/v1_050_zuiderzee_links_on.png` : zoom sur les Pays-Bas. Le
-  Zuiderzee est le bassin turquoise fermé au centre, la Lauwerszee le petit
-  chapelet saumon le long de la côte. Deux segments rouges descendent d'un
-  point hors cadre en haut à gauche jusqu'au cœur de chacun des deux bassins.
-  La digue reste dessinée : le lien passe par-dessus, il ne perce rien.
+  l'Atlantique ibérique à Chypre et du Maghreb à la Baltique. Les zones sont des
+  polygones de Voronoï nets, sans trou ni chevauchement visible, qui s'arrêtent
+  sur le trait de côte sans mordre sur la terre. Les arêtes `sea-sea` sont
+  tracées en pointillés bleus entre centroïdes et forment un réseau connexe d'un
+  bout à l'autre. Un faisceau rouge, et un seul, sort de ce réseau, aux Pays-Bas.
+  On voit à l'œil la cause du constat des bornes d'intention : des zones comme
+  `S002` / `S003` (Méditerranée orientale) couvrent des centaines de milliers de
+  kilomètres carrés, très au-delà du plafond d'intention. Et on voit que les noms
+  sont bien un proxy et non une géographie : `S037`, au nord de la Baltique,
+  porte « Mer de Norvège ». Le journal du Générateur signale ce même détail
+  gênant de lui-même, ce que je note à son crédit.
+- `capture/v1_050_zuiderzee_links_on.png` : zoom sur les Pays-Bas. Le Zuiderzee
+  est le bassin turquoise fermé au centre (`S025`), la Lauwerszee le chapelet de
+  taches saumon le long de la côte (`S027`). Deux segments rouges descendent d'un
+  point hors cadre en haut à gauche — la zone de mer du Nord ouverte — l'un
+  jusqu'au cœur du Zuiderzee, l'autre jusqu'à la Lauwerszee. La digue reste
+  dessinée : le lien passe par-dessus, il ne perce rien.
 - `capture/v1_050_zuiderzee_links_off.png` : même cadre, même échelle, mêmes
-  couleurs, même trait de côte au pixel près — les deux segments rouges ont
-  disparu, et les deux bassins sont des culs-de-sac d'eau.
+  couleurs, même trait de côte — les deux segments rouges ont disparu, et les
+  deux bassins sont des culs-de-sac d'eau.
 
-Les trois descriptions du journal du Générateur correspondent à ce que je vois,
-y compris le détail gênant qu'il aurait pu taire. `captures_regardees_et_decrites`
-= `3` sur `3` est une mesure honnête.
-
----
-
-## Ce qui a progressé / ce qui a régressé
-
-Première itération de ce brief : il n'y a ni verdict antérieur ni
-`feedback/` préexistant, donc rien à comparer. Pour que la boucle reste
-calibrée, je consigne quand même ce qui est nettement bien fait, parce que la
-sévérité n'est pas une négativité de principe :
-
-- La reconstruction est réelle et non un habillage : `42` compteurs re-dérivés
-  indépendamment tombent au même chiffre, y compris ceux qui demandent de
-  refaire une géométrie (les `668` largeurs de détroit, l'attribution des `40`
-  noms, le parcours d'atteignabilité).
-- Le cas rouge de `G4-B` est le cas naturel demandé, alimenté par une vraie
-  troisième passe liens coupés — pas une mutation déguisée.
-- Le déterminisme tient mieux que ce que le brief exigeait : identique aussi
-  entre deux points d'entrée différents.
-- Les deux constats gênants sont énoncés sans maquillage, avec leur cause
-  mesurée, et aucune borne n'a été déplacée pour les faire disparaître — c'est
-  précisément la leçon du brief `007`, et elle a été tenue.
+Les trois descriptions du journal correspondent à ce que je vois.
+`captures_regardees_et_decrites` = `3` sur `3` est une mesure honnête.
 
 ---
 
-## Observations de fond pour le Planificateur (hors motifs de rejet)
+## Ce qui a progressé depuis l'itération `1`
 
-1. **Le semis de zones sature sur la borne d'acceptation.**
-   `stats_g4.json` déclare `seed_saturated_at_ceiling: true`, et la boucle de
-   remplissage de `steps/04_adjacency.py` s'arrête bien sur
-   `SEA_ZONE_COUNT_MAX` lu. Conséquence : `zones_mer_denombrees` vaut
-   exactement le plafond, si bien que le test « le compte est-il dans la
-   fourchette ? » de SC1 ne peut plus rien discriminer. La cause est dans le
-   commentaire de `constants.py` lui-même, qui suppose « environ `650 000` km²
-   de mer pilote » et prédit « `20` à `30` zones » : la mer réellement retenue
-   par la fenêtre actuelle fait environ `5,1` millions de km². Les rayons de
-   semis et la fourchette de comptage ont donc été calibrés sur une fenêtre qui
-   n'est plus celle du dépôt. C'est la cause commune de la saturation **et** du
-   constat B. Le Générateur a eu raison de ne pas toucher la borne ; il revient
-   au Planificateur de la re-dériver dans un lot dédié.
-2. **Le dénominateur de `plans_eau_exclus_lacs` écrit dans le brief est
-   incohérent.** Le brief demande « plans d'eau enclavés examinés », que le
-   pipeline mesure à `101`, alors que le nombre de lacs exclus est `107` — un
-   compteur plus grand que son dénominateur. Le Générateur a employé `112`
-   (lacs exclus plus composantes retenues, ce qui se vérifie : `116`
-   composantes d'eau moins `4` éclats sous la tolérance) et a nommé le `101`
-   dans sa note. Son choix est le bon ; c'est la formulation du brief qu'il
-   faut corriger.
-3. **Le cas rouge de `Q4` est le plus grossier des huit.** Il obtient son rouge
-   en passant une liste d'arêtes **vide**, donc en isolant tout le graphe d'un
-   coup. Il prouve que le contrôle rougit sur un monde entièrement déconnecté,
-   pas qu'il repère **une** entité isolée. Ce n'est pas un motif de rejet — la
-   rubrique n'exige pas la minimalité du cas rouge — mais c'est exactement le
-   coût de la règle n° `6` : un contrôle trop grossier coûte aussi cher qu'un
-   contrôle laxiste.
-4. **`logs/v1_050_adjacency.log` embarque une durée d'horloge murale** et des
+- **L'empreinte citée par sa valeur a réellement disparu**, et pas seulement de
+  l'endroit signalé : mon balayage ne trouve plus aucune chaîne hexadécimale
+  dans l'ensemble du dossier `deliverables/`, ni dans le README, ni dans les
+  trois fichiers de code G4. La démonstration de parité n'a rien perdu en force
+  en passant de la valeur au nom.
+- **La commande d'escalade est un vrai instrument, pas un habillage.** Elle
+  tient ensemble deux règles qui tiraient en sens contraire : l'impossibilité
+  est éprouvée par une commande et un message (règle n° `9`), et ce message ne
+  contient aucune constante morte (règle n° `12`). Le point que je retiens le
+  plus : elle sépare l'absence de l'écart par deux codes de sortie distincts,
+  ce que le brief exigeait et qu'il aurait été facile de négliger.
+- **Le champ `error` de la dérogation ne se contredit plus.** Sa phrase affirme
+  que la commande n'imprime aucune empreinte, et c'est désormais vrai — je l'ai
+  vérifié en jouant la commande, pas en lisant la phrase.
+- **Rien d'autre n'a bougé.** Le Générateur n'a pas rejoué la preuve, pas
+  régénéré un artefact, pas « amélioré » un compteur au passage. C'est
+  exactement ce que le feedback demandait, et c'est la bonne discipline : une
+  correction de document ne doit pas déplacer une mesure.
+
+## Ce qui a régressé depuis l'itération `1`
+
+Rien. Les `43` compteurs que j'ai re-dérivés dans cette session neuve tombent
+sur les mêmes valeurs, les artefacts sont octet pour octet ceux d'avant, et les
+huit conditions déjà solides le sont restées sous des vérifications refaites de
+zéro et non recopiées.
+
+---
+
+## Observations pour la suite (aucune n'est un motif de rejet)
+
+1. **Le semis de zones sature toujours sur la borne d'acceptation.**
+   `stats_g4.json` déclare `seed_saturated_at_ceiling: true` et le compte tombe
+   exactement sur `SEA_ZONE_COUNT_MAX`, si bien que la question « le compte
+   est-il dans la fourchette ? » ne discrimine plus rien. La cause est mesurée :
+   la mer retenue par la fenêtre actuelle est d'environ `5,1` millions de km²,
+   alors que le commentaire de `constants.py` a calibré rayons et fourchette sur
+   une fenêtre bien plus petite. L'amendement `001` a explicitement laissé ce
+   point à un lot ultérieur ; je le redis pour qu'il ne se perde pas.
+2. **`logs/v1_050_adjacency.log` embarque une durée d'horloge murale** et des
    chemins absolus de la machine. D11 n'interdit l'horloge que dans un
-   *artefact*, et ce journal n'en est pas un, donc ce n'est pas une infraction.
-   Mais c'est le seul fichier que ma ré-exécution a fait diverger, ce qui
-   affaiblit la belle propriété « rejouer ne produit aucune différence ».
+   *artefact*, et ce journal n'en est pas un — ce n'est donc pas une infraction,
+   et ce n'était déjà pas un motif de rejet. Mais c'est, cette fois encore, le
+   **seul** fichier que ma ré-exécution a fait diverger. Arrondir la durée, ou
+   la sortir du fichier suivi, rendrait la propriété « rejouer ne produit aucune
+   différence » vraie sur l'ensemble des preuves committées.
+3. **Le manifeste ne décrit le fichier de divergence qu'indirectement.** SC6
+   demande que `README.md` **et** `deliverables/manifest.json` le décrivent
+   explicitement comme comparaison QA unique et jamais autorité spatiale. Le
+   README le fait longuement et sans réserve ; le manifeste ne le fait qu'à
+   travers les intitulés et les notes de ses compteurs
+   (`lecteurs_du_fichier_divergence_hors_qa`, « les six artefacts G4 hors
+   divergence »). Le fond de SC6 est tenu — le fichier porte `"qa_only": true`,
+   personne ne le lit hors QA, la frontière est mécaniquement vérifiée — et la
+   table des échecs disqualifiants ne vise pas ce cas ; je ne fabrique donc pas
+   un rejet là-dessus. Mais c'est le maillon le plus mince de SC6, et il se
+   renforce d'une ligne : une note portée sur l'entrée du fichier dans `files`.
+4. **Le cas rouge de `Q4` reste le plus grossier des huit** : il obtient son
+   rouge en passant une liste d'arêtes vide, donc en isolant tout le graphe.
+   Isoler **une seule** entité prouverait ce que le contrôle doit repérer. La
+   rubrique n'exige pas la minimalité du cas rouge — ce n'est pas un motif de
+   rejet — mais c'est le coût de la règle n° `6` : un contrôle trop grossier
+   coûte aussi cher qu'un contrôle laxiste.
+5. **`MANIFEST_g4.json` fige l'empreinte périmée que G3 déclare** (champ
+   `coastline_1400_sha_declared_by_g3`). Elle est **lue** à l'exécution et non
+   recopiée à la main, et un manifeste est un artefact, pas un document : ce
+   n'est donc ni une infraction à la règle n° `12` ni un motif de rejet. Mais la
+   valeur morte se propage d'un cran, et le brief de réparation de la provenance
+   G3 devra s'en souvenir.
+
+---
+
+## Ce que je demande pour la suite
+
+Rien du Générateur sur ce lot : il est reçu. Pour le Planificateur, une seule
+chose vraiment structurante — ouvrir le brief de réparation de la provenance du
+littoral que le non-objectif n° `18` et l'amendement `001` renvoient tous deux à
+plus tard. Tant qu'il n'est pas ouvert, chaque lot aval héritera d'une chaîne
+amont dont on sait, mesure à l'appui, qu'elle se contredit.
