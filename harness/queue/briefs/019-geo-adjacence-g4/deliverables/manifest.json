@@ -1,0 +1,433 @@
+{
+  "brief": "019-geo-adjacence-g4",
+  "files": [
+    {
+      "path": "../../../../pipeline/geo/steps/04_adjacency.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/tests/run_proof_g4.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/tests/test_qa_red_g4.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/legacy_game_data/sea_zones.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/sea_zones_g4.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/adjacency_g4.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/topology_links_g4.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/stats_g4.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/adjacency_divergence_g4.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/MANIFEST_g4.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/registry/sea_zone_registry.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/logs/v1_050_qa.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/logs/v1_050_adjacency.log"
+    },
+    {
+      "path": "../../../../pipeline/geo/logs/v1_050_g4b_links_on.txt"
+    },
+    {
+      "path": "../../../../pipeline/geo/logs/v1_050_g4b_links_off.txt",
+      "must_differ_from": "../../../../pipeline/geo/logs/v1_050_g4b_links_on.txt"
+    },
+    {
+      "path": "../../../../pipeline/geo/capture/v1_050_sea_zones_window.png"
+    },
+    {
+      "path": "../../../../pipeline/geo/capture/v1_050_zuiderzee_links_on.png"
+    },
+    {
+      "path": "../../../../pipeline/geo/capture/v1_050_zuiderzee_links_off.png",
+      "must_differ_from": "../../../../pipeline/geo/capture/v1_050_zuiderzee_links_on.png"
+    },
+    {
+      "path": "deliverables/pre-edit/pipeline-geo-README.md.orig"
+    },
+    {
+      "path": "../../../../pipeline/geo/README.md",
+      "must_differ_from": "deliverables/pre-edit/pipeline-geo-README.md.orig"
+    },
+    {
+      "path": "../../../../harness/queue/cost-ledger.jsonl"
+    },
+    {
+      "path": "deliverables/measure_g4_019.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/manifest.json"
+    },
+    {
+      "path": "deliverables/progress.jsonl"
+    }
+  ],
+  "counters": [
+    {
+      "name": "copie_sea_zones_identique",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 1 comparaison d'empreintes calculees a l'execution"
+    },
+    {
+      "name": "noms_attestes_lus",
+      "value": 14,
+      "sample_size": 14,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 14 entrees du tableau sea_zones de legacy_game_data/sea_zones.json"
+    },
+    {
+      "name": "cellules_lues_g3",
+      "value": 596,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 596 = cell_count lu de artifacts/stats_g3.json"
+    },
+    {
+      "name": "zones_mer_denombrees",
+      "value": 40,
+      "sample_size": 40,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : fourchette lue de constants.py [20, 40]"
+    },
+    {
+      "name": "composantes_mer_totales",
+      "value": 5,
+      "sample_size": 5,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 5 composantes d'eau retenues comme mer de 1400"
+    },
+    {
+      "name": "composantes_mer_couvertes",
+      "value": 5,
+      "sample_size": 5,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 5 composantes_mer_totales"
+    },
+    {
+      "name": "plans_eau_exclus_lacs",
+      "value": 107,
+      "sample_size": 112,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 112 plans d'eau examines au-dessus de la tolerance geometrique (dont 101 enclaves)"
+    },
+    {
+      "name": "collisions_id_mer_terre",
+      "value": 0,
+      "sample_size": 40,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 40 zones_mer_denombrees confrontees a 596 cell_id"
+    },
+    {
+      "name": "ids_mer_sous_la_base",
+      "value": 0,
+      "sample_size": 40,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 40 zones_mer_denombrees ; base lue SEA_ZONE_ID_BASE=5000"
+    },
+    {
+      "name": "aretes_totales",
+      "value": 2085,
+      "sample_size": 2085,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2085 aretes de artifacts/adjacency_g4.json"
+    },
+    {
+      "name": "aretes_terre_terre",
+      "value": 917,
+      "sample_size": 2085,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2085 aretes_totales"
+    },
+    {
+      "name": "aretes_terre_mer",
+      "value": 437,
+      "sample_size": 2085,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2085 aretes_totales"
+    },
+    {
+      "name": "aretes_mer_mer",
+      "value": 63,
+      "sample_size": 2085,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2085 aretes_totales"
+    },
+    {
+      "name": "aretes_detroit",
+      "value": 668,
+      "sample_size": 2085,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2085 aretes_totales"
+    },
+    {
+      "name": "kinds_non_vides",
+      "value": 4,
+      "sample_size": 4,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 4 types declares dans stats_g4.json by_kind"
+    },
+    {
+      "name": "aretes_avec_id_mer_placeholder",
+      "value": 0,
+      "sample_size": 2085,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2085 aretes_totales ; identifiant fourre-tout lu SEA_CELL_ID=0"
+    },
+    {
+      "name": "cellules_littorales",
+      "value": 372,
+      "sample_size": 596,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 596 cellules_lues_g3"
+    },
+    {
+      "name": "seuil_detroit_m",
+      "value": 45000.0,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 1 valeur lue de constants.py (G4_STRAIT_MAX_WIDTH_M)"
+    },
+    {
+      "name": "ecart_min_detroit_m",
+      "value": 297.134615,
+      "sample_size": 668,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 668 aretes_detroit ; doit rester <= seuil_detroit_m"
+    },
+    {
+      "name": "detroits_entre_masses_differentes",
+      "value": 551,
+      "sample_size": 668,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 668 aretes_detroit"
+    },
+    {
+      "name": "liens_topologiques_declares_appliques",
+      "value": 2,
+      "sample_size": 2,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2 corrections declare_topology_link lues de data/corrections_1400.json"
+    },
+    {
+      "name": "bassins_enfermes_total",
+      "value": 2,
+      "sample_size": 5,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 5 composantes_mer_totales"
+    },
+    {
+      "name": "bassins_enfermes_non_atteignables_liens_actifs",
+      "value": 0,
+      "sample_size": 2,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2 bassins_enfermes_total"
+    },
+    {
+      "name": "bassins_enfermes_non_atteignables_liens_inactifs",
+      "value": 2,
+      "sample_size": 2,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 2 bassins_enfermes_total"
+    },
+    {
+      "name": "zone_cible_nom_atteste_existe",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 1 verification : chaque lien vise une zone de la mer exterieure au nom atteste"
+    },
+    {
+      "name": "zones_nommees",
+      "value": 40,
+      "sample_size": 40,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 40 zones_mer_denombrees"
+    },
+    {
+      "name": "noms_distincts_employes",
+      "value": 13,
+      "sample_size": 14,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 14 noms_attestes_lus"
+    },
+    {
+      "name": "noms_attestes_non_employes",
+      "value": 1,
+      "sample_size": 14,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 14 noms_attestes_lus"
+    },
+    {
+      "name": "noms_hors_liste_attestee",
+      "value": 0,
+      "sample_size": 13,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 13 noms distincts portes par une zone ; doit valoir 0"
+    },
+    {
+      "name": "occurrences_province_dans_artefacts_g4",
+      "value": 0,
+      "sample_size": 6,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 6 fichiers balayes (les six artefacts G4 hors divergence)"
+    },
+    {
+      "name": "occurrences_province_dans_divergence",
+      "value": 263,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 1 fichier balaye (artifacts/adjacency_divergence_g4.json)"
+    },
+    {
+      "name": "lecteurs_du_fichier_divergence_hors_qa",
+      "value": 0,
+      "sample_size": 20,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 20 fichiers de code balayes sous pipeline/geo/ (le module qui l'ecrit et la preuve QA qui le lit sont exclus)"
+    },
+    {
+      "name": "aretes_heritees_confirmees",
+      "value": 5,
+      "sample_size": 72,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 72 aretes heritees lues"
+    },
+    {
+      "name": "aretes_heritees_contredites",
+      "value": 53,
+      "sample_size": 72,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 72 aretes heritees lues"
+    },
+    {
+      "name": "aretes_heritees_manquantes",
+      "value": 14,
+      "sample_size": 72,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 72 aretes heritees lues"
+    },
+    {
+      "name": "paires_sha_determinisme_egales",
+      "value": 9,
+      "sample_size": 9,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 9 paires du bloc determinism.sha256 de logs/v1_050_qa.json"
+    },
+    {
+      "name": "controles_g4_verts",
+      "value": 8,
+      "sample_size": 8,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 8 entrees du tableau checks"
+    },
+    {
+      "name": "controles_g4_avec_preuve_rouge_non_vide",
+      "value": 8,
+      "sample_size": 8,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 8 entrees du tableau checks"
+    },
+    {
+      "name": "code_sortie_run_proof_g4",
+      "value": 0,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 1 execution : code enregistre par tests/run_proof_g4.py dans logs/v1_050_qa.json (rejouable avec --rerun-proof)"
+    },
+    {
+      "name": "empreinte_terre_g4_egale_entree_g3",
+      "value": 0,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 1 comparaison : empreinte calculee de artifacts/coastline_1400.json contre MANIFEST_g3.json inputs.coastline_1400"
+    },
+    {
+      "name": "empreinte_terre_g4_egale_sortie_declaree_g2b",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 1 comparaison : meme empreinte calculee contre MANIFEST_g2b.json outputs (etape qui produit ce littoral)"
+    },
+    {
+      "name": "zones_hors_bornes_intention",
+      "value": 24,
+      "sample_size": 40,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 40 zones_mer_denombrees ; bornes lues de constants.py floor=200.0 ceil=80000.0 compacite_min=0.12 (non bloquantes)"
+    },
+    {
+      "name": "zones_exemptees_bassin_entier",
+      "value": 2,
+      "sample_size": 40,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 40 zones_mer_denombrees"
+    },
+    {
+      "name": "captures_regardees_et_decrites",
+      "value": 3,
+      "sample_size": 3,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 3 captures produites (capture/v1_050_*.png)"
+    },
+    {
+      "name": "constantes_g4_inchangees",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 1 fichier verifie par git status --porcelain (pipeline/geo/constants.py)"
+    },
+    {
+      "name": "fichiers_partages_modifies",
+      "value": 0,
+      "sample_size": 8,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 8 fichiers partages verifies par git status --porcelain"
+    },
+    {
+      "name": "fichiers_preuve_suivis_par_git",
+      "value": 14,
+      "sample_size": 14,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 14 preuves declarees sous pipeline/geo/ (git ls-files)"
+    },
+    {
+      "name": "tests_harness_passed_019",
+      "value": 348,
+      "sample_size": 364,
+      "command": ".venv/bin/python harness/queue/briefs/019-geo-adjacence-g4/deliverables/measure_g4_019.py",
+      "note": "denominateur mesure : 364 tests collectes dans harness/tests/ (16 SKIP Linux/Unity declares, 0 echecs)"
+    }
+  ],
+  "waivers": [
+    {
+      "claim": "SC7 — egalite d'empreinte entre le littoral corrige de 1400 relu par G4 et l'entree que MANIFEST_g3.json declare. L'egalite est FAUSSE et le compteur empreinte_terre_g4_egale_entree_g3 vaut 0. L'empreinte calculee est en revanche EGALE a la sortie que MANIFEST_g2b.json declare pour ce meme fichier (empreinte_terre_g4_egale_sortie_declaree_g2b = 1), donc l'incoherence est anterieure a ce lot et interne aux artefacts G2-bis/G3 deja committes. Aucune borne deplacee, aucun artefact G3 reecrit, aucune empreinte recopiee : les deux valeurs sont calculees a l'execution.",
+      "command": "cd pipeline/geo && ../../.venv/bin/python -c \"import hashlib, json, pathlib; live = hashlib.sha256(pathlib.Path('artifacts/coastline_1400.json').read_bytes()).hexdigest(); g3 = json.load(open('artifacts/MANIFEST_g3.json'))['inputs']['coastline_1400']; assert live == g3, f'ecart: calcule={live} != MANIFEST_g3.inputs.coastline_1400={g3}'\"",
+      "error": "AssertionError: ecart: calcule=f8057f3cc241457cb143162575f822bb951e71cdaf2a2ced6538488542632bc8 != MANIFEST_g3.inputs.coastline_1400=c5bb03c12cf09e5e5308afc4b9eb63e78070c4b363ab34e6e143d0a33081013e (code de sortie 1). La meme empreinte calculee est bien celle que MANIFEST_g2b.json declare pour artifacts/coastline_1400.json."
+    },
+    {
+      "claim": "Budget d'execution non mesurable sur cette machine : budget.py lit des transcripts de session Claude locaux qui n'existent pas dans l'environnement Cursor Cloud. La progression a donc ete enregistree a la main dans deliverables/progress.jsonl.",
+      "command": ".venv/bin/python harness/budget.py status --brief harness/queue/briefs/019-geo-adjacence-g4",
+      "error": "status : UNMEASURABLE | reason : no agent transcript naming 019-geo-adjacence-g4 under /home/ubuntu/.claude/projects/-workspace (code de sortie 2)"
+    }
+  ]
+}
