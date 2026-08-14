@@ -1,0 +1,1 @@
+EGALITE : artifacts/coastline_1400.json (empreinte calculee a l'execution) egale l'entree declaree par MANIFEST_g3.json inputs.coastline_1400.

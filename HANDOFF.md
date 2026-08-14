@@ -1,49 +1,145 @@
 # HANDOFF.md
 
-## Session la plus récente — 2026-08-14 : pilote ForgePilot ADR-0013
+## Session la plus récente — 2026-08-14 : brief 020 (provenance du littoral G3)
 
-Décision propriétaire : suspendre la chaîne full-auto à quatre acteurs et
-tester trois lots avec Hermes léger, Grok Build distant et Cursor comme unique
-exécutant. Travail préparé sur `agent/forgepilot-workflow`.
+**Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
+CTO Claude. Trois rôles, jamais le même agent dans la même passe, modèle
+Claude Opus 5 (`claude-opus-5-thinking-high`) — jamais inherit/Grok pour
+un rôle du harnais. Signatures natives `forge-planificateur` /
+`forge-generateur` / `forge-evaluateur`, sans suffixe. Note de
+transparence Cursor Cloud. Les rôles n'ont ni committé, ni poussé, ni
+créé de branche — l'orchestrateur seul dépose. Branche `forge/` (pas
+`cursor/*` : le job `cursor-scope` réserve ce préfixe aux PRs
+`architecture/inbox/`).
 
-### État livré
+**Décision CTO.** E2 est clos sur `master` (briefs 017+018, PRs #101 /
+#102 / #103 fusionnées, sans squash). Brief 019 (adjacence maritime G4)
+PASS, **PR #105 fusionnée** le 2026-08-14 (sans squash) — le lot 020
+était autorisé. Un seul lot : **réparer la provenance du littoral G3**
+(trou mesuré et escaladé par 019, amendement 001, non-objectif 18). E1
+n'est **pas** clos. Pas de villes (E3). Pas de réouverture du 007. Pas
+de fusion par l'orchestrateur. Fusion **sans squash**.
 
-- nouveau projet autonome `control-plane/` : commandes `doctor`, `plan`,
-  `execute`, `publish` et `review` ; aucun appel construit avec `shell=True` ;
-- Grok planifie et relit avec sandbox `read-only`, écriture, mémoire et
-  sous-agents désactivés ; Cursor exécute dans un worktree `agent/*` avec sa
-  sandbox ; ForgePilot ouvre seulement une draft PR ;
-- ADR-0013, roadmap, contrat Hermes et skill de pilotage alignés ;
-- ancien pipeline déclaré `mode: manual`, options d'auto-fusion désactivées,
-  merge-bot arrêté hors `full_auto` ;
-- observateur Windows et génération automatique du dashboard retirés des
-  événements ; déclenchement manuel conservé pour le retour arrière ;
-- `VictoriaCityLab` n'est pas modifié pendant le pilote : ForgeHistory reste la
-  source d'autorité et CityLab reste une vue consommatrice.
+### Ce qui a été fait
 
-### Vérification transport
+1. **Planificateur** (`3ac7c77`) : brief neuf
+   `harness/queue/briefs/020-geo-provenance-littoral-g3/`. Mesures avant
+   réécriture : écart de **sérialisation** (union des cellules vs terre
+   du littoral vivant sous l'epsilon **lue**), pas de géométrie — maille
+   non rejouée ; les identifiants consommés par `sim/` restent ceux du
+   fichier committé ; G4 relit les champs de provenance, graphe intact.
+   Sept SC, `38` compteurs. `split-check` : `SIZE_OK`.
+2. **Générateur itération 1** (`a32f598`) : script neuf
+   `steps/03b_align_coastline_provenance.py` (un seul champ G3 :
+   `inputs.coastline_1400` calculé sur le fichier vivant). Garde
+   `tests/run_proof_coastline_provenance.py` (codes 0/1/2, vue rouge hors
+   dépôt). Commande d'écart : code `1` avant, code `0` après. Maille
+   `4`/`4` diffs vides. Graphe G4 `16`/`16` diffs vides. `sim/` lecture
+   seule (`65 passed`). Harnais `348 passed`, `16 skipped`.
+3. **Évaluateur passe 1** : **PASS** (`verdict.md`). Porte ACCEPT dix
+   sur dix, couple `forge-generateur<->forge-evaluateur`. Reconstruction
+   hors dépôt : `38` compteurs, aucun écart. Sabotage de la déclaration :
+   garde code `1` ; absence : code `2`. Mutation d'un octet du littoral :
+   écart code `1`. Idempotence : seconde passe octet-identique.
 
-Hermes sait lancer et surveiller un CLI externe via ses outils terminal/process
-et sait s'exposer comme serveur ACP. Il ne sait pas encore agir comme client ACP
-générique pour piloter Grok. Le transport retenu est donc le CLI headless :
-`grok -p ... --output-format json`, et non ACP. Une variable `XAI_API_KEY`
-présente fait échouer `forgepilot doctor`, afin que le pilote mesure bien
-l'abonnement SuperGrok et non l'API facturée séparément.
+**Branche / PR** : `forge/020-geo-provenance-g3-2099`, **PR #106**
+brouillon. Ne pas fusionner soi-même. Fusion **sans squash**. E1 n'est
+**pas** clos.
 
-### Validation
+**Réserves (verdict 020, non bloquantes)** : formulation SC5
+(`porcelain` vide) piège un rôle qui n'a pas le droit de committer —
+défaut du brief, pas du travail ; `code_sortie_ecart_avant` dérivé du
+texte committé ; `progress.jsonl` hors ensemble de balayage hex (propre
+quand même) ; rejeu de la maille G3 hors dépôt non tenté (facultatif,
+lot dédié possible).
 
-- `control-plane`: 6 tests unitaires réussis ;
-- harnais historique : 348 réussites, 16 skips Unity attendus ;
-- `git diff --check` : propre.
+**Suites (pas ce lot)** : G5 fleuves / G6 relief ; recalibrage
+`SEA_ZONE_COUNT_MAX` (bornes d'intention toujours ouvertes) ; N1 du
+017 ; briefs de harnais ; réparation PR #100 ; audits PROPOSED ;
+clôture E1.
 
-### Prochaine action propriétaire
+**Validation rejouée** :
+- `.venv/bin/python harness/verdict_audit.py harness/queue/briefs/020-geo-provenance-littoral-g3` → ACCEPT (dix sur dix).
+- `.venv/bin/python -m pytest harness/tests/ -q` → 348 passed, 16 skipped (Unity/Linux, attendus).
+- `.venv/bin/python -m pytest sim/tests/ -q` → 65 passed.
 
-Installer le clone et les trois CLI sur un petit serveur Linux persistant,
-effectuer `grok login --device-auth`, `agent login`, `gh auth login`, puis
-lancer `forgepilot doctor --check-auth`. Ne pas activer de cron ni fusion automatique avant
-le bilan des trois lots.
+**Prochain pas** : le propriétaire fusionne **#106** (lot 020 + cette
+correction de feuille de route), **sans squash**. Ensuite : G5/G6, ou
+recalibrage des bornes de semis, ou brief de harnais — pas d'audit
+Cursor à attendre sur #106 (ADR-0012 : audit à la clôture d'étape, E1
+n'est pas close).
 
-## Session précédente — 2026-08-14 : brief 018 (Province dérivée), critères E2 réunis
+---
+
+## Session précédente — 2026-08-14 : brief 019 (adjacence maritime G4), premier lot E1
+
+**Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
+CTO Claude. Trois rôles, jamais le même agent dans la même passe, modèle
+Claude Opus 5 (`claude-opus-5-thinking-high`) — jamais inherit/Grok pour
+un rôle du harnais. Branche `forge/` (pas `cursor/*` : le job
+`cursor-scope` réserve ce préfixe aux PRs `architecture/inbox/`).
+
+**Décision CTO.** E2 est clos sur `master` (briefs 017+018, PRs #101 / #102
+/ #103 fusionnées, sans squash). Prochain jalon = **E1 — Fondations
+monde**. E1 entier est trop gros : premier lot atomique seulement =
+**G4 adjacence maritime** (zones de mer + graphe typé). Motif : G5
+fleuves et G6 relief dépendent des cellules **et** de l'adjacence. G3
+est livré (596 cellules) ; le lot 007b n'a jamais été exécuté. Brief
+**neuf 019**, pas une réouverture du 007.
+
+### Ce qui a été fait
+
+1. **Planificateur** : brief + rubrique (`95215a2`). Dix SC, D1–D16,
+   46+ compteurs, reconstruction contre la barre QA déjà portée.
+2. **Générateur itération 1** (`5e54571`) : `steps/04_adjacency.py`,
+   40 zones (5000–5039), 2085 arêtes (917 terre-terre, 437 terre-mer,
+   63 mer-mer, 668 détroits), 2 liens déclarés (Zuiderzee / Lauwerszee).
+   Preuve rouge d'abord, déterminisme deux passes, `pipeline.py` et
+   `constants.py` intacts.
+3. **Évaluateur passe 1** : **REJECT** (`3a6a397`). Porte ACCEPT (forme).
+   Huit SC sur dix tiennent ; 48/48 compteurs reconstruits sans écart.
+   SC7 : empreinte du littoral relu ≠ entrée déclarée par G3
+   (incohérence antérieure au lot, D16 interdit de toucher G3). SC10 :
+   une empreinte de parité citée par sa valeur dans le journal (règle 12).
+   Les 24 zones hors bornes d'intention : constat ouvert, pas un rejet.
+4. **Planificateur amendement 001** (`6654af2`) : reçoit l'escalade D2.
+   SC7 à deux branches (égalité, ou 0 mesuré + constat ouvert). G3
+   intouché. Réparation de provenance = brief ultérieur (non-objectif 18).
+   Horodatages `Authored` d'origine conservés.
+5. **Générateur itération 2** (`61b387b`) : hex retiré ; script
+   `check_provenance_coastline_019.py` (codes 0/1/2, aucune valeur
+   imprimée) ; waiver aligné. Artefacts G4 non régénérés.
+6. **Évaluateur passe 2** : **PASS** (`1c5cd46`). Porte ACCEPT dix sur
+   dix. SC7 par la **branche escalade**, jamais par égalité. SC10 : zéro
+   chaîne hexadécimale dans les livrables. Les trois rôles n'ont ni
+   committé, ni poussé, ni créé de branche.
+
+**Branche / PR** : `forge/019-geo-adjacence-g4-d07d`, **PR #105**. Ne
+pas fusionner soi-même. Fusion **sans squash**. E1 n'est **pas** clos.
+
+**Réserves (verdict 019, non bloquantes)** : semis saturé sur
+`SEA_ZONE_COUNT_MAX` (fenêtre ~5,1 millions de km² vs calibration
+d'intention) ; journal d'adjacence porteur d'une durée d'horloge ;
+manifeste qui ne décrit le fichier de divergence qu'indirectement ;
+cas rouge de `Q4` trop grossier ; `MANIFEST_g4.json` propage l'empreinte
+périmée que G3 déclare.
+
+**Suites (pas ce lot)** : brief de réparation de la provenance G3
+(non-objectif 18) ; G5 fleuves / G6 relief ; recalibrage éventuel des
+bornes de semis ; N1 du 017 ; briefs de harnais ; réparation PR #100.
+
+**Validation rejouée** :
+- `.venv/bin/python harness/verdict_audit.py harness/queue/briefs/019-geo-adjacence-g4` → ACCEPT (dix sur dix).
+- `.venv/bin/python -m pytest harness/tests/ -q` → 348 passed, 16 skipped (Unity/Linux, attendus).
+
+**Prochain pas** : le propriétaire fusionne **#105** (lot 019 + cette
+correction de feuille de route), **sans squash**. Ensuite : provenance
+G3, ou G5/G6, ou brief de harnais — pas d'audit Cursor à attendre sur
+#105 (ADR-0012 : audit à la clôture d'étape, E1 n'est pas close).
+
+---
+
+## Session précédente — 2026-08-14 matin : brief 018 (Province dérivée), critères E2 réunis
 
 **Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
 CTO Claude. Trois sous-agents distincts, modèle Claude Opus 5

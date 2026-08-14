@@ -1,0 +1,10 @@
+PREUVE : provenance du littoral corrige de 1400, empreintes calculees a l'execution et jamais imprimees.
+  EN DESACCORD : artifacts/coastline_1400.json (empreinte calculee a l'execution) vs MANIFEST_g3.json inputs.coastline_1400
+  concordent : artifacts/coastline_1400.json (empreinte calculee a l'execution) vs MANIFEST_g2b.json outputs[artifacts/coastline_1400.json]
+  concordent : artifacts/coastline_1400.json (empreinte calculee a l'execution) vs MANIFEST_g4.json inputs.coastline_1400
+  EN DESACCORD : MANIFEST_g3.json inputs.coastline_1400 vs MANIFEST_g4.json coastline_1400_sha_declared_by_g3
+  EN DESACCORD : MANIFEST_g4.json coastline_1400_sha_equal vs la comparaison recalculee par cette garde
+  EN DESACCORD : stats_g4.json coastline_1400_sha_equals_g3_input vs la comparaison recalculee par cette garde
+comparaisons_concordantes: 2 / 6
+ECART : le monde a deux reponses a la question « quelle terre ? ».
+Les sources en desaccord sont nommees ci-dessus ; realigner la declaration d'entree des cellules avant de continuer -- depuis pipeline/geo/ : ../../.venv/bin/python steps/03b_align_coastline_provenance.py
