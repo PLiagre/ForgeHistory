@@ -385,6 +385,216 @@ et change les compteurs du monde réel (SC6 re-mesuré en conséquence).
 
 ---
 
+## SC1 brief 017 — Modèle de survie stationnaire (rédigé AVANT toute mesure)
+
+> **Ordre de rédaction.** Cette section, ainsi que les sections SC2, SC3, SC4
+> et SC5 du brief 017 ci-dessous, ont été écrites et committées **avant**
+> d'exécuter la moindre simulation du monde réel. Aucun coefficient, aucune
+> tolérance, aucun horizon n'a été ajusté après avoir vu une valeur mesurée.
+> C'est le mode d'échec n° 5 (calibration après mesure) que cette discipline
+> évite.
+
+### Ce qui est supprimé et pourquoi
+
+`SURVIE_MARGE_DERIVEE` et `SEUIL_SURVIE_POPULATION_FRACTION` (brief 013) sont
+**supprimées**. Elles ne dépendaient ni de `HUNGER_DEATH_SCALE` ni de
+`MAX_DEATH_RATE_PER_TICK` : le critère qui certifiait que « le monde vit »
+était aveugle aux constantes qui gouvernent la mort. Une famine deux fois plus
+mortelle passait le même contrôle. De plus, la récupération du déficit y entrait
+avec le mauvais signe (une récupération plus rapide élargissait la marge
+d'erreur au lieu d'augmenter la survie).
+
+L'archive de leur dérivation reste ci-dessus (section « SC3 brief 013 ») et
+n'est pas retouchée.
+
+### Densité stationnaire : le dépassement est un oscillateur
+
+Par km², en notant `C` la consommation par personne et par tick, `F` la
+production par km² et par tick, `d` la densité d'habitants et `D` le déficit
+alimentaire cumulé :
+
+```py
+cap = F × rendement_moyen / C          # densité de charge : 18 × 1.0 / 2 = 9 hab/km²
+```
+
+Tant que `d > cap`, le déficit croît de `C × (d − cap)` par tick, et la
+mortalité fait décroître `d` de `HUNGER_DEATH_SCALE × D` par tick. En posant
+`x = d − cap`, on a exactement :
+
+```py
+D' = C × x
+x' = -HUNGER_DEATH_SCALE × D
+```
+
+C'est un oscillateur de pulsation `ω = sqrt(HUNGER_DEATH_SCALE × C)`. Sa
+quantité conservée est `Q = C·x² + HDS·D² + C·HDS·x·D` (invariance vérifiable
+à la main sur le schéma d'Euler semi-implicite qu'est l'ordre du tick :
+consommation puis mortalité). Partant de `D = 0` et `x = x0 = d0 − cap`, le
+déficit revient à zéro quand `x = −x0`, c'est-à-dire :
+
+```py
+densite_stationnaire = cap − (d0 − cap) = 2 × cap − d0     # 2 × 9 − 10 = 8 hab/km²
+fraction_depassement = densite_stationnaire / d0            # 8 / 10 = 0.80
+```
+
+La population ne dépasse pas seulement en descendant jusqu'à la capacité de
+charge : elle la dépasse par le bas, parce que la dette alimentaire accumulée
+pendant la descente continue de tuer après que la densité soit repassée sous
+`cap`.
+
+### Érosion stochastique : c'est ici qu'entre `HUNGER_DEATH_SCALE`
+
+À la densité stationnaire, un tick de mauvais rendement crée encore un déficit.
+L'espérance de ce manque, pour un rendement `Y` uniforme sur
+`[RNG_YIELD_LOW, RNG_YIELD_HIGH]` et un besoin `A = C × d_stat` :
+
+```py
+E[max(0, A − F×Y)] = (A − F×RNG_YIELD_LOW)² / (2 × F × (RNG_YIELD_HIGH − RNG_YIELD_LOW))
+                     # valable quand F×LOW < A < F×HIGH
+```
+
+Ce déficit tue une fraction `min(HDS × déficit_par_tête, MAX_DEATH_RATE_PER_TICK)`
+de la population, pendant le temps qu'il met à être remboursé
+(`1 / DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG` tick au ratio nominal 1:1), et sur
+l'échelle de temps du tampon alimentaire — `INITIAL_FOOD_RESERVE_TICKS`, la
+seule échelle de stockage nommée du modèle.
+
+```py
+SURVIE_FRACTION_PREDITE_STATIONNAIRE = fraction_depassement × (1 − erosion)
+erosion = min(1, min(HDS × deficit_par_tete, MAX_DEATH_RATE_PER_TICK)
+                  × (1 / DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG)
+                  × INITIAL_FOOD_RESERVE_TICKS)
+```
+
+**Propriétés de signe** (exigées par le brief, vérifiées par SC2) :
+`HDS × 2` double l'érosion → la prédiction **diminue** ;
+`DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG × 2` divise par deux la durée de la dette
+→ la prédiction **augmente** ; `FOOD_PRODUCTION × 2` relève `cap` → la
+prédiction **augmente**.
+
+### Horizon `N_STAT_SURVIE` — justification avant mesure
+
+Le transitoire dure au plus une période d'oscillation :
+
+```py
+periode = 2π / sqrt(HUNGER_DEATH_SCALE × FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK)
+        = 2π / sqrt(0.005 × 2.0) ≈ 63 ticks
+N_STAT_SURVIE = max(1000, ceil(periode / MAX_DEATH_RATE_PER_TICK))
+```
+
+`1 / MAX_DEATH_RATE_PER_TICK` est l'échelle de temps au bout de laquelle toute
+mortalité résiduelle au taux plafond est épuisée ; l'horizon couvre donc la
+période d'oscillation répétée dix fois. Le plancher de 1000 ticks est imposé
+par le brief 017. Avec les constantes actuelles : `N_STAT_SURVIE = 1000`.
+
+### Tolérances — dérivées, jamais ajustées
+
+| constante | expression | valeur | justification |
+|---|---|---|---|
+| `SURVIE_TOLERANCE_STATIONNAIRE` | `(σ_Y / ȳ) × (cap / d0) × P(tick déficitaire)` | ≈ 0.101 | Le modèle remplace le tirage de rendement par sa moyenne. L'erreur au premier ordre est la dispersion relative du rendement (σ_Y = (HIGH−LOW)/√12), convertie en habitants par le rapport `cap / d0`, et restreinte au seul côté de la distribution qui tue (un bon rendement ne tue personne). |
+| `SURVIE_CONVERGENCE_DELTA` | `(σ_Y / ȳ) × MAX_DEATH_RATE_PER_TICK` | ≈ 0.029 | À l'état stationnaire, la seule dérive restante vient des fluctuations de rendement : une fluctuation d'un écart-type expose une fraction `σ_Y/ȳ` de la population, et une population exposée ne peut perdre plus que le taux plafond par tick. |
+| `SURVIE_TOLERANCE_SENSIBILITE` | `SURVIE_TOLERANCE_STATIONNAIRE + (d0 − cap)/d0` | ≈ 0.201 | Les régimes de sensibilité sont mesurés à N = 200 ticks. Dans un régime à faible `HUNGER_DEATH_SCALE`, la période d'oscillation s'allonge (ω ∝ √HDS) et le dépassement initial n'est pas totalement résorbé : on ajoute son amplitude. |
+
+---
+
+## SC2 brief 017 — Sensibilité : le moteur relit les constantes courantes
+
+Le test de sensibilité remplace `HUNGER_DEATH_SCALE` **en mémoire**, jamais par
+écriture dans le fichier source. Deux mécanismes rendent cela possible :
+
+1. `sim/engine.py` lit `HUNGER_DEATH_SCALE` et `MAX_DEATH_RATE_PER_TICK` via le
+   module (`_constantes.HUNGER_DEATH_SCALE`) et non par valeur importée. Une
+   valeur importée par `from … import …` est figée au chargement : la
+   remplacer dans `sim.constants` ne changerait rien au moteur.
+2. `SURVIE_FRACTION_PREDITE_STATIONNAIRE` est le résultat d'une **fonction**,
+   `compute_survie_fraction_predite_stationnaire()`, qui relit les globales
+   courantes du module à chaque appel. La constante de module figée au
+   chargement resterait, elle, à sa valeur nominale. `importlib.reload` n'est
+   pas utilisé : il recharge `sim.constants` sans recharger `sim.engine`, ce
+   qui laisserait le moteur et la prédiction sur deux jeux de constantes
+   différents.
+
+### Note documentaire P3-2 — écrêtage sans réallocation
+
+L'écrêtage côté receveur (passe 1d de `_apply_commerce`) ne réalloue pas le
+surplus libéré à d'autres cellules demandeuses : le surplus non livré reste
+chez sa source. C'est un choix de simplicité assumé, pas un défaut ; le code du
+commerce n'est pas modifié par le brief 017.
+
+---
+
+## SC3 brief 017 — Report de la fraction de mortalité
+
+`int(population × death_rate)` arrondit à zéro dès que
+`population × death_rate < 1`. Une cellule de 5 habitants en famine totale
+produit `5 × 0.10 = 0.5` mort par tick : `int(0.5) = 0`, à chaque tick, pour
+toujours. Cinq habitants deviennent immortels par arrondi, tandis que leurs
+voisins de 5 000 habitants meurent normalement.
+
+Le champ `Cell.mortality_remainder` (float, sentinelle `-1.0` = non calculé)
+conserve la fraction non appliquée :
+
+```py
+remainder = cell.mortality_remainder if cell.mortality_remainder >= 0.0 else 0.0
+raw = cell.population * death_rate + remainder
+deaths = int(raw)
+cell.mortality_remainder = raw - deaths
+cell.population = max(0, cell.population - deaths)
+```
+
+**Borne `N_BOUND_MORT`** : au plafond de mortalité, une cellule accumule au
+moins `MAX_DEATH_RATE_PER_TICK` mort par habitant et par tick ; il faut donc au
+plus `ceil(1 / MAX_DEATH_RATE_PER_TICK) = 10` ticks pour qu'une mort entière
+soit appliquée, quelle que soit la taille de la cellule.
+
+---
+
+## SC4 brief 017 — « Affamée » = en manque ce tick
+
+L'ancien critère incrémentait `hunger_ticks` quand `food_stock_kg <= 0` après
+consommation. Une cellule ravitaillée **exactement** à son besoin par le
+commerce termine le tick avec un stock nul et un déficit nul : elle a mangé sa
+ration. La compter comme affamée confond le garde-manger vide et la
+sous-alimentation.
+
+Nouveau critère causal : `_apply_consumption` retourne la pénurie du tick en kg
+(`shortage = besoin − stock_avant_consommation`, nulle s'il n'y a pas de
+manque) et `_update_hunger` n'incrémente que si cette pénurie est positive.
+Propriété : `food_stock_kg == 0` et `food_deficit_kg == 0` après consommation
+→ `hunger_ticks` non incrémenté.
+
+---
+
+## SC5 brief 017 — Récupération physique du déficit
+
+`DEFICIT_RECOVERY_RATE_PER_TICK` (brief 013) est **supprimée**. Sa formule,
+`food_deficit_kg × (1 − r)`, effaçait 10 % de la dette indépendamment du
+surplus réel : un surplus d'un nanogramme effaçait 1 000 kg d'une dette de
+10 000 kg. Des kilogrammes disparaissaient sans contrepartie physique
+(principe 3 : rien ne se téléporte).
+
+Successeur nommé : `DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG = 1.0` — kilogrammes
+de dette remboursés par kilogramme de surplus **réellement consommé** au-delà
+du besoin d'entretien (voie (a) du brief : ratio 1:1).
+
+```py
+remboursement = min(food_deficit_kg, surplus_du_tick × ratio)
+food_deficit_kg -= remboursement
+food_stock_kg = surplus_du_tick − remboursement    # les kg quittent le stock
+```
+
+Le ratio est borné à 1.0 dans le moteur : la réduction de la dette ne peut
+jamais dépasser le surplus physique du tick, quelle que soit la valeur donnée à
+la constante. La coupure `DEFICIT_ZERO_EPSILON` (brief 013) est conservée : un
+résidu de dette inférieur à 1 mg est ramené à zéro.
+
+**Conséquence attendue et assumée** : la dette se rembourse beaucoup plus vite
+qu'avec l'ancienne formule dès qu'il y a un vrai surplus, et pas du tout quand
+le surplus est infime. Les compteurs du monde réel changent légitimement —
+c'est l'objet de la re-mesure SC6 du brief 017.
+
+---
+
 ## Référence de code
 
 Tous les paramètres ci-dessus sont définis comme constantes nommées dans

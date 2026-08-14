@@ -1,0 +1,71 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/forge_red_b
+collecting ... collected 1 item
+
+sim/tests/test_mortalite_accumulateur.py::test_famine_tue_en_borne_de_ticks FAILED [100%]
+
+=================================== FAILURES ===================================
+______________________ test_famine_tue_en_borne_de_ticks _______________________
+
+    def test_famine_tue_en_borne_de_ticks():
+        """
+        SC3 — Une cellule de 5 habitants en famine totale perd au moins un
+        habitant en au plus N_BOUND_MORT ticks.
+    
+        Borne analytique (dérivée, documentée dans sim/SEEDING.md SC3 brief 017) :
+        au plafond de mortalité, `raw` augmente de
+        `population × MAX_DEATH_RATE_PER_TICK` par tick, soit une mort entière en
+        au plus `ceil(1 / MAX_DEATH_RATE_PER_TICK)` ticks quelle que soit la
+        taille de la cellule. Avec les constantes actuelles : N_BOUND_MORT = 10.
+    
+        Le déficit est pris à `population / HUNGER_DEATH_SCALE` kg, ce qui garantit
+        d'atteindre le plafond : per_capita × HDS = 1/HDS × HDS = 1 ≥
+        MAX_DEATH_RATE_PER_TICK.
+    
+        Compteur : famine_tue_cellule_5hab.
+        """
+        deficit_kg = POPULATION_PETITE_CELLULE / HUNGER_DEATH_SCALE
+        cell = Cell(
+            cell_id=1,
+            area_km2=1.0,
+            population=POPULATION_PETITE_CELLULE,
+            food_stock_kg=0.0,
+            hunger_ticks=0,
+            food_deficit_kg=deficit_kg,
+            mortality_remainder=0.0,
+        )
+    
+        tick_du_premier_mort = -1  # sentinelle : aucune mort observée
+        for numero_tick in range(1, N_BOUND_MORT + 1):
+            population_avant = cell.population
+            _apply_mortality(cell)
+            if cell.population < population_avant and tick_du_premier_mort < 0:
+                tick_du_premier_mort = numero_tick
+                break
+    
+        morts = POPULATION_PETITE_CELLULE - cell.population
+        famine_tue_cellule_5hab = morts
+        print(f"N_BOUND_MORT = {N_BOUND_MORT} (= ceil(1 / {MAX_DEATH_RATE_PER_TICK}))")
+        print(f"deficit_kg = {deficit_kg}")
+        print(f"tick_du_premier_mort = {tick_du_premier_mort}")
+        print(f"famine_tue_cellule_5hab = {famine_tue_cellule_5hab}")
+    
+>       assert famine_tue_cellule_5hab >= 1, (
+            f"Cellule de {POPULATION_PETITE_CELLULE} habitants en famine totale "
+            f"toujours intacte après {N_BOUND_MORT} ticks : la fraction de mort "
+            "est encore jetée par int()."
+        )
+E       AssertionError: Cellule de 5 habitants en famine totale toujours intacte après 10 ticks : la fraction de mort est encore jetée par int().
+E       assert 0 >= 1
+
+sim/tests/test_mortalite_accumulateur.py:88: AssertionError
+----------------------------- Captured stdout call -----------------------------
+N_BOUND_MORT = 10 (= ceil(1 / 0.1))
+deficit_kg = 1000.0
+tick_du_premier_mort = -1
+famine_tue_cellule_5hab = 0
+=========================== short test summary info ============================
+FAILED sim/tests/test_mortalite_accumulateur.py::test_famine_tue_en_borne_de_ticks
+============================== 1 failed in 0.02s ===============================

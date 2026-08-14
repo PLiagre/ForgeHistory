@@ -79,10 +79,18 @@ def test_sc7a_stock_decreases_when_production_lt_consumption():
 
 def test_sc7b_hunger_ticks_increments_when_stock_empty():
     """
-    SC7b : une cellule avec stock = 0 voit hunger_ticks augmenter d'au moins 1.
+    SC7b : une cellule qui a MANQUÉ de nourriture ce tick voit hunger_ticks
+    augmenter d'au moins 1.
     État initial construit à la main. Un seul maillon testé (_update_hunger).
     area_km2 = 1.0 (≥ minimum G3 = 1.444877 km²), conforme au plancher SC5 brief 012.
     La superficie n'est pas lue par _update_hunger, mais le test respecte le plancher.
+
+    ADAPTATION brief 017 (SC4) — motivation : le maillon faim ne lit plus
+    `food_stock_kg` mais la pénurie du tick retournée par `_apply_consumption`
+    (un garde-manger vide après avoir mangé sa ration n'est pas de la
+    sous-alimentation). Le test passe donc explicitement la pénurie du tick.
+    La pénurie utilisée ici est le besoin complet de la cellule, qui ne
+    disposait d'aucun stock : `population × FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK`.
     """
     cell = Cell(
         cell_id=2,
@@ -93,8 +101,9 @@ def test_sc7b_hunger_ticks_increments_when_stock_empty():
         food_deficit_kg=0.0,
     )
     hunger_before = cell.hunger_ticks
+    penurie_kg = cell.population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
 
-    _update_hunger(cell)
+    _update_hunger(cell, penurie_kg)
 
     hunger_after = cell.hunger_ticks
     print(f"hunger_before = {hunger_before}, hunger_after = {hunger_after}")

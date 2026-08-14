@@ -47,8 +47,16 @@ class Cell(_NoBadSpatialField):
                            Sentinelle -1 = non initialisé (hard-won rule 8).
         food_deficit_kg  : déficit alimentaire cumulé en kg (brief 012, SC3).
                            Accumulé quand la consommation dépasse le stock.
-                           Remis à 0 quand la cellule dispose d'un surplus.
+                           Réduit par les kilogrammes de surplus réellement
+                           consommés en sus du besoin (SC5 brief 017).
                            Sentinelle -1 = non encore calculé (hard-won rule 8).
+        mortality_remainder : partie fractionnaire de mort non encore appliquée,
+                           reportée au tick suivant (SC3 brief 017).
+                           Sans ce report, `int(population × death_rate)`
+                           arrondit à zéro toute mortalité inférieure à un
+                           habitant : une petite cellule devient immortelle
+                           par arrondi.
+                           Sentinelle -1 = non calculé (hard-won rule 8).
     """
 
     cell_id: int
@@ -57,3 +65,4 @@ class Cell(_NoBadSpatialField):
     food_stock_kg: float = field(default=-1.0)
     hunger_ticks: int = field(default=-1)
     food_deficit_kg: float = field(default=-1.0)
+    mortality_remainder: float = field(default=-1.0)

@@ -1,3 +1,9 @@
+> ⚠️ **GRAINE FUSIONNÉE — NE PAS EXÉCUTER.**
+> Ce dossier est un artefact de conversion (archive de provenance).
+> Le brief exécutable est :
+> **`harness/queue/briefs/017-sim-seuil-survie-honnete/brief.md`**
+> Ne pas étendre ni exécuter cette graine.
+
 # Brief 015: <<TODO (planificateur): titre>> (issu de l'audit CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite)
 
 **Authored**: 2026-08-13T12:59:23Z
