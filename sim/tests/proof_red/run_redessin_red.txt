@@ -1,0 +1,107 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/forge-018-red-b
+collecting ... collected 2 items
+
+sim/tests/test_redessin_province.py::test_redessin_change_agregat_sans_reecrire_les_cellules centre deplace : id=1 nom=Île-de-France
+cellule cible : 1175 (relevait du centre 12)
+redessin_change_agregat = 1 / 1
+cellules_changeant_de_province_apres_redessin = 22 / 596
+redessin_cellules_intactes = 0 / 1 (596 cellules comparees)
+attributs_dynamiques_sur_cellules = 596 / 596
+fichier_centroides_inchange_apres_redessin = 1 / 1
+FAILED
+sim/tests/test_redessin_province.py::test_redessin_naffecte_pas_les_enregistrements_lus enregistrements_de_centres_modifies = 0 / 50
+PASSED
+
+=================================== FAILURES ===================================
+___________ test_redessin_change_agregat_sans_reecrire_les_cellules ____________
+
+    def test_redessin_change_agregat_sans_reecrire_les_cellules():
+        """
+        SC3 — les deux faits sont vérifiés ensemble : l'agrégat bouge ET les
+        cellules ne bougent pas. Vérifier l'un sans l'autre ne prouverait rien.
+        """
+        monde = World.from_g3(rng_seed=RNG_SEED)
+        positions = charger_positions()
+        centres = charger_centres()
+    
+        regroupements_a = agregat_depuis_monde(monde, positions=positions, centres=centres)
+        appartenance_a = appartenance_depuis_regroupements(regroupements_a)
+    
+        serialisation_avant = json.dumps(monde.to_dict(), sort_keys=True)
+        attributs_avant = _releve_attributs(monde)
+        octets_avant = _CHEMIN_CENTRES.read_bytes()
+    
+        # Le centre de plus petit id est déplacé sur la position exacte d'une
+        # cellule qui relève actuellement d'un autre centre : à distance nulle il
+        # gagne, et une éventuelle égalité serait tranchée en sa faveur par D4.
+        centre_deplace = min(centres, key=lambda centre: centre.id)
+        cible = next(
+            cell_id
+            for cell_id in sorted(appartenance_a)
+            if appartenance_a[cell_id] != centre_deplace.id
+        )
+        latitude_cible, longitude_cible = positions[cible]
+    
+        centres_redessines = [
+            dataclasses.replace(centre, lat=latitude_cible, lon=longitude_cible)
+            if centre.id == centre_deplace.id
+            else centre
+            for centre in centres
+        ]
+    
+        regroupements_b = agregat_depuis_monde(
+            monde, positions=positions, centres=centres_redessines
+        )
+        appartenance_b = appartenance_depuis_regroupements(regroupements_b)
+    
+        serialisation_apres = json.dumps(monde.to_dict(), sort_keys=True)
+        attributs_apres = _releve_attributs(monde)
+        octets_apres = _CHEMIN_CENTRES.read_bytes()
+    
+        cellules_changeant = sum(
+            1 for cell_id in appartenance_a if appartenance_a[cell_id] != appartenance_b[cell_id]
+        )
+        redessin_change_agregat = int(cellules_changeant > 0)
+    
+        attributs_dynamiques = sum(
+            1
+            for cell_id, cellule in monde.cells.items()
+            if set(vars(cellule)) - _champs_declares(cellule)
+        )
+    
+        redessin_cellules_intactes = int(
+            serialisation_avant == serialisation_apres and attributs_avant == attributs_apres
+        )
+        fichier_centroides_inchange = int(octets_avant == octets_apres)
+    
+        total = len(monde.cells)
+        print(f"centre deplace : id={centre_deplace.id} nom={centre_deplace.name}")
+        print(f"cellule cible : {cible} (relevait du centre {appartenance_a[cible]})")
+        print(f"redessin_change_agregat = {redessin_change_agregat} / 1")
+        print(f"cellules_changeant_de_province_apres_redessin = {cellules_changeant} / {total}")
+        print(f"redessin_cellules_intactes = {redessin_cellules_intactes} / 1 ({total} cellules comparees)")
+        print(f"attributs_dynamiques_sur_cellules = {attributs_dynamiques} / {total}")
+        print(f"fichier_centroides_inchange_apres_redessin = {fichier_centroides_inchange} / 1")
+    
+        assert redessin_change_agregat == 1, (
+            "Le redessin ne change aucune appartenance : la province n'est pas "
+            "derivee, elle est figee."
+        )
+        assert cellules_changeant > 0
+        assert appartenance_b[cible] == centre_deplace.id, (
+            "A distance nulle, le centre deplace doit gagner."
+        )
+>       assert attributs_dynamiques == 0, (
+            "Au moins une cellule a acquis un attribut d'instance : "
+            "l'appartenance a ete estampillee sur les cellules."
+        )
+E       AssertionError: Au moins une cellule a acquis un attribut d'instance : l'appartenance a ete estampillee sur les cellules.
+E       assert 596 == 0
+
+sim/tests/test_redessin_province.py:125: AssertionError
+=========================== short test summary info ============================
+FAILED sim/tests/test_redessin_province.py::test_redessin_change_agregat_sans_reecrire_les_cellules
+========================= 1 failed, 1 passed in 0.09s ==========================
