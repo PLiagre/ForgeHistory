@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-14 07:53 UTC.
+> Générée le 2026-08-14 08:03 UTC.
 
 ## En bref
 
@@ -16,7 +16,6 @@
 ## Ce qui attend le propriétaire
 
 - Fusionner (ou refuser) la PR #103 — « Jalon E2 : le monde vivant compte juste (ETAPE-02) » (branche `forge/etape-02-monde-vivant-779a`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
-- Fusionner (ou refuser) la PR #102 — « Brief 018 : la Province dérivée (agrégation ADR-0003, jamais un champ stocké) » (branche `forge/018-province-derivee-779a`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -31,21 +30,21 @@
 
 | quand (UTC) | workflow | déclencheur | branche | résultat |
 |---|---|---|---|---|
-| 2026-08-14 07:53:37 | hermes-dashboard | schedule | master | in_progress |
+| 2026-08-14 08:03:28 | security | push | master | in_progress |
+| 2026-08-14 08:03:28 | audit-guard | push | master | in_progress |
+| 2026-08-14 08:03:28 | harness-ci | push | master | in_progress |
+| 2026-08-14 08:03:28 | hermes-dashboard | push | master | in_progress |
+| 2026-08-14 08:03:27 | hermes-observer | pull_request_target | forge/018-province-derivee-779a | queued |
+| 2026-08-14 07:54:34 | hermes-observer | workflow_run | master | queued |
+| 2026-08-14 07:54:14 | hermes-observer | workflow_run | master | queued |
+| 2026-08-14 07:54:13 | hermes-observer | workflow_run | master | queued |
+| 2026-08-14 07:53:57 | harness-ci | push | master | success |
+| 2026-08-14 07:53:57 | audit-guard | push | master | success |
+| 2026-08-14 07:53:57 | security | push | master | success |
+| 2026-08-14 07:53:37 | hermes-dashboard | schedule | master | success |
 | 2026-08-14 07:14:21 | hermes-observer | workflow_run | master | queued |
 | 2026-08-14 07:14:19 | hermes-observer | workflow_run | master | queued |
 | 2026-08-14 07:14:10 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 07:14:08 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 07:14:07 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 07:14:03 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 07:13:53 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 07:13:50 | security | pull_request | forge/018-province-derivee-779a | success |
-| 2026-08-14 07:13:50 | merge-bot | pull_request | forge/018-province-derivee-779a | skipped |
-| 2026-08-14 07:13:50 | harness-ci | pull_request | forge/018-province-derivee-779a | success |
-| 2026-08-14 07:13:50 | audit-guard | pull_request | forge/018-province-derivee-779a | success |
-| 2026-08-14 07:13:49 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 07:13:49 | hermes-observer | pull_request_target | forge/018-province-derivee-779a | queued |
-| 2026-08-14 07:13:47 | harness-ci | push | forge/018-province-derivee-779a | success |
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -120,6 +119,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 015-pr69-seuil-survie-ignore-mortalite | pas encore de verdict |
 | 016-pr69-seuil-survie-non-borne | pas encore de verdict |
 | 017-sim-seuil-survie-honnete | dernier verdict tracé : ACCEPT |
+| 018-sim-province-derivee | dernier verdict tracé : ACCEPT |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
@@ -128,7 +128,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 29 | 2026-08-13 12:32 |
-| cursor | 12 | 2026-08-13 21:10 |
+| cursor | 13 | 2026-08-14 06:22 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
