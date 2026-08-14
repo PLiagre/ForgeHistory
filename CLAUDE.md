@@ -49,6 +49,11 @@ pass. See [docs/rules/harness-roles.md](docs/rules/harness-roles.md) and
 (Claude Code by default, or Cursor CLI via `harness/backends/`) — see
 [harness/backends/README.md](harness/backends/README.md).
 
+Depuis ADR-0013, ce harnais reste disponible en mode manuel et comme archive de
+preuves. Le workflow pilote nominal vit dans `control-plane/` : Grok planifie
+et relit en deux invocations distinctes et en lecture seule ; Cursor est le
+seul exécutant. Le producteur ne fusionne jamais son propre travail.
+
 ## Architecture
 
 - **ROADMAP.md** — the game/project roadmap, owned by Hermes (project
@@ -57,6 +62,9 @@ pass. See [docs/rules/harness-roles.md](docs/rules/harness-roles.md) and
 - **hermes/** — the project lead's writing contract: reports and evolution
  requests, versioned and author-traceable. Never code, CI, briefs or
  verdicts. See `hermes/README.md`.
+- **control-plane/** — ForgePilot, le pilote minimal ADR-0013. Il lance Grok
+  en lecture seule et Cursor dans un worktree isolé ; son état local sous
+  `.forgepilot/` n'est jamais une source de vérité produit.
 - **sim/** — the simulation engine, testable without Unity. Empty stub (F1+).
 - **pipeline/geo/** — geo/map pipeline, incl. sources.lock. Empty stub (F1).
 - **harness/** — brief queue, three-role agents' shared contract, the
@@ -95,6 +103,7 @@ py harness/harness_audit.py                       # harness maturity self-audit
 py harness/budget.py status --brief <brief_dir>   # execution budget (100 warn / 130 checkpoint / 160 stop)
 py harness/budget.py split-check --brief <brief_dir>  # advisory NEEDS_SPLIT pre-flight, before generation
 py hermes/dashboard.py                            # regenerate hermes/DASHBOARD.md (the owner's readable status view)
+cd control-plane && python3 -m unittest discover -s tests -v  # ForgePilot
 unity/run-unity.ps1 -LogFile <abs> -UnityArgLine '<unity args>'  # Unity batchmode: one call, waits, no polling
 ```
 

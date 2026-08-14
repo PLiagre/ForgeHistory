@@ -1,6 +1,49 @@
 # HANDOFF.md
 
-## Session la plus récente — 2026-08-14 : brief 018 (Province dérivée), critères E2 réunis
+## Session la plus récente — 2026-08-14 : pilote ForgePilot ADR-0013
+
+Décision propriétaire : suspendre la chaîne full-auto à quatre acteurs et
+tester trois lots avec Hermes léger, Grok Build distant et Cursor comme unique
+exécutant. Travail préparé sur `agent/forgepilot-workflow`.
+
+### État livré
+
+- nouveau projet autonome `control-plane/` : commandes `doctor`, `plan`,
+  `execute`, `publish` et `review` ; aucun appel construit avec `shell=True` ;
+- Grok planifie et relit avec sandbox `read-only`, écriture, mémoire et
+  sous-agents désactivés ; Cursor exécute dans un worktree `agent/*` avec sa
+  sandbox ; ForgePilot ouvre seulement une draft PR ;
+- ADR-0013, roadmap, contrat Hermes et skill de pilotage alignés ;
+- ancien pipeline déclaré `mode: manual`, options d'auto-fusion désactivées,
+  merge-bot arrêté hors `full_auto` ;
+- observateur Windows et génération automatique du dashboard retirés des
+  événements ; déclenchement manuel conservé pour le retour arrière ;
+- `VictoriaCityLab` n'est pas modifié pendant le pilote : ForgeHistory reste la
+  source d'autorité et CityLab reste une vue consommatrice.
+
+### Vérification transport
+
+Hermes sait lancer et surveiller un CLI externe via ses outils terminal/process
+et sait s'exposer comme serveur ACP. Il ne sait pas encore agir comme client ACP
+générique pour piloter Grok. Le transport retenu est donc le CLI headless :
+`grok -p ... --output-format json`, et non ACP. Une variable `XAI_API_KEY`
+présente fait échouer `forgepilot doctor`, afin que le pilote mesure bien
+l'abonnement SuperGrok et non l'API facturée séparément.
+
+### Validation
+
+- `control-plane`: 6 tests unitaires réussis ;
+- harnais historique : 348 réussites, 16 skips Unity attendus ;
+- `git diff --check` : propre.
+
+### Prochaine action propriétaire
+
+Installer le clone et les trois CLI sur un petit serveur Linux persistant,
+effectuer `grok login --device-auth`, `agent login`, `gh auth login`, puis
+lancer `forgepilot doctor --check-auth`. Ne pas activer de cron ni fusion automatique avant
+le bilan des trois lots.
+
+## Session précédente — 2026-08-14 : brief 018 (Province dérivée), critères E2 réunis
 
 **Contexte** : orchestration tenue par un agent Cursor Cloud remplaçant le
 CTO Claude. Trois sous-agents distincts, modèle Claude Opus 5

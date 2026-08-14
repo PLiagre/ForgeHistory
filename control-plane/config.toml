@@ -1,0 +1,13 @@
+[project]
+id = "forgehistory-citylab"
+engine_repository = "PLiagre/ForgeHistory"
+city_repository = "PLiagre/VictoriaCityLab"
+default_base_ref = "origin/master"
+default_base_branch = "master"
+
+[tools]
+grok_binary = "grok"
+cursor_binary = "agent"
+grok_model = ""
+cursor_model = "auto"
+timeout_seconds = 1800
