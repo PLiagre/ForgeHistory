@@ -48,8 +48,9 @@ n'avait pas d'addendum. Rattrapage factuel, puis le travail de ce matin.
    d'historique.
 3. **Jalon E2** : les trois critères sont réunis (seuil honnête ✓ 017 +
    Province dérivée ✓ 018 + monde mesuré sur 596 cellules ✓). Le fichier
-   `hermes/milestones/ETAPE-02-*.md` est préparé **sur une PR séparée**,
-   signalée au propriétaire. Ne pas fusionner soi-même.
+   `hermes/milestones/ETAPE-02-*.md` est préparé **sur une PR séparée
+   (#103)**, empilée sur #102. Ne pas fusionner soi-même. Ne pas
+   fusionner #103 avant #102.
 
 **Réserves de l'Évaluateur (verdict 018, non bloquantes)** : N1 — la
 détection de lecture de la couverture de vue ignore le type de l'objet
@@ -70,8 +71,8 @@ vivant.
 - `.venv/bin/python -m pytest harness/tests/ -q` → 348 passed, 16 skipped (Unity/Linux, attendus).
 
 **Prochain pas** : le propriétaire fusionne **#102** (lot 018 + cette
-correction de feuille de route), **sans squash**. Puis la PR séparée du
-jalon E2 (déclenche l'audit d'étape ADR-0012). Ensuite : F1 geo, ou brief
+correction de feuille de route), **sans squash**. Puis **#103** (jalon
+E2 — déclenche l'audit d'étape ADR-0012). Ensuite : F1 geo, ou brief
 de harnais, ou N1 du 017 — pas d'audit Cursor à attendre sur #102.
 
 ---
