@@ -16,6 +16,19 @@ La vérification des interfaces donne une limite structurante : Hermes expose un
 serveur ACP, mais ne possède pas encore de client ACP générique pour piloter un
 agent externe. Grok Build et Cursor fournissent tous deux un mode CLI headless.
 
+Références vérifiées le 2026-08-14 :
+
+- Hermes, commandes CLI et serveur ACP :
+  <https://hermes-agent.nousresearch.com/docs/reference/cli-commands> ;
+- absence actuelle de client ACP externe générique :
+  <https://github.com/NousResearch/hermes-agent/issues/36057> ;
+- Grok Build headless, JSON et ACP :
+  <https://docs.x.ai/build/cli/headless-scripting> ;
+- sandbox et désactivation de l'écriture Grok :
+  <https://docs.x.ai/build/settings/reference> ;
+- Cursor CLI headless avec écriture explicite `--force` :
+  <https://cursor.com/docs/cli/headless>.
+
 ## Décision
 
 Créer `control-plane/` comme projet Python autonome, sans dépendance runtime.
