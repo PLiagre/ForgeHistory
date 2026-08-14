@@ -10,8 +10,9 @@ d'évolution ; c'est lui qui reflète les décisions dans
 Ce dossier est la mise en œuvre de l'arbitrage n°4 du 2026-08-11
 (« dossier dédié, versionné, format imposé, auteur traçable »), étendu par
 ADR-0010 du statut d'observateur à celui de chef de projet, puis par ADR-0013
-vers un pilote léger : d'abord sur la partition Linux du propriétaire, puis sur
-un VPS seulement si le bilan des trois lots le justifie.
+vers un pilote léger : d'abord sur Windows avec WSL2 facultatif afin de garder
+Unity disponible, puis sur un VPS seulement si le bilan des trois lots le
+justifie.
 
 ## Ce qu'Hermes écrit — et rien d'autre
 
@@ -52,8 +53,9 @@ Hermes est la **console du propriétaire**. Pendant le pilote, il lance les
 commandes déterministes de `control-plane/` : `doctor`, `plan`, `execute`,
 `publish` et `review`. Claude Code est en lecture seule ; Cursor est le seul exécutant et travaille
 dans un worktree `agent/*`. Hermes ne lance jamais `--run` sans un ordre
-explicite et ne fusionne aucune PR automatiquement. ADR-0011 reste applicable
-aux actions GitHub du propriétaire.
+explicite et ne fusionne aucune PR automatiquement. Un lot VictoriaCityLab
+reste bloqué tant que le worker Unity Windows n'a pas validé son commit exact.
+ADR-0011 reste applicable aux actions GitHub du propriétaire.
 
 ## Format imposé (frontmatter)
 

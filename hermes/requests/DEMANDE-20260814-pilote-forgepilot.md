@@ -22,10 +22,11 @@ générique. Claude Code est donc lancé avec son CLI headless. Claude Pro ne pe
 pas servir de provider Anthropic natif à Hermes ; le CLI `claude -p` est la
 frontière retenue pour profiter de l'abonnement sans facturation API.
 
-Le pilote commence sur la partition Linux du propriétaire (environ 32 Go de
-RAM et 140 Go libres). Après trois lots seulement, un bilan décide d'une
-éventuelle migration vers un VPS 4 Go/2 vCPU/40 Go autour de 6 € par mois.
-Render n'est pas retenu pour héberger Hermes, son compute persistant adapté
-étant beaucoup plus cher. Le PC pourra rester un worker SSH facultatif pour
-Unity ; lorsqu'il est éteint, les tâches qui l'exigent attendent sans bloquer
-Hermes sur le VPS.
+Correction propriétaire : Unity est installé nativement sous Windows. Le pilote
+local garde donc Windows démarré et utilise WSL2 seulement si nécessaire ; il ne
+dépend plus du double démarrage Linux. Après trois lots seulement, un bilan
+décide d'une éventuelle migration vers un VPS 4 Go/2 vCPU/40 Go.
+
+Le VPS éventuel porte Hermes et ForgePilot. Le PC Windows reste le worker Unity.
+Lorsqu'il est éteint, les tâches Unity attendent sans bloquer Hermes, mais leur
+fusion reste interdite. Render n'est pas retenu pour héberger Hermes.

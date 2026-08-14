@@ -49,9 +49,11 @@ Claude Code (lecture seule)                   plan pré-écrit et critères mesu
   ▼
 Cursor CLI (worktree agent/*)                 unique exécutant : code et tests
   ▼
-CI                                             contrôles mécaniques
+CI portable                                   contrôles mécaniques ForgeHistory
+  ▼ si le lot touche VictoriaCityLab / Unity
+Worker Unity Windows                          commit exact, LFS, tests batchmode
   ▼
-Claude Code (nouvelle invocation, lecture seule) revue du diff contre le plan
+Claude Code (nouvelle invocation, lecture seule) revue du diff et des preuves
   ▼
 Propriétaire                                  décision de fusion
 ```
@@ -59,6 +61,12 @@ Propriétaire                                  décision de fusion
 L'ancien pipeline ADR-0010 reste disponible en mode `manual` comme solution de
 retour arrière. L'observateur Windows est suspendu. Le pilote n'utilise ni ACP,
 ni cron, ni auto-merge : `control-plane/README.md` est le runbook.
+
+Unity 6000.0.43f1 reste installé nativement sous Windows. Un lot qui touche
+VictoriaCityLab n'est jamais déclaré validé par les seuls contrôles Linux : il
+attend un worker Windows dédié et une preuve Unity. Le contrat cible est décrit
+dans `docs/operations/unity-windows-worker.md` ; son implémentation appartient à
+une PR VictoriaCityLab séparée.
 
 ## Grandes étapes — jalons d'audit (ADR-0012)
 
@@ -87,19 +95,24 @@ toute veille de décision irréversible du propriétaire.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. Installer ForgePilot, Hermes, Claude Code et Cursor CLI sur la partition
-   Linux du propriétaire ; authentifier Claude Code avec le compte Claude.ai
-   Pro et Cursor avec son compte. Ne pas fournir `ANTHROPIC_API_KEY` au pilote.
-2. Exécuter `forgepilot doctor`, puis un premier lot réel avec les commandes
+1. Garder Windows démarré pour préserver Unity. Installer le pilote soit
+   nativement sous Windows, soit dans WSL2 ; ne plus dépendre du double démarrage
+   sur la partition Linux. Authentifier Claude Code avec le compte Claude.ai Pro
+   et Cursor avec son compte ; ne pas définir `ANTHROPIC_API_KEY`.
+2. Exécuter `forgepilot doctor`, puis trois petits lots ForgeHistory avec
    `plan`, `execute` et `review`, sans cron et sans auto-merge.
-3. Refaire deux lots de portée comparable. Mesurer qualité du plan, retouches
-   humaines, durée, limites d'usage et incidents d'authentification.
-4. Après trois lots, décider : supprimer ForgePilot, le garder local ou migrer
-   Hermes sur un VPS 4 Go autour de 6 €/mois. Render n'est pas retenu pour
-   Hermes. Le PC peut ensuite rester worker SSH facultatif pour Unity.
-5. Ne réactiver l'ancien full-auto que par une nouvelle décision propriétaire.
-6. Côté produit, poursuivre F1 géographique (relief, climat, ressources), puis
-   brancher VictoriaCityLab comme vue de ville sur les contrats ForgeHistory.
+3. Si un lot touche VictoriaCityLab avant que son worker existe, le bloquer.
+   La première PR CityLab d'infrastructure doit ajouter un runner GitHub
+   auto-hébergé Windows, Git LFS et les tests Unity 6000.0.43f1 en batchmode,
+   déclenchés manuellement uniquement sur une branche de confiance.
+4. Après trois lots, décider : supprimer ForgePilot, le garder sur Windows/WSL2
+   ou migrer Hermes et ForgePilot sur un VPS 4 Go. Le PC Windows devient alors
+   le worker Unity ; lorsqu'il est éteint, la validation reste en attente.
+5. Render n'est pas retenu pour Hermes. Unity Build Automation reste une
+   alternative payante si le propriétaire veut supprimer la dépendance au PC.
+6. Ne réactiver l'ancien full-auto que par une nouvelle décision propriétaire.
+7. Côté produit, poursuivre F1 géographique, puis brancher VictoriaCityLab comme
+   vue mince sur les contrats ForgeHistory.
 
 ## Historique des révisions
 
@@ -110,4 +123,5 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-12 | orchestrateur Cursor (remplaçant du CTO Claude, indisponible — instruction propriétaire) | correction factuelle uniquement : brief 011 (F2, amorçage `sim/`) livré et accepté — statuts couche 1, F2 et étape 4 mis à jour |
 | 2026-08-13 | hermes (rédaction déléguée à l'orchestrateur Cursor, décision propriétaire — `DEMANDE-20260813-audit-par-grandes-etapes.md`) | audit/contre-audit par grandes étapes (ADR-0012) : section « Grandes étapes — jalons d'audit » (E1-E6), chaîne quatre acteurs mise à jour (Cursor audite les jalons, plus chaque PR) |
 | 2026-08-14 | hermes (rédaction déléguée, décision propriétaire — `DEMANDE-20260814-pilote-forgepilot.md`) | pilote ADR-0013 corrigé : Hermes léger, Claude Code Pro plan/revue en lecture seule, Cursor unique exécutant ; ancien full-auto en mode manuel |
-| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire) | hébergement progressif : trois lots sur le PC Linux, VPS 4 Go seulement si concluant, PC worker SSH facultatif ; Render écarté pour Hermes |
+| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire) | hébergement progressif : trois lots locaux, VPS 4 Go seulement si concluant ; Render écarté pour Hermes |
+| 2026-08-14 | hermes (rédaction déléguée, correction propriétaire — `DEMANDE-20260814-worker-unity-windows.md`) | correction de plateforme : Unity reste sous Windows ; pilote local Windows/WSL2, puis VPS facultatif + worker Unity Windows manuel et bloquant |

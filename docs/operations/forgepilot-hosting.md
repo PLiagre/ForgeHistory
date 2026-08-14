@@ -1,33 +1,32 @@
 # Hébergement du pilote ForgePilot
 
-**Décision propriétaire du 2026-08-14.** Ce document fixe où tourne Hermes
-pendant le pilote ADR-0013. Les tarifs sont des repères vérifiés à cette date,
-pas des engagements fournisseurs.
+**Décision propriétaire corrigée du 2026-08-14.** Unity est installé
+nativement sous Windows. Le control-plane et le worker Unity sont donc deux
+rôles distincts ; le double démarrage sur la partition Linux ne peut pas servir
+de base à une validation Unity disponible.
 
-## Déploiement en deux temps
+## 1. Trois lots sans coût sur le PC Windows
 
-### 1. Essai sans coût sur le PC Linux
+Les trois premiers lots ForgeHistory tournent sur le PC Windows, soit
+nativement, soit dans WSL2. Windows reste démarré pour conserver Unity
+6000.0.43f1 disponible. Pendant ce pilote :
 
-Les trois premiers lots tournent sur la partition Linux du propriétaire :
-
-- environ 32 Go de RAM et 140 Go libres ;
+- environ 32 Go de RAM ;
 - un seul lot actif ;
 - aucun cron, aucune fusion automatique et aucune boucle sans ordre humain ;
-- pas de modèle local, de navigateur automatisé, de voix ni de sous-agents ;
-- Claude Code planifie et relit ; Cursor exécute dans un worktree.
+- aucun modèle local, navigateur automatisé, mode voix ou sous-agent ;
+- Claude Code planifie et relit ; Cursor exécute dans un worktree ;
+- un lot CityLab est refusé tant que son worker Unity Windows n'est pas livré.
 
-Les clones mesurés occupent environ 522 Mo pour ForgeHistory et 1,2 Go pour
-VictoriaCityLab. Le disque local est donc très largement suffisant.
+Éteindre le PC arrête Hermes local et Unity. Ce comportement est accepté pendant
+les trois lots : aucune disponibilité permanente n'est encore promise.
 
-Éteindre le PC arrête Hermes et toute commande locale. Ce n'est pas un défaut
-du pilote : aucune boucle autonome n'est autorisée pendant ces trois lots.
+## 2. VPS seulement après le bilan
 
-### 2. VPS seulement si le bilan est positif
-
-Si Hermes apporte un confort mesurable, migrer ensuite la console sur un VPS
+Si Hermes apporte un confort mesurable, migrer le control-plane sur un VPS
 Linux persistant :
 
-| ressource | cible |
+| ressource | cible minimale |
 |---|---:|
 | RAM | 4 Go |
 | CPU | 2 vCPU |
@@ -35,60 +34,75 @@ Linux persistant :
 | swap | 2 Go |
 | parallélisme | 1 lot |
 
-Repères de coût vérifiés : Hetzner CX23, 4 Go/2 vCPU/40 Go, environ 5,99 € par
-mois ; OVH VPS-1, caractéristiques comparables, environ 5 à 7 € par mois selon
-TVA et région. Sources :
+Quatre Go suffisent à Hermes, ForgePilot et aux CLI lorsque les modèles restent
+distants, que Cursor et Claude Code ne tournent pas en parallèle et qu'Unity
+reste sur le PC Windows. Passer à 8 Go si les contrôles portables dépassent
+régulièrement 85 % de RAM ou utilisent durablement plus de 1 Go de swap.
+
+Repères de coût vérifiés le 2026-08-14 : Hetzner CX23, environ 5,99 € par
+mois ; OVH VPS-1, environ 5 à 7 € par mois selon TVA et région :
 
 - <https://www.hetzner.com/cloud/cost-optimized/> ;
 - <https://www.ovhcloud.com/en/vps/vps-france/>.
 
-La migration réinstalle les CLI sur le VPS et refait les authentifications.
-Les secrets et le contenu de `~/.hermes` ne sont jamais commités dans Git.
+La migration réinstalle les CLI et refait leurs authentifications. Les secrets
+et le contenu de `~/.hermes` ne sont jamais commités.
 
-## Architecture hybride ultérieure
+## 3. Architecture hybride cible
 
-Le VPS garde Hermes, ForgePilot, les clones et les tâches ordinaires. Le PC
-Linux reste un worker facultatif pour Unity, les tests lourds ou un éventuel
-modèle local. Hermes peut lui déléguer une commande par son backend SSH, à
-travers un VPN privé ; aucun port SSH domestique n'est exposé publiquement.
+| composant | emplacement | responsabilité |
+|---|---|---|
+| Hermes + ForgePilot | VPS Linux | dialogue, plan, worktrees, PR et suivi |
+| Claude Code | invoqué depuis le VPS | plan et revue en lecture seule |
+| Cursor CLI | VPS par défaut | écrit dans le worktree et pousse la branche |
+| Cursor Cloud | facultatif, explicite | autre mode d'exécution, jamais supposé |
+| Unity 6000.0.43f1 | PC Windows | import, compilation, tests et builds |
+| GitHub | distant | transport, file d'attente, preuves et statut |
+
+`agent -p` s'exécute sur la machine qui lance ForgePilot. Une conversation
+Cursor n'est envoyée dans le cloud que par un transfert Cloud Agent explicite.
+Dans les deux cas, Unity valide ensuite le commit Git exact produit.
+
+Le PC Windows devient un worker GitHub Actions auto-hébergé, sous un compte
+Windows dédié sans droits administrateur. Le runner communique vers GitHub en
+sortie ; aucun port domestique n'est exposé. Le contrat détaillé vit dans
+`docs/operations/unity-windows-worker.md`.
 
 Quand le PC est éteint :
 
 - Hermes reste joignable sur le VPS ;
-- les plans, revues, opérations Git et contrôles exécutables sur le VPS
-  continuent ;
-- une tâche qui exige Unity ou le PC reste bloquée et visible, sans être
-  déclarée réussie ;
-- elle ne reprend qu'après le retour du PC et une décision explicite pendant
-  le pilote.
+- les plans, revues et tâches ForgeHistory portables continuent ;
+- la validation Unity reste en attente et la fusion CityLab est interdite ;
+- le travail peut être relancé lorsque le worker revient en ligne.
 
-Référence du backend SSH Hermes :
-<https://hermes-agent.nousresearch.com/docs/user-guide/features/tools>.
+Un Wake-on-LAN à travers un VPN privé pourra être étudié après le pilote, sans
+faire partie du premier déploiement.
 
-## Pourquoi Render n'est pas l'hôte Hermes
+## 4. Pourquoi Render et le double démarrage sont écartés
 
-Un Background Worker Render peut rester actif, mais le plan du workspace et
-la machine du service sont facturés séparément. Les ordres de grandeur vérifiés
-sont 25 $/mois pour 2 Go, 85 $/mois pour 4 Go, puis 0,25 $/Go/mois pour le
-disque persistant. Le palier 512 Mo à 7 $/mois est inférieur au minimum Hermes.
+Render reste utile pour une API ou une démonstration CityLab, mais pas comme
+poste de travail Hermes : compute et disque persistant sont facturés séparément.
+La partition Linux locale reste disponible pour des usages manuels, mais booter
+dessus éteint Windows et rend Unity indisponible.
 
-Le stockage gratuit est éphémère et les services gratuits s'endorment. Render
-reste utilisable plus tard pour une API ou une démonstration CityLab, mais pas
-comme poste de travail persistant du pilote.
+Unity Build Automation est la seule variante qui supprime complètement la
+dépendance au PC ; elle exige une configuration et une consommation Unity
+DevOps séparées. Elle sera évaluée uniquement après mesure du worker Windows.
 
 Sources :
 
 - <https://render.com/pricing> ;
 - <https://render.com/docs/background-workers> ;
-- <https://render.com/docs/free> ;
-- <https://render.com/docs/compute-plans>.
+- <https://docs.unity.com/en-us/build-automation/get-started-with-build-automation/connect-your-version-control-system>.
 
 ## Garde-fous d'exploitation
 
-- ne pas exposer le dashboard Hermes directement à Internet ; utiliser
-  loopback + tunnel/VPN, ou activer son authentification ;
-- ne pas installer Ollama sur le VPS 4 Go ;
+- ne pas exposer le dashboard Hermes directement à Internet ;
+- ne pas installer Ollama ou Unity sur le VPS 4 Go ;
 - ne pas exécuter Cursor et Claude Code en parallèle ;
-- conserver les worktrees sous `.forgepilot/`, hors des sources produit ;
-- sauvegarder la configuration privée séparément et tester sa restauration ;
-- réévaluer RAM, disque et coût après les trois lots avant toute automatisation.
+- conserver les worktrees sous `.forgepilot/` ;
+- ne jamais considérer un worker Unity hors ligne comme un succès ;
+- ne jamais exécuter automatiquement une PR publique ou le code d'un fork sur
+  le PC Windows ;
+- conserver la fusion humaine et réévaluer coût, RAM et sécurité après trois
+  lots.

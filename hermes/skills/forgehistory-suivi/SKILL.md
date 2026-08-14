@@ -16,6 +16,7 @@ serveur pilote, pas sur le PC du propriétaire.
 
 Lire d'abord `ROADMAP.md`, puis la tâche ou l'issue explicitement nommée. Lire
 `control-plane/README.md` pour le transport et ADR-0013 pour les frontières.
+Pour tout lot CityLab, lire aussi `docs/operations/unity-windows-worker.md`.
 Dire qu'une donnée est absente au lieu de la déduire.
 
 ## Séquence obligatoire
@@ -23,14 +24,18 @@ Dire qu'une donnée est absente au lieu de la déduire.
 1. Exécuter `forgepilot doctor --repo <clone> --check-auth`.
 2. Vérifier qu'une seule tâche est active et qu'elle possède des critères
    mesurables. Sinon, arrêter et demander le choix au propriétaire.
+   Classer explicitement la tâche : ForgeHistory portable ou CityLab/Unity.
+   Refuser un lot CityLab tant que le worker Unity Windows n'est pas livré.
 3. Prévisualiser `forgepilot plan <task.md> --repo <clone>`.
 4. Sur ordre explicite, relancer avec `--run`. Montrer le plan produit avant
    toute exécution.
 5. Prévisualiser `forgepilot execute <plan.json> --task-name <id> --repo <clone>`.
 6. Sur ordre explicite, relancer avec `--run`. Cursor est le seul producteur et
    travaille dans le worktree `agent/<id>` créé par ForgePilot.
-7. Attendre les tests mécaniques. Ne jamais transformer une absence de test en
-   succès. Publier seulement une draft PR avec
+7. Attendre les tests mécaniques. Pour CityLab, exiger en plus le contrôle
+   Unity Windows sur le commit exact et les résultats XML/logs ; worker hors
+   ligne, contrôle absent ou test manquant = blocage. Publier seulement une
+   draft PR avec
    `forgepilot publish --repo <worktree> --title <titre> --run`.
 8. Lancer `forgepilot review <plan.json> --repo <worktree> --base <base> --run`.
    Cette commande ouvre une nouvelle invocation Claude Code en lecture seule.
@@ -45,10 +50,15 @@ Dire qu'une donnée est absente au lieu de la déduire.
 - Refuser `ANTHROPIC_API_KEY` ; Claude Code doit être connecté au compte
   Claude.ai Pro et non à la Console facturée à l'API.
 - Ne pas employer de cron pendant les trois lots pilotes.
-- Pendant ces trois lots, exécuter sur la partition Linux du propriétaire. Ne
-  pas provisionner Render ni louer un VPS avant le bilan écrit. Si le VPS est
-  ensuite retenu, traiter le PC comme worker SSH facultatif et bloquer
-  explicitement toute tâche qui l'exige lorsqu'il est hors ligne.
+- Pendant ces trois lots, garder Windows démarré ; utiliser WSL2 si un
+  environnement Linux est requis. Ne pas provisionner Render ni louer un VPS
+  avant le bilan écrit.
+- Si le VPS est ensuite retenu, y garder Hermes et ForgePilot. Le PC Windows
+  reste le seul worker Unity. Son indisponibilité bloque uniquement les lots
+  Unity et n'est jamais transformée en réussite.
+- VictoriaCityLab est public : ne jamais déclencher le runner personnel sur une
+  PR externe ou un fork. Pendant le pilote, validation manuelle d'une branche
+  appartenant au propriétaire uniquement.
 - Ne jamais transmettre de secret au prompt, au résultat ou au worktree Cursor.
 - Ne jamais réactiver `mode: full_auto` sans nouvelle décision propriétaire.
 

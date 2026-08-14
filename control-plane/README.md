@@ -13,22 +13,26 @@ une draft PR, relire.
 | Claude Code | plan avant le code, puis revue d'un diff dans une nouvelle invocation | aucun (`Read,Glob,Grep`) |
 | Cursor CLI | implémentation dans un worktree `agent/*` isolé | worktree du lot |
 | ForgePilot | commit, push et ouverture déterministe d'une draft PR | branche `agent/*` |
-| CI | tests mécaniques | artefacts de CI seulement |
+| CI portable | tests ForgeHistory et contrôles sans Unity | artefacts de CI seulement |
+| worker Unity Windows | import, compilation et tests du commit CityLab exact | résultats et artefacts Unity seulement |
 | propriétaire | décision de fusion | bouton de merge |
 
 ACP n'est pas utilisé pour le pilote. Hermes sait servir ACP, mais ne sait pas
 encore piloter un agent externe comme client ACP générique. Hermes lance donc
 les modes headless documentés de Claude Code et Cursor avec des arguments,
-jamais une commande construite par le modèle et passée à un shell.
+jamais une commande construite par le modèle et passée à un shell. `agent -p`
+s'exécute sur la machine qui lance ForgePilot ; un transfert explicite vers un
+Cursor Cloud Agent serait un autre mode et n'est pas activé par ce pilote.
 
 ## Installation locale, puis VPS éventuel
 
-Le pilote commence sur la partition Linux du propriétaire. Le VPS n'est loué
-qu'après trois lots concluants ; le choix d'hébergement et la future variante
-hybride sont détaillés dans
+Le pilote commence sans VPS sur le PC Windows du propriétaire. Les outils
+peuvent tourner nativement ou dans WSL2, tandis qu'Unity reste natif sous
+Windows. Le VPS n'est loué qu'après trois lots concluants ; le choix
+d'hébergement est détaillé dans
 [`docs/operations/forgepilot-hosting.md`](../docs/operations/forgepilot-hosting.md).
 
-Sur le PC comme sur le futur serveur :
+Les commandes Linux suivantes s'appliquent à WSL2 puis au futur VPS :
 
 ```bash
 python3 -m venv .venv
@@ -53,6 +57,20 @@ Claude Code doit être authentifié avec le compte Claude.ai Pro. Ne pas utilise
 `claude auth login --console` et ne pas définir `ANTHROPIC_API_KEY` : ces deux
 chemins basculent vers la facturation API. ForgePilot utilise `claude -p` sans
 mode `--bare`, car le mode bare ignore l'authentification d'abonnement.
+
+## Gate Unity Windows
+
+Cette PR n'installe rien dans VictoriaCityLab. Avant le premier lot qui touche
+ce dépôt, une PR dédiée doit implémenter le contrat
+[`docs/operations/unity-windows-worker.md`](../docs/operations/unity-windows-worker.md).
+Le worker récupère le commit exact et Git LFS, exécute Unity 6000.0.43f1 en
+batchmode, puis publie ses preuves. Tant que le worker est absent, hors ligne
+ou en échec, une modification CityLab reste bloquée.
+
+VictoriaCityLab étant public, le runner personnel ne répond jamais directement
+à `pull_request` et n'exécute jamais le code d'un fork. Pendant le pilote, seule
+une validation `workflow_dispatch` d'une branche contrôlée par le propriétaire
+est autorisée. La vérification visuelle des scènes reste humaine.
 
 ## Premier essai
 
@@ -81,6 +99,7 @@ agent. Les sorties réelles vont dans `.forgepilot/runs/`, ignoré par Git.
   plan`, outils `Read,Glob,Grep`, MCP et commandes personnalisées désactivés) ;
 - Cursor ne travaille que dans un worktree propre ;
 - un contrôle absent bloque la fusion ;
+- pour un lot CityLab, l'absence du contrôle Unity Windows bloque la fusion ;
 - après trois lots, comparer qualité, latence, consommation et interventions
   manuelles avant d'étendre le système.
 

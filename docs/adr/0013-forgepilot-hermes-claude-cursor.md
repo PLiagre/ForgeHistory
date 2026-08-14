@@ -33,8 +33,14 @@ Références vérifiées le 2026-08-14 :
   <https://code.claude.com/docs/en/cli-reference> ;
 - limite Claude Pro pour le provider Anthropic natif de Hermes :
   <https://hermes-agent.nousresearch.com/docs/reference/environment-variables> ;
-- Cursor CLI headless avec écriture explicite `--force` :
-  <https://cursor.com/docs/cli/headless>.
+- Cursor CLI headless avec écriture explicite `--force`, worktrees locaux et
+  transfert Cloud distinct : <https://cursor.com/docs/cli/using> ;
+- Unity en batchmode et Unity Test Framework :
+  <https://docs.unity3d.com/6000.5/Documentation/Manual/EditorCommandLineArguments.html>
+  et
+  <https://docs.unity3d.com/6000.5/Documentation/Manual/test-framework/reference-command-line.html> ;
+- runner GitHub auto-hébergé et risque des dépôts publics :
+  <https://docs.github.com/actions/hosting-your-own-runners/adding-self-hosted-runners>.
 
 ## Décision
 
@@ -42,19 +48,26 @@ Créer `control-plane/` comme projet Python autonome, sans dépendance runtime.
 Hermes en est la console légère facultative. Il lance Claude Code en
 subprocessus pour le plan et la revue, avec `--permission-mode plan` et une
 liste fermée d'outils de lecture. Il lance Cursor CLI comme unique exécutant
-dans un worktree `agent/*`. La CI juge les faits et
-le propriétaire reste seul décideur de la fusion.
+dans un worktree `agent/*`. La CI portable juge ForgeHistory. Tout lot qui
+touche VictoriaCityLab exige en plus une validation du commit exact par Unity
+6000.0.43f1 sur un worker Windows. Le propriétaire reste seul décideur de la
+fusion.
 
 Pendant trois lots pilotes : aucun cron, aucun auto-merge et une seule tâche
 active. L'ancien pipeline passe en mode `manual`; ses archives restent lisibles
 pour permettre un retour arrière.
 
-Le pilote commence sur la partition Linux du propriétaire, déjà dimensionnée
-pour ces trois lots. Aucun VPS n'est acheté avant le bilan. Si Hermes est
-conservé, la cible est un VPS 4 Go/2 vCPU/40 Go autour de 6 € par mois, avec le
-PC comme worker SSH facultatif pour Unity. Render est écarté pour Hermes : son
-compute adapté et son disque persistant coûtent nettement plus cher qu'un VPS.
-Le runbook détaillé vit dans `docs/operations/forgepilot-hosting.md`.
+Unity est installé nativement sous Windows ; le double démarrage vers la
+partition Linux rendrait donc le worker Unity indisponible. Les trois lots
+commencent sans VPS sur Windows, avec WSL2 facultatif pour les outils Linux.
+Aucun lot CityLab n'est autorisé avant l'ajout d'un worker Windows sécurisé.
+
+Si Hermes est conservé, la cible est un VPS Linux 4 Go/2 vCPU/40 Go avec 2 Go
+de swap. Le VPS garde Hermes, ForgePilot et les tâches ordinaires ; le PC
+Windows garde Unity, Git LFS et les tests lourds. Lorsqu'il est éteint, le
+contrôle Unity reste en attente et la fusion est bloquée. Render est écarté
+pour Hermes. Les runbooks vivent dans `docs/operations/forgepilot-hosting.md`
+et `docs/operations/unity-windows-worker.md`.
 
 ## Solutions envisagées
 
@@ -102,7 +115,9 @@ Le runbook détaillé vit dans `docs/operations/forgepilot-hosting.md`.
   conversation ; Claude Code via CLI est un délégué, pas son provider ;
 - le premier login Claude Code et Cursor doit être effectué sur le serveur
   d'exécution retenu ;
-- le pilote ne déploie pas lui-même le VPS et ne fusionne aucune PR.
+- le pilote ne déploie pas lui-même le VPS et ne fusionne aucune PR ;
+- l'installation et l'activation initiales de Unity restent une opération
+  humaine sur Windows ; les contrôles visuels ne sont pas automatisés.
 
 ### Risques
 
@@ -113,5 +128,10 @@ Le runbook détaillé vit dans `docs/operations/forgepilot-hosting.md`.
   invocation pour la revue.
 - **abonnement confondu avec API** : `doctor` et le runbook exigent un login
   Claude.ai ; la présence de `ANTHROPIC_API_KEY` bloque le pilote.
+- **runner personnel sur dépôt public** : aucun déclenchement automatique sur
+  `pull_request` ou code de fork ; validation manuelle d'une branche du
+  propriétaire pendant le pilote.
+- **Unity indisponible** : état bloqué explicite, jamais succès supposé ; les
+  tâches ForgeHistory sans Unity peuvent continuer sur le VPS.
 - **retour de complexité** : aucune nouvelle étape ou cadence avant le bilan
   écrit des trois lots.
