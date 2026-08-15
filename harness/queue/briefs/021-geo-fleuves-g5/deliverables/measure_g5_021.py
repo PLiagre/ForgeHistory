@@ -29,11 +29,9 @@ BRIEF = REPO / "harness" / "queue" / "briefs" / "021-geo-fleuves-g5"
 PY = REPO / ".venv" / "bin" / "python"
 
 NOT_COMPUTED = -1
-
-if str(GEO) not in sys.path:
-    sys.path.insert(0, str(GEO))
-
-import constants as C  # noqa: E402
+# Référence de base pour les compteurs « fichier intact » : un changement
+# *committé* sur la branche doit rougir (git status --porcelain ne le voit pas).
+BASE_REF = "origin/master"
 
 ROWS: list[tuple[str, object, str]] = []
 
@@ -51,9 +49,28 @@ def load(path: Path) -> dict:
 
 
 def git(*args: str) -> str:
-    return subprocess.run(
+    """Exécute git ; en cas d'échec lève — jamais un stdout vide lu comme succès."""
+    proc = subprocess.run(
         ["git", *args], cwd=REPO, capture_output=True, text=True
-    ).stdout
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"git {' '.join(args)} a échoué (code {proc.returncode}): "
+            f"{(proc.stderr or proc.stdout or '').strip()}"
+        )
+    return proc.stdout
+
+
+def paths_changed_vs_base(*paths: str) -> list[str] | int:
+    """Chemins parmi `paths` modifiés sur origin/master...HEAD.
+
+    Retourne NOT_COMPUTED (-1) si git échoue — jamais une liste vide silencieuse.
+    """
+    try:
+        out = git("diff", f"{BASE_REF}...HEAD", "--name-only", "--", *paths)
+    except RuntimeError:
+        return NOT_COMPUTED
+    return [line.strip() for line in out.splitlines() if line.strip()]
 
 
 def main() -> int:
@@ -116,7 +133,8 @@ def main() -> int:
     with_river = [
         e
         for e in adj5
-        if e.get("kind") == "land-land" and e.get("fluvial_class") in ("artery", "crossing", "both")
+        if e.get("kind") == "land-land"
+        and e.get("fluvial_class") in ("artery", "crossing", "both")
     ]
     artery = sum(1 for e in with_river if e.get("fluvial_class") == "artery")
     crossing = sum(1 for e in with_river if e.get("fluvial_class") == "crossing")
@@ -150,8 +168,9 @@ def main() -> int:
             continue
         ids = [r["segment_id"] for r in (edge.get("artery_rivers") or [])]
         if cls == "crossing":
-            # crossing n'embarque pas artery_rivers — on ne peut que constater le flag.
-            ok = edge.get("fluvial_artery") in (False, None) and not edge.get("artery_rivers")
+            ok = edge.get("fluvial_artery") in (False, None) and not edge.get(
+                "artery_rivers"
+            )
             samples[cls] = f"a={edge['a']} b={edge['b']} conforme_d3={int(ok)}"
         else:
             navs = {seg_nav.get(i) for i in ids}
@@ -172,6 +191,12 @@ def main() -> int:
         "embouchures_mesurees",
         len(mouths),
         "mouths de artifacts/mouths_g5.json (0 accepte si G5-D vert)",
+    )
+    non_adj = sum(1 for m in mouths if not m.get("sea_zone_adjacent_to_river_cells"))
+    report(
+        "embouchures_zone_non_adjacente",
+        non_adj,
+        f"{len(mouths)} embouchures ; compteur calcule (jamais suppose)",
     )
 
     checks = qa.get("checks") or []
@@ -203,7 +228,11 @@ def main() -> int:
             capture_output=True,
             text=True,
         )
-        report("code_sortie_run_proof_g5", proc.returncode, "1 execution de tests/run_proof_g5.py")
+        report(
+            "code_sortie_run_proof_g5",
+            proc.returncode,
+            "1 execution de tests/run_proof_g5.py",
+        )
     else:
         report(
             "code_sortie_run_proof_g5",
@@ -211,13 +240,7 @@ def main() -> int:
             "exit_code enregistre dans logs/v1_060_qa.json (passer --rerun-proof pour rejouer)",
         )
 
-    dirty_const = git("status", "--porcelain", "--", "pipeline/geo/constants.py").strip()
-    report(
-        "constantes_g5_inchangees",
-        int(not dirty_const),
-        "1 si git status --porcelain sur constants.py est vide",
-    )
-
+    # Compteurs « intact » : diff vs base (voit les changements committés).
     shared = [
         "pipeline/geo/constants.py",
         "pipeline/geo/qa/checks.py",
@@ -229,21 +252,67 @@ def main() -> int:
         "pipeline/geo/steps/03_cells.py",
         "pipeline/geo/steps/04_adjacency.py",
     ]
-    dirty_shared = [p for p in shared if git("status", "--porcelain", "--", p).strip()]
-    report(
-        "fichiers_partages_modifies",
-        len(dirty_shared),
-        f"{len(shared)} fichiers partages verifies par git status --porcelain",
-    )
+    changed_const = paths_changed_vs_base("pipeline/geo/constants.py")
+    if changed_const == NOT_COMPUTED:
+        report(
+            "constantes_g5_inchangees",
+            NOT_COMPUTED,
+            f"git diff {BASE_REF}...HEAD --name-only a echoue",
+        )
+    else:
+        report(
+            "constantes_g5_inchangees",
+            int(len(changed_const) == 0),
+            f"1 si constants.py absent de git diff {BASE_REF}...HEAD --name-only",
+        )
 
-    dirty_g4 = git(
-        "status", "--porcelain", "--", "pipeline/geo/artifacts/adjacency_g4.json"
-    ).strip()
-    report(
-        "adjacency_g4_inchange",
-        int(not dirty_g4),
-        "1 si git status --porcelain sur adjacency_g4.json est vide",
-    )
+    changed_shared = paths_changed_vs_base(*shared)
+    if changed_shared == NOT_COMPUTED:
+        report(
+            "fichiers_partages_modifies",
+            NOT_COMPUTED,
+            f"git diff {BASE_REF}...HEAD a echoue",
+        )
+    else:
+        report(
+            "fichiers_partages_modifies",
+            len(changed_shared),
+            f"{len(shared)} fichiers partages verifies par "
+            f"git diff {BASE_REF}...HEAD --name-only",
+        )
+
+    changed_g4 = paths_changed_vs_base("pipeline/geo/artifacts/adjacency_g4.json")
+    if changed_g4 == NOT_COMPUTED:
+        report(
+            "adjacency_g4_inchange",
+            NOT_COMPUTED,
+            f"git diff {BASE_REF}...HEAD a echoue",
+        )
+    else:
+        report(
+            "adjacency_g4_inchange",
+            int(len(changed_g4) == 0),
+            f"1 si adjacency_g4.json absent de git diff {BASE_REF}...HEAD --name-only",
+        )
+
+    # Preuve que ces compteurs peuvent rougir : un fichier *committé* modifié
+    # sur la branche (05_rivers.py) doit apparaître dans le diff de base.
+    known_changed = paths_changed_vs_base("pipeline/geo/steps/05_rivers.py")
+    if known_changed == NOT_COMPUTED:
+        report(
+            "preuve_compteur_intact_peut_rougir",
+            NOT_COMPUTED,
+            "git diff a echoue",
+        )
+    else:
+        report(
+            "preuve_compteur_intact_peut_rougir",
+            int(len(known_changed) > 0),
+            "1 si 05_rivers.py (modifie sur la branche) apparait dans "
+            f"git diff {BASE_REF}...HEAD — prouve que le compteur voit "
+            "une modification commitee",
+        )
+
     report(
         "adjacency_g5_differe_de_g4",
         int(sha256_of(ART / "adjacency_g5.json") != sha256_of(ART / "adjacency_g4.json")),
@@ -265,12 +334,19 @@ def main() -> int:
         "pipeline/geo/capture/v1_060_rivers_window.png",
         "pipeline/geo/capture/v1_060_artery_crossing_both.png",
     ]
-    tracked = set(git("ls-files", *declared_proofs).splitlines())
-    report(
-        "fichiers_preuve_suivis_par_git",
-        len(tracked),
-        f"{len(declared_proofs)} preuves declarees sous pipeline/geo/ (git ls-files)",
-    )
+    try:
+        tracked = set(git("ls-files", *declared_proofs).splitlines())
+        report(
+            "fichiers_preuve_suivis_par_git",
+            len(tracked),
+            f"{len(declared_proofs)} preuves declarees sous pipeline/geo/ (git ls-files)",
+        )
+    except RuntimeError as exc:
+        report(
+            "fichiers_preuve_suivis_par_git",
+            NOT_COMPUTED,
+            f"git ls-files a echoue : {exc}",
+        )
 
     if args.no_pytest:
         report("tests_harness_passed_021", NOT_COMPUTED, "non execute (--no-pytest)")
@@ -282,9 +358,17 @@ def main() -> int:
             text=True,
         )
         tail = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else ""
-        passed = int((re.search(r"(\d+) passed", tail) or [0, 0])[1]) if "passed" in tail else 0
-        skipped = int((re.search(r"(\d+) skipped", tail) or [0, 0])[1]) if "skipped" in tail else 0
-        failed = int((re.search(r"(\d+) failed", tail) or [0, 0])[1]) if "failed" in tail else 0
+        passed = (
+            int((re.search(r"(\d+) passed", tail) or [0, 0])[1]) if "passed" in tail else 0
+        )
+        skipped = (
+            int((re.search(r"(\d+) skipped", tail) or [0, 0])[1])
+            if "skipped" in tail
+            else 0
+        )
+        failed = (
+            int((re.search(r"(\d+) failed", tail) or [0, 0])[1]) if "failed" in tail else 0
+        )
         collected = passed + skipped + failed
         report(
             "tests_harness_passed_021",
@@ -303,6 +387,11 @@ def main() -> int:
         "stats_mouth_count",
         int(stats["mouth_count"]),
         f"{len(mouths)} reconstruit depuis mouths_g5.json",
+    )
+    report(
+        "stats_embouchures_zone_non_adjacente",
+        int(stats.get("embouchures_zone_non_adjacente", NOT_COMPUTED)),
+        f"{non_adj} reconstruit depuis mouths_g5.json",
     )
 
     if args.json:
@@ -329,6 +418,11 @@ def main() -> int:
     print(f"{len(ROWS)} compteurs imprimes, chacun avec son denominateur.")
     return 0
 
+
+if str(GEO) not in sys.path:
+    sys.path.insert(0, str(GEO))
+
+import constants as C  # noqa: E402
 
 if __name__ == "__main__":
     sys.exit(main())

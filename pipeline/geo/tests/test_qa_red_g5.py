@@ -112,23 +112,23 @@ def red_g5c(
 
 
 def red_g5d(mouths: Sequence[dict]) -> Tuple[str, bool]:
-    ms = copy.deepcopy(list(mouths))
-    if not ms:
-        # Ensemble vide : forcer une embouchure invalide.
-        ms = [
-            {
-                "segment_id": "fake_mouth",
-                "name": "FAKE",
-                "sea_zone_id": -1,
-                "sea_zone_adjacent_to_river_cells": False,
-            }
-        ]
-        case = "embouchure_inventee_flag_adjacent_false"
-    else:
-        ms[0]["sea_zone_adjacent_to_river_cells"] = False
-        case = f"embouchure_{ms[0]['segment_id']}_flag_adjacent_force_false"
+    """Cas rouge naturel : embouchure dont la zone la plus proche n'est
+    adjacente à aucune cellule du fleuve — le défaut que G5-D doit attraper.
+    Pas une mutation d'un drapeau déjà vrai.
+    """
+    natural_bad = {
+        "segment_id": "natural_non_adjacent_mouth",
+        "name": "NATURAL_NON_ADJACENT",
+        "sea_zone_id": 9999,
+        "sea_zone_name": "zone_non_adjacente_aux_cellules",
+        "sea_zone_adjacent_to_river_cells": False,
+    }
+    ms = list(mouths) + [natural_bad]
     result = g5d_mouth_on_adjacent_sea(ms)
-    return case, (not result.passed)
+    return (
+        "embouchure_zone_plus_proche_non_adjacente_aux_cellules",
+        (not result.passed),
+    )
 
 
 def run_all_red_g5(

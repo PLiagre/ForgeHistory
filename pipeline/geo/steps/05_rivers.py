@@ -259,6 +259,13 @@ def load_context(*, rebuild_land: bool = True) -> Dict[str, Any]:
     fingerprint = verify_source_fingerprint()
 
     # Terre / mer comme G4 : via 02b, puis dérivation mer de 04 (lecture seule).
+    # rebuild_land=False n'est pas un chemin silencieux : passer False ne doit
+    # pas reconstruire quand même (effet de bord G2b). Comme G4, on refuse.
+    if not rebuild_land:
+        raise RuntimeError(
+            "rebuild_land=False non supporté : G5 dérive terre/mer via "
+            "steps/02b run_corrections (pas d'artefact partiel)"
+        )
     g2b = _load_module("corrections_g2b", "steps/02b_corrections_1400.py")
     run = g2b.run_corrections(apply_corrections=True, clean_build=False)
     land_ll = run["land_ll"]
@@ -269,15 +276,6 @@ def load_context(*, rebuild_land: bool = True) -> Dict[str, Any]:
         land_xy = land_xy.buffer(0)
 
     adj_mod = _load_module("adjacency_g4", "steps/04_adjacency.py")
-    ctx_g4 = {
-        "projector": projector,
-        "land_ll": land_ll,
-        "land_xy": land_xy,
-        "lakes_ll": lakes_ll,
-        "open_sea_ll": open_sea_ll,
-        "cell_geoms": [],
-        "cell_ids": [],
-    }
     # derive_sea n'a besoin que de land/lakes/open_sea + projector.
     sea_pack = adj_mod.derive_sea(
         {
@@ -480,6 +478,10 @@ def enrich_adjacency(
     return out, counts
 
 
+# Tolérance lon/lat pour « extrémité posée sur le bord de fenêtre » (clip).
+_WINDOW_EDGE_EPS_DEG = 1e-7
+
+
 def derive_mouths(
     segments: Sequence[dict],
     attachments: Dict[str, List[int]],
@@ -488,8 +490,18 @@ def derive_mouths(
     zone_geoms: Dict[int, Any],
     sea_xy: Any,
     snap_m: float,
+    *,
+    window_ll: Any,
+    projector: Projector,
 ) -> List[dict]:
-    """D6 — embouchures aval près de la mer, zone adjacente aux cellules du fleuve."""
+    """D6 — embouchures aval près de la mer ; booléen d'adjacence **calculé**.
+
+    Zone retenue = la plus proche parmi **toutes** les zones de mer (pas
+    seulement celles déjà adjacentes aux cellules du fleuve). Le drapeau
+    `sea_zone_adjacent_to_river_cells` est alors vrai ou faux selon que cette
+    zone partage une arête land-sea avec au moins une cellule traversée.
+    Les extrémités créées par le clip sur `window_ll.exterior` sont exclues.
+    """
     # cell_id → zones de mer adjacentes (arêtes land-sea)
     cell_to_zones: Dict[int, List[int]] = {}
     zone_ids = set(zone_geoms.keys())
@@ -502,46 +514,47 @@ def derive_mouths(
         elif b in zone_ids and a not in zone_ids:
             cell_to_zones.setdefault(a, []).append(b)
 
+    zone_name_by_id = {
+        int(z["zone_id"]): z.get("name") for z in sea_zones
+    }
+    window_exterior = window_ll.exterior
+
     mouths: List[dict] = []
     for seg in segments:
         if seg.get("featurecla") == "Lake Centerline":
             continue
         line = seg["_geom"]
         endpoints = _line_endpoints(line)
-        near = [p for p in endpoints if float(sea_xy.distance(p)) <= snap_m]
+        near: List[Point] = []
+        for p in endpoints:
+            # Exclure les extrémités artificielles du clip au bord de fenêtre.
+            p_ll = unproject_shapely_xy_to_ll(p, projector)
+            if float(p_ll.distance(window_exterior)) <= _WINDOW_EDGE_EPS_DEG:
+                continue
+            if float(sea_xy.distance(p)) <= snap_m:
+                near.append(p)
         if not near:
             continue
         # Point terminal aval : le plus proche de la mer parmi les candidats.
         pt = min(near, key=lambda p: float(sea_xy.distance(p)))
+        # Zone maritime la plus proche — toutes les zones, pas un sous-ensemble.
+        nearest = min(
+            zone_geoms.items(),
+            key=lambda item: float(item[1].distance(pt)),
+        )
+        zone_id = int(nearest[0])
         cells = attachments.get(seg["segment_id"], [])
-        adj_zone_ids = sorted(
-            {
-                zid
-                for cid in cells
-                for zid in cell_to_zones.get(cid, [])
-            }
-        )
-        eligible: List[Tuple[float, int]] = []
-        for zid in adj_zone_ids:
-            zg = zone_geoms[zid]
-            dist = float(zg.distance(pt))
-            if dist <= snap_m:
-                eligible.append((dist, zid))
-        if not eligible:
-            continue
-        eligible.sort()
-        zone_id = eligible[0][1]
-        zone_name = next(
-            (z.get("name") for z in sea_zones if int(z["zone_id"]) == zone_id),
-            None,
-        )
+        adj_zone_ids = {
+            zid for cid in cells for zid in cell_to_zones.get(cid, [])
+        }
+        adjacent = zone_id in adj_zone_ids
         mouths.append(
             {
                 "segment_id": seg["segment_id"],
                 "name": seg.get("name"),
                 "sea_zone_id": zone_id,
-                "sea_zone_name": zone_name,
-                "sea_zone_adjacent_to_river_cells": True,
+                "sea_zone_name": zone_name_by_id.get(zone_id),
+                "sea_zone_adjacent_to_river_cells": bool(adjacent),
                 "distance_to_sea_m": round(float(sea_xy.distance(pt)), FLOAT_DECIMALS),
                 "geometry": mapping(pt),
             }
@@ -559,7 +572,9 @@ def compute_metrics(
     nav_counts = {"navigable": 0, "indeterminate": 0, "non_navigable": 0}
     for seg in segments:
         nav_counts[seg["navigability"]] = nav_counts.get(seg["navigability"], 0) + 1
-    land_land_total = -1  # renseigné par l'appelant si besoin
+    non_adj = sum(
+        1 for m in mouths if not m.get("sea_zone_adjacent_to_river_cells")
+    )
     return {
         "pipeline_version": G5_PIPELINE_VERSION,
         "segment_count": len(segments),
@@ -569,6 +584,8 @@ def compute_metrics(
         "both_count": edge_counts["both_count"],
         "aretes_terre_terre_avec_fleuve": edge_counts["aretes_terre_terre_avec_fleuve"],
         "mouth_count": len(mouths),
+        "embouchures_mesurees": len(mouths),
+        "embouchures_zone_non_adjacente": non_adj,
         "fleuves_nommes_trouves": named["fleuves_nommes_trouves"],
         "fleuves_nommes_attendus": named["fleuves_nommes_attendus"],
         "found_names": named["found_names"],
@@ -644,7 +661,11 @@ def export_g5(
         "data_class": "natural_earth_g5_mouths",
         "comment": (
             "Embouchures G5 — point terminal aval d'un tronçon non-lac à moins de "
-            "G5_MOUTH_SNAP_M de la mer, sur une zone maritime adjacente aux cellules."
+            "G5_MOUTH_SNAP_M de la mer. sea_zone_id = zone de mer G4 la plus proche "
+            "du point ; sea_zone_adjacent_to_river_cells est calculé (pas forcé). "
+            "sea_zone_name est un PROXY hérité de G4 : une composante connexe entière "
+            "porte une seule étiquette grossière (ex. Adriatique+Ionienne+Tyrrhénienne "
+            "sous « Mer Tyrrhenienne ») — ce n'est pas un fait hydrologique local."
         ),
         "projection": projector.info.epsg,
         "crs": crs_declaration(geometry_crs=projector.info.epsg, has_geometry_lonlat=False),
@@ -726,6 +747,7 @@ def write_captures(
     }
 
     def draw_land(ax):
+        sea_face = "#e3f2fd"
         for poly in _as_polygons(land_ll):
             ax.add_patch(
                 MplPolygon(
@@ -736,6 +758,18 @@ def write_captures(
                     linewidth=0.25,
                 )
             )
+            # Anneaux intérieurs = lacs / bassins exclus de la terre : les peindre
+            # en couleur mer, sinon ils apparaissent faussement comme de la terre.
+            for ring in poly.interiors:
+                ax.add_patch(
+                    MplPolygon(
+                        list(zip(*ring.xy)),
+                        closed=True,
+                        facecolor=sea_face,
+                        edgecolor="#33691e",
+                        linewidth=0.25,
+                    )
+                )
 
     def line_ll(geom_xy):
         return unproject_shapely_xy_to_ll(geom_xy, projector)
@@ -852,6 +886,8 @@ def run_rivers(
         ctx["zone_geoms"],
         ctx["sea_xy"],
         G5_MOUTH_SNAP_M,
+        window_ll=ctx["window_ll"],
+        projector=ctx["projector"],
     )
     timings["mouths"] = time.perf_counter() - t
 

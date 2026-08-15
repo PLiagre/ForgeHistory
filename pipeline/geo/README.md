@@ -329,6 +329,39 @@ villes : il rend au monde une seule réponse à la question « quelle terre ? »
 *Section rédigée en français clair, conformément à `CLAUDE.md` › « Langue et
 clarté ».*
 
+### Ce que « artère fluviale » dit, et ce qu'il ne dit pas
+
+Cette déclaration est écrite **avant** tout chiffre mesuré de ce lot
+(amendement 001 du brief 021).
+
+**Il permet d'embarquer, ou il faut le franchir.** Une arête terrestre touchée
+par un fleuve **navigable** est une arête où une cargaison peut entrer dans le
+réseau fluvial (`artery`) : le fleuve y est praticable en bateau. Une arête
+touchée seulement par des fleuves non navigables est un obstacle local
+(`crossing`) : on le franchit à gué ou par un pont. Une arête touchée par les
+deux (`both`) porte les deux faits.
+
+Ce que cette classification **ne dit pas** : elle ne dit pas que le fleuve
+longe la frontière, ni qu'il constitue un corridor de transport continu le long
+de cette arête. Mesuré sur le maillage actuel, un fleuve `artery` longe la
+frontière partagée sur 3 % de sa longueur au maximum — il la touche, il ne la
+suit pas. Un consommateur de `fluvial_artery` peut en conclure « on peut
+embarquer ici » ; il ne peut **pas** en conclure « on circule le long de cette
+frontière ».
+
+La classification reste celle de D3 (navigabilité seule) ; aucun seuil
+géométrique n'est introduit.
+
+### Proxy `scalerank` et proxy `sea_zone_name`
+
+- `navigability` est dérivée de `scalerank` Natural Earth : **proxy
+  cartographique** (importance visuelle), jamais un débit hydrologique.
+- `sea_zone_name` sur les embouchures est un **proxy hérité de G4** : une
+  composante connexe entière porte une seule étiquette grossière (par exemple
+  Adriatique + Ionienne + Tyrrhénienne sous « Mer Tyrrhenienne »). Ce n'est
+  pas un fait hydrologique local ; le Pô et l'Ofanto peuvent partager ce nom
+  sans se jeter dans la même mer réelle.
+
 ### Ce que ce lot livre
 
 - `steps/05_rivers.py` — lit `ne_10m_rivers_lake_centerlines` (déclarée dans
@@ -336,8 +369,8 @@ clarté ».*
   chaque tronçon en trois navigabilités dérivées de `scalerank` (bornes lues
   de `constants.py`, jamais un débit), rattache chaque tronçon aux cellules
   qu'il traverse, enrichit une **copie** des arêtes `land-land` de
-  `adjacency_g4.json` (artère / croisement / mixte), et dérive les
-  embouchures qui débouchent sur une zone de mer adjacente.
+  `adjacency_g4.json` (artère / croisement / mixte selon D3), et dérive les
+  embouchures (zone de mer la plus proche + booléen d'adjacence **calculé**).
 - `tests/run_proof_g5.py`, `tests/test_qa_red_g5.py` — six contrôles verts
   (`Q1`, `Q10`, `G5-A`, `G5-B`, `G5-C`, `G5-D`), chacun avec une preuve rouge
   non vide ; deux passes déterministes.
@@ -355,10 +388,10 @@ enrichie distincte. Aucune valeur de `constants.py` n'a été touchée.
 
 Les comptes exacts vivent dans `artifacts/stats_g5.json` et
 `logs/v1_060_qa.json` — ils se relisent, ils ne se recopient pas ici. La
-classification artère / croisement / mixte partitionne exactement les arêtes
-`land-land` touchées par au moins un tronçon ; `artery_count` est strictement
-positif. Les neuf noms de `G5_NAMED_MAJOR_RIVERS` sont cherchés dans la
-fenêtre (contrôle à l'œil, aucun plancher).
+classification artère / croisement / mixte (D3) partitionne exactement les
+arêtes `land-land` touchées par au moins un tronçon ; `artery_count` est
+strictement positif. Les neuf noms de `G5_NAMED_MAJOR_RIVERS` sont cherchés
+dans la fenêtre (contrôle à l'œil, aucun plancher).
 
 ### Ce que ce lot ne livre pas
 

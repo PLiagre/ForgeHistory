@@ -55,9 +55,210 @@
       "path": "deliverables/generator-log.md"
     },
     {
+      "path": "deliverables/manifest.json"
+    },
+    {
       "path": "../../../../harness/queue/cost-ledger.jsonl"
     }
   ],
-  "counters": [],
+  "counters": [
+    {
+      "name": "segment_count",
+      "value": 157,
+      "sample_size": 157,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : troncons de artifacts/rivers_g5.json"
+    },
+    {
+      "name": "navigability_counts",
+      "value": {
+        "indeterminate": 92,
+        "navigable": 36,
+        "non_navigable": 29
+      },
+      "sample_size": 157,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : segment_count=157 ; bornes lues NAV_MAX=5 NON_NAV_MIN=9"
+    },
+    {
+      "name": "navigability_counts_somme",
+      "value": 157,
+      "sample_size": 157,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 157 = segment_count"
+    },
+    {
+      "name": "aretes_terre_terre_avec_fleuve",
+      "value": 276,
+      "sample_size": 276,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 917 aretes land-land lues de adjacency_g4.json"
+    },
+    {
+      "name": "artery_count",
+      "value": 72,
+      "sample_size": 276,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 276 = aretes_terre_terre_avec_fleuve"
+    },
+    {
+      "name": "crossing_count",
+      "value": 195,
+      "sample_size": 276,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 276 = aretes_terre_terre_avec_fleuve"
+    },
+    {
+      "name": "both_count",
+      "value": 9,
+      "sample_size": 276,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 276 = aretes_terre_terre_avec_fleuve"
+    },
+    {
+      "name": "somme_classes_egale_aretes_avec_fleuve",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 1 si artery+crossing+both == aretes_terre_terre_avec_fleuve"
+    },
+    {
+      "name": "artery_count_positif",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 1 si artery_count > 0"
+    },
+    {
+      "name": "echantillon_d3_par_classe",
+      "value": {
+        "artery": "a=10174 b=10191 navs=['navigable'] conforme_d3=1",
+        "both": "a=10303 b=10310 navs=['indeterminate', 'navigable'] conforme_d3=1",
+        "crossing": "a=8992 b=9008 conforme_d3=1"
+      },
+      "sample_size": 3,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 1 arete par classe confrontee a D3"
+    },
+    {
+      "name": "embouchures_mesurees",
+      "value": 57,
+      "sample_size": 57,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : mouths de artifacts/mouths_g5.json (0 accepte si G5-D vert)"
+    },
+    {
+      "name": "embouchures_zone_non_adjacente",
+      "value": 0,
+      "sample_size": 57,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 57 embouchures ; compteur calcule (jamais suppose)"
+    },
+    {
+      "name": "fleuves_nommes_trouves",
+      "value": 9,
+      "sample_size": 9,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 9 = len(G5_NAMED_MAJOR_RIVERS) lu de constants.py"
+    },
+    {
+      "name": "paires_sha_determinisme_egales",
+      "value": 8,
+      "sample_size": 8,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 8 paires du bloc determinism.sha256"
+    },
+    {
+      "name": "controles_g5_verts",
+      "value": 6,
+      "sample_size": 6,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 6 entrees du tableau checks"
+    },
+    {
+      "name": "controles_g5_avec_preuve_rouge_non_vide",
+      "value": 6,
+      "sample_size": 6,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 6 entrees du tableau checks"
+    },
+    {
+      "name": "code_sortie_run_proof_g5",
+      "value": 0,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : exit_code enregistre dans logs/v1_060_qa.json (passer --rerun-proof pour rejouer)"
+    },
+    {
+      "name": "constantes_g5_inchangees",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 1 si constants.py absent de git diff origin/master...HEAD --name-only"
+    },
+    {
+      "name": "fichiers_partages_modifies",
+      "value": 0,
+      "sample_size": 9,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 9 fichiers partages verifies par git diff origin/master...HEAD --name-only"
+    },
+    {
+      "name": "adjacency_g4_inchange",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 1 si adjacency_g4.json absent de git diff origin/master...HEAD --name-only"
+    },
+    {
+      "name": "preuve_compteur_intact_peut_rougir",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 1 si 05_rivers.py (modifie sur la branche) apparait dans git diff origin/master...HEAD — prouve que le compteur voit une modification commitee"
+    },
+    {
+      "name": "adjacency_g5_differe_de_g4",
+      "value": 1,
+      "sample_size": 1,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 1 si empreintes calculees a l'execution different"
+    },
+    {
+      "name": "fichiers_preuve_suivis_par_git",
+      "value": 13,
+      "sample_size": 13,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 13 preuves declarees sous pipeline/geo/ (git ls-files)"
+    },
+    {
+      "name": "tests_harness_passed_021",
+      "value": 355,
+      "sample_size": 364,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 364 tests collectes dans harness/tests/ (355 passed ; 9 failed = test_run_unity.py sous WSL ou powershell.exe est present — SKIP attendu sur Linux sans PowerShell, AGENTS.md)"
+    },
+    {
+      "name": "stats_segment_count",
+      "value": 157,
+      "sample_size": 157,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 157 reconstruit depuis rivers_g5.json"
+    },
+    {
+      "name": "stats_mouth_count",
+      "value": 57,
+      "sample_size": 57,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 57 reconstruit depuis mouths_g5.json"
+    },
+    {
+      "name": "stats_embouchures_zone_non_adjacente",
+      "value": 0,
+      "sample_size": 57,
+      "command": ".venv/bin/python harness/queue/briefs/021-geo-fleuves-g5/deliverables/measure_g5_021.py",
+      "note": "denominateur mesure : 0 reconstruit depuis mouths_g5.json"
+    }
+  ],
   "waivers": []
 }

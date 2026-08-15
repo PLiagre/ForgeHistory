@@ -208,6 +208,9 @@ def main() -> int:
             "both_count": metrics["both_count"],
             "aretes_terre_terre_avec_fleuve": metrics["aretes_terre_terre_avec_fleuve"],
             "mouth_count": metrics["mouth_count"],
+            "embouchures_zone_non_adjacente": metrics.get(
+                "embouchures_zone_non_adjacente"
+            ),
             "fleuves_nommes_trouves": metrics["fleuves_nommes_trouves"],
         },
         "constants_read": {
@@ -249,6 +252,14 @@ def main() -> int:
         f"  sea_only_fraction lu: {G5_SEA_ONLY_FRACTION}",
         "",
         "=== aretes enrichies (D3) ===",
+        "  Classification D3 (navigabilite seule) : artery = tous les troncons",
+        "  touchants navigable ; crossing = aucun navigable ; both = melange.",
+        "  Ce que cette classification ne dit pas : elle ne dit pas que le fleuve",
+        "  longe la frontiere, ni qu'il constitue un corridor de transport continu",
+        "  le long de cette arete. Mesure : un fleuve artery longe la frontiere",
+        "  partagee sur 3 % de sa longueur au maximum — il la touche, il ne la",
+        "  suit pas. On peut embarquer ici ; on ne circule pas le long de la",
+        "  frontiere.",
         f"  aretes_terre_terre_totales: {metrics.get('aretes_terre_terre_totales')}",
         f"  aretes_terre_terre_avec_fleuve: {metrics['aretes_terre_terre_avec_fleuve']}",
         f"  artery={metrics['artery_count']} crossing={metrics['crossing_count']}"
@@ -256,17 +267,23 @@ def main() -> int:
         "",
         "=== embouchures (D6) ===",
         f"  mouth_count / embouchures_mesurees: {metrics['mouth_count']}",
+        f"  embouchures_zone_non_adjacente: {metrics.get('embouchures_zone_non_adjacente')}",
         f"  mouth_snap_m lu: {G5_MOUTH_SNAP_M}",
         "",
         "=== captures regardees ===",
-        "  v1_060_rivers_window.png : troncons colores par navigabilite sur la"
-        " fenetre pilote (bleu=navigable, jaune=indetermine, brun=non_navigable)."
-        " Les grands axes (Seine, Loire, Rhin, …) apparaissent bien en navigable"
-        " la ou scalerank le dit ; aucun trait ne traverse la pleine mer hors"
-        " centre-lignes de lac.",
-        "  v1_060_artery_crossing_both.png : zoom Manche / bas Rhin — traits rouges"
-        " = artery (tous navigables), violet = crossing (aucun navigable),"
-        " cyan = both (melange). Les trois classes coexistent sur le secteur.",
+        "  v1_060_rivers_window.png : troncons colores par navigabilite sur la",
+        "  fenetre pilote (bleu=navigable, jaune=indetermine, brun=non_navigable).",
+        "  Terre en vert clair ; lacs alpins et bassins fermes (anneaux",
+        "  interieurs) visibles en bleu mer au coeur de la terre — plus de lacs",
+        "  remplis en vert. Seine/Loire/Rhin/Danube/Po en traits bleus epais la",
+        "  ou scalerank le dit ; aucun trait ne traverse la pleine mer hors",
+        "  centre-lignes de lac.",
+        "  v1_060_artery_crossing_both.png : zoom Manche / bas Rhin — traits",
+        "  rouges = artery (tous navigables, D3), violet = crossing (aucun",
+        "  navigable), cyan = both (melange). Pas un corridor le long de la",
+        "  frontiere : les traits relient des centroides de cellules touchees.",
+        "  Les trois classes coexistent (delta neerlandais, Seine) ; mer et",
+        "  lacs peints en bleu, terre en vert.",
         "",
         "=== controles verts (donnee saine) ===",
     ]
