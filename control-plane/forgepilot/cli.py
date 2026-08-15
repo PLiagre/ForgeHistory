@@ -11,6 +11,7 @@ from .workflow import (
     create_worktree,
     execute_invocation,
     executor_invocation,
+    existing_worktree,
     format_invocation,
     missing_binaries,
     persist_result,
@@ -45,6 +46,15 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--base")
     execute.add_argument("--task-name", required=True)
     execute.add_argument("--run", action="store_true")
+
+    iterate = commands.add_parser(
+        "iterate",
+        help="réexécuter un plan sur le worktree agent existant",
+    )
+    iterate.add_argument("plan", type=_path)
+    iterate.add_argument("--repo", type=_path, default=Path.cwd())
+    iterate.add_argument("--task-name", required=True)
+    iterate.add_argument("--run", action="store_true")
 
     review = commands.add_parser("review", help="faire relire un diff par Claude Code")
     review.add_argument("plan", type=_path)
@@ -114,6 +124,20 @@ def main(argv: list[str] | None = None) -> int:
             target = persist_result(args.repo, invocation.role, invocation, result)
             print(f"Branche : {branch}")
             print(f"Worktree : {worktree}")
+            print(f"Résultat : {target}")
+            return 0
+
+        if args.command == "iterate":
+            worktree, branch, status = existing_worktree(args.repo, args.task_name)
+            print(f"Branche : {branch}")
+            print(f"Worktree : {worktree}")
+            print(f"État git :\n{status}" if status else "État git : (propre)")
+            invocation = executor_invocation(settings, worktree, args.plan)
+            if not args.run:
+                print(format_invocation(invocation))
+                return 0
+            result = execute_invocation(invocation, settings)
+            target = persist_result(args.repo, "executor", invocation, result)
             print(f"Résultat : {target}")
             return 0
 
