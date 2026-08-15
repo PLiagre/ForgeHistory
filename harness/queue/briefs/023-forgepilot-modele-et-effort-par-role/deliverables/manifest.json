@@ -1,0 +1,20 @@
+{
+  "brief": "023-forgepilot-modele-et-effort-par-role",
+  "files": [
+    { "path": "../../../../control-plane/forgepilot/config.py" },
+    { "path": "../../../../control-plane/forgepilot/workflow.py" },
+    { "path": "../../../../control-plane/forgepilot/cli.py" },
+    { "path": "../../../../control-plane/config.toml" },
+    { "path": "../../../../control-plane/tests/test_workflow.py" },
+    { "path": "deliverables/pre-edit/control-plane-README.md.orig" },
+    {
+      "path": "../../../../control-plane/README.md",
+      "must_differ_from": "deliverables/pre-edit/control-plane-README.md.orig"
+    },
+    { "path": "deliverables/measure_023.py" },
+    { "path": "deliverables/generator-log.md" },
+    { "path": "../../../../harness/queue/cost-ledger.jsonl" }
+  ],
+  "counters": [],
+  "waivers": []
+}
