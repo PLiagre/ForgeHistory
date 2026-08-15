@@ -1,18 +1,117 @@
 {
   "brief": "022-forgepilot-review-stdin-et-iteration",
   "files": [
-    { "path": "../../../../control-plane/forgepilot/workflow.py" },
-    { "path": "../../../../control-plane/forgepilot/cli.py" },
-    { "path": "../../../../control-plane/tests/test_workflow.py" },
-    { "path": "deliverables/pre-edit/control-plane-README.md.orig" },
+    {
+      "path": "../../../../control-plane/forgepilot/workflow.py"
+    },
+    {
+      "path": "../../../../control-plane/forgepilot/cli.py"
+    },
+    {
+      "path": "../../../../control-plane/tests/test_workflow.py"
+    },
+    {
+      "path": "deliverables/pre-edit/control-plane-README.md.orig"
+    },
     {
       "path": "../../../../control-plane/README.md",
       "must_differ_from": "deliverables/pre-edit/control-plane-README.md.orig"
     },
-    { "path": "deliverables/measure_022.py" },
-    { "path": "deliverables/generator-log.md" },
-    { "path": "../../../../harness/queue/cost-ledger.jsonl" }
+    {
+      "path": "deliverables/measure_022.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "../../../../harness/queue/cost-ledger.jsonl"
+    }
   ],
-  "counters": [],
+  "counters": [
+    {
+      "name": "longueur_argv_max_relecture",
+      "value": 24,
+      "sample_size": 131072,
+      "denominator": "borne système 32*SC_PAGESIZE=131072"
+    },
+    {
+      "name": "octets_diff_du_test",
+      "value": 131200,
+      "sample_size": 131200,
+      "denominator": "borne système 32*SC_PAGESIZE=131072"
+    },
+    {
+      "name": "prompt_absent_de_argv",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=absent / 0=présent"
+    },
+    {
+      "name": "drapeaux_claude_inchanges",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=ordre inchangé / 0=dérivé"
+    },
+    {
+      "name": "tests_existants_intacts",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=six tests d'origine intacts (amendement 001) / 0=touchés"
+    },
+    {
+      "name": "format_invocation_ne_fuit_pas_le_prompt",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=aperçu sans texte / 0=fuite"
+    },
+    {
+      "name": "iterate_reutilise_worktree",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=aucun worktree créé / 0=échec"
+    },
+    {
+      "name": "iterate_refuse_sans_worktree",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=code 2 + nomme execute / 0=échec"
+    },
+    {
+      "name": "iterate_porte_le_sandbox",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=--sandbox enabled / 0=absent"
+    },
+    {
+      "name": "iterate_sans_run_ne_lance_rien",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=rien exécuté / 0=appelé"
+    },
+    {
+      "name": "tests_ajoutes",
+      "value": 6,
+      "sample_size": 12,
+      "denominator": "total tests dans test_workflow.py après lot = 12"
+    },
+    {
+      "name": "tests_rouges_avant_correction",
+      "value": 2,
+      "sample_size": 2,
+      "denominator": "2 non négociables (overflow + iterate sans worktree)"
+    },
+    {
+      "name": "suite_control_plane_verte",
+      "value": 1,
+      "sample_size": 12,
+      "denominator": "tests exécutés = 12"
+    },
+    {
+      "name": "fichiers_hors_perimetre_modifies",
+      "value": 0,
+      "sample_size": 9,
+      "denominator": "fichiers touchés vs origin/master = 9"
+    }
+  ],
   "waivers": []
 }

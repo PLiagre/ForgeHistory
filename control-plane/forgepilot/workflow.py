@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -20,6 +20,7 @@ class Invocation:
     argv: tuple[str, ...]
     cwd: str
     environment: dict[str, str]
+    prompt: str | None = None
 
 
 def _read_prompt(name: str) -> str:
@@ -41,11 +42,10 @@ def _slug(value: str) -> str:
     return slug[:48] or "task"
 
 
-def _claude_argv(settings: Settings, prompt: str) -> list[str]:
+def _claude_argv(settings: Settings) -> list[str]:
     argv = [
         settings.claude_binary,
         "-p",
-        prompt,
         "--output-format",
         "json",
         "--permission-mode",
@@ -67,8 +67,8 @@ def _claude_argv(settings: Settings, prompt: str) -> list[str]:
 def plan_invocation(settings: Settings, repo: Path, task: Path) -> Invocation:
     task_body = _task_text(task)
     prompt = _read_prompt("planner.md").replace("{{TASK}}", task_body)
-    argv = _claude_argv(settings, prompt)
-    return Invocation("planner", tuple(argv), str(repo), {})
+    argv = _claude_argv(settings)
+    return Invocation("planner", tuple(argv), str(repo), {}, prompt)
 
 
 def review_invocation(settings: Settings, repo: Path, plan: Path, base: str) -> Invocation:
@@ -82,8 +82,8 @@ def review_invocation(settings: Settings, repo: Path, plan: Path, base: str) -> 
         .replace("{{BASE}}", base)
         .replace("{{DIFF}}", diff)
     )
-    argv = _claude_argv(settings, prompt)
-    return Invocation("reviewer", tuple(argv), str(repo), {})
+    argv = _claude_argv(settings)
+    return Invocation("reviewer", tuple(argv), str(repo), {}, prompt)
 
 
 def executor_invocation(settings: Settings, worktree: Path, plan: Path) -> Invocation:
@@ -127,6 +127,24 @@ def create_worktree(repo: Path, task_name: str, base: str) -> tuple[Path, str]:
     return worktree, branch
 
 
+def existing_worktree(repo: Path, task_name: str) -> tuple[Path, str, str]:
+    slug = _slug(task_name)
+    worktree = repo / ".forgepilot" / "worktrees" / slug
+    expected_branch = f"agent/{slug}"
+    if not worktree.exists():
+        raise PilotError(
+            f"Worktree introuvable : {worktree}. "
+            "Employer `execute` pour créer la branche et le worktree."
+        )
+    current = git(worktree, "branch", "--show-current")
+    if current != expected_branch:
+        raise PilotError(
+            f"Branche du worktree {current!r} ; attendu {expected_branch!r}."
+        )
+    status = git(worktree, "status", "--porcelain")
+    return worktree, expected_branch, status
+
+
 def execute_invocation(invocation: Invocation, settings: Settings, *, stdin: str | None = None) -> object:
     resolve_binary(invocation.argv[0])
     result = run_command(
@@ -134,7 +152,7 @@ def execute_invocation(invocation: Invocation, settings: Settings, *, stdin: str
         cwd=Path(invocation.cwd),
         timeout_seconds=settings.timeout_seconds,
         env=invocation.environment,
-        stdin=stdin,
+        stdin=stdin if stdin is not None else invocation.prompt,
     )
     return result.json()
 
@@ -143,10 +161,15 @@ def persist_result(repo: Path, role: str, invocation: Invocation, result: object
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = repo / ".forgepilot" / "runs" / f"{stamp}-{role}"
     run_dir.mkdir(parents=True, exist_ok=False)
+    stored = (
+        replace(invocation, prompt="<prompt>")
+        if invocation.prompt is not None
+        else invocation
+    )
     payload = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "role": role,
-        "invocation": asdict(invocation),
+        "invocation": asdict(stored),
         "result": result,
     }
     target = run_dir / "result.json"
@@ -158,18 +181,17 @@ def format_invocation(invocation: Invocation) -> str:
     redacted = list(invocation.argv)
     if "-p" in redacted:
         prompt_index = redacted.index("-p") + 1
-        if prompt_index < len(redacted):
+        if prompt_index < len(redacted) and not redacted[prompt_index].startswith("--"):
             redacted[prompt_index] = "<prompt>"
-    return json.dumps(
-        {
-            "role": invocation.role,
-            "argv": redacted,
-            "cwd": invocation.cwd,
-            "environment": invocation.environment,
-        },
-        indent=2,
-        ensure_ascii=False,
-    )
+    payload: dict[str, object] = {
+        "role": invocation.role,
+        "argv": redacted,
+        "cwd": invocation.cwd,
+        "environment": invocation.environment,
+    }
+    if invocation.prompt is not None:
+        payload["prompt"] = "<prompt>"
+    return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
 def missing_binaries(settings: Settings) -> Iterable[str]:
