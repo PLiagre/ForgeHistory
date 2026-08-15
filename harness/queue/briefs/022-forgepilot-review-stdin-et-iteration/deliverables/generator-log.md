@@ -139,8 +139,90 @@ racine **sans** `PYTHONPATH` importe le `forgepilot` editable du dépôt parent
 - `harness/queue/briefs/022-forgepilot-review-stdin-et-iteration/deliverables/**`
 - `harness/queue/cost-ledger.jsonl` (une ligne)
 
-## Mesure
+## Mesure (lot 1)
 
 ```bash
 .venv/bin/python harness/queue/briefs/022-forgepilot-review-stdin-et-iteration/deliverables/measure_022.py
 ```
+
+---
+
+# Itération 2 — correction des preuves (feedback-001)
+
+**Author**: forge-generateur
+**Date**: 2026-08-15
+**Répond à** : `feedback/feedback-001.md` (P1–P6). Le fond du lot 1 n'est pas retouché.
+
+## P1 — SC5 : suite harness/tests rejouée
+
+Commande (racine du worktree, venv du worktree) :
+
+```bash
+.venv/bin/python -m pytest harness/tests/ -q
+```
+
+Résultat (ligne de synthèse) :
+
+```
+9 failed, 355 passed in 7.11s
+```
+
+Tests collectés : `364` (`.venv/bin/python -m pytest harness/tests/ --collect-only -q` → `364 tests collected`).
+
+Baseline amendement 001 (`origin/master` avant le lot) : `9 failed, 355 passed`.
+Écart avec la baseline : **nul** (mêmes 9 échecs Unity préexistants dans `test_run_unity.py`, mêmes 355 verts).
+
+## P2 — `measure_022.py` n'écrit plus le manifeste par défaut
+
+`--write-manifest` est une option explicite (`store_true`, défaut `False`).
+`--no-write-manifest` est supprimé. Sans option : impression seule (mtime du manifeste inchangé).
+
+## P3 — `tests_rouges_avant_correction` dérivé hors dépôt
+
+Méthode : copie jetable sous `/tmp/measure022-red-*`, `workflow.py` et `cli.py` restaurés depuis `origin/master`, tests neufs (fichier actuel) conservés, suite lancée avec `PYTHONPATH` sur la copie.
+
+Résultat mesuré : **6** des **6** tests ajoutés sont rouges sur le code d'avant ; les 6 tests d'origine restent verts (`Ran 12 tests`, `FAILED (failures=4, errors=2)`).
+
+Échecs des tests ajoutés : overflow argv ; iterate absent (FAIL + 2 ERROR) ; ordre des drapeaux après `-p` ; `format_invocation` (assertion réfutable P4).
+
+Note : l'orchestrateur avait mesuré `5/6` avant la correction P4 de l'assertion tautologique ; avec l'assertion réfutable, le sixième test échoue aussi sur `origin/master` — d'où `6/6`.
+
+## P4 — sort de `test_format_invocation_hides_prompt_keeps_output_format`
+
+**Tranché** : garde de non-régression pour le filtre `startswith("--")` du nouveau `format_invocation` (pas une preuve rouge du lot 1 sur le code d'avant tel qu'il était avec l'ancienne assertion).
+
+Rouge consigné sur la variante « nouveau code **sans** le filtre » (monkeypatch local, dépôt intact) :
+
+```
+argv after -p: ['<prompt>', 'json']
+FAIL as expected:
+AssertionError: '<prompt>' != '--output-format'
+```
+
+Assertion tautologique `assertNotEqual("<prompt>", payload["argv"][of_index])` remplacée par des assertions réfutables : après `-p` doivent venir `--output-format` puis `json` ; `"<prompt>"` absent de `argv` ; `payload["prompt"] == "<prompt>"`.
+
+## P5 — `measure_suite_verte` indépendant du venv lanceur
+
+Commande réellement jouée (rapportée aussi sur stderr du script de mesure) :
+
+```
+PYTHONPATH=/home/liagrep/src/ForgeHistory/.forgepilot/worktrees/forgepilot-stdin/control-plane \
+  /home/liagrep/src/ForgeHistory/.forgepilot/worktrees/forgepilot-stdin/.venv/bin/python \
+  -m unittest discover -s tests
+(cwd=…/control-plane)
+```
+
+Résultat : `suite_control_plane_verte=1` (dénominateur : 12 tests).
+
+## P6 — `sample_size` de `octets_diff_du_test`
+
+Porte la borne système `32 * os.sysconf("SC_PAGESIZE")` = `131072` (lue, non recopiée en dur dans le compteur), plus la valeur mesurée `131200`.
+
+## Mesure itération 2
+
+```bash
+.venv/bin/python harness/queue/briefs/022-forgepilot-review-stdin-et-iteration/deliverables/measure_022.py
+.venv/bin/python harness/queue/briefs/022-forgepilot-review-stdin-et-iteration/deliverables/measure_022.py --write-manifest
+```
+
+Compteurs clés après correction : `tests_rouges_avant_correction=6` (dénominateur tests ajoutés = 6) ; `octets_diff_du_test` sample_size = 131072 ; `suite_control_plane_verte=1` / 12.

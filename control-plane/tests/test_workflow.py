@@ -255,7 +255,13 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(list(invocation.argv[p_index + 1 : p_index + 1 + len(expected)]), expected)
 
     def test_format_invocation_hides_prompt_keeps_output_format(self):
-        """SC2 : aperçu sans texte de prompt ; --output-format json intact."""
+        """Garde de non-régression : filtre startswith('--') après -p.
+
+        Sur le code d'avant, format_invocation masquait déjà l'élément suivant
+        -p ; ce test ne prouve donc pas le lot 1 en rouge. Il garde le filtre
+        startswith('--') du nouveau format_invocation : sans lui,
+        --output-format juste après -p serait remplacé par <prompt>.
+        """
         bound = 32 * os.sysconf("SC_PAGESIZE")
         marker = "PROMPT_LEAK_MARKER_022_b9e1"
         synthetic = marker + ("E" * 256)
@@ -271,10 +277,14 @@ class WorkflowTests(unittest.TestCase):
         formatted = format_invocation(invocation)
         self.assertNotIn(marker, formatted)
         payload = json.loads(formatted)
-        self.assertIn("--output-format", payload["argv"])
-        of_index = payload["argv"].index("--output-format")
-        self.assertEqual("json", payload["argv"][of_index + 1])
-        self.assertNotEqual("<prompt>", payload["argv"][of_index])
+        self.assertIn("-p", payload["argv"])
+        p_index = payload["argv"].index("-p")
+        # Réfutable : sans startswith("--"), l'élément suivant -p devient
+        # "<prompt>" et --output-format disparaît de argv.
+        self.assertEqual("--output-format", payload["argv"][p_index + 1])
+        self.assertEqual("json", payload["argv"][p_index + 2])
+        self.assertNotIn("<prompt>", payload["argv"])
+        self.assertEqual("<prompt>", payload.get("prompt"))
 
 
 if __name__ == "__main__":

@@ -6,8 +6,8 @@ Amendement 001 : six tests d'origine (pas quatre) ; base de départ de
 `tests_ajoutes` = 6.
 
 Usage, depuis la racine du dépôt :
-  .venv/bin/python harness/queue/briefs/022-forgepilot-review-stdin-et-iteration/deliverables/measure_022.py
-  # ou : python3 … (avec forgepilot importable)
+  .venv/bin/python …/deliverables/measure_022.py              # imprime seulement
+  .venv/bin/python …/deliverables/measure_022.py --write-manifest  # met à jour manifest.json
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -25,12 +26,11 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[5]
 BRIEF = REPO / "harness" / "queue" / "briefs" / "022-forgepilot-review-stdin-et-iteration"
-LOG = BRIEF / "deliverables" / "generator-log.md"
 TEST_FILE = REPO / "control-plane" / "tests" / "test_workflow.py"
 BASE_REF = "origin/master"
 NOT_COMPUTED = -1
 
-# Périmètre D4 (chemins relatifs au dépôt)
+# Périmètre D4 (chemins relatifs au dépôt), + feedback/ pour l'itération 2
 D4_ALLOWED = {
     "control-plane/forgepilot/workflow.py",
     "control-plane/forgepilot/cli.py",
@@ -41,6 +41,9 @@ D4_ALLOWED = {
 }
 D4_DELIVERABLES_PREFIX = (
     "harness/queue/briefs/022-forgepilot-review-stdin-et-iteration/deliverables/"
+)
+D4_FEEDBACK_PREFIX = (
+    "harness/queue/briefs/022-forgepilot-review-stdin-et-iteration/feedback/"
 )
 
 EXPECTED_CLAUDE_AFTER_P = [
@@ -280,31 +283,82 @@ def measure_tests_ajoutes() -> tuple[int, int]:
     return added, total
 
 
-def measure_tests_rouges_avant() -> int:
-    if not LOG.is_file():
-        return NOT_COMPUTED
-    text = LOG.read_text(encoding="utf-8")
-    # Deux échecs non négociables recopiés
-    has_overflow = "test_review_keeps_argv_under_system_arg_limit" in text and "FAIL" in text
-    has_iterate = (
-        "test_iterate_without_worktree_refuses_naming_execute" in text
-        and ("SystemExit" in text or "FAIL" in text)
-    )
-    count = (1 if has_overflow else 0) + (1 if has_iterate else 0)
-    return count
+def measure_tests_rouges_avant() -> tuple[int, int]:
+    """Rejoue les tests neufs contre workflow.py/cli.py d'origin/master.
+
+    Copie jetable hors du dépôt : les tests actuels sont conservés, seuls
+    workflow.py et cli.py sont restaurés depuis BASE_REF. Retourne
+    (échecs parmi les tests ajoutés, total des tests ajoutés).
+    """
+    added, _total = measure_tests_ajoutes()
+    if added <= 0:
+        return NOT_COMPUTED, NOT_COMPUTED
+
+    original_names = set(ORIGINAL_TEST_NAMES)
+    # parent=/tmp (ou TMPDIR) → hors du dépôt, pas de stash dans le worktree
+    with tempfile.TemporaryDirectory(prefix="measure022-red-", dir="/tmp") as tmp:
+        staging = Path(tmp) / "control-plane"
+        shutil.copytree(
+            REPO / "control-plane",
+            staging,
+            ignore=shutil.ignore_patterns(
+                "__pycache__", "*.pyc", "*.pyo", ".venv", "*.egg-info", "dist", "build"
+            ),
+        )
+        for rel in ("forgepilot/workflow.py", "forgepilot/cli.py"):
+            try:
+                blob = git("show", f"{BASE_REF}:control-plane/{rel}")
+            except RuntimeError:
+                return NOT_COMPUTED, added
+            (staging / rel).write_text(blob, encoding="utf-8")
+
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(staging)
+        # La commande réellement jouée (rapportée aussi dans generator-log.md)
+        cmd = [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"]
+        proc = subprocess.run(
+            cmd,
+            cwd=staging,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        combined = proc.stderr + proc.stdout
+        # Compte les FAIL/ERROR dont le nom de méthode est un test ajouté
+        failed_added: set[str] = set()
+        for match in re.finditer(
+            r"^(FAIL|ERROR): (test_\w+)",
+            combined,
+            re.MULTILINE,
+        ):
+            name = match.group(2)
+            if name not in original_names:
+                failed_added.add(name)
+        return len(failed_added), added
 
 
-def measure_suite_verte() -> tuple[int, int]:
+def measure_suite_verte() -> tuple[int, int, str]:
+    """Suite control-plane avec PYTHONPATH explicite sur ce dépôt."""
+    cp = str(REPO / "control-plane")
+    env = os.environ.copy()
+    env["PYTHONPATH"] = cp
+    # Commande réellement jouée (cwd = control-plane, -s tests)
+    cmd = [sys.executable, "-m", "unittest", "discover", "-s", "tests"]
     proc = subprocess.run(
-        [sys.executable, "-m", "unittest", "discover", "-s", "control-plane/tests"],
-        cwd=REPO,
+        cmd,
+        cwd=cp,
         capture_output=True,
         text=True,
+        env=env,
+    )
+    cmd_repr = (
+        f"PYTHONPATH={cp} {sys.executable} -m unittest discover -s tests "
+        f"(cwd={cp})"
     )
     match = re.search(r"Ran (\d+) tests?", proc.stderr + proc.stdout)
     ran = int(match.group(1)) if match else NOT_COMPUTED
     ok = 1 if proc.returncode == 0 else 0
-    return ok, ran if isinstance(ran, int) else NOT_COMPUTED
+    return ok, ran if isinstance(ran, int) else NOT_COMPUTED, cmd_repr
 
 
 def measure_hors_perimetre() -> tuple[int, int]:
@@ -343,6 +397,8 @@ def measure_hors_perimetre() -> tuple[int, int]:
             continue
         if path.startswith(D4_DELIVERABLES_PREFIX):
             continue
+        if path.startswith(D4_FEEDBACK_PREFIX):
+            continue
         outside.append(path)
     return len(outside), len(names)
 
@@ -350,8 +406,13 @@ def measure_hors_perimetre() -> tuple[int, int]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="compteurs mesurés du brief 022")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--write-manifest", action="store_true", default=True)
-    parser.add_argument("--no-write-manifest", action="store_true")
+    # P2 : écriture du manifeste uniquement sur option explicite
+    parser.add_argument(
+        "--write-manifest",
+        action="store_true",
+        default=False,
+        help="écrit deliverables/manifest.json (sinon : impression seule)",
+    )
     args = parser.parse_args()
 
     # Ensure worktree control-plane is importable
@@ -394,19 +455,20 @@ def main() -> int:
     added, total = measure_tests_ajoutes()
     report("tests_ajoutes", added, f"total tests dans test_workflow.py après lot = {total}")
 
-    rouges = measure_tests_rouges_avant()
+    rouges, rouges_denom = measure_tests_rouges_avant()
     report(
         "tests_rouges_avant_correction",
         rouges,
-        "2 non négociables (overflow + iterate sans worktree)",
+        f"tests ajoutés = {rouges_denom}",
     )
 
-    suite_ok, suite_ran = measure_suite_verte()
+    suite_ok, suite_ran, suite_cmd = measure_suite_verte()
     report(
         "suite_control_plane_verte",
         suite_ok,
         f"tests exécutés = {suite_ran}",
     )
+    print(f"# commande suite_control_plane_verte : {suite_cmd}", file=sys.stderr)
 
     hors, changed = measure_hors_perimetre()
     report(
@@ -421,14 +483,15 @@ def main() -> int:
     if args.json:
         print(json.dumps({n: {"value": v, "denominator": d} for n, v, d in ROWS}, indent=2))
 
-    if args.write_manifest and not args.no_write_manifest:
+    if args.write_manifest:
         manifest_path = BRIEF / "deliverables" / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         counters = []
         for name, value, denom in ROWS:
             sample = 1
             if name == "octets_diff_du_test":
-                sample = int(value) if isinstance(value, int) and value > 0 else NOT_COMPUTED
+                # P6 : sample_size = borne système, pas la valeur mesurée
+                sample = bound
             elif name == "longueur_argv_max_relecture":
                 sample = bound
             elif name == "tests_ajoutes":
@@ -438,7 +501,11 @@ def main() -> int:
             elif name == "fichiers_hors_perimetre_modifies":
                 sample = changed if isinstance(changed, int) and changed > 0 else 1
             elif name == "tests_rouges_avant_correction":
-                sample = 2
+                sample = (
+                    rouges_denom
+                    if isinstance(rouges_denom, int) and rouges_denom > 0
+                    else NOT_COMPUTED
+                )
             else:
                 sample = 1
             if sample == 0:

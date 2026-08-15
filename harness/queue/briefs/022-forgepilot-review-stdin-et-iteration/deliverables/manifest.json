@@ -37,7 +37,7 @@
     {
       "name": "octets_diff_du_test",
       "value": 131200,
-      "sample_size": 131200,
+      "sample_size": 131072,
       "denominator": "borne système 32*SC_PAGESIZE=131072"
     },
     {
@@ -96,9 +96,9 @@
     },
     {
       "name": "tests_rouges_avant_correction",
-      "value": 2,
-      "sample_size": 2,
-      "denominator": "2 non négociables (overflow + iterate sans worktree)"
+      "value": 6,
+      "sample_size": 6,
+      "denominator": "tests ajoutés = 6"
     },
     {
       "name": "suite_control_plane_verte",
