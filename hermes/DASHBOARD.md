@@ -5,17 +5,16 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-14 12:47 UTC.
+> Générée le 2026-08-15 21:05 UTC.
 
 ## En bref
 
-- **Mode du pipeline** : `full_auto` — la boucle tourne sans intervention humaine (hors fusion finale).
+- **Mode du pipeline** : `manual` — voir `docs/rules/full-auto-pipeline.md`.
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
 - **Audits en cours** : 40 — boucles closes : 9.
 
 ## Ce qui attend le propriétaire
 
-- Fusionner (ou refuser) la PR #104 — « Pilote propre Hermes + Claude Code + Cursor » (branche `agent/forgepilot-workflow`). L'auto-fusion GitHub est indisponible sur ce plan : le clic final est humain.
 - Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
 - Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
@@ -28,23 +27,7 @@
 
 ## Activité GitHub récente
 
-| quand (UTC) | workflow | déclencheur | branche | résultat |
-|---|---|---|---|---|
-| 2026-08-14 12:47:34 | harness-ci | push | master | in_progress |
-| 2026-08-14 12:47:34 | audit-guard | push | master | in_progress |
-| 2026-08-14 12:47:34 | hermes-dashboard | push | master | in_progress |
-| 2026-08-14 12:47:34 | security | push | master | in_progress |
-| 2026-08-14 12:47:34 | hermes-observer | pull_request_target | forge/020-geo-provenance-g3-2099 | queued |
-| 2026-08-14 12:47:28 | hermes-observer | pull_request_target | forge/020-geo-provenance-g3-2099 | cancelled |
-| 2026-08-14 12:41:45 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 12:41:30 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 12:41:27 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 12:41:24 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 12:41:18 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 12:41:17 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 12:41:10 | hermes-observer | workflow_run | master | queued |
-| 2026-08-14 12:41:06 | merge-bot | pull_request | forge/020-geo-provenance-g3-2099 | skipped |
-| 2026-08-14 12:41:06 | audit-guard | pull_request | forge/020-geo-provenance-g3-2099 | success |
+Non disponible dans cette génération (données GitHub non fournies au script).
 
 ## Agents lancés récemment (Cursor Cloud)
 
@@ -122,6 +105,9 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 018-sim-province-derivee | dernier verdict tracé : ACCEPT |
 | 019-geo-adjacence-g4 | dernier verdict tracé : ACCEPT |
 | 020-geo-provenance-littoral-g3 | dernier verdict tracé : ACCEPT |
+| 021-geo-fleuves-g5 | verdict rendu (voir le fichier) |
+| 022-forgepilot-review-stdin-et-iteration | pas encore de verdict |
+| 023-forgepilot-modele-et-effort-par-role | pas encore de verdict |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
@@ -130,7 +116,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 29 | 2026-08-13 12:32 |
-| cursor | 16 | 2026-08-14 12:17 |
+| cursor | 19 | 2026-08-15 16:19 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
