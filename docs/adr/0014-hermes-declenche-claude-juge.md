@@ -100,23 +100,108 @@ propriétaire décide quoi et garde le veto sur la fusion.**
 ### Risks
 - **Hermes déclenche un lot qu'il n'aurait pas dû.** Atténuation : il ne
   déclenche que ce que la feuille de route autorise, et ne fusionne jamais.
-- **Le tableau de bord reste périmé.** Cause racine : ADR-0013 a coupé
-  l'automatisme sans désigner de responsable. Cet ADR ne tranche pas ce point —
-  il le laisse à la décision jointe du propriétaire, avec l'orchestrateur en fin
-  de lot comme candidat par défaut.
-- **Deux mémoires se contredisent.** `HANDOFF.md` et `hermes/` se disputent le
-  rôle de mémoire du projet et pourrissent tous deux. Point ouvert, à trancher
-  avant d'installer quoi que ce soit sur un VPS.
+- **Le tableau de bord reste périmé.** ~~Point ouvert.~~ **Clos par l'amendement
+  001** ci-dessous.
+- **Deux mémoires se contredisent.** ~~Point ouvert.~~ **Requalifié et clos par
+  l'amendement 001** ci-dessous : le diagnostic d'origine était faux, elles ne
+  se contredisent pas.
 - **Le budget reste non borné.** Tant qu'aucun plafond mensuel n'est assumé, la
   cadence des jugements n'est pas calculable. Point ouvert.
 
-## Ce que cet ADR ne décide pas
+---
 
-1. Qui régénère `hermes/DASHBOARD.md`.
-2. Laquelle de `HANDOFF.md` ou `hermes/` fait foi comme mémoire du projet.
-3. Le budget mensuel Claude, et donc le nombre de lots par mois.
-4. Le passage au VPS — reporté jusqu'à ce que la répartition ci-dessus ait
-   tourné en local.
+## Amendement 001 — le tableau de bord et les deux mémoires
+
+**Amended**: 2026-08-15T22:00:00Z
+**Author**: Claude Code (rôle CTO), sur demande du propriétaire
+
+Cet amendement ferme les points `1` et `2` de la liste « Ce que cet ADR ne
+décide pas ». L'ADR reste `proposed` : l'amendement complète la proposition, il
+ne l'accepte pas à la place du propriétaire.
+
+### A. Le tableau de bord se régénère par le workflow, pas en local
+
+**Décision.** `hermes/DASHBOARD.md` est régénéré en **déclenchant
+`hermes-dashboard.yml`** (`gh workflow run hermes-dashboard.yml`), jamais en
+lançant `hermes/dashboard.py` en local pour committer le résultat.
+
+**Qui déclenche** : celui qui clôt un lot, jusqu'à ce qu'Hermes sache le faire —
+après quoi c'est Hermes, puisque cet ADR lui confie déclencher et rendre compte.
+Aucun cron n'est réintroduit ; ADR-0013 reste respecté sur ce point.
+
+**Pourquoi le workflow et pas le script en local.** Mesuré le `2026-08-15` en
+régénérant les deux façons : la génération locale **perd la section « Activité
+GitHub récente »**, faute d'interroger l'API GitHub. Le script le dit
+honnêtement (« non disponible dans cette génération ») au lieu d'inventer — mais
+un tableau amputé de l'activité récente n'est plus la vue que le propriétaire
+regarde en premier.
+
+C'est une correction de ce que le CTO avait d'abord proposé au propriétaire
+(« l'orchestrateur régénère en local en fin de lot ») : la mesure a contredit la
+proposition.
+
+**Conséquence à traiter par un brief, pas ici.** `hermes/dashboard.py:205-206`
+écrit en dur que le tableau est « réécrite à chaque poussée sur `master` et
+toutes les 6 heures ». C'est **faux depuis ADR-0013**, qui a mis le workflow en
+`workflow_dispatch` seul — vérifié : `.github/workflows/hermes-dashboard.yml:13-14`
+ne déclare que `workflow_dispatch:`. L'en-tête doit dire son vrai déclencheur.
+
+C'est du **code** dans `hermes/` : le contrat d'`hermes/README.md` interdit à
+Hermes d'écrire du code, donc la correction passe par un brief, pas par Hermes.
+
+### B. `HANDOFF.md` et `hermes/` ne se contredisent pas — le diagnostic d'origine était faux
+
+**Requalification.** L'ADR annonçait « deux mémoires qui se disputent le rôle ».
+En les relisant, elles ne répondent pas à la même question :
+
+| document | répond à | destinataire |
+|---|---|---|
+| `HANDOFF.md` | « comment le prochain **agent** reprend » | un agent, en début de session |
+| `hermes/reports/` | « où en est le **projet** » | le propriétaire |
+
+Le défaut réel n'est pas un conflit, c'est que **les deux sont périmées**, et que
+l'une est devenue illisible. Mesuré le `2026-08-15` : `HANDOFF.md` fait `818`
+lignes et empile `9` sessions, du `2026-08-12` au `2026-08-14` — trois lots de
+retard. Une mémoire que personne ne relit n'est plus une mémoire.
+
+**Décision.** Garder les deux, déclarer la frontière, et **borner `HANDOFF.md`** :
+
+1. `HANDOFF.md` porte l'état technique de reprise des **trois sessions les plus
+   récentes**, pas davantage. Les sessions plus anciennes sont retirées :
+   l'historique git les conserve intégralement.
+2. Si la substance d'une session compte pour le récit du projet, sa place est un
+   rapport sous `hermes/reports/` — pas une strate de plus dans `HANDOFF.md`.
+3. `hermes/reports/` porte la mémoire projet. C'est là que le propriétaire lit
+   ce qui s'est passé et pourquoi.
+
+**Qui écrit quoi, et quand** : `/forge-checkpoint` réécrit `HANDOFF.md` en fin de
+session, depuis l'état réel des commandes et non depuis un récit. L'orchestrateur
+écrit un rapport `hermes/reports/` à la clôture d'un lot.
+
+**Conséquence à traiter par un brief, pas ici.** Borner `HANDOFF.md` à trois
+sessions est un changement de comportement de `/forge-checkpoint` — du code, donc
+un brief. Tant qu'il n'est pas fait, la règle vaut comme consigne éditoriale.
+
+## Ce que cet ADR ne décide toujours pas
+
+Après l'amendement 001, deux points restent ouverts :
+
+1. **Le budget mensuel Claude**, et donc le nombre de lots par mois. Il demande
+   un chiffre du propriétaire. L'arithmétique est prête : `~65` USD par lot
+   aujourd'hui, `~5` une fois cet ADR appliqué.
+2. **Le passage au VPS.** ADR-0013 avait fixé la règle — bilan après trois lots
+   réels. Deux sont faits (`021`, `022`) ; le lot `023` est le troisième. Le
+   bilan s'écrit après, pas avant.
 
 Aucune auto-fusion, aucun cron, aucune réactivation du full-auto n'est introduite
-par cet ADR.
+par cet ADR ni par son amendement 001.
+
+## Briefs que cet ADR appelle
+
+Aucun n'est écrit par cet ADR ; ils sont nommés ici pour ne pas se perdre.
+
+| objet | pourquoi c'est un brief et pas une décision |
+|---|---|
+| `hermes/dashboard.py` : l'en-tête doit dire son vrai déclencheur | du code dans `hermes/`, qu'Hermes n'a pas le droit d'écrire |
+| `/forge-checkpoint` : borner `HANDOFF.md` à trois sessions | changement de comportement d'une commande |
+| Hermes sait déclencher un lot | la brique qui rend cet ADR applicable ; suppose le brief `023` livré |
