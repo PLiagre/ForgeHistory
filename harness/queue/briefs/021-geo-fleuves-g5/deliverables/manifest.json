@@ -49,6 +49,12 @@
       "must_differ_from": "deliverables/pre-edit/pipeline-geo-README.md.orig"
     },
     {
+      "path": "deliverables/measure_g5_021.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
       "path": "../../../../harness/queue/cost-ledger.jsonl"
     }
   ],
