@@ -1,0 +1,57 @@
+{
+  "brief": "021-geo-fleuves-g5",
+  "files": [
+    {
+      "path": "../../../../pipeline/geo/steps/05_rivers.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/tests/run_proof_g5.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/tests/test_qa_red_g5.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/rivers_g5.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/adjacency_g5.json",
+      "must_differ_from": "../../../../pipeline/geo/artifacts/adjacency_g4.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/mouths_g5.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/stats_g5.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/MANIFEST_g5.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/registry/river_registry.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/logs/v1_060_qa.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/logs/v1_060_rivers.log"
+    },
+    {
+      "path": "../../../../pipeline/geo/capture/v1_060_rivers_window.png"
+    },
+    {
+      "path": "../../../../pipeline/geo/capture/v1_060_artery_crossing_both.png"
+    },
+    {
+      "path": "deliverables/pre-edit/pipeline-geo-README.md.orig"
+    },
+    {
+      "path": "../../../../pipeline/geo/README.md",
+      "must_differ_from": "deliverables/pre-edit/pipeline-geo-README.md.orig"
+    },
+    {
+      "path": "../../../../harness/queue/cost-ledger.jsonl"
+    }
+  ],
+  "counters": [],
+  "waivers": []
+}

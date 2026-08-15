@@ -38,3 +38,9 @@ harness/pipeline/demo/output/
 # État local du pilote Hermes/Grok/Cursor : sessions, résultats et worktrees.
 # Les décisions autoritaires restent dans la roadmap, les issues et les PR.
 .forgepilot/
+
+# Métadonnées de build régénérées par `pip install -e ./control-plane`
+# (installation locale du pilote, voir control-plane/README.md) : jamais
+# versionnées, et leur présence bloquait `forgepilot execute`, qui exige
+# un dépôt propre.
+control-plane/*.egg-info/
