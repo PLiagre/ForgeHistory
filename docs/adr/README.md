@@ -15,3 +15,4 @@
 | [0011](0011-hermes-console-du-proprietaire.md) | Hermes console du propriétaire — un droit d'agir borné, sur ordre explicite | accepted | 2026-08-12 |
 | [0012](0012-audit-contre-audit-par-grandes-etapes.md) | Audit et contre-audit par grandes étapes (jalons `hermes/milestones/`) — plus jamais par PR | accepted | 2026-08-13 |
 | [0013](0013-forgepilot-hermes-claude-cursor.md) | Pilote Hermes léger, Claude Code en lecture et Cursor comme unique exécutant | accepted | 2026-08-14 |
+| [0014](0014-hermes-declenche-claude-juge.md) | Hermes déclenche et rend compte, Claude juge, Cursor exécute — amende 0010 et 0013 | proposed | 2026-08-15 |
