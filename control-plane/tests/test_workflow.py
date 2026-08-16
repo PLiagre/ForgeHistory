@@ -286,6 +286,406 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("<prompt>", payload["argv"])
         self.assertEqual("<prompt>", payload.get("prompt"))
 
+    # --- additions brief 023 (modèle / effort par rôle) -------------------
+    # Imports des symboles 023 volontairement locaux : la preuve rouge
+    # restaure config/workflow/cli d'avant ; un import module-level ferait
+    # échouer tout le fichier avant les trois tests non négociables.
+
+    def _write_config(self, root: Path, body: str) -> Path:
+        path = root / "config.toml"
+        path.write_text(body, encoding="utf-8")
+        return path
+
+    def _base_toml(self, *, tools: str = "", roles: str = "") -> str:
+        return (
+            "[project]\n"
+            'id = "test"\n'
+            'engine_repository = "owner/engine"\n'
+            'city_repository = "owner/city"\n'
+            'default_base_ref = "origin/main"\n'
+            'default_base_branch = "main"\n'
+            "\n"
+            "[tools]\n"
+            'claude_binary = "claude"\n'
+            'cursor_binary = "agent"\n'
+            f"{tools}"
+            'timeout_seconds = 30\n'
+            f"{roles}"
+        )
+
+    def test_settings_ten_fields_still_constructible(self):
+        """D2 / D7 : Settings reste constructible avec exactement dix champs.
+
+        Jamais rouge sur le code d'avant : la garde D2 vérifie une propriété
+        déjà vraie avant le lot (champ `roles` à défaut). Documenté ici pour
+        la règle n° 4 — ce n'est pas un oubli de preuve rouge.
+        """
+        settings = Settings(
+            "t",
+            "o/e",
+            "o/c",
+            "origin/main",
+            "main",
+            "claude",
+            "agent",
+            "",
+            "auto",
+            30,
+        )
+        self.assertEqual({}, getattr(settings, "roles", {}))
+        self.assertEqual("", settings.claude_model)
+
+    def test_two_claude_roles_can_carry_distinct_models(self):
+        """D7.1 : plan et review portent deux --model différents."""
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    roles=(
+                        "\n[roles.planner]\n"
+                        'model = "model-planner-test-a"\n'
+                        'effort = "high"\n'
+                        "\n[roles.reviewer]\n"
+                        'model = "model-reviewer-test-b"\n'
+                        'effort = "low"\n'
+                    ),
+                ),
+            )
+            settings = load_settings(cfg)
+            task = root / "task.md"
+            task.write_text("deux modèles", encoding="utf-8")
+            plan = root / "plan.json"
+            plan.write_text('{"task":"x"}', encoding="utf-8")
+            plan_inv = plan_invocation(settings, root, task)
+            with patch("forgepilot.workflow.git", return_value="diff court"):
+                review_inv = review_invocation(settings, root, plan, "origin/main")
+
+        plan_model = plan_inv.argv[plan_inv.argv.index("--model") + 1]
+        review_model = review_inv.argv[review_inv.argv.index("--model") + 1]
+        self.assertNotEqual(plan_model, review_model)
+        self.assertEqual("model-planner-test-a", plan_model)
+        self.assertEqual("model-reviewer-test-b", review_model)
+
+    def test_cli_model_flag_beats_roles_section(self):
+        """D7.2 : --model passé à l'appel l'emporte sur [roles.*]."""
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = "tools-fallback"\ncursor_model = "auto"\n',
+                    roles=(
+                        "\n[roles.planner]\n"
+                        'model = "roles-planner"\n'
+                        'effort = "medium"\n'
+                    ),
+                ),
+            )
+            settings = load_settings(cfg)
+            task = root / "task.md"
+            task.write_text("priorité cli", encoding="utf-8")
+            override = "cli-override-model"
+            invocation = plan_invocation(
+                settings, root, task, model=override, effort="low"
+            )
+            self.assertEqual(override, invocation.argv[invocation.argv.index("--model") + 1])
+            self.assertNotEqual(
+                settings.roles["planner"].model,
+                invocation.argv[invocation.argv.index("--model") + 1],
+            )
+
+    def test_effort_refused_on_cursor_execute_and_iterate(self):
+        """D7.3 : --effort sur execute/iterate rend 2 via main, avec explication."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            plan = repo / "plan.json"
+            plan.write_text('{"task":"effort"}', encoding="utf-8")
+            for command in ("execute", "iterate"):
+                err = io.StringIO()
+                argv = [
+                    command,
+                    str(plan),
+                    "--task-name",
+                    "effort-xyz",
+                    "--repo",
+                    str(repo),
+                    "--effort",
+                    "high",
+                ]
+                try:
+                    with patch("sys.stderr", err):
+                        code = main(argv)
+                except SystemExit as exc:
+                    self.fail(
+                        f"SystemExit({exc.code}) : {command} --effort doit rendre 2 "
+                        "via PilotError, pas SystemExit argparse."
+                    )
+                self.assertEqual(2, code)
+                message = err.getvalue()
+                self.assertIn("cuit", message.lower())
+                self.assertIn("modèle", message.lower())
+
+    def test_effort_key_refused_under_roles_executor(self):
+        """D4 : clé effort sous [roles.executor] refusée au chargement."""
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    roles=(
+                        "\n[roles.executor]\n"
+                        'model = "composer-test"\n'
+                        'effort = "high"\n'
+                    ),
+                ),
+            )
+            with self.assertRaises(PilotError) as ctx:
+                load_settings(cfg)
+            self.assertIn("cuit", str(ctx.exception).lower())
+
+    def test_unknown_role_refused_naming_three_valid(self):
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    roles='\n[roles.zorglub]\nmodel = "x"\n',
+                ),
+            )
+            with self.assertRaises(PilotError) as ctx:
+                load_settings(cfg)
+            message = str(ctx.exception)
+            self.assertIn("planner", message)
+            self.assertIn("reviewer", message)
+            self.assertIn("executor", message)
+
+    def test_effort_transmitted_to_both_claude_roles(self):
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    roles=(
+                        "\n[roles.planner]\n"
+                        'model = "m-plan"\n'
+                        'effort = "xhigh"\n'
+                        "\n[roles.reviewer]\n"
+                        'model = "m-review"\n'
+                        'effort = "low"\n'
+                    ),
+                ),
+            )
+            settings = load_settings(cfg)
+            task = root / "task.md"
+            task.write_text("effort", encoding="utf-8")
+            plan = root / "plan.json"
+            plan.write_text('{"task":"e"}', encoding="utf-8")
+            plan_inv = plan_invocation(settings, root, task)
+            with patch("forgepilot.workflow.git", return_value="d"):
+                review_inv = review_invocation(settings, root, plan, "origin/main")
+        self.assertEqual("xhigh", plan_inv.argv[plan_inv.argv.index("--effort") + 1])
+        self.assertEqual("low", review_inv.argv[review_inv.argv.index("--effort") + 1])
+
+    def test_all_five_effort_levels_accepted_sixth_refused(self):
+        from forgepilot.config import EFFORT_LEVELS, load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for level in EFFORT_LEVELS:
+                cfg = self._write_config(
+                    root,
+                    self._base_toml(
+                        tools='claude_model = ""\ncursor_model = "auto"\n',
+                        roles=(
+                            f"\n[roles.planner]\nmodel = \"m\"\neffort = \"{level}\"\n"
+                        ),
+                    ),
+                )
+                settings = load_settings(cfg)
+                self.assertEqual(level, settings.roles["planner"].effort)
+            bad = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    roles='\n[roles.planner]\nmodel = "m"\neffort = "ultra"\n',
+                ),
+            )
+            with self.assertRaises(PilotError):
+                load_settings(bad)
+
+    def test_cli_effort_ultra_refused_on_plan(self):
+        """SC2c / F1 : --effort ultra sur plan rend 2 (priorité 1 de D3)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            task = root / "task.md"
+            task.write_text("effort invalide", encoding="utf-8")
+            err = io.StringIO()
+            argv = [
+                "plan",
+                str(task),
+                "--repo",
+                str(root),
+                "--effort",
+                "ultra",
+            ]
+            try:
+                with patch("sys.stderr", err):
+                    code = main(argv)
+            except SystemExit as exc:
+                self.fail(
+                    f"SystemExit({exc.code}) : plan --effort ultra doit rendre 2 "
+                    "via PilotError, pas SystemExit argparse."
+                )
+            self.assertEqual(2, code)
+            message = err.getvalue()
+            self.assertIn("invalide", message.lower())
+            self.assertIn("ultra", message)
+
+    def test_role_beats_tools_claude_model(self):
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = "from-tools"\ncursor_model = "auto"\n',
+                    roles='\n[roles.planner]\nmodel = "from-roles"\neffort = "medium"\n',
+                ),
+            )
+            settings = load_settings(cfg)
+            task = root / "task.md"
+            task.write_text("priorité rôle", encoding="utf-8")
+            invocation = plan_invocation(settings, root, task)
+            self.assertEqual(
+                "from-roles", invocation.argv[invocation.argv.index("--model") + 1]
+            )
+
+    def test_fallback_to_tools_without_roles(self):
+        """Sans [roles.*], comportement identique à avant (repli [tools])."""
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = "tools-only-model"\ncursor_model = "auto"\n',
+                ),
+            )
+            settings = load_settings(cfg)
+            self.assertEqual({}, settings.roles)
+            task = root / "task.md"
+            task.write_text("repli", encoding="utf-8")
+            invocation = plan_invocation(settings, root, task)
+            self.assertEqual(
+                "tools-only-model",
+                invocation.argv[invocation.argv.index("--model") + 1],
+            )
+            self.assertNotIn("--effort", invocation.argv)
+
+    def test_no_model_flag_when_nothing_declared(self):
+        """Sans modèle déclaré, aucun --model — déjà vrai avant le lot.
+
+        Jamais rouge sur le code d'avant : comportement préexistant documenté
+        pour la règle n° 4 (précédent lot 022).
+        """
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                ),
+            )
+            settings = load_settings(cfg)
+            task = root / "task.md"
+            task.write_text("rien", encoding="utf-8")
+            invocation = plan_invocation(settings, root, task)
+            self.assertNotIn("--model", invocation.argv)
+
+    def test_preview_shows_model_and_effort_hides_prompt(self):
+        from forgepilot.config import load_settings
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self._write_config(
+                root,
+                self._base_toml(
+                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    roles=(
+                        "\n[roles.planner]\n"
+                        'model = "preview-model"\n'
+                        'effort = "high"\n'
+                    ),
+                ),
+            )
+            settings = load_settings(cfg)
+            task = root / "task.md"
+            marker = "PROMPT_LEAK_023_UNIQUE_c4d2"
+            task.write_text(f"tâche avec {marker}", encoding="utf-8")
+            invocation = plan_invocation(settings, root, task)
+            formatted = format_invocation(invocation)
+            payload = json.loads(formatted)
+            self.assertEqual("preview-model", payload.get("model"))
+            self.assertEqual("high", payload.get("effort"))
+            self.assertEqual("<prompt>", payload.get("prompt"))
+            self.assertNotIn(marker, formatted)
+
+    def test_resolve_role_priority_order(self):
+        from forgepilot.config import RoleSettings
+        from forgepilot.workflow import resolve_role
+
+        settings = Settings(
+            "t",
+            "o/e",
+            "o/c",
+            "origin/main",
+            "main",
+            "claude",
+            "agent",
+            "tools-model",
+            "auto",
+            30,
+            roles={"planner": RoleSettings(model="roles-model", effort="medium")},
+        )
+        cli = resolve_role(settings, "planner", model="cli-model", effort="max")
+        self.assertEqual("cli-model", cli.model)
+        self.assertEqual("max", cli.effort)
+        role = resolve_role(settings, "planner")
+        self.assertEqual("roles-model", role.model)
+        bare = Settings(
+            "t",
+            "o/e",
+            "o/c",
+            "origin/main",
+            "main",
+            "claude",
+            "agent",
+            "tools-model",
+            "auto",
+            30,
+        )
+        fallback = resolve_role(bare, "planner")
+        self.assertEqual("tools-model", fallback.model)
+
 
 if __name__ == "__main__":
     unittest.main()

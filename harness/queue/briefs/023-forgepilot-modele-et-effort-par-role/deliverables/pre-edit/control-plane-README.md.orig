@@ -94,37 +94,6 @@ agent. Les sorties réelles vont dans `.forgepilot/runs/`, ignoré par Git.
 Le prompt de Claude Code (`plan`, `review`) passe par stdin, car le noyau
 limite chaque argument à 128 Ko.
 
-## Modèle et effort par rôle
-
-Chaque rôle a sa section dans `config.toml` :
-
-```toml
-[roles.planner]
-model  = "claude-opus-5"
-effort = "xhigh"
-
-[roles.reviewer]
-model  = "claude-opus-5"
-effort = "low"
-
-[roles.executor]
-model  = "composer-2.5"
-```
-
-Ordre de priorité (du plus fort au plus faible) : drapeau `--model` /
-`--effort` passé à l'appel, puis `[roles.<rôle>]`, puis
-`[tools] claude_model` / `cursor_model`, puis le défaut du binaire (aucun
-drapeau ajouté). Les sous-commandes `plan`, `review`, `execute` et `iterate`
-acceptent `--model` ; seules `plan` et `review` acceptent `--effort`.
-
-Cursor n'a pas de drapeau d'effort séparé : l'effort est cuit dans le nom du
-modèle (`gpt-5.3-codex-high`, etc.), donc `--effort` sur `execute` /
-`iterate`, ou une clé `effort` sous `[roles.executor]`, est refusé avec
-explication.
-
-L'aperçu sans `--run` affiche le modèle et l'effort retenus ; le prompt reste
-masqué à `<prompt>`.
-
 ## Conditions du pilote
 
 - une seule tâche à la fois ;
