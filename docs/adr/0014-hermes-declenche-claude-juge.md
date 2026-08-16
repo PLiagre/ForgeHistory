@@ -1,7 +1,8 @@
 # ADR-0014: Hermes déclenche et rend compte, Claude juge, Cursor exécute
 
 **Date**: 2026-08-15
-**Status**: proposed
+**Status**: accepted
+**Accepted**: 2026-08-16
 **Deciders**: le propriétaire (décision), Claude Code (rédaction, rôle CTO)
 
 Amende ADR-0010 (chaîne à quatre acteurs) et ADR-0013 (pilote ForgePilot).
@@ -200,8 +201,40 @@ par cet ADR ni par son amendement 001.
 
 Aucun n'est écrit par cet ADR ; ils sont nommés ici pour ne pas se perdre.
 
-| objet | pourquoi c'est un brief et pas une décision |
-|---|---|
-| `hermes/dashboard.py` : l'en-tête doit dire son vrai déclencheur | du code dans `hermes/`, qu'Hermes n'a pas le droit d'écrire |
-| `/forge-checkpoint` : borner `HANDOFF.md` à trois sessions | changement de comportement d'une commande |
-| Hermes sait déclencher un lot | la brique qui rend cet ADR applicable ; suppose le brief `023` livré |
+| objet | pourquoi c'est un brief et pas une décision | état |
+|---|---|---|
+| `hermes/dashboard.py` : l'en-tête doit dire son vrai déclencheur | du code dans `hermes/`, qu'Hermes n'a pas le droit d'écrire | **fait hors brief** — voir la note d'acceptation |
+| `/forge-checkpoint` : borner `HANDOFF.md` à trois sessions | changement de comportement d'une commande | à écrire |
+| Hermes sait déclencher un lot | la brique qui rend cet ADR applicable ; suppose le brief `023` livré | à écrire |
+
+---
+
+## Note d'acceptation — 2026-08-16
+
+Le propriétaire a accepté cet ADR le `2026-08-16`, en formulant la décision de
+lui-même : « je veux pouvoir lancer une vraie session via Hermes, ensuite c'est
+Hermes qui pilote ». Le partage décrit ici — Hermes déclenche et rend compte,
+Claude juge à la demande, Cursor exécute, le propriétaire garde le veto sur la
+fusion — devient la règle.
+
+**Ce qui a été mis en place le même jour** (commit `711b3bf`) :
+
+- `hermes/skills/forgehistory-suivi/SKILL.md` réécrit. Hermes ouvre désormais
+  une session en lisant l'état réel, connaît les six commandes de ForgePilot
+  (`iterate` compris, absente de l'ancienne version), et **doit** écrire un
+  rapport après chaque lot fusionné. Vérifié en exécution, pas seulement en
+  lecture.
+- `control-plane/forge-start` versionné — il vivait hors dépôt alors qu'il est
+  le point d'entrée.
+
+**Une entorse à déclarer.** L'amendement `001` exigeait que la correction de
+l'en-tête de `hermes/dashboard.py` passe par un brief, au motif que c'est du
+code dans `hermes/`. Elle a été appliquée directement, sur instruction du
+propriétaire (« mets de l'ordre dans tout ça »), dans le même commit. Le texte
+corrigé est un bandeau de quatre lignes, sans effet sur le calcul de la vue.
+C'est écrit ici plutôt que passé sous silence : la règle de l'amendement `001`
+reste valable pour la suite, et cette exception ne la périme pas.
+
+**Ce qui reste ouvert et ne l'est pas devenu moins :** le budget mensuel Claude,
+le bilan des trois lots avant toute décision de VPS, et la dette du verdict
+manquant du lot `022`.
