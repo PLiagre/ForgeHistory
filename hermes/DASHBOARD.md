@@ -1,11 +1,14 @@
 # Tableau de bord — ForgeHistory
 
 > Vue générée par `hermes/dashboard.py` (rôle Hermes, ADR-0010) —
-> **ne jamais l'éditer à la main**, elle est réécrite à chaque
-> poussée sur `master` et toutes les 6 heures par
-> `.github/workflows/hermes-dashboard.yml`.
+> **ne jamais l'éditer à la main**. Depuis ADR-0013, elle n'est
+> réécrite que sur demande : `py hermes/dashboard.py` en local, ou
+> `.github/workflows/hermes-dashboard.yml` déclenché à la main
+> (`workflow_dispatch`). Aucun cron, aucune régénération
+> automatique à la poussée. Une vue périmée reste périmée tant
+> que personne ne la régénère.
 >
-> Générée le 2026-08-16 09:49 UTC.
+> Générée le 2026-08-16 09:59 UTC.
 
 ## En bref
 
