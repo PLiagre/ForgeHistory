@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from typing import Iterable
 
-from .config import Settings
+from .config import CURSOR_EFFORT_REFUSED, RoleSettings, Settings
 from .process import PilotError, git, resolve_binary, run_command
 
 
@@ -21,6 +21,8 @@ class Invocation:
     cwd: str
     environment: dict[str, str]
     prompt: str | None = None
+    model: str | None = None
+    effort: str | None = None
 
 
 def _read_prompt(name: str) -> str:
@@ -42,7 +44,39 @@ def _slug(value: str) -> str:
     return slug[:48] or "task"
 
 
-def _claude_argv(settings: Settings) -> list[str]:
+def resolve_role(
+    settings: Settings,
+    role: str,
+    model: str | None = None,
+    effort: str | None = None,
+) -> RoleSettings:
+    """Priorité D3 : drapeau > [roles.*] > [tools] > défaut du binaire."""
+    role_cfg = settings.roles.get(role, RoleSettings())
+    if model:
+        resolved_model = model
+    elif role_cfg.model:
+        resolved_model = role_cfg.model
+    elif role in ("planner", "reviewer"):
+        resolved_model = settings.claude_model
+    else:
+        resolved_model = settings.cursor_model
+
+    if effort:
+        resolved_effort = effort
+    elif role_cfg.effort:
+        resolved_effort = role_cfg.effort
+    else:
+        resolved_effort = ""
+
+    return RoleSettings(model=resolved_model or "", effort=resolved_effort or "")
+
+
+def _claude_argv(
+    settings: Settings,
+    role: str,
+    model: str | None = None,
+    effort: str | None = None,
+) -> list[str]:
     argv = [
         settings.claude_binary,
         "-p",
@@ -59,19 +93,46 @@ def _claude_argv(settings: Settings) -> list[str]:
         "--no-chrome",
         "--no-session-persistence",
     ]
-    if settings.claude_model:
-        argv.extend(["--model", settings.claude_model])
+    resolved = resolve_role(settings, role, model=model, effort=effort)
+    if resolved.model:
+        argv.extend(["--model", resolved.model])
+    if resolved.effort:
+        argv.extend(["--effort", resolved.effort])
     return argv
 
 
-def plan_invocation(settings: Settings, repo: Path, task: Path) -> Invocation:
+def plan_invocation(
+    settings: Settings,
+    repo: Path,
+    task: Path,
+    *,
+    model: str | None = None,
+    effort: str | None = None,
+) -> Invocation:
     task_body = _task_text(task)
     prompt = _read_prompt("planner.md").replace("{{TASK}}", task_body)
-    argv = _claude_argv(settings)
-    return Invocation("planner", tuple(argv), str(repo), {}, prompt)
+    resolved = resolve_role(settings, "planner", model=model, effort=effort)
+    argv = _claude_argv(settings, "planner", model=model, effort=effort)
+    return Invocation(
+        "planner",
+        tuple(argv),
+        str(repo),
+        {},
+        prompt,
+        model=resolved.model or None,
+        effort=resolved.effort or None,
+    )
 
 
-def review_invocation(settings: Settings, repo: Path, plan: Path, base: str) -> Invocation:
+def review_invocation(
+    settings: Settings,
+    repo: Path,
+    plan: Path,
+    base: str,
+    *,
+    model: str | None = None,
+    effort: str | None = None,
+) -> Invocation:
     plan_body = _task_text(plan)
     diff = git(repo, "diff", "--no-ext-diff", f"{base}...HEAD")
     if not diff:
@@ -82,13 +143,32 @@ def review_invocation(settings: Settings, repo: Path, plan: Path, base: str) -> 
         .replace("{{BASE}}", base)
         .replace("{{DIFF}}", diff)
     )
-    argv = _claude_argv(settings)
-    return Invocation("reviewer", tuple(argv), str(repo), {}, prompt)
+    resolved = resolve_role(settings, "reviewer", model=model, effort=effort)
+    argv = _claude_argv(settings, "reviewer", model=model, effort=effort)
+    return Invocation(
+        "reviewer",
+        tuple(argv),
+        str(repo),
+        {},
+        prompt,
+        model=resolved.model or None,
+        effort=resolved.effort or None,
+    )
 
 
-def executor_invocation(settings: Settings, worktree: Path, plan: Path) -> Invocation:
+def executor_invocation(
+    settings: Settings,
+    worktree: Path,
+    plan: Path,
+    *,
+    model: str | None = None,
+    effort: str | None = None,
+) -> Invocation:
+    if effort:
+        raise PilotError(CURSOR_EFFORT_REFUSED)
     plan_body = _task_text(plan)
     prompt = _read_prompt("executor.md").replace("{{PLAN}}", plan_body)
+    resolved = resolve_role(settings, "executor", model=model, effort=None)
     argv = [
         settings.cursor_binary,
         "-p",
@@ -102,9 +182,16 @@ def executor_invocation(settings: Settings, worktree: Path, plan: Path) -> Invoc
         "--output-format",
         "json",
     ]
-    if settings.cursor_model:
-        argv.extend(["--model", settings.cursor_model])
-    return Invocation("executor", tuple(argv), str(worktree), {})
+    if resolved.model:
+        argv.extend(["--model", resolved.model])
+    return Invocation(
+        "executor",
+        tuple(argv),
+        str(worktree),
+        {},
+        model=resolved.model or None,
+        effort=None,
+    )
 
 
 def ensure_clean_repo(repo: Path) -> None:
@@ -188,6 +275,8 @@ def format_invocation(invocation: Invocation) -> str:
         "argv": redacted,
         "cwd": invocation.cwd,
         "environment": invocation.environment,
+        "model": invocation.model,
+        "effort": invocation.effort,
     }
     if invocation.prompt is not None:
         payload["prompt"] = "<prompt>"

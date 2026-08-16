@@ -1,20 +1,165 @@
 {
   "brief": "023-forgepilot-modele-et-effort-par-role",
   "files": [
-    { "path": "../../../../control-plane/forgepilot/config.py" },
-    { "path": "../../../../control-plane/forgepilot/workflow.py" },
-    { "path": "../../../../control-plane/forgepilot/cli.py" },
-    { "path": "../../../../control-plane/config.toml" },
-    { "path": "../../../../control-plane/tests/test_workflow.py" },
-    { "path": "deliverables/pre-edit/control-plane-README.md.orig" },
+    {
+      "path": "../../../../control-plane/forgepilot/config.py"
+    },
+    {
+      "path": "../../../../control-plane/forgepilot/workflow.py"
+    },
+    {
+      "path": "../../../../control-plane/forgepilot/cli.py"
+    },
+    {
+      "path": "../../../../control-plane/config.toml"
+    },
+    {
+      "path": "../../../../control-plane/tests/test_workflow.py"
+    },
+    {
+      "path": "deliverables/pre-edit/control-plane-README.md.orig"
+    },
     {
       "path": "../../../../control-plane/README.md",
       "must_differ_from": "deliverables/pre-edit/control-plane-README.md.orig"
     },
-    { "path": "deliverables/measure_023.py" },
-    { "path": "deliverables/generator-log.md" },
-    { "path": "../../../../harness/queue/cost-ledger.jsonl" }
+    {
+      "path": "deliverables/measure_023.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "../../../../harness/queue/cost-ledger.jsonl"
+    }
   ],
-  "counters": [],
+  "counters": [
+    {
+      "name": "modeles_par_role_distincts",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=deux --model distincts / 0=échec"
+    },
+    {
+      "name": "roles_declares",
+      "value": 3,
+      "sample_size": 3,
+      "denominator": "3=rôles connus du pilote"
+    },
+    {
+      "name": "role_inconnu_refuse",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=refus nommant les trois rôles / 0=échec"
+    },
+    {
+      "name": "effort_transmis_claude",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=--effort sur planner et reviewer / 0=échec"
+    },
+    {
+      "name": "effort_refuse_sur_cursor",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=execute+iterate+roles.executor refusés / 0=échec"
+    },
+    {
+      "name": "niveaux_effort_acceptes",
+      "value": 5,
+      "sample_size": 5,
+      "denominator": "5=low,medium,high,xhigh,max (+1 invalide refusé)"
+    },
+    {
+      "name": "priorite_cli_sur_role",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=drapeau > [roles.*] / 0=échec"
+    },
+    {
+      "name": "priorite_role_sur_tools",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=[roles.*] > [tools] / 0=échec"
+    },
+    {
+      "name": "repli_sur_tools",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=sans [roles.*] comportement d'avant / 0=échec"
+    },
+    {
+      "name": "aucun_drapeau_si_rien_declare",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=pas de --model si rien déclaré / 0=échec"
+    },
+    {
+      "name": "drapeaux_lecture_seule_intacts",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=ordre après -p intact sur les deux rôles Claude / 0=échec"
+    },
+    {
+      "name": "sandbox_intact",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=--sandbox enabled sur execute et iterate / 0=échec"
+    },
+    {
+      "name": "prompt_absent_de_argv",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=marqueur hors argv / 0=présent"
+    },
+    {
+      "name": "settings_retrocompatible",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=Settings constructible avec dix champs / 0=TypeError"
+    },
+    {
+      "name": "tests_existants_intacts",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=douze tests d'origine intacts (diff additions only) / 0=touchés"
+    },
+    {
+      "name": "apercu_montre_modele_et_effort",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=aperçu porte model et effort / 0=échec"
+    },
+    {
+      "name": "apercu_ne_fuit_pas_le_prompt",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=prompt masqué / 0=fuite"
+    },
+    {
+      "name": "tests_ajoutes",
+      "value": 13,
+      "sample_size": 25,
+      "denominator": "total tests dans test_workflow.py après lot = 25"
+    },
+    {
+      "name": "tests_rouges_avant_correction",
+      "value": 11,
+      "sample_size": 13,
+      "denominator": "tests ajoutés = 13"
+    },
+    {
+      "name": "suite_control_plane_verte",
+      "value": 1,
+      "sample_size": 25,
+      "denominator": "tests exécutés = 25"
+    },
+    {
+      "name": "fichiers_hors_perimetre_modifies",
+      "value": 0,
+      "sample_size": 11,
+      "denominator": "fichiers touchés vs e6fdd28 = 11"
+    }
+  ],
   "waivers": []
 }

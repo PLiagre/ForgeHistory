@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import sys
 
-from .config import load_settings
+from .config import CURSOR_EFFORT_REFUSED, load_settings
 from .process import PilotError, git, run_command
 from .workflow import (
     create_worktree,
@@ -38,6 +38,8 @@ def parser() -> argparse.ArgumentParser:
     plan = commands.add_parser("plan", help="faire préparer un plan par Claude Code")
     plan.add_argument("task", type=_path)
     plan.add_argument("--repo", type=_path, default=Path.cwd())
+    plan.add_argument("--model")
+    plan.add_argument("--effort")
     plan.add_argument("--run", action="store_true")
 
     execute = commands.add_parser("execute", help="faire exécuter un plan par Cursor")
@@ -45,6 +47,8 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--repo", type=_path, default=Path.cwd())
     execute.add_argument("--base")
     execute.add_argument("--task-name", required=True)
+    execute.add_argument("--model")
+    execute.add_argument("--effort")
     execute.add_argument("--run", action="store_true")
 
     iterate = commands.add_parser(
@@ -54,12 +58,16 @@ def parser() -> argparse.ArgumentParser:
     iterate.add_argument("plan", type=_path)
     iterate.add_argument("--repo", type=_path, default=Path.cwd())
     iterate.add_argument("--task-name", required=True)
+    iterate.add_argument("--model")
+    iterate.add_argument("--effort")
     iterate.add_argument("--run", action="store_true")
 
     review = commands.add_parser("review", help="faire relire un diff par Claude Code")
     review.add_argument("plan", type=_path)
     review.add_argument("--repo", type=_path, default=Path.cwd())
     review.add_argument("--base")
+    review.add_argument("--model")
+    review.add_argument("--effort")
     review.add_argument("--run", action="store_true")
 
     publish_parser = commands.add_parser("publish", help="ouvrir une draft PR après Cursor")
@@ -108,18 +116,30 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "plan":
-            invocation = plan_invocation(settings, args.repo, args.task)
+            invocation = plan_invocation(
+                settings,
+                args.repo,
+                args.task,
+                model=args.model,
+                effort=args.effort,
+            )
             return _run_or_print(invocation, settings, args.repo, args.run)
 
         if args.command == "execute":
+            if args.effort:
+                raise PilotError(CURSOR_EFFORT_REFUSED)
             base = args.base or settings.default_base_ref
             if not args.run:
                 preview_worktree = args.repo / ".forgepilot" / "worktrees" / args.task_name
-                invocation = executor_invocation(settings, preview_worktree, args.plan)
+                invocation = executor_invocation(
+                    settings, preview_worktree, args.plan, model=args.model
+                )
                 print(format_invocation(invocation))
                 return 0
             worktree, branch = create_worktree(args.repo, args.task_name, base)
-            invocation = executor_invocation(settings, worktree, args.plan)
+            invocation = executor_invocation(
+                settings, worktree, args.plan, model=args.model
+            )
             result = execute_invocation(invocation, settings)
             target = persist_result(args.repo, invocation.role, invocation, result)
             print(f"Branche : {branch}")
@@ -128,11 +148,15 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "iterate":
+            if args.effort:
+                raise PilotError(CURSOR_EFFORT_REFUSED)
             worktree, branch, status = existing_worktree(args.repo, args.task_name)
             print(f"Branche : {branch}")
             print(f"Worktree : {worktree}")
             print(f"État git :\n{status}" if status else "État git : (propre)")
-            invocation = executor_invocation(settings, worktree, args.plan)
+            invocation = executor_invocation(
+                settings, worktree, args.plan, model=args.model
+            )
             if not args.run:
                 print(format_invocation(invocation))
                 return 0
@@ -143,7 +167,14 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "review":
             base = args.base or settings.default_base_ref
-            invocation = review_invocation(settings, args.repo, args.plan, base)
+            invocation = review_invocation(
+                settings,
+                args.repo,
+                args.plan,
+                base,
+                model=args.model,
+                effort=args.effort,
+            )
             return _run_or_print(invocation, settings, args.repo, args.run)
 
         if args.command == "publish":
