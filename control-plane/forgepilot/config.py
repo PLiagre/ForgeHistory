@@ -16,6 +16,15 @@ CURSOR_EFFORT_REFUSED = (
 )
 
 
+def assert_valid_effort(effort: str) -> None:
+    """Refuse un niveau hors liste (config.toml ou drapeau --effort)."""
+    if effort and effort not in EFFORT_LEVELS:
+        raise PilotError(
+            f"Niveau d'effort invalide {effort!r} ; "
+            "niveaux acceptés : low, medium, high, xhigh, max."
+        )
+
+
 @dataclass(frozen=True)
 class RoleSettings:
     model: str = ""
@@ -59,11 +68,7 @@ def load_settings(path: Path | str | None = None) -> Settings:
         if name == "executor" and "effort" in section:
             raise PilotError(CURSOR_EFFORT_REFUSED)
         effort = str(section.get("effort", "") or "")
-        if effort and effort not in EFFORT_LEVELS:
-            raise PilotError(
-                f"Niveau d'effort invalide {effort!r} ; "
-                "niveaux acceptés : low, medium, high, xhigh, max."
-            )
+        assert_valid_effort(effort)
         roles[name] = RoleSettings(
             model=str(section.get("model", "") or ""),
             effort=effort,

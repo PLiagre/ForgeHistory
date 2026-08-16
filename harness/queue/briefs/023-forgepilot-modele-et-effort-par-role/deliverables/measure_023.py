@@ -131,6 +131,10 @@ def measure_sc1() -> tuple[int, int, int]:
     from forgepilot.process import PilotError
 
     distinct = roles_count = unknown = 0
+    # SC1b : compter les rôles du config.toml livré, pas d'un fichier jetable.
+    delivered = load_settings(REPO / "control-plane" / "config.toml")
+    roles_count = len(delivered.roles)
+
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         cfg = root / "config.toml"
@@ -151,7 +155,6 @@ def measure_sc1() -> tuple[int, int, int]:
             encoding="utf-8",
         )
         settings = load_settings(cfg)
-        roles_count = len(settings.roles)
         task = root / "task.md"
         task.write_text("mesure", encoding="utf-8")
         plan = root / "plan.json"
@@ -276,6 +279,7 @@ def measure_sc2() -> tuple[int, int, int]:
                     accepted += 1
             except PilotError:
                 pass
+        # Sixième niveau refusé aussi via le drapeau (priorité 1 de D3).
         bad_level = root / "bad-level.toml"
         bad_level.write_text(
             _base_toml(
@@ -284,12 +288,32 @@ def measure_sc2() -> tuple[int, int, int]:
             ),
             encoding="utf-8",
         )
-        sixth_refused = False
+        sixth_refused_config = False
         try:
             load_settings(bad_level)
         except PilotError:
-            sixth_refused = True
-        if accepted == 5 and sixth_refused:
+            sixth_refused_config = True
+        err_cli = io.StringIO()
+        sixth_refused_cli = False
+        try:
+            with unittest.mock.patch("sys.stderr", err_cli):
+                code_cli = main(
+                    [
+                        "plan",
+                        str(task),
+                        "--repo",
+                        str(root),
+                        "--config",
+                        str(cfg),
+                        "--effort",
+                        "ultra",
+                    ]
+                )
+        except SystemExit:
+            code_cli = -99
+        if code_cli == 2 and "ultra" in err_cli.getvalue() and "invalide" in err_cli.getvalue().lower():
+            sixth_refused_cli = True
+        if accepted == 5 and sixth_refused_config and sixth_refused_cli:
             levels_ok = 5
         else:
             levels_ok = accepted
@@ -349,8 +373,10 @@ def measure_sc3() -> tuple[int, int, int, int]:
 
 
 def measure_sc4() -> tuple[int, int, int, int, int]:
+    from forgepilot.cli import main
     from forgepilot.config import Settings
     from forgepilot.workflow import (
+        create_worktree,
         executor_invocation,
         plan_invocation,
         review_invocation,
@@ -376,16 +402,97 @@ def measure_sc4() -> tuple[int, int, int, int, int]:
         if ok_roles == 2:
             flags = 1
 
-        exec_inv = executor_invocation(settings, root, plan)
-        # iterate uses the same executor_invocation
-        iter_inv = executor_invocation(settings, root, plan)
-        if (
-            "--sandbox" in exec_inv.argv
-            and exec_inv.argv[exec_inv.argv.index("--sandbox") + 1] == "enabled"
-            and "--sandbox" in iter_inv.argv
-            and iter_inv.argv[iter_inv.argv.index("--sandbox") + 1] == "enabled"
+        # execute : aperçu sans --run (pas besoin de worktree réel).
+        exec_ok = False
+        out_exec = io.StringIO()
+        with unittest.mock.patch("sys.stdout", out_exec):
+            code_exec = main(
+                [
+                    "execute",
+                    str(plan),
+                    "--task-name",
+                    "meas-sandbox",
+                    "--repo",
+                    str(root),
+                ]
+            )
+        if code_exec == 0:
+            text = out_exec.getvalue()
+            brace = text.find("{")
+            if brace >= 0:
+                payload = json.loads(text[brace:])
+                argv = payload["argv"]
+                if "--sandbox" in argv and argv[argv.index("--sandbox") + 1] == "enabled":
+                    exec_ok = True
+
+        # iterate : sous-commande réelle via main (worktree agent préparé).
+        # Repo git propre dédié : plan.json doit être suivi pour avoid dirty-tree.
+        iter_ok = False
+        iter_repo = root / "iter-repo"
+        iter_repo.mkdir()
+        subprocess.run(
+            ["git", "init", "-b", "main"],
+            cwd=iter_repo,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "measure@example.com"],
+            cwd=iter_repo,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Measure"],
+            cwd=iter_repo,
+            check=True,
+            capture_output=True,
+        )
+        (iter_repo / "tracked.txt").write_text("initial\n", encoding="utf-8")
+        iter_plan = iter_repo / "plan.json"
+        iter_plan.write_text('{"task":"f"}', encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "tracked.txt", "plan.json"],
+            cwd=iter_repo,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", "initial"],
+            cwd=iter_repo,
+            check=True,
+            capture_output=True,
+        )
+        create_worktree(iter_repo, "meas-sandbox", "main")
+        out_iter = io.StringIO()
+        with unittest.mock.patch(
+            "forgepilot.cli.execute_invocation",
+            side_effect=AssertionError("execute_invocation appelé"),
         ):
+            with unittest.mock.patch("sys.stdout", out_iter):
+                code_iter = main(
+                    [
+                        "iterate",
+                        str(iter_plan),
+                        "--task-name",
+                        "meas-sandbox",
+                        "--repo",
+                        str(iter_repo),
+                    ]
+                )
+        if code_iter == 0:
+            text = out_iter.getvalue()
+            brace = text.find("{")
+            if brace >= 0:
+                payload = json.loads(text[brace:])
+                argv = payload["argv"]
+                if "--sandbox" in argv and argv[argv.index("--sandbox") + 1] == "enabled":
+                    iter_ok = True
+
+        if exec_ok and iter_ok:
             sandbox = 1
+        # garde secondaire : executor_invocation direct (ne remplace pas iterate).
+        _ = executor_invocation(settings, root, plan)
 
         bound = 32 * os.sysconf("SC_PAGESIZE")
         marker = "MEASURE_023_OVERFLOW_MARKER"

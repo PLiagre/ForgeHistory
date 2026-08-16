@@ -7,7 +7,12 @@ from pathlib import Path
 import re
 from typing import Iterable
 
-from .config import CURSOR_EFFORT_REFUSED, RoleSettings, Settings
+from .config import (
+    CURSOR_EFFORT_REFUSED,
+    RoleSettings,
+    Settings,
+    assert_valid_effort,
+)
 from .process import PilotError, git, resolve_binary, run_command
 
 
@@ -67,6 +72,7 @@ def resolve_role(
         resolved_effort = role_cfg.effort
     else:
         resolved_effort = ""
+    assert_valid_effort(resolved_effort or "")
 
     return RoleSettings(model=resolved_model or "", effort=resolved_effort or "")
 

@@ -314,7 +314,12 @@ class WorkflowTests(unittest.TestCase):
         )
 
     def test_settings_ten_fields_still_constructible(self):
-        """D2 / D7 : Settings reste constructible avec exactement dix champs."""
+        """D2 / D7 : Settings reste constructible avec exactement dix champs.
+
+        Jamais rouge sur le code d'avant : la garde D2 vérifie une propriété
+        déjà vraie avant le lot (champ `roles` à défaut). Documenté ici pour
+        la règle n° 4 — ce n'est pas un oubli de preuve rouge.
+        """
         settings = Settings(
             "t",
             "o/e",
@@ -523,6 +528,34 @@ class WorkflowTests(unittest.TestCase):
             with self.assertRaises(PilotError):
                 load_settings(bad)
 
+    def test_cli_effort_ultra_refused_on_plan(self):
+        """SC2c / F1 : --effort ultra sur plan rend 2 (priorité 1 de D3)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            task = root / "task.md"
+            task.write_text("effort invalide", encoding="utf-8")
+            err = io.StringIO()
+            argv = [
+                "plan",
+                str(task),
+                "--repo",
+                str(root),
+                "--effort",
+                "ultra",
+            ]
+            try:
+                with patch("sys.stderr", err):
+                    code = main(argv)
+            except SystemExit as exc:
+                self.fail(
+                    f"SystemExit({exc.code}) : plan --effort ultra doit rendre 2 "
+                    "via PilotError, pas SystemExit argparse."
+                )
+            self.assertEqual(2, code)
+            message = err.getvalue()
+            self.assertIn("invalide", message.lower())
+            self.assertIn("ultra", message)
+
     def test_role_beats_tools_claude_model(self):
         from forgepilot.config import load_settings
 
@@ -567,6 +600,11 @@ class WorkflowTests(unittest.TestCase):
             self.assertNotIn("--effort", invocation.argv)
 
     def test_no_model_flag_when_nothing_declared(self):
+        """Sans modèle déclaré, aucun --model — déjà vrai avant le lot.
+
+        Jamais rouge sur le code d'avant : comportement préexistant documenté
+        pour la règle n° 4 (précédent lot 022).
+        """
         from forgepilot.config import load_settings
 
         with tempfile.TemporaryDirectory() as tmp:

@@ -156,3 +156,38 @@ Vingt-et-un compteurs imprimés avec dénominateur ; `tests_rouges_avant_correct
 
 Pas de fusion, pas de push, pas de modification de secret, pas de verdict
 d'Évaluateur (hors rôle).
+
+---
+
+## Itération après relecture FAIL (2026-08-16)
+
+Correctifs demandés par le relecteur (F1 bloquant, F2/F3 compteurs) :
+
+1. **F1** — `assert_valid_effort` partagé ; appelé depuis `load_settings` et
+   depuis `resolve_role` (chemin drapeau `--effort`). Test ajouté :
+   `test_cli_effort_ultra_refused_on_plan` (`plan --effort ultra` → code 2).
+2. **F2** — `roles_declares` lit désormais `control-plane/config.toml` livré.
+3. **F3** — `sandbox_intact` passe par `main` sur `execute` (aperçu) et
+   `iterate` (worktree agent réel), plus un double appel à
+   `executor_invocation`.
+4. **F4** — docstrings sur les deux tests jamais rouges
+   (`test_settings_ten_fields_still_constructible`,
+   `test_no_model_flag_when_nothing_declared`).
+
+Contrôles rejoués :
+
+```bash
+cd control-plane && PYTHONPATH=. python3 -m unittest discover -s tests -v
+# Ran 26 tests in 0.093s — OK
+
+python3 …/deliverables/measure_023.py --write-manifest
+# tests_ajoutes=14 ; tests_rouges_avant_correction=12 ;
+# suite_control_plane_verte=1 (26) ; niveaux_effort_acceptes=5 ;
+# sandbox_intact=1 ; roles_declares=3 ; hors_périmètre=0
+
+/home/liagrep/src/ForgeHistory/.venv/bin/python -m pytest harness/tests/ -q
+# 9 failed, 355 passed — tous dans test_run_unity.py (préexistants)
+```
+
+`verdict_audit.py` → REJECT mécanique attendu : pas de `verdict.md`
+(rôle Évaluateur).

@@ -138,21 +138,21 @@
     },
     {
       "name": "tests_ajoutes",
-      "value": 13,
-      "sample_size": 25,
-      "denominator": "total tests dans test_workflow.py après lot = 25"
+      "value": 14,
+      "sample_size": 26,
+      "denominator": "total tests dans test_workflow.py après lot = 26"
     },
     {
       "name": "tests_rouges_avant_correction",
-      "value": 11,
-      "sample_size": 13,
-      "denominator": "tests ajoutés = 13"
+      "value": 12,
+      "sample_size": 14,
+      "denominator": "tests ajoutés = 14"
     },
     {
       "name": "suite_control_plane_verte",
       "value": 1,
-      "sample_size": 25,
-      "denominator": "tests exécutés = 25"
+      "sample_size": 26,
+      "denominator": "tests exécutés = 26"
     },
     {
       "name": "fichiers_hors_perimetre_modifies",
