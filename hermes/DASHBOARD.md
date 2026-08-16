@@ -5,7 +5,7 @@
 > poussée sur `master` et toutes les 6 heures par
 > `.github/workflows/hermes-dashboard.yml`.
 >
-> Générée le 2026-08-15 21:05 UTC.
+> Générée le 2026-08-16 09:49 UTC.
 
 ## En bref
 

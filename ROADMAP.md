@@ -34,8 +34,8 @@ contiendra jamais de logique de simulation.
 | Phase | Contenu | Statut |
 |---|---|---|
 | **F0** — Harnais | Trois rôles (Planificateur / Générateur / Évaluateur), gate mécanique `verdict_audit.py`, briefs 001→010, boucle d'audit Cursor, pipeline full-auto (FSM, orchestrateur, budgets) | **terminé** |
-| **F1** — Fondations monde | Pipeline géographique (littoral `1400` ✓, cellules G3 ✓, adjacence maritime G4 ✓ brief 019 — PR #105 fusionnée le 2026-08-14 ; provenance du littoral G3 ✓ brief 020 — PR #106, accepté, en attente de fusion ; suite : fleuves, relief, climat, ressources), portage Unity ✓, refonte visuelle carte (briefs 004/005, reprise conditionnée aux logs Unity) | **en cours** |
-| **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — briefs 011, 012, 013 livrés et fusionnés ; brief 014 (pipeline : contre-audit comme porte, refus fournisseur comme état) livré, accepté et fusionné le 2026-08-13 (PR #83) ; brief 017 (seuil de survie honnête, fusion des graines 015/016) livré, accepté et fusionné le 2026-08-14 (PR #101, sans squash) ; brief 018 (Province dérivée, ADR-0003) livré, accepté et fusionné le 2026-08-14 (PR #102, sans squash) ; les graines 015/016 ne s'exécutent plus (elles pointent vers 017) ; suites F2 moteur : aucune restante pour clôturer E2 ; reste F1 geo (fleuves, relief, climat, ressources ; provenance G3 livrée par le brief 020, PR #106 en attente de fusion) |
+| **F1** — Fondations monde | Pipeline géographique (littoral `1400` ✓, cellules G3 ✓, adjacence maritime G4 ✓ brief 019 — PR #105 fusionnée le 2026-08-14 ; provenance du littoral G3 ✓ brief 020 — PR #106 fusionnée le 2026-08-14 ; fleuves G5 ✓ brief 021 — PR #107 fusionnée le 2026-08-15 ; suite : relief, climat, ressources), portage Unity ✓, refonte visuelle carte (briefs 004/005, reprise conditionnée aux logs Unity) | **en cours** |
+| **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — briefs 011, 012, 013 livrés et fusionnés ; brief 014 (pipeline : contre-audit comme porte, refus fournisseur comme état) livré, accepté et fusionné le 2026-08-13 (PR #83) ; brief 017 (seuil de survie honnête, fusion des graines 015/016) livré, accepté et fusionné le 2026-08-14 (PR #101, sans squash) ; brief 018 (Province dérivée, ADR-0003) livré, accepté et fusionné le 2026-08-14 (PR #102, sans squash) ; les graines 015/016 ne s'exécutent plus (elles pointent vers 017) ; suites F2 moteur : aucune restante pour clôturer E2 ; reste F1 geo (relief, climat, ressources ; provenance G3 livrée par le brief 020, PR #106 fusionnée le 2026-08-14 ; fleuves G5 livrés par le brief 021, PR #107 fusionnée le 2026-08-15) |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles — chaque couche émerge de la précédente | à venir |
 
 ## Le workflow pilote — Hermes, Claude Code, Cursor (ADR-0013)
@@ -81,7 +81,7 @@ changement structurel entériné par ADR, doute).
 
 | jalon | ce que l'étape doit réunir pour être close | statut |
 |---|---|---|
-| **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓, des cellules G3 ✓ et de l'adjacence maritime G4 ✓ brief 019) ; artefacts consommables par `sim/` ; visuel carte repris (briefs 004/005) si les logs Unity sont disponibles | **en cours** — G4 fusionné (PR #105) ; provenance G3 livrée (brief 020, PR #106, accepté, en attente de fusion) ; restent fleuves, relief, climat, ressources |
+| **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓, des cellules G3 ✓ de l'adjacence maritime G4 ✓ brief 019 et des fleuves G5 ✓ brief 021) ; artefacts consommables par `sim/` ; visuel carte repris (briefs 004/005) si les logs Unity sont disponibles | **en cours** — G4 fusionné (PR #105) ; provenance G3 fusionnée (brief 020, PR #106, le 2026-08-14) ; fleuves G5 fusionnés (brief 021, PR #107, le 2026-08-15) ; restent relief, climat, ressources |
 | **E2 — Le monde vivant compte juste** (clôt F2, couche 1) | seuil de survie honnête (graines 015/016 traitées) ; agrégation Province dérivée (ADR-0003) ; monde mesuré stable et falsifiable sur les 596 cellules réelles | **clos** — critères réunis (017 + 018) ; la fusion de `hermes/milestones/ETAPE-02-monde-vivant-compte-juste.md` déclenche l'audit d'étape (ADR-0012) |
 | **E3 — Villes** (couche 2) | urbanisation, entreprises, métiers, routes, infrastructures — émergeant de la couche 1 | à venir |
 | **E4 — États** (couche 3) | fiscalité, lois, diplomatie, technologies, culture, religion | à venir |
@@ -111,9 +111,14 @@ toute veille de décision irréversible du propriétaire.
 5. Render n'est pas retenu pour Hermes. Unity Build Automation reste une
    alternative payante si le propriétaire veut supprimer la dépendance au PC.
 6. Ne réactiver l'ancien full-auto que par une nouvelle décision propriétaire.
-7. Côté produit, terminer la provenance G3 déjà acceptée (brief 020, PR #106),
-   puis poursuivre F1 avec G5 fleuves, G6 relief, climat et ressources. Brancher
-   ensuite VictoriaCityLab comme vue mince sur les contrats ForgeHistory.
+7. Côté produit, la provenance G3 (brief 020, PR #106) et les fleuves G5
+   (brief 021, PR #107) sont fusionnés. Poursuivre F1 avec G6 relief, climat et
+   ressources. Brancher ensuite VictoriaCityLab comme vue mince sur les contrats
+   ForgeHistory.
+8. Côté pilote, le lot 022 a réparé ForgePilot (PR #108 fusionnée le
+   2026-08-15) mais **sans verdict d'Évaluateur** — dette consignée. Le brief
+   023 (modèle et effort par rôle) est écrit et non lancé ; ADR-0014 reste
+   `proposed` et inapplicable tant que 023 n'est pas livré.
 
 ## Historique des révisions
 
@@ -126,3 +131,4 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-14 | hermes (rédaction déléguée, décision propriétaire — `DEMANDE-20260814-pilote-forgepilot.md`) | pilote ADR-0013 corrigé : Hermes léger, Claude Code Pro plan/revue en lecture seule, Cursor unique exécutant ; ancien full-auto en mode manuel |
 | 2026-08-14 | hermes (rédaction déléguée, décision propriétaire) | hébergement progressif : trois lots locaux, VPS 4 Go seulement si concluant ; Render écarté pour Hermes |
 | 2026-08-14 | hermes (rédaction déléguée, correction propriétaire — `DEMANDE-20260814-worker-unity-windows.md`) | correction de plateforme : Unity reste sous Windows ; pilote local Windows/WSL2, puis VPS facultatif + worker Unity Windows manuel et bloquant |
+| 2026-08-16 | hermes (rédaction déléguée à Claude Code, rattrapage demandé par le propriétaire) | correction factuelle uniquement, aucune décision nouvelle : PR #106 fusionnée le 2026-08-14 (le texte la disait « en attente ») ; fleuves G5 livrés et fusionnés (brief 021, PR #107) ; état du pilote ajouté aux prochaines étapes (lot 022 fusionné sans verdict, brief 023 non lancé, ADR-0014 `proposed`). Rapports adossés : `hermes/reports/RAPPORT-20260816-*.md` |
