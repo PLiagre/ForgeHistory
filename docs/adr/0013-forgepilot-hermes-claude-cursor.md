@@ -135,3 +135,35 @@ et `docs/operations/unity-windows-worker.md`.
   tâches ForgeHistory sans Unity peuvent continuer sur le VPS.
 - **retour de complexité** : aucune nouvelle étape ou cadence avant le bilan
   écrit des trois lots.
+
+---
+
+## Amendement 001 — le VPS a précédé son bilan
+
+**Amended**: 2026-08-19
+**Author**: Claude Code (rôle CTO), sur constat
+
+Cet ADR posait une condition : le VPS n'est loué qu'**après** un bilan écrit des
+trois premiers lots réels. Le `2026-08-19`, le propriétaire a installé Hermes sur
+un VPS Linux dédié. Les trois lots existent bien (`021`, `022`, `023`, le dernier
+fusionné le `2026-08-16`), mais **le bilan n'est pas écrit**. L'ordre prescrit
+n'a donc pas été tenu.
+
+C'est consigné ici plutôt que passé sous silence, pour trois raisons :
+
+1. **La condition n'était pas décorative.** Elle existait pour qu'une décision
+   d'hébergement s'appuie sur des mesures — qualité des plans, retouches
+   humaines, durée, coût, plafonds atteints — et non sur une impression de
+   confort. Ces mesures ne sont toujours pas rassemblées.
+2. **Le bilan reste dû, et il n'est pas rétroactif.** Il doit pouvoir conclure
+   *retirer le pilote*. Un bilan écrit après coup pour ratifier une décision
+   déjà prise n'en est pas un ; celui-ci doit être écrit comme si l'hébergement
+   restait ouvert, parce que sur le fond il l'est.
+3. **Ce n'est pas une dérogation générale.** La règle « mesurer avant d'étendre »
+   d'ADR-0013 reste valable pour toute étape suivante, à commencer par les crons
+   et l'auto-fusion. Cette exception ne la périme pas.
+
+Aucune autre clause d'ADR-0013 n'est amendée. En particulier, « pendant trois
+lots pilotes : aucun cron, aucun auto-merge et une seule tâche » reste en
+vigueur jusqu'à ce que le bilan prononce la clôture du pilote — voir ADR-0015,
+règle `2`.
