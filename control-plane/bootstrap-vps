@@ -49,6 +49,18 @@ for outil in git python3 curl; do
         manque=1
     fi
 done
+# `python3` présent ne veut pas dire venv fonctionnel : sur Debian et Ubuntu
+# le module vit dans un paquet séparé, et l'échec n'apparaît qu'à la création
+# du venv, une fois le dépôt déjà cloné. On le sonde ici, pas plus tard.
+if ! python3 -c 'import ensurepip' >/dev/null 2>&1; then
+    PYV="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+    rouge "python3 est là, mais son module venv manque (ensurepip introuvable)."
+    rouge "  Installe-le :  sudo apt install python${PYV}-venv"
+    manque=1
+else
+    vert "module venv fonctionnel"
+fi
+
 (( manque == 0 )) || exit 1
 
 titre "2. Le dépôt"
@@ -69,7 +81,14 @@ fi
 titre "3. Environnement Python et ForgePilot"
 
 cd "$REPO_DIR"
-if [[ ! -x .venv/bin/python ]]; then
+# On teste pip, pas python : un venv dont la création a échoué garde un
+# bin/python parfaitement exécutable et n'a aucun pip. Le tester reviendrait
+# à conclure « déjà là » sur un environnement inutilisable.
+if [[ -d .venv && ! -x .venv/bin/pip ]]; then
+    jaune "Environnement virtuel incomplet (pas de pip) — je le refais"
+    rm -rf .venv
+fi
+if [[ ! -x .venv/bin/pip ]]; then
     python3 -m venv .venv
     vert "Environnement virtuel créé"
 else
