@@ -48,6 +48,14 @@ session du `2026-08-15` n'ont été vus que parce qu'un acteur distinct a refait
 les mesures. La session s'ouvre par `forge-start`, puis
 `hermes chat -s forgehistory-suivi`.
 
+**Le pilote de trois lots est clos depuis le bilan du `2026-08-19`**
+(`hermes/reports/RAPPORT-20260819-bilan-pilote-forgepilot-021-023.md`). Les lots
+`021`, `022` et `023` sont finalement tous acceptés. Le bilan propose de
+conserver ForgePilot avec ajustements : budget Claude borné, verdict avant toute
+proposition de fusion, mesure `reviewer low/high` et portabilité Windows à
+traiter par des briefs distincts. Il constate sans la lisser l'entorse : le VPS
+a précédé le bilan qui devait conditionner son choix.
+
 Chaîne nominale pendant trois lots d'essai :
 
 ```
@@ -103,19 +111,22 @@ toute veille de décision irréversible du propriétaire.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. Garder Windows démarré pour préserver Unity. Installer le pilote soit
-   nativement sous Windows, soit dans WSL2 ; ne plus dépendre du double démarrage
-   sur la partition Linux. Authentifier Claude Code avec le compte Claude.ai Pro
-   et Cursor avec son compte ; ne pas définir `ANTHROPIC_API_KEY`.
-2. Exécuter `forgepilot doctor`, puis trois petits lots ForgeHistory avec
-   `plan`, `execute` et `review`, sans cron et sans auto-merge.
+1. Le pilote est désormais installé sur le VPS Linux ; Claude Code, Cursor et
+   GitHub y sont authentifiés. Ne pas définir `ANTHROPIC_API_KEY`. Windows reste
+   le futur worker Unity et n'est jamais remplacé par une validation Linux.
+2. Le pilote de trois lots (`021` à `023`) est clos par le bilan du
+   `2026-08-19`. Avant tout nouveau lot lourd, le propriétaire fixe l'enveloppe
+   mensuelle Claude et tranche la proposition de conserver ForgePilot avec
+   ajustements.
 3. Si un lot touche VictoriaCityLab avant que son worker existe, le bloquer.
    La première PR CityLab d'infrastructure doit ajouter un runner GitHub
    auto-hébergé Windows, Git LFS et les tests Unity 6000.0.43f1 en batchmode,
    déclenchés manuellement uniquement sur une branche de confiance.
-4. Après trois lots, décider : supprimer ForgePilot, le garder sur Windows/WSL2
-   ou migrer Hermes et ForgePilot sur un VPS 4 Go. Le PC Windows devient alors
-   le worker Unity ; lorsqu'il est éteint, la validation reste en attente.
+4. Le VPS a été mis en service avant le bilan contrairement à l'ordre exigé par
+   ADR-0013 ; l'amendement 001 et le bilan le consignent. La proposition du
+   bilan est de conserver ForgePilot sur ce VPS, sans que cette proposition
+   vaille acceptation par le propriétaire. Le PC Windows reste le worker Unity ;
+   lorsqu'il est éteint, la validation reste en attente.
 5. Render n'est pas retenu pour Hermes. Unity Build Automation reste une
    alternative payante si le propriétaire veut supprimer la dépendance au PC.
 6. Ne réactiver l'ancien full-auto que par une nouvelle décision propriétaire.
@@ -123,10 +134,11 @@ toute veille de décision irréversible du propriétaire.
    (brief 021, PR #107) sont fusionnés. Poursuivre F1 avec G6 relief, climat et
    ressources. Brancher ensuite VictoriaCityLab comme vue mince sur les contrats
    ForgeHistory.
-8. Côté pilote, le lot 022 a réparé ForgePilot (PR #108 fusionnée le
-   2026-08-15) mais **sans verdict d'Évaluateur** — dette consignée. Le brief
-   023 (modèle et effort par rôle) est écrit et non lancé ; ADR-0014 reste
-   `proposed` et inapplicable tant que 023 n'est pas livré.
+8. Côté pilote, les lots `022` et `023` ont chacun un verdict `ACCEPT` depuis le
+   `2026-08-19` : la dette des verdicts manquants est soldée. ADR-0014 est
+   accepté. Le prochain lot possible compare la qualité et le coût de
+   `reviewer low` et `reviewer high`, mais il exige un brief écrit par Claude.
+   ADR-0015 reste `proposed` ; aucun cron n'est créé avant sa décision.
 
 ## Historique des révisions
 
@@ -141,3 +153,4 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-14 | hermes (rédaction déléguée, correction propriétaire — `DEMANDE-20260814-worker-unity-windows.md`) | correction de plateforme : Unity reste sous Windows ; pilote local Windows/WSL2, puis VPS facultatif + worker Unity Windows manuel et bloquant |
 | 2026-08-16 | hermes (rédaction déléguée à Claude Code, rattrapage demandé par le propriétaire) | correction factuelle uniquement, aucune décision nouvelle : PR #106 fusionnée le 2026-08-14 (le texte la disait « en attente ») ; fleuves G5 livrés et fusionnés (brief 021, PR #107) ; état du pilote ajouté aux prochaines étapes (lot 022 fusionné sans verdict, brief 023 non lancé, ADR-0014 `proposed`). Rapports adossés : `hermes/reports/RAPPORT-20260816-*.md` |
 | 2026-08-16 | hermes (rédaction déléguée à Claude Code, décision propriétaire — `DEMANDE-20260815-hermes-cerveau-du-pipeline.md`) | **ADR-0014 accepté** : Hermes déclenche et rend compte, Claude juge à la demande, Cursor exécute, le propriétaire garde le veto sur la fusion. Section « Workflow pilote » mise à jour ; point d'entrée unique `forge-start` puis `hermes chat -s forgehistory-suivi` |
+| 2026-08-19 | hermes | bilan obligatoire des lots pilotes `021` à `023` écrit : pilote clos, trois verdicts finaux acceptés, proposition de conserver ForgePilot avec ajustements ; dette VPS avant bilan déclarée, budget Claude et ADR-0015 laissés à la décision du propriétaire |
