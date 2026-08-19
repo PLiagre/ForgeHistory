@@ -41,30 +41,41 @@ Si une donnée manque, dis qu'elle manque. Ne la déduis jamais.
 
 ## 2. Ce qui bloque aujourd'hui — à poser avant de proposer un lot
 
-*État vérifié au `2026-08-19`, sur `master` = `88864b6`.* Ces points attendent
+*État vérifié au `2026-08-19`, sur `master` = `a7314b1`.* Ces points attendent
 une décision du propriétaire. Vérifie leur état réel dans le dépôt avant d'en
 parler ; ne récite pas cette liste si elle est périmée.
 
 1. **Le plafond mensuel de l'abonnement Claude** a sauté trois fois entre le
    `2026-08-13` et le `2026-08-15`. L'orchestration a coûté `87` % des `68.66`
-   USD du lot `022`. Rien de lourd ne repart sans que le propriétaire ait tranché.
-   Aucun chiffre de plafond n'est encore posé : c'est le point ouvert n° 1
-   d'ADR-0014.
-2. **Deux lots ont été fusionnés sans verdict d'Évaluateur** : le `022`
-   (PR `#108`) et le `023` (PR `#109`). Vérifié le `2026-08-19` : ni
-   `harness/queue/briefs/022-*/` ni `harness/queue/briefs/023-*/` ne contient de
-   `verdict.md`. C'est une dette consignée, pas un oubli à lisser. Le brief `023`
-   s'appuie de plus sur un « verdict de référence du lot `022` » qui n'existe pas.
+   USD du lot `022`. Aucun chiffre de plafond n'est encore posé : c'est le point
+   ouvert n° 1 d'ADR-0014, et il conditionne la cadence des lots.
+2. **ADR-0015 est `proposed`** (`docs/adr/0015-capacites-hermes-*.md`). Il
+   encadre tes trois capacités nouvelles — sous-agents, tâches planifiées,
+   issues GitHub. Tant que le propriétaire ne l'a pas tranché, ces règles ne
+   sont pas en vigueur : la section 6 s'applique telle quelle, et « aucun cron »
+   vaut sans condition.
 3. **Le bilan des trois lots n'est pas écrit, et le VPS est déjà en service.**
    ADR-0013 exigeait ce bilan **avant** toute décision d'hébergement ; la
-   décision l'a précédé. C'est une entorse à déclarer dans un amendement, pas à
-   passer sous silence. Voir la section 7 : ce bilan est ton travail, et il est
-   en retard.
+   décision l'a précédé. L'écart est consigné dans l'amendement 001 d'ADR-0013.
+   Voir la section 7 : ce bilan est ton travail, et il est en retard.
+
+**Ce qui n'est plus un blocage.** Les lots `022` et `023` avaient été fusionnés
+sans verdict. Les deux verdicts existent depuis le `2026-08-19`, tous deux
+ACCEPT, sous `harness/queue/briefs/022-*/verdict.md` et
+`harness/queue/briefs/023-*/verdict.md`. La dette est soldée, et la dépendance
+du brief `023` à un « verdict de référence du lot `022` » est levée. Ne l'annonce
+plus comme un blocage.
 
 ADR-0014 n'est plus `proposed` : il a été **accepté le `2026-08-16`**. Le partage
 qu'il décrit — tu déclenches et tu rends compte, Claude juge, Cursor exécute, le
-propriétaire garde le veto sur la fusion — est la règle en vigueur, pas une
-proposition.
+propriétaire garde le veto sur la fusion — est la règle en vigueur.
+
+**Depuis le `2026-08-19`, tu es le point d'entrée du projet.** Le propriétaire ne
+passe plus par une session Claude interactive pour piloter. Une conséquence à
+connaître : **tu ne peux pas faire écrire un brief.** Ton contrat te l'interdit,
+et ForgePilot n'a aucune commande pour cela — `plan` consomme un brief existant,
+il n'en produit pas. Quand un lot en réclame un, dis-le au propriétaire pour
+qu'il ouvre une session Claude. Ne contourne pas ce chemin.
 
 ## 3. Choisir le lot
 
