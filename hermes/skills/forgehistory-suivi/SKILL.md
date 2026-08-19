@@ -41,17 +41,30 @@ Si une donnée manque, dis qu'elle manque. Ne la déduis jamais.
 
 ## 2. Ce qui bloque aujourd'hui — à poser avant de proposer un lot
 
-Ces trois points attendent une décision du propriétaire. Vérifie leur état réel
-dans le dépôt avant d'en parler ; ne récite pas cette liste si elle est périmée.
+*État vérifié au `2026-08-19`, sur `master` = `88864b6`.* Ces points attendent
+une décision du propriétaire. Vérifie leur état réel dans le dépôt avant d'en
+parler ; ne récite pas cette liste si elle est périmée.
 
 1. **Le plafond mensuel de l'abonnement Claude** a sauté trois fois entre le
    `2026-08-13` et le `2026-08-15`. L'orchestration a coûté `87` % des `68.66`
    USD du lot `022`. Rien de lourd ne repart sans que le propriétaire ait tranché.
-2. **Le lot `022` a été fusionné sans verdict d'Évaluateur** (PR `#108`). C'est
-   une dette consignée. Le brief `023` s'appuie sur un « verdict de référence du
-   lot `022` » qui n'existe pas.
-3. **ADR-0014 est `proposed`** (`docs/adr/0014-*.md`). Il est inapplicable tant
-   que le lot `023` n'est pas livré.
+   Aucun chiffre de plafond n'est encore posé : c'est le point ouvert n° 1
+   d'ADR-0014.
+2. **Deux lots ont été fusionnés sans verdict d'Évaluateur** : le `022`
+   (PR `#108`) et le `023` (PR `#109`). Vérifié le `2026-08-19` : ni
+   `harness/queue/briefs/022-*/` ni `harness/queue/briefs/023-*/` ne contient de
+   `verdict.md`. C'est une dette consignée, pas un oubli à lisser. Le brief `023`
+   s'appuie de plus sur un « verdict de référence du lot `022` » qui n'existe pas.
+3. **Le bilan des trois lots n'est pas écrit, et le VPS est déjà en service.**
+   ADR-0013 exigeait ce bilan **avant** toute décision d'hébergement ; la
+   décision l'a précédé. C'est une entorse à déclarer dans un amendement, pas à
+   passer sous silence. Voir la section 7 : ce bilan est ton travail, et il est
+   en retard.
+
+ADR-0014 n'est plus `proposed` : il a été **accepté le `2026-08-16`**. Le partage
+qu'il décrit — tu déclenches et tu rends compte, Claude juge, Cursor exécute, le
+propriétaire garde le veto sur la fusion — est la règle en vigueur, pas une
+proposition.
 
 ## 3. Choisir le lot
 
@@ -147,7 +160,16 @@ jour. Ne recommence pas.
 - N'essaie pas de brancher Claude Code comme fournisseur ou client ACP de
   Hermes. Il s'appelle en CLI headless, et c'est ForgePilot qui l'appelle.
 - Pas de cron, pas de service permanent pendant le pilote. Rien ne doit tourner
-  quand le propriétaire n'est pas là.
+  quand le propriétaire n'est pas là. La formule exacte d'ADR-0013 est
+  « **pendant trois lots pilotes** » : cette règle tombera avec la clôture du
+  pilote, et le pilote se clôt par le bilan de la section 7 — pas avant, et pas
+  de ta propre initiative.
+- **Un sous-agent que tu lances reste toi.** Il hérite de ton interdiction de
+  juger : tu peux déléguer de la lecture, des mesures, des comparaisons, jamais
+  l'appréciation d'un lot. Le dépôt a déjà écarté nommément l'évaluation par un
+  sous-agent engendré par le producteur — le producteur cadrerait son juge. Et
+  un seul agent écrit : les sous-agents te rendent du texte, c'est toi qui
+  écris le fichier.
 - Ne réactive jamais `mode: full_auto` sans une nouvelle décision écrite du
   propriétaire.
 - VictoriaCityLab est public : ne déclenche jamais le runner personnel sur une
@@ -155,14 +177,25 @@ jour. Ne recommence pas.
 - Ne transmets aucun secret dans un prompt, un résultat ou un worktree.
 - Ne loue pas de VPS et ne provisionne pas Render avant le bilan écrit.
 
-## 7. Le bilan des trois lots
+## 7. Le bilan des trois lots — dû, et en retard
 
 ADR-0013 exige un bilan écrit après trois lots réels passés par ForgePilot avant
 toute décision d'hébergement. Lot `021` = premier, lot `022` = deuxième, lot
 `023` = troisième.
 
-**Dès que le lot `023` est fusionné**, écris ce bilan dans `hermes/reports/` :
-qualité des plans, nombre de retouches humaines, durée, coût mesuré, plafonds
-d'usage atteints, erreurs d'authentification, incidents de sécurité. Conclus par
-une proposition : conserver, ajuster, ou retirer le pilote. N'ajoute jamais un
-nouvel acteur de ta propre initiative.
+**La condition est remplie** : le lot `023` est fusionné depuis le `2026-08-16`
+(PR `#109`). Ce bilan est donc **exigible aujourd'hui**, et personne ne l'a
+encore écrit. C'est ton travail, pas celui de Claude.
+
+Écris-le dans `hermes/reports/` : qualité des plans, nombre de retouches
+humaines, durée, coût mesuré, plafonds d'usage atteints, erreurs
+d'authentification, incidents de sécurité. Conclus par une proposition :
+conserver, ajuster, ou retirer le pilote. N'ajoute jamais un nouvel acteur de ta
+propre initiative.
+
+Deux choses en dépendent, dis-le dans le bilan :
+
+- il **clôt le pilote**, et c'est la clôture du pilote qui conditionne la règle
+  « aucun cron » de la section 6 ;
+- il doit **constater que le VPS a précédé son bilan**, puisque ADR-0013 exigeait
+  l'ordre inverse.
