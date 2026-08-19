@@ -69,9 +69,19 @@ if [[ -d "$REPO_DIR/.git" ]]; then
     vert "Dépôt déjà présent : $REPO_DIR"
     git -C "$REPO_DIR" fetch --quiet origin || jaune "fetch impossible (auth GitHub pas encore faite ?)"
     retard="$(git -C "$REPO_DIR" rev-list --count HEAD..origin/master 2>/dev/null || echo '?')"
+    # Refuser, pas prévenir. Ce script fait lui-même partie du dépôt : le
+    # lancer depuis une copie périmée installe des versions périmées, et
+    # `git pull` en cours d'exécution remplace le fichier que bash est en
+    # train de lire. Un avertissement se traverse ; un refus, non.
     if [[ "$retard" != "0" && "$retard" != "?" ]]; then
-        jaune "$retard commit(s) de retard sur origin/master — pense à : git -C $REPO_DIR pull --ff-only"
+        rouge "$retard commit(s) de retard sur origin/master."
+        rouge "  Ce script est versionné dans le dépôt : le lancer depuis une copie"
+        rouge "  périmée installerait une version périmée. Mets à jour, puis relance :"
+        rouge ""
+        rouge "      git -C $REPO_DIR pull --ff-only"
+        exit 1
     fi
+    vert "À jour sur origin/master"
 else
     mkdir -p "$(dirname "$REPO_DIR")"
     git clone "$REPO_URL" "$REPO_DIR"
