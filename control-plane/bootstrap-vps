@@ -156,8 +156,17 @@ if (( manque == 0 )); then
     if .venv/bin/forgepilot doctor --repo "$REPO_DIR" --check-auth; then
         vert "doctor OK — le poste de pilotage est prêt"
     else
-        jaune "doctor a refusé. Authentifications à faire :"
-        for bin in claude agent gh; do printf '     %s\n' "${AUTH[$bin]}"; done
+        jaune "doctor a refusé. Sa raison est le message ci-dessus — ce"
+        jaune "script ne la devine pas à sa place."
+        jaune ""
+        jaune "  Si c'est une authentification :"
+        for bin in claude agent gh; do printf '       %s\n' "${AUTH[$bin]}"; done
+        jaune ""
+        jaune "  Si c'est « Exec format error », le binaire existe mais cette"
+        jaune "  machine ne sait pas l'exécuter — mauvaise architecture, ou"
+        jaune "  fichier sans shebang (un talon d'installation, par exemple)."
+        jaune "  Pour voir lequel :"
+        jaune "       file \"\$(which claude)\" ; uname -m ; claude --version"
         manque=1
     fi
 else
