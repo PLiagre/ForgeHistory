@@ -1,6 +1,12 @@
 # sim/
 
-Moteur de simulation ForgeHistory — couche 1 « monde vivant ».
+Moteur de simulation ForgeHistory — **le produit vivant** (ADR-0016).
+Il tourne **sans Unity** :
+
+```
+.venv/bin/python -m sim
+.venv/bin/python -m sim --ticks 0 --json
+```
 
 Ce répertoire était un stub vide jusqu'au brief 011
 (`harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md`), qui constitue
@@ -27,6 +33,7 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 | `sim/world.py` | `World` — chargement depuis les artefacts G3, sérialisation |
 | `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
 | `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
+| `sim/__main__.py` | `python -m sim` — lance le monde, sans Unity |
 | `sim/SEEDING.md` | Documentation de l'amorçage paramétrique |
 
 ---
@@ -80,8 +87,10 @@ suite de tests (artefacts de preuve, non collectés par pytest).
   cette règle en œuvre : la vue dérivée `Regroupement` y est déclarée, hors de
   `sim.model`, et le déplacement d'un centre administratif recalcule
   l'appartenance sans réécrire aucune cellule.
-- **Commerce inter-cellules physique** : les 1 364 arêtes d'adjacence G3
-  sont lues par `_apply_commerce` à chaque tick. Transfert borné par
+- **Commerce inter-cellules physique** : les arêtes d'adjacence G3
+  (nombre lu dans `pipeline/geo/artifacts/stats_g3.json` / le fichier
+  d'adjacence, jamais recopié ici) sont lues par `_apply_commerce` à
+  chaque tick. Transfert borné par
   `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`. Conservation stricte de la masse.
   (Brief 012, SC4.)
 - **Population agrégée** : pas encore de familles ou de personnes individuelles.
