@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 from typing import Iterable
@@ -17,6 +18,14 @@ from .process import PilotError, git, resolve_binary, run_command
 
 
 READ_ONLY_CLAUDE_TOOLS = "Read,Glob,Grep"
+CHAIN_STEPS = ("plan", "execute", "publish", "review")
+PROPOSITION_REFUSED = (
+    "Une proposition Hermes n'est pas une instruction. "
+    "Passer un brief (harness/queue/briefs/.../brief.md) ou un fichier de tâche."
+)
+API_KEY_REFUSED = (
+    "ANTHROPIC_API_KEY est défini ; le pilote doit utiliser l'abonnement Claude Pro."
+)
 
 
 @dataclass(frozen=True)
@@ -47,6 +56,28 @@ def _task_text(path: Path) -> str:
 def _slug(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     return slug[:48] or "task"
+
+
+def default_task_name(task: Path) -> str:
+    """Nom de lot : dossier du brief, sinon le nom du fichier."""
+    name = task.name.lower()
+    if name in {"brief.md", "task.md"} and task.parent.name not in {"", ".", "/"}:
+        return _slug(task.parent.name)
+    return _slug(task.stem)
+
+
+def assert_not_api_billing() -> None:
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        raise PilotError(API_KEY_REFUSED)
+
+
+def assert_task_is_instruction(task: Path) -> None:
+    """Refuse une proposition Hermes : ce n'est pas un brief."""
+    parts = [part.lower() for part in task.parts]
+    if "hermes" in parts and "propositions" in parts:
+        raise PilotError(PROPOSITION_REFUSED)
+    if task.name.upper().startswith("PROPOSITION-"):
+        raise PilotError(PROPOSITION_REFUSED)
 
 
 def resolve_role(
@@ -335,3 +366,114 @@ def publish(repo: Path, title: str, base_branch: str) -> str:
         timeout_seconds=120,
     )
     return result.stdout.strip()
+
+
+def chain_preview(
+    settings: Settings,
+    repo: Path,
+    task: Path,
+    task_name: str,
+    *,
+    model: str | None = None,
+    effort: str | None = None,
+) -> dict[str, object]:
+    """Aperçu du lot complet. Aucun agent, aucune fusion."""
+    assert_task_is_instruction(task)
+    _task_text(task)
+    if effort:
+        assert_valid_effort(effort)
+    slug = _slug(task_name)
+    plan_inv = plan_invocation(
+        settings, repo, task, model=model, effort=effort
+    )
+    preview_worktree = repo / ".forgepilot" / "worktrees" / slug
+    exec_inv = executor_invocation(
+        settings, preview_worktree, task, model=model
+    )
+    return {
+        "command": "enchaine",
+        "run": False,
+        "fusion": False,
+        "task_name": slug,
+        "steps": list(CHAIN_STEPS),
+        "plan": json.loads(format_invocation(plan_inv)),
+        "execute": json.loads(format_invocation(exec_inv)),
+        "publish": {
+            "role": "publisher",
+            "after": "worktree",
+            "title": slug,
+            "draft": True,
+            "note": "Produit par Cursor dans ForgePilot. Fusion humaine obligatoire.",
+        },
+        "review": {
+            "role": "reviewer",
+            "after": "worktree",
+            "base": settings.default_base_ref,
+        },
+    }
+
+
+def run_chain(
+    settings: Settings,
+    repo: Path,
+    task: Path,
+    task_name: str,
+    *,
+    base_ref: str,
+    base_branch: str,
+    title: str,
+    model: str | None = None,
+    effort: str | None = None,
+) -> dict[str, object]:
+    """plan → execute → publish (draft) → review. Jamais de fusion."""
+    assert_not_api_billing()
+    assert_task_is_instruction(task)
+    _task_text(task)
+    if effort:
+        assert_valid_effort(effort)
+    missing = list(missing_binaries(settings))
+    if missing:
+        raise PilotError("Binaires manquants : " + ", ".join(missing))
+
+    slug = _slug(task_name)
+    pr_title = title.strip() or slug
+
+    plan_inv = plan_invocation(
+        settings, repo, task, model=model, effort=effort
+    )
+    plan_result = execute_invocation(plan_inv, settings)
+    plan_path = persist_result(repo, "planner", plan_inv, plan_result)
+
+    worktree, branch = create_worktree(repo, slug, base_ref)
+    exec_inv = executor_invocation(
+        settings, worktree, plan_path, model=model
+    )
+    exec_result = execute_invocation(exec_inv, settings)
+    exec_path = persist_result(repo, "executor", exec_inv, exec_result)
+
+    pull_request = publish(worktree, pr_title, base_branch)
+
+    review_inv = review_invocation(
+        settings,
+        worktree,
+        plan_path,
+        base_ref,
+        model=model,
+        effort=effort,
+    )
+    review_result = execute_invocation(review_inv, settings)
+    review_path = persist_result(repo, "reviewer", review_inv, review_result)
+
+    return {
+        "command": "enchaine",
+        "run": True,
+        "fusion": False,
+        "task_name": slug,
+        "steps": list(CHAIN_STEPS),
+        "branch": branch,
+        "worktree": str(worktree),
+        "plan": str(plan_path),
+        "execute": str(exec_path),
+        "pull_request": pull_request,
+        "review": str(review_path),
+    }
