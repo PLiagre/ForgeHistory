@@ -908,5 +908,165 @@ class ChainTests(unittest.TestCase):
             self.assertIn("invalide", err.getvalue().lower())
 
 
+class LotTests(unittest.TestCase):
+    def _git_repo(self, root: Path) -> None:
+        subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
+        (root / ".gitignore").write_text(".forgepilot/\n", encoding="utf-8")
+        briefs = root / "harness" / "queue" / "briefs" / "023-deja-la"
+        briefs.mkdir(parents=True)
+        (briefs / "brief.md").write_text("# Brief 023\n", encoding="utf-8")
+        prop = root / "hermes" / "propositions"
+        prop.mkdir(parents=True)
+        (prop / "PROPOSITION-20260820-exemple.md").write_text(
+            "Relief G6 dans pipeline/geo, pas Unity.\n", encoding="utf-8"
+        )
+        subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-m", "initial"], cwd=root, check=True, capture_output=True)
+
+    def test_extract_brief_from_claude_wrapper(self):
+        from forgepilot.workflow import extract_brief_payload
+
+        inner = {
+            "blocked": False,
+            "slug": "geo-relief-g6",
+            "title": "Relief G6",
+            "brief_md": "# Brief 024\n\ncontenu\n",
+            "eval_rubric_md": "# Rubrique\n\nSC1\n",
+        }
+        wrapped = {"type": "result", "result": json.dumps(inner)}
+        payload = extract_brief_payload(wrapped)
+        self.assertEqual("geo-relief-g6", payload["slug"])
+        self.assertIn("Brief 024", payload["brief_md"])
+
+    def test_extract_blocked_brief_is_refused(self):
+        from forgepilot.workflow import extract_brief_payload
+
+        with self.assertRaises(PilotError) as ctx:
+            extract_brief_payload({"blocked": True, "reason": "lot Unity"})
+        self.assertIn("Unity", str(ctx.exception))
+
+    def test_next_brief_number_follows_existing(self):
+        from forgepilot.workflow import next_brief_number
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._git_repo(repo)
+            self.assertEqual("024", next_brief_number(repo))
+
+    def test_lot_preview_on_proposition_needs_brief_no_agents(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._git_repo(repo)
+            source = repo / "hermes" / "propositions" / "PROPOSITION-20260820-exemple.md"
+            out = io.StringIO()
+            with patch(
+                "forgepilot.workflow.execute_invocation",
+                side_effect=AssertionError("execute_invocation appelé"),
+            ):
+                with patch("sys.stdout", out):
+                    code = main(["lot", str(source), "--repo", str(repo)])
+            self.assertEqual(0, code)
+            payload = json.loads(out.getvalue())
+            self.assertEqual("lot", payload["command"])
+            self.assertTrue(payload["needs_brief"])
+            self.assertFalse(payload["fusion"])
+            self.assertEqual("024", payload["brief_number"])
+            self.assertEqual(
+                ["brief", "plan", "execute", "publish", "review"],
+                payload["steps"],
+            )
+            self.assertEqual("Read,Glob,Grep", payload["brief"]["argv"][
+                payload["brief"]["argv"].index("--tools") + 1
+            ])
+
+    def test_lot_preview_on_brief_skips_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._git_repo(repo)
+            source = repo / "harness" / "queue" / "briefs" / "023-deja-la" / "brief.md"
+            out = io.StringIO()
+            with patch("sys.stdout", out):
+                code = main(["lot", str(source), "--repo", str(repo)])
+            self.assertEqual(0, code)
+            payload = json.loads(out.getvalue())
+            self.assertFalse(payload["needs_brief"])
+            self.assertEqual(["plan", "execute", "publish", "review"], payload["steps"])
+
+    def test_lot_run_writes_brief_then_chain_never_merge(self):
+        from forgepilot.workflow import Invocation
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._git_repo(repo)
+            source = repo / "hermes" / "propositions" / "PROPOSITION-20260820-exemple.md"
+            roles: list[str] = []
+
+            def fake_execute(invocation, settings, *, stdin=None):
+                roles.append(invocation.role)
+                if invocation.role == "brief":
+                    return {
+                        "blocked": False,
+                        "slug": "geo-relief-g6",
+                        "title": "Relief G6",
+                        "brief_md": "# Brief 024 : relief\n\n**Author**: forge-planificateur\n",
+                        "eval_rubric_md": "# Rubrique 024\n\nSC1 — le module existe.\n",
+                    }
+                return {"role": invocation.role}
+
+            fake_review = Invocation(
+                "reviewer",
+                ("claude", "-p", "--output-format", "json"),
+                str(repo),
+                {},
+                prompt="<prompt>",
+            )
+            out = io.StringIO()
+            with patch("forgepilot.workflow.missing_binaries", return_value=[]):
+                with patch("forgepilot.workflow.execute_invocation", side_effect=fake_execute):
+                    with patch(
+                        "forgepilot.workflow.publish",
+                        return_value="https://example.test/pr/2",
+                    ) as pub:
+                        with patch(
+                            "forgepilot.workflow.review_invocation",
+                            return_value=fake_review,
+                        ):
+                            with patch("sys.stdout", out):
+                                code = main(
+                                    [
+                                        "lot",
+                                        str(source),
+                                        "--repo",
+                                        str(repo),
+                                        "--base",
+                                        "main",
+                                        "--run",
+                                    ]
+                                )
+            self.assertEqual(0, code)
+            payload = json.loads(out.getvalue())
+            self.assertTrue(payload["needs_brief"])
+            self.assertFalse(payload["fusion"])
+            self.assertEqual("https://example.test/pr/2", payload["pull_request"])
+            self.assertEqual(["brief", "planner", "executor", "reviewer"], roles)
+            pub.assert_called_once()
+            written = (
+                repo
+                / ".forgepilot"
+                / "worktrees"
+                / payload["task_name"]
+                / "harness"
+                / "queue"
+                / "briefs"
+                / "024-geo-relief-g6"
+                / "brief.md"
+            )
+            self.assertTrue(written.is_file())
+            self.assertIn("forge-planificateur", written.read_text(encoding="utf-8"))
+            self.assertNotIn("merge", json.dumps(payload).lower())
+
+
 if __name__ == "__main__":
     unittest.main()

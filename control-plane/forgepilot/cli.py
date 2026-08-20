@@ -23,6 +23,8 @@ from .workflow import (
     publish_preview,
     review_invocation,
     run_chain,
+    lot_preview,
+    run_lot,
 )
 
 
@@ -92,6 +94,19 @@ def parser() -> argparse.ArgumentParser:
     enchaine.add_argument("--model")
     enchaine.add_argument("--effort")
     enchaine.add_argument("--run", action="store_true")
+
+    lot = commands.add_parser(
+        "lot",
+        help="si besoin, Claude écrit le brief, puis enchaine — pas de fusion",
+    )
+    lot.add_argument("source", type=_path)
+    lot.add_argument("--repo", type=_path, default=Path.cwd())
+    lot.add_argument("--task-name")
+    lot.add_argument("--base")
+    lot.add_argument("--title")
+    lot.add_argument("--model")
+    lot.add_argument("--effort")
+    lot.add_argument("--run", action="store_true")
     return root
 
 
@@ -223,6 +238,32 @@ def main(argv: list[str] | None = None) -> int:
                 base_ref=args.base or settings.default_base_ref,
                 base_branch=settings.default_base_branch,
                 title=args.title or task_name,
+                model=args.model,
+                effort=args.effort,
+            )
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            return 0
+
+        if args.command == "lot":
+            if not args.run:
+                payload = lot_preview(
+                    settings,
+                    args.repo,
+                    args.source,
+                    args.task_name,
+                    model=args.model,
+                    effort=args.effort,
+                )
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                return 0
+            payload = run_lot(
+                settings,
+                args.repo,
+                args.source,
+                args.task_name,
+                base_ref=args.base or settings.default_base_ref,
+                base_branch=settings.default_base_branch,
+                title=args.title,
                 model=args.model,
                 effort=args.effort,
             )

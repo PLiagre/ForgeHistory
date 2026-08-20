@@ -19,6 +19,7 @@ from .process import PilotError, git, resolve_binary, run_command
 
 READ_ONLY_CLAUDE_TOOLS = "Read,Glob,Grep"
 CHAIN_STEPS = ("plan", "execute", "publish", "review")
+LOT_BRIEF_STEPS = ("brief", "plan", "execute", "publish", "review")
 PROPOSITION_REFUSED = (
     "Une proposition Hermes n'est pas une instruction. "
     "Passer un brief (harness/queue/briefs/.../brief.md) ou un fichier de tâche."
@@ -73,11 +74,72 @@ def assert_not_api_billing() -> None:
 
 def assert_task_is_instruction(task: Path) -> None:
     """Refuse une proposition Hermes : ce n'est pas un brief."""
+    if is_proposition(task):
+        raise PilotError(PROPOSITION_REFUSED)
+
+
+def is_proposition(task: Path) -> bool:
     parts = [part.lower() for part in task.parts]
     if "hermes" in parts and "propositions" in parts:
-        raise PilotError(PROPOSITION_REFUSED)
-    if task.name.upper().startswith("PROPOSITION-"):
-        raise PilotError(PROPOSITION_REFUSED)
+        return True
+    return task.name.upper().startswith("PROPOSITION-")
+
+
+def next_brief_number(repo: Path) -> str:
+    root = repo / "harness" / "queue" / "briefs"
+    numbers: list[int] = []
+    if root.is_dir():
+        for entry in root.iterdir():
+            if entry.is_dir() and len(entry.name) >= 3 and entry.name[:3].isdigit():
+                numbers.append(int(entry.name[:3]))
+    return f"{max(numbers, default=0) + 1:03d}"
+
+
+def _coerce_json_dict(value: object) -> dict:
+    if isinstance(value, dict):
+        inner = value.get("result")
+        if isinstance(inner, (dict, str)) and "brief_md" not in value:
+            return _coerce_json_dict(inner)
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise PilotError("Le planificateur n'a pas renvoyé un JSON lisible.") from exc
+        return _coerce_json_dict(parsed)
+    raise PilotError("Le planificateur n'a pas renvoyé un brief JSON.")
+
+
+def extract_brief_payload(result: object) -> dict[str, str]:
+    obj = _coerce_json_dict(result)
+    if obj.get("blocked") is True:
+        raise PilotError(
+            "Le planificateur a bloqué le brief : "
+            + str(obj.get("reason") or "raison absente")
+        )
+    brief_md = obj.get("brief_md")
+    rubric = obj.get("eval_rubric_md")
+    slug = obj.get("slug")
+    if not isinstance(brief_md, str) or not brief_md.strip():
+        raise PilotError("Le planificateur n'a pas fourni brief_md.")
+    if not isinstance(rubric, str) or not rubric.strip():
+        raise PilotError("Le planificateur n'a pas fourni eval_rubric_md.")
+    if not isinstance(slug, str) or not _slug(slug):
+        raise PilotError("Le planificateur n'a pas fourni un slug utilisable.")
+    return {
+        "slug": _slug(slug),
+        "title": str(obj.get("title") or slug),
+        "brief_md": brief_md,
+        "eval_rubric_md": rubric,
+    }
 
 
 def resolve_role(
@@ -152,6 +214,35 @@ def plan_invocation(
     argv = _claude_argv(settings, "planner", model=model, effort=effort)
     return Invocation(
         "planner",
+        tuple(argv),
+        str(repo),
+        {},
+        prompt,
+        model=resolved.model or None,
+        effort=resolved.effort or None,
+    )
+
+
+def brief_invocation(
+    settings: Settings,
+    repo: Path,
+    source: Path,
+    number: str,
+    *,
+    model: str | None = None,
+    effort: str | None = None,
+) -> Invocation:
+    """Claude rédige le brief ; il n'écrit aucun fichier (lecture seule)."""
+    task_body = _task_text(source)
+    prompt = (
+        _read_prompt("brief.md")
+        .replace("{{TASK}}", task_body)
+        .replace("{{NUMBER}}", number)
+    )
+    resolved = resolve_role(settings, "planner", model=model, effort=effort)
+    argv = _claude_argv(settings, "planner", model=model, effort=effort)
+    return Invocation(
+        "brief",
         tuple(argv),
         str(repo),
         {},
@@ -470,6 +561,159 @@ def run_chain(
         "fusion": False,
         "task_name": slug,
         "steps": list(CHAIN_STEPS),
+        "branch": branch,
+        "worktree": str(worktree),
+        "plan": str(plan_path),
+        "execute": str(exec_path),
+        "pull_request": pull_request,
+        "review": str(review_path),
+    }
+
+
+def write_brief_in_worktree(worktree: Path, number: str, payload: dict[str, str]) -> Path:
+    """Écrit brief + rubrique dans le worktree. Claude n'a rien écrit sur disque."""
+    dirname = f"{number}-{payload['slug']}"
+    target = worktree / "harness" / "queue" / "briefs" / dirname
+    if target.exists():
+        raise PilotError(f"Le dossier de brief existe déjà : {target}")
+    target.mkdir(parents=True, exist_ok=False)
+    (target / "brief.md").write_text(payload["brief_md"].rstrip() + "\n", encoding="utf-8")
+    (target / "eval-rubric.md").write_text(
+        payload["eval_rubric_md"].rstrip() + "\n", encoding="utf-8"
+    )
+    git(worktree, "add", str(target.relative_to(worktree)))
+    git(worktree, "commit", "-m", f"planificateur: brief {dirname}")
+    return target / "brief.md"
+
+
+def lot_preview(
+    settings: Settings,
+    repo: Path,
+    source: Path,
+    task_name: str | None,
+    *,
+    model: str | None = None,
+    effort: str | None = None,
+) -> dict[str, object]:
+    """Aperçu : brief Claude si proposition, puis enchaine. Aucun agent."""
+    _task_text(source)
+    if effort:
+        assert_valid_effort(effort)
+    needs_brief = is_proposition(source)
+    if needs_brief:
+        number = next_brief_number(repo)
+        brief_inv = brief_invocation(
+            settings, repo, source, number, model=model, effort=effort
+        )
+        slug = _slug(task_name or f"{number}-lot")
+        return {
+            "command": "lot",
+            "run": False,
+            "fusion": False,
+            "needs_brief": True,
+            "brief_number": number,
+            "task_name": slug,
+            "steps": list(LOT_BRIEF_STEPS),
+            "brief": json.loads(format_invocation(brief_inv)),
+            "note": (
+                "Claude rédige le brief (lecture seule). "
+                "ForgePilot l'écrit dans le worktree, puis enchaîne. "
+                "Pas de fusion."
+            ),
+        }
+    name = task_name or default_task_name(source)
+    payload = chain_preview(
+        settings, repo, source, name, model=model, effort=effort
+    )
+    payload["command"] = "lot"
+    payload["needs_brief"] = False
+    return payload
+
+
+def run_lot(
+    settings: Settings,
+    repo: Path,
+    source: Path,
+    task_name: str | None,
+    *,
+    base_ref: str,
+    base_branch: str,
+    title: str | None,
+    model: str | None = None,
+    effort: str | None = None,
+) -> dict[str, object]:
+    """Si proposition : Claude écrit le brief, puis plan→execute→draft PR→review."""
+    if not is_proposition(source):
+        name = task_name or default_task_name(source)
+        result = run_chain(
+            settings,
+            repo,
+            source,
+            name,
+            base_ref=base_ref,
+            base_branch=base_branch,
+            title=title or name,
+            model=model,
+            effort=effort,
+        )
+        result["command"] = "lot"
+        result["needs_brief"] = False
+        return result
+
+    assert_not_api_billing()
+    _task_text(source)
+    if effort:
+        assert_valid_effort(effort)
+    missing = list(missing_binaries(settings))
+    if missing:
+        raise PilotError("Binaires manquants : " + ", ".join(missing))
+
+    number = next_brief_number(repo)
+    brief_inv = brief_invocation(
+        settings, repo, source, number, model=model, effort=effort
+    )
+    brief_raw = execute_invocation(brief_inv, settings)
+    persist_result(repo, "brief", brief_inv, brief_raw)
+    payload = extract_brief_payload(brief_raw)
+
+    slug = _slug(task_name or f"{number}-{payload['slug']}")
+    worktree, branch = create_worktree(repo, slug, base_ref)
+    brief_path = write_brief_in_worktree(worktree, number, payload)
+
+    plan_inv = plan_invocation(
+        settings, repo, brief_path, model=model, effort=effort
+    )
+    plan_result = execute_invocation(plan_inv, settings)
+    plan_path = persist_result(repo, "planner", plan_inv, plan_result)
+
+    exec_inv = executor_invocation(
+        settings, worktree, plan_path, model=model
+    )
+    exec_result = execute_invocation(exec_inv, settings)
+    exec_path = persist_result(repo, "executor", exec_inv, exec_result)
+
+    pr_title = (title or payload["title"] or slug).strip()
+    pull_request = publish(worktree, pr_title, base_branch)
+
+    review_inv = review_invocation(
+        settings,
+        worktree,
+        plan_path,
+        base_ref,
+        model=model,
+        effort=effort,
+    )
+    review_result = execute_invocation(review_inv, settings)
+    review_path = persist_result(repo, "reviewer", review_inv, review_result)
+
+    return {
+        "command": "lot",
+        "run": True,
+        "fusion": False,
+        "needs_brief": True,
+        "brief": str(brief_path),
+        "task_name": slug,
+        "steps": list(LOT_BRIEF_STEPS),
         "branch": branch,
         "worktree": str(worktree),
         "plan": str(plan_path),
