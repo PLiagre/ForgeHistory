@@ -67,22 +67,23 @@ rédiges pas le brief.
 
 ## 4. Faire tourner un lot (ForgePilot)
 
-Chaque commande **deux fois** : aperçu sans `--run`, puis `--run` **sur
-ordre explicite**.
+Un brief existe déjà. Aperçu, puis `--run` **une seule fois** :
 
 ```bash
 P=.venv/bin/forgepilot
 R=<racine>
+B=harness/queue/briefs/<NNN-slug>/brief.md
 
-$P plan <brief.md> --repo $R
-$P plan <brief.md> --repo $R --run
-$P execute <result.json> --task-name <id> --repo $R --run
-$P publish --repo <worktree> --title "<titre>" --run
-$P review <result.json> --repo <worktree> --base origin/master --run
-$P iterate <result.json> --task-name <id> --repo $R --run
+$P enchaine $B --repo $R
+$P enchaine $B --repo $R --run
 ```
 
-Ne fusionne jamais.
+Ça enchaîne plan → execute → draft PR → review. **Pas de fusion.**
+Une proposition n'est pas un brief : la commande refuse
+`hermes/propositions/`.
+
+Les sous-commandes une par une restent là pour un dépannage
+(`iterate` après une revue). Ne fusionne jamais.
 
 ## 5. Rendre compte
 
