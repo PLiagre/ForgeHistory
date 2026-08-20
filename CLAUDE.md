@@ -104,8 +104,8 @@ py harness/budget.py split-check --brief <brief_dir>  # advisory NEEDS_SPLIT pre
 py hermes/dashboard.py                            # regenerate hermes/DASHBOARD.md
 bash hermes/crons/quotidien.sh                    # veille quotidienne (mesure, pas de fusion)
 cd control-plane && python3 -m unittest discover -s tests -v  # ForgePilot
-.venv/bin/forgepilot enchaine <brief.md> --repo .            # aperçu du lot
-.venv/bin/forgepilot enchaine <brief.md> --repo . --run      # plan→execute→draft PR→review (pas de fusion)
+.venv/bin/forgepilot lot <proposition-ou-brief.md> --repo . --run
+                                              # Claude brief si besoin, puis chaîne, pas de fusion
 ```
 
 Slash commands: `/forge-run <brief>` (full loop), `/forge-cost-report`,

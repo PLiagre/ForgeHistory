@@ -24,5 +24,6 @@ puis un brief pour que `sim/` le lise — pas l’inverse.
 
 ## Ce que le propriétaire peut demander
 
-Une session Claude pour écrire le brief G6 (geo d’abord). Hermes ne
-rédige pas ce brief. Cette proposition n’est pas une instruction.
+Coller `hermes/prompts/ENCHAINER.md` dans Hermes. Hermes lance
+`forgepilot lot` : Claude écrit le brief G6, Cursor enchaîne, draft PR.
+Cette proposition n’est pas une instruction.

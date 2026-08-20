@@ -3,7 +3,25 @@
 > **Borné à trois sessions** par ADR-0014 amendement 001. Les sessions plus
 > anciennes sont dans git ; le récit du projet va dans `hermes/reports/`.
 
-## Session la plus récente — 2026-08-20 : forgepilot enchaine
+## Session la plus récente — 2026-08-20 : Hermes lance Claude pour le brief
+
+**Contexte** : le propriétaire veut un prompt, puis que tout s’enchaîne.
+Si un brief manque, c’est à Hermes de lancer Claude.
+
+### Ce qui a été fait
+
+`forgepilot lot` : proposition → Claude rédige le brief → plan → Cursor →
+draft PR → review. Hermes n’écrit pas le brief. Prompt d’ordre :
+`hermes/prompts/ENCHAINER.md`. ADR-0013 amendement 003.
+
+### Prochain pas
+
+Tirer `master` sur le VPS. Coller le prompt ENCHAINER dans
+`hermes chat -s forgehistory-suivi`. Fusionner la draft PR à la fin.
+
+---
+
+## Session précédente — 2026-08-20 : forgepilot enchaine
 
 **Contexte** : le propriétaire veut lancer Hermes et qu'un lot parte tout
 seul une fois le brief écrit. Pas de fusion automatique.
@@ -23,7 +41,7 @@ brief.
 
 ---
 
-## Session précédente — 2026-08-20 : sim/ sans Unity, Hermes pilote
+## Session encore avant — 2026-08-20 : sim/ sans Unity, Hermes pilote
 
 **Contexte** : décision propriétaire. Unity visuel en veille. La simulation
 doit tourner sans Unity. Hermes ne doit plus être un teneur de roadmap :
@@ -47,11 +65,3 @@ il propose, y compris des crons quotidiens.
 Hermes installe le cron quotidien sur le VPS et propose la prochaine
 couche de `sim/` (G6 relief côté geo, ou économie au-delà de la nourriture
 côté moteur). Tout lot Unity se refuse.
-
----
-
-## Session encore avant — 2026-08-19 : skill à jour, verdicts 022/023, ADR-0015 proposé
-
-Skill `forgehistory-suivi` alignée sur l’état réel (verdicts 022/023
-ACCEPT, ADR-0014 accepté, VPS déjà là). ADR-0015 alors `proposed`.
-Demandes bootstrap VPS.

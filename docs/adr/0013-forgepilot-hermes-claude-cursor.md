@@ -182,3 +182,17 @@ successifs. `forgepilot enchaine <brief>` enchaîne plan → execute → draft P
 Inchangé : une proposition n'est pas un brief ; Claude planifie et relit en
 lecture seule ; Cursor exécute dans `agent/*` ; **aucune fusion** ; une
 seule tâche de code à la fois ; `ANTHROPIC_API_KEY` reste un refus.
+
+---
+
+## Amendement 003 — Hermes lance Claude pour écrire le brief
+
+**Amended**: 2026-08-20
+**Author**: Cursor (exécutant), sur ordre du propriétaire
+
+Si un brief manque, Hermes ne le rédige toujours pas. Il lance
+`forgepilot lot <proposition.md>` : Claude Code (lecture seule) produit le
+texte ; ForgePilot l’écrit sous `harness/queue/briefs/` dans le worktree ;
+puis la chaîne execute / draft PR / review. Le propriétaire fusionne.
+
+`hermes/prompts/ENCHAINER.md` est le message d’ordre à coller dans Hermes.

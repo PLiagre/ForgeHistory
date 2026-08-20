@@ -17,7 +17,7 @@ Le produit vivant est le moteur Python `sim/`. Unity est en veille
 | `hermes/requests/DEMANDE-*.md` | demandes du propriétaire, mises en forme |
 | `hermes/propositions/PROPOSITION-*.md` | améliorations **proposées par Hermes** (cron ou session) |
 | `hermes/skills/*/SKILL.md` | outillage Hermes, y compris ses propres améliorations de skill |
-| `hermes/crons/` | contrat et script des tâches planifiées |
+| `hermes/prompts/ENCHAINER.md` | message d’ordre du propriétaire : enchaîner le lot |
 
 Hermes n’écrit **jamais** : le code produit (`sim/`, `pipeline/`, `unity/`,
 `harness/` hors vue), la CI, un brief, une rubrique, un verdict, un audit.
@@ -30,8 +30,9 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 
 - **Proposer.** Constater un trou, une contradiction, une prochaine couche
   de `sim/`, un cron à ajuster — et l’écrire sous `hermes/propositions/`.
-- **Piloter un lot.** Lancer `forgepilot enchaine <brief.md>` (aperçu,
-  puis `--run`). Les sous-commandes une par une restent pour un dépannage.
+- **Piloter un lot.** Lancer `forgepilot lot <proposition-ou-brief.md>
+  --run`. S’il manque un brief, Claude le rédige ; Hermes n’écrit pas ce
+  fichier. Les sous-commandes une par une restent pour un dépannage.
 - **Mesurer.** Relancer `python -m sim`, les tests `sim/`, le tableau de
   bord. Dire ce qui manque au lieu de l’inventer.
 - **S’améliorer.** Mettre à jour sa skill quand une règle du dépôt change
@@ -76,10 +77,8 @@ Hermes propose ──▶ hermes/propositions/PROPOSITION-...md
   ▼
 le propriétaire tranche (garder / amender / rejeter)
   ▼
-si besoin d’un lot : session Claude pour écrire le brief
-  ▼
-Hermes lance ForgePilot : `forgepilot enchaine <brief.md> --run`
-  (plan, execute, draft PR, review — pas de fusion)
+si besoin d’un lot : Hermes lance `forgepilot lot` (Claude écrit le brief
+  s’il manque, puis Cursor, puis draft PR)
   ▼
 le propriétaire fusionne
   ▼

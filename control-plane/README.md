@@ -74,34 +74,19 @@ est autorisée. La vérification visuelle des scènes reste humaine.
 
 ## Premier essai
 
-Créer un fichier de tâche court qui pointe vers l'identifiant autoritaire de la
-roadmap ou de l'issue (un **brief**, jamais une proposition Hermes), puis :
-
 ```bash
 forgepilot doctor --repo /srv/ForgeHistory --check-auth
-forgepilot enchaine /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md \
-    --repo /srv/ForgeHistory
-forgepilot enchaine /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md \
+forgepilot lot /srv/ForgeHistory/hermes/propositions/PROPOSITION-….md \
     --repo /srv/ForgeHistory --run
 ```
 
-`enchaine` fait, dans l'ordre : plan Claude, execute Cursor, draft PR,
-review Claude. **Aucune fusion.** Sans `--run`, la commande affiche
-l'enchaînement et ne lance aucun agent.
+Si `source` est une proposition, Claude rédige le brief (lecture seule) ;
+ForgePilot l’écrit dans le worktree, puis enchaîne plan → execute → draft
+PR → review. Si c’est déjà un `brief.md`, le brief n’est pas réécrit.
+**Aucune fusion.**
 
-Les sous-commandes une par une restent disponibles pour un dépannage
-(`iterate` après une revue) :
-
-```bash
-forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory
-forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory --run
-forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory
-forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --run
-forgepilot iterate /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory
-forgepilot iterate /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --run
-forgepilot publish --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --title "fh-001" --run
-forgepilot review /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master --run
-```
+`enchaine` reste pour un brief déjà là, sans l’étape brief. Les
+sous-commandes une par une restent pour un dépannage (`iterate`).
 
 Sans `--run`, une commande affiche son invocation normalisée et ne lance aucun
 agent. Les sorties réelles vont dans `.forgepilot/runs/`, ignoré par Git.
