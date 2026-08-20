@@ -8,7 +8,7 @@
 > automatique à la poussée. Une vue périmée reste périmée tant
 > que personne ne la régénère.
 >
-> Générée le 2026-08-19 17:05 UTC.
+> Générée le 2026-08-20 07:58 UTC.
 
 ## En bref
 

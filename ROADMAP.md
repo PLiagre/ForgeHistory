@@ -115,9 +115,10 @@ toute veille de décision irréversible du propriétaire.
    GitHub y sont authentifiés. Ne pas définir `ANTHROPIC_API_KEY`. Windows reste
    le futur worker Unity et n'est jamais remplacé par une validation Linux.
 2. Le pilote de trois lots (`021` à `023`) est clos par le bilan du
-   `2026-08-19`. Avant tout nouveau lot lourd, le propriétaire fixe l'enveloppe
-   mensuelle Claude et tranche la proposition de conserver ForgePilot avec
-   ajustements.
+   `2026-08-19`. Le propriétaire a décidé le `2026-08-20` d'abandonner la
+   fixation d'une enveloppe mensuelle Claude comme préalable au prochain lot.
+   Une limite fournisseur effectivement atteinte reste un état opérationnel à
+   signaler, pas un arbitrage budgétaire en attente.
 3. Si un lot touche VictoriaCityLab avant que son worker existe, le bloquer.
    La première PR CityLab d'infrastructure doit ajouter un runner GitHub
    auto-hébergé Windows, Git LFS et les tests Unity 6000.0.43f1 en batchmode,
@@ -154,3 +155,4 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-16 | hermes (rédaction déléguée à Claude Code, rattrapage demandé par le propriétaire) | correction factuelle uniquement, aucune décision nouvelle : PR #106 fusionnée le 2026-08-14 (le texte la disait « en attente ») ; fleuves G5 livrés et fusionnés (brief 021, PR #107) ; état du pilote ajouté aux prochaines étapes (lot 022 fusionné sans verdict, brief 023 non lancé, ADR-0014 `proposed`). Rapports adossés : `hermes/reports/RAPPORT-20260816-*.md` |
 | 2026-08-16 | hermes (rédaction déléguée à Claude Code, décision propriétaire — `DEMANDE-20260815-hermes-cerveau-du-pipeline.md`) | **ADR-0014 accepté** : Hermes déclenche et rend compte, Claude juge à la demande, Cursor exécute, le propriétaire garde le veto sur la fusion. Section « Workflow pilote » mise à jour ; point d'entrée unique `forge-start` puis `hermes chat -s forgehistory-suivi` |
 | 2026-08-19 | hermes | bilan obligatoire des lots pilotes `021` à `023` écrit : pilote clos, trois verdicts finaux acceptés, proposition de conserver ForgePilot avec ajustements ; dette VPS avant bilan déclarée, budget Claude et ADR-0015 laissés à la décision du propriétaire |
+| 2026-08-20 | hermes (décision propriétaire — `DEMANDE-20260820-abandon-budget-claude.md`) | abandon de l'enveloppe mensuelle Claude et de la cadence associée comme préalable ; les limites fournisseur restent des états opérationnels à signaler |
