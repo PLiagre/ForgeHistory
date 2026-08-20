@@ -97,6 +97,6 @@ echo  "     hermes/DASHBOARD.md   (briefs, audits, coûts)"
 echo  "     HANDOFF.md            (état de fin de dernière session)"
 echo  "     http://127.0.0.1:$PORT   (console web Hermes)"
 echo
-jaune "  Rien ne tourne en tâche de fond : le projet n'avance que"
-jaune "  pendant une session lancée par vous (pilote sans cron)."
+jaune "  Cron quotidien autorisé (lecture seulement) :"
+jaune "     hermes/crons/quotidien.sh   (voir hermes/crons/README.md)"
 echo
