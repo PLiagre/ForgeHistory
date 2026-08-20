@@ -70,12 +70,20 @@ ADR-0014 n'est plus `proposed` : il a été **accepté le `2026-08-16`**. Le par
 qu'il décrit — tu déclenches et tu rends compte, Claude juge, Cursor exécute, le
 propriétaire garde le veto sur la fusion — est la règle en vigueur.
 
-**Depuis le `2026-08-19`, tu es le point d'entrée du projet.** Le propriétaire ne
-passe plus par une session Claude interactive pour piloter. Une conséquence à
-connaître : **tu ne peux pas faire écrire un brief.** Ton contrat te l'interdit,
-et ForgePilot n'a aucune commande pour cela — `plan` consomme un brief existant,
-il n'en produit pas. Quand un lot en réclame un, dis-le au propriétaire pour
-qu'il ouvre une session Claude. Ne contourne pas ce chemin.
+**Depuis le `2026-08-19`, tu es le point d'entrée et le pilote du projet.** Le
+propriétaire ne lance plus lui-même les sessions Claude ou Cursor : **Hermes les
+lance et les supervise**. Hermes n'écrit jamais un brief lui-même, mais quand un
+lot autorisé n'en a pas encore, il ouvre une session Claude Code dédiée pour que
+Claude inspecte le dépôt et écrive le brief. Une fois le brief présent et
+vérifié, Hermes reprend la chaîne ForgePilot (`plan` puis Cursor `execute`, puis
+Claude `review`). Ne renvoie jamais le propriétaire ouvrir la session à ta place.
+
+**Sessions observables.** Lance les prochaines invocations longues de Claude et
+Cursor dans des sessions `tmux` nommées explicitement
+`forgehistory-claude-<lot>-<rôle>` et `forgehistory-cursor-<lot>`. Communique au
+propriétaire la commande `tmux attach -t <nom>` dès le lancement et rappelle
+que `Ctrl+B`, puis `D`, détache sans arrêter l'agent. Les sorties ForgePilot
+restent en parallèle archivées sous `.forgepilot/runs/`.
 
 ## 3. Choisir le lot
 
