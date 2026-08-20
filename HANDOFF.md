@@ -3,7 +3,27 @@
 > **Borné à trois sessions** par ADR-0014 amendement 001. Les sessions plus
 > anciennes sont dans git ; le récit du projet va dans `hermes/reports/`.
 
-## Session la plus récente — 2026-08-20 : sim/ sans Unity, Hermes pilote
+## Session la plus récente — 2026-08-20 : forgepilot enchaine
+
+**Contexte** : le propriétaire veut lancer Hermes et qu'un lot parte tout
+seul une fois le brief écrit. Pas de fusion automatique.
+
+### Ce qui a été fait
+
+`forgepilot enchaine <brief.md>` : aperçu sans `--run`, puis plan →
+execute → draft PR → review. Refuse une proposition Hermes. Jamais de
+fusion. Skill Hermes et README alignés. ADR-0013 amendement 002.
+
+### Prochain pas
+
+Sur le VPS : `forge-start` puis `hermes chat -s forgehistory-suivi`.
+Quand un brief existe, Hermes lance `enchaine` (aperçu, puis `--run`).
+G6 reste une proposition : il faut encore une session Claude pour le
+brief.
+
+---
+
+## Session précédente — 2026-08-20 : sim/ sans Unity, Hermes pilote
 
 **Contexte** : décision propriétaire. Unity visuel en veille. La simulation
 doit tourner sans Unity. Hermes ne doit plus être un teneur de roadmap :
@@ -30,15 +50,8 @@ côté moteur). Tout lot Unity se refuse.
 
 ---
 
-## Session précédente — 2026-08-19 : skill à jour, verdicts 022/023, ADR-0015 proposé
+## Session encore avant — 2026-08-19 : skill à jour, verdicts 022/023, ADR-0015 proposé
 
 Skill `forgehistory-suivi` alignée sur l’état réel (verdicts 022/023
 ACCEPT, ADR-0014 accepté, VPS déjà là). ADR-0015 alors `proposed`.
 Demandes bootstrap VPS.
-
----
-
-## Session encore avant — 2026-08-16 : lots 022–023 fusionnés, ADR-0014 accepté
-
-ForgePilot : stdin pour la revue, `iterate`, modèles par rôle. ADR-0014
-accepte le partage Hermes déclenche / Claude juge / Cursor exécute.

@@ -30,9 +30,8 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 
 - **Proposer.** Constater un trou, une contradiction, une prochaine couche
   de `sim/`, un cron à ajuster — et l’écrire sous `hermes/propositions/`.
-- **Piloter un lot.** Lancer ForgePilot (`doctor`, `plan`, `execute`,
-  `iterate`, `publish`, `review`) sur ordre explicite, aperçu sans `--run`
-  d’abord.
+- **Piloter un lot.** Lancer `forgepilot enchaine <brief.md>` (aperçu,
+  puis `--run`). Les sous-commandes une par une restent pour un dépannage.
 - **Mesurer.** Relancer `python -m sim`, les tests `sim/`, le tableau de
   bord. Dire ce qui manque au lieu de l’inventer.
 - **S’améliorer.** Mettre à jour sa skill quand une règle du dépôt change
@@ -79,7 +78,8 @@ le propriétaire tranche (garder / amender / rejeter)
   ▼
 si besoin d’un lot : session Claude pour écrire le brief
   ▼
-Hermes lance ForgePilot (Cursor exécute, Claude relit)
+Hermes lance ForgePilot : `forgepilot enchaine <brief.md> --run`
+  (plan, execute, draft PR, review — pas de fusion)
   ▼
 le propriétaire fusionne
   ▼

@@ -2,8 +2,8 @@
 
 ForgePilot est le pilote réversible du nouveau workflow. Il ne remplace ni
 ForgeHistory ni VictoriaCityLab et ne stocke aucune simulation. Il donne à
-Hermes six commandes déterministes : vérifier, planifier, exécuter, itérer,
-publier une draft PR, relire.
+Hermes une commande de lot (`enchaine`) et les sous-commandes une par une :
+vérifier, planifier, exécuter, itérer, publier une draft PR, relire.
 
 ## Frontières
 
@@ -75,10 +75,24 @@ est autorisée. La vérification visuelle des scènes reste humaine.
 ## Premier essai
 
 Créer un fichier de tâche court qui pointe vers l'identifiant autoritaire de la
-roadmap ou de l'issue, puis exécuter :
+roadmap ou de l'issue (un **brief**, jamais une proposition Hermes), puis :
 
 ```bash
 forgepilot doctor --repo /srv/ForgeHistory --check-auth
+forgepilot enchaine /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md \
+    --repo /srv/ForgeHistory
+forgepilot enchaine /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md \
+    --repo /srv/ForgeHistory --run
+```
+
+`enchaine` fait, dans l'ordre : plan Claude, execute Cursor, draft PR,
+review Claude. **Aucune fusion.** Sans `--run`, la commande affiche
+l'enchaînement et ne lance aucun agent.
+
+Les sous-commandes une par une restent disponibles pour un dépannage
+(`iterate` après une revue) :
+
+```bash
 forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory
 forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory --run
 forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory
@@ -114,8 +128,9 @@ model  = "composer-2.5"
 Ordre de priorité (du plus fort au plus faible) : drapeau `--model` /
 `--effort` passé à l'appel, puis `[roles.<rôle>]`, puis
 `[tools] claude_model` / `cursor_model`, puis le défaut du binaire (aucun
-drapeau ajouté). Les sous-commandes `plan`, `review`, `execute` et `iterate`
-acceptent `--model` ; seules `plan` et `review` acceptent `--effort`.
+drapeau ajouté). Les sous-commandes `plan`, `review`, `execute`, `iterate` et `enchaine`
+acceptent `--model` ; seules `plan`, `review` et `enchaine` acceptent `--effort`
+(l'effort d'`enchaine` ne s'applique qu'à Claude, pas à Cursor).
 
 Cursor n'a pas de drapeau d'effort séparé : l'effort est cuit dans le nom du
 modèle (`gpt-5.3-codex-high`, etc.), donc `--effort` sur `execute` /

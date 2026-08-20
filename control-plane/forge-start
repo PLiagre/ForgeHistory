@@ -92,6 +92,11 @@ echo  "     (dashboard, HANDOFF, ROADMAP, doctor) et vous dit où on en est."
 echo  "     Le -s n'est pas optionnel : sans lui, Hermes ne sait pas qu'il"
 echo  "     est chef de projet."
 echo
+echo  "  Lot (un brief existe déjà) :"
+echo  "     .venv/bin/forgepilot enchaine <brief.md> --repo $REPO"
+echo  "     .venv/bin/forgepilot enchaine <brief.md> --repo $REPO --run"
+echo  "     (plan → execute → draft PR → review ; jamais de fusion)"
+echo
 echo  "  À lire si vous voulez vérifier par vous-même :"
 echo  "     hermes/DASHBOARD.md   (briefs, audits, coûts)"
 echo  "     HANDOFF.md            (état de fin de dernière session)"
