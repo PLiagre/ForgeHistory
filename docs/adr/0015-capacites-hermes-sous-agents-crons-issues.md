@@ -1,8 +1,14 @@
 # ADR-0015: les trois capacités d'Hermes — sous-agents, crons, issues
 
 **Date**: 2026-08-19
-**Status**: proposed
+**Status**: accepted
 **Deciders**: le propriétaire (décision), Claude Code (rédaction, rôle CTO)
+
+Amendement 001 (2026-08-20, décision propriétaire, ADR-0016) : les crons
+quotidiens de lecture / mesure / proposition sont autorisés dès maintenant.
+Le bilan écrit des lots `021`–`023` n’est plus un préalable. La règle 2
+ci-dessous reste vraie sur le fond : **aucun cron ne fusionne**. Le
+déverrouillage ne passe plus par ce bilan.
 
 Complète ADR-0014, qui partage les rôles sans dire ce qu'Hermes a le droit
 d'employer pour tenir le sien. Ne remplace ni ADR-0013 ni ADR-0014.
@@ -50,11 +56,11 @@ lot. Et **un seul agent écrit** : les sous-agents rendent du texte, l'agent
 principal écrit le fichier — Hermes n'écrivant lui-même que `ROADMAP.md` et
 `hermes/**`.
 
-**2. Les crons se déverrouillent par le bilan, pas par l'usage.** La règle
-« aucun cron » d'ADR-0013 tombe avec la clôture du pilote, et cette clôture est
-prononcée par le bilan des trois lots — jamais par Hermes de sa propre
-initiative. Une fois close : le premier cron est en lecture seule, et **aucun
-cron ne fusionne**.
+**2. Les crons lisent, mesurent et proposent ; ils ne fusionnent pas.**
+ADR-0016 autorise un cron quotidien dès le `2026-08-20`. Le premier cron
+est en lecture / mesure / proposition (contrat : `hermes/crons/`).
+**Aucun cron ne fusionne**, n'écrit du code produit, ni n'instruit un
+exécutant.
 
 **3. Une issue pointe vers un brief, elle ne le récrit pas.** Une issue créée
 par Hermes porte un titre, un contexte et **la référence du brief** qui fait

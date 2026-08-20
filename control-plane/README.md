@@ -127,16 +127,15 @@ masqué à `<prompt>`.
 
 ## Conditions du pilote
 
-- une seule tâche à la fois ;
-- aucun cron pendant les trois premiers lots ;
+- une seule tâche de **code** à la fois ;
+- un cron quotidien de lecture / mesure / proposition est autorisé
+  (`hermes/crons/`) ; **aucun cron ne fusionne** ;
 - aucune fusion automatique ;
 - le plan et la revue Claude Code sont en lecture seule (`--permission-mode
   plan`, outils `Read,Glob,Grep`, MCP et commandes personnalisées désactivés) ;
 - Cursor ne travaille que dans un worktree propre ;
+- Unity est en veille (ADR-0016) : un lot CityLab / Unity se refuse ;
 - un contrôle absent bloque la fusion ;
-- pour un lot CityLab, l'absence du contrôle Unity Windows bloque la fusion ;
-- après trois lots, comparer qualité, latence, consommation et interventions
-  manuelles avant d'étendre le système.
 
 Tests locaux :
 

@@ -25,9 +25,11 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
 | 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencé | `sim/` |
 
-La couche présentation (Unity) est un client de rendu mince : le jeu
-VictoriaProject a été porté (brief 003) et sert de base visuelle ; il ne
-contiendra jamais de logique de simulation.
+**Depuis ADR-0016 (2026-08-20) : `sim/` est le produit vivant.** La
+simulation doit tourner sans Unity (`python -m sim`). Les couches 2 à 5
+s’écrivent dans `sim/`. Le client Unity (brief 003) est **en veille** :
+référence visuelle gelée, pas une seconde simulation, pas de lots Unity
+tant que le propriétaire ne le rouvre pas.
 
 ## Le projet — phases F
 
@@ -38,15 +40,18 @@ contiendra jamais de logique de simulation.
 | **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — briefs 011, 012, 013 livrés et fusionnés ; brief 014 (pipeline : contre-audit comme porte, refus fournisseur comme état) livré, accepté et fusionné le 2026-08-13 (PR #83) ; brief 017 (seuil de survie honnête, fusion des graines 015/016) livré, accepté et fusionné le 2026-08-14 (PR #101, sans squash) ; brief 018 (Province dérivée, ADR-0003) livré, accepté et fusionné le 2026-08-14 (PR #102, sans squash) ; les graines 015/016 ne s'exécutent plus (elles pointent vers 017) ; suites F2 moteur : aucune restante pour clôturer E2 ; reste F1 geo (relief, climat, ressources ; provenance G3 livrée par le brief 020, PR #106 fusionnée le 2026-08-14 ; fleuves G5 livrés par le brief 021, PR #107 fusionnée le 2026-08-15) |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles — chaque couche émerge de la précédente | à venir |
 
-## Le workflow pilote — Hermes, Claude Code, Cursor (ADR-0013, ADR-0014)
+## Le workflow — Hermes pilote (ADR-0013, ADR-0014, ADR-0016)
 
-**Depuis ADR-0014, accepté le 2026-08-16 : Hermes déclenche et rend compte,
-Claude Code juge à la demande, Cursor exécute, le propriétaire garde le veto sur
-la fusion.** Hermes ne juge rien ; Claude n'orchestre plus. Motif mesuré :
-`87` % du coût d'un lot partait dans l'orchestration, et trois défauts de la
-session du `2026-08-15` n'ont été vus que parce qu'un acteur distinct a refait
-les mesures. La session s'ouvre par `forge-start`, puis
-`hermes chat -s forgehistory-suivi`.
+**Hermes est le cerveau opérationnel.** Il propose des améliorations, tient
+la mémoire, cadance le travail (y compris un cron quotidien de lecture),
+lance ForgePilot. Il n’écrit pas le code produit, ni un brief, ni un
+verdict, et il ne fusionne pas.
+
+Claude Code planifie et relit en lecture seule. Cursor exécute. Le
+propriétaire fusionne.
+
+La session s’ouvre par `hermes chat -s forgehistory-suivi`. Le produit se
+lance par `python -m sim`.
 
 Chaîne nominale pendant trois lots d'essai :
 
@@ -66,9 +71,10 @@ Claude Code (nouvelle invocation, lecture seule) revue du diff et des preuves
 Propriétaire                                  décision de fusion
 ```
 
-L'ancien pipeline ADR-0010 reste disponible en mode `manual` comme solution de
-retour arrière. L'observateur Windows est suspendu. Le pilote n'utilise ni ACP,
-ni cron, ni auto-merge : `control-plane/README.md` est le runbook.
+L’ancien pipeline GitHub full-auto reste en `mode: manual` (archive
+réversible). Pas d’auto-fusion. Un cron quotidien **de lecture / mesure /
+proposition** est autorisé (`hermes/crons/`). Runbook lots :
+`control-plane/README.md`. Contrat Hermes : `hermes/README.md`.
 
 Unity 6000.0.43f1 reste installé nativement sous Windows. Un lot qui touche
 VictoriaCityLab n'est jamais déclaré validé par les seuls contrôles Linux : il
@@ -103,30 +109,20 @@ toute veille de décision irréversible du propriétaire.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. Garder Windows démarré pour préserver Unity. Installer le pilote soit
-   nativement sous Windows, soit dans WSL2 ; ne plus dépendre du double démarrage
-   sur la partition Linux. Authentifier Claude Code avec le compte Claude.ai Pro
-   et Cursor avec son compte ; ne pas définir `ANTHROPIC_API_KEY`.
-2. Exécuter `forgepilot doctor`, puis trois petits lots ForgeHistory avec
-   `plan`, `execute` et `review`, sans cron et sans auto-merge.
-3. Si un lot touche VictoriaCityLab avant que son worker existe, le bloquer.
-   La première PR CityLab d'infrastructure doit ajouter un runner GitHub
-   auto-hébergé Windows, Git LFS et les tests Unity 6000.0.43f1 en batchmode,
-   déclenchés manuellement uniquement sur une branche de confiance.
-4. Après trois lots, décider : supprimer ForgePilot, le garder sur Windows/WSL2
-   ou migrer Hermes et ForgePilot sur un VPS 4 Go. Le PC Windows devient alors
-   le worker Unity ; lorsqu'il est éteint, la validation reste en attente.
-5. Render n'est pas retenu pour Hermes. Unity Build Automation reste une
-   alternative payante si le propriétaire veut supprimer la dépendance au PC.
-6. Ne réactiver l'ancien full-auto que par une nouvelle décision propriétaire.
-7. Côté produit, la provenance G3 (brief 020, PR #106) et les fleuves G5
-   (brief 021, PR #107) sont fusionnés. Poursuivre F1 avec G6 relief, climat et
-   ressources. Brancher ensuite VictoriaCityLab comme vue mince sur les contrats
-   ForgeHistory.
-8. Côté pilote, le lot 022 a réparé ForgePilot (PR #108 fusionnée le
-   2026-08-15) mais **sans verdict d'Évaluateur** — dette consignée. Le brief
-   023 (modèle et effort par rôle) est écrit et non lancé ; ADR-0014 reste
-   `proposed` et inapplicable tant que 023 n'est pas livré.
+1. **Produit :** poursuivre le monde dans `sim/` (et `pipeline/geo/` pour
+   le relief G6, climat, ressources). Chaque couche se **joue** par
+   `python -m sim`, jamais par Unity tant qu’il est en veille.
+2. **Hermes :** installer le cron quotidien (`hermes/crons/README.md`) sur
+   le VPS ; lire la veille locale `hermes/propositions/DERNIERE-VEILLE.md`
+   (gitignorée, le cron ne sale pas le dépôt) ; ouvrir des propositions
+   au lieu d’attendre qu’on lui demande une feuille de route.
+3. Authentifier Claude Code (abonnement Pro, **pas** `ANTHROPIC_API_KEY`)
+   et Cursor. `forgepilot doctor`.
+4. Refuser tout lot Unity / CityLab tant que le propriétaire n’a pas
+   réveillé le visuel.
+5. Ne réactiver `mode: full_auto` que par une nouvelle décision écrite.
+6. Les lots ForgePilot `021`–`023` sont livrés, verdicts `022`/`023`
+   ACCEPT. Un rapport de bilan reste utile ; il n’est plus un verrou.
 
 ## Historique des révisions
 
@@ -141,3 +137,4 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-14 | hermes (rédaction déléguée, correction propriétaire — `DEMANDE-20260814-worker-unity-windows.md`) | correction de plateforme : Unity reste sous Windows ; pilote local Windows/WSL2, puis VPS facultatif + worker Unity Windows manuel et bloquant |
 | 2026-08-16 | hermes (rédaction déléguée à Claude Code, rattrapage demandé par le propriétaire) | correction factuelle uniquement, aucune décision nouvelle : PR #106 fusionnée le 2026-08-14 (le texte la disait « en attente ») ; fleuves G5 livrés et fusionnés (brief 021, PR #107) ; état du pilote ajouté aux prochaines étapes (lot 022 fusionné sans verdict, brief 023 non lancé, ADR-0014 `proposed`). Rapports adossés : `hermes/reports/RAPPORT-20260816-*.md` |
 | 2026-08-16 | hermes (rédaction déléguée à Claude Code, décision propriétaire — `DEMANDE-20260815-hermes-cerveau-du-pipeline.md`) | **ADR-0014 accepté** : Hermes déclenche et rend compte, Claude juge à la demande, Cursor exécute, le propriétaire garde le veto sur la fusion. Section « Workflow pilote » mise à jour ; point d'entrée unique `forge-start` puis `hermes chat -s forgehistory-suivi` |
+| 2026-08-20 | cursor-cloud (décision propriétaire — `DEMANDE-20260820-simulation-sans-unity-hermes-pilote.md`) | **ADR-0016** : `sim/` sans Unity est le produit vivant ; Unity en veille ; Hermes pilote et propose ; crons quotidiens de lecture autorisés. ADR-0015 accepté. |

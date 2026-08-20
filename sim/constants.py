@@ -341,3 +341,10 @@ SURVIE_TOLERANCE_SENSIBILITE = compute_survie_tolerance_sensibilite()
 # par tick ; le report de la fraction (mortality_remainder) garantit qu'une
 # mort entière est appliquée en au plus ce nombre de ticks (SC3 brief 017).
 N_BOUND_MORT = math.ceil(1.0 / MAX_DEATH_RATE_PER_TICK)
+
+# --- Entrée en ligne de commande (python -m sim), ADR-0016 ---
+# Un an calendaire de ticks, dérivé de la base de temps unique : jamais un
+# second littéral de durée. TICK_DURATION_DAYS vaut 1 aujourd'hui.
+CALENDAR_DAYS_PER_YEAR = 365
+DEFAULT_CLI_TICKS = CALENDAR_DAYS_PER_YEAR * TICK_DURATION_DAYS
+DEFAULT_CLI_SEED = 0
