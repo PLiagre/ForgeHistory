@@ -8,7 +8,7 @@
 > automatique à la poussée. Une vue périmée reste périmée tant
 > que personne ne la régénère.
 >
-> Générée le 2026-08-16 10:02 UTC.
+> Générée le 2026-08-20 07:58 UTC.
 
 ## En bref
 
@@ -109,8 +109,8 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 019-geo-adjacence-g4 | dernier verdict tracé : ACCEPT |
 | 020-geo-provenance-littoral-g3 | dernier verdict tracé : ACCEPT |
 | 021-geo-fleuves-g5 | verdict rendu (voir le fichier) |
-| 022-forgepilot-review-stdin-et-iteration | pas encore de verdict |
-| 023-forgepilot-modele-et-effort-par-role | pas encore de verdict |
+| 022-forgepilot-review-stdin-et-iteration | dernier verdict tracé : REJECT |
+| 023-forgepilot-modele-et-effort-par-role | dernier verdict tracé : REJECT |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
@@ -119,7 +119,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 29 | 2026-08-13 12:32 |
-| cursor | 19 | 2026-08-15 16:19 |
+| cursor | 20 | 2026-08-16 14:50 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
