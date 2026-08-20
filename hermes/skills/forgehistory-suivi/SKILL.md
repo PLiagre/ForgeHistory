@@ -99,8 +99,9 @@ Après chaque lot fusionné, sans qu’on te le demande :
 Autorisé (ADR-0016). Script : `hermes/crons/quotidien.sh`.
 
 Il mesure (`python -m sim`, tests `sim/`) et écrit
-`hermes/propositions/DERNIERE-VEILLE.md`. Il ne pousse pas, ne fusionne
-pas, ne lance pas `--run`.
+`hermes/propositions/DERNIERE-VEILLE.md` (fichier **local**, gitignoré,
+pour ne pas salir le dépôt). Il ne pousse pas, ne fusionne pas, ne
+lance pas `--run`.
 
 Si la veille montre un échec ou un constat nouveau, tu ouvres une
 `PROPOSITION-*.md` en session. Tu ne laisses pas un échec quotidien

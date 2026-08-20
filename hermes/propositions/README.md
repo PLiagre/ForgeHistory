@@ -13,4 +13,5 @@ Ce n’est pas une file de briefs. Une proposition n’instruit personne.
 - Statuts : `OPEN` (à trancher) → `HANDED_TO_CTO` (brief demandé) →
   `REFLECTED_IN_ROADMAP` ou `CLOSED`.
 - Un cron ne crée une proposition que s’il a **un constat nouveau**.
-  Sinon il met à jour `DERNIERE-VEILLE.md` seulement.
+  Sinon il met à jour `DERNIERE-VEILLE.md` seulement. Ce fichier est
+  **local** (gitignoré) : le cron ne doit jamais salir le dépôt.

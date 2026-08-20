@@ -17,6 +17,7 @@ if [[ ! -x "$PYTHON" ]]; then
 fi
 
 STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+# Fichier local gitignoré — le cron ne commit ni ne pousse.
 OUT="hermes/propositions/DERNIERE-VEILLE.md"
 mkdir -p hermes/propositions
 

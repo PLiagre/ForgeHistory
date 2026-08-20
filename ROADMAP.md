@@ -113,8 +113,9 @@ toute veille de décision irréversible du propriétaire.
    le relief G6, climat, ressources). Chaque couche se **joue** par
    `python -m sim`, jamais par Unity tant qu’il est en veille.
 2. **Hermes :** installer le cron quotidien (`hermes/crons/README.md`) sur
-   le VPS ; lire `DERNIERE-VEILLE.md` ; ouvrir des propositions au lieu
-   d’attendre qu’on lui demande une feuille de route.
+   le VPS ; lire la veille locale `hermes/propositions/DERNIERE-VEILLE.md`
+   (gitignorée, le cron ne sale pas le dépôt) ; ouvrir des propositions
+   au lieu d’attendre qu’on lui demande une feuille de route.
 3. Authentifier Claude Code (abonnement Pro, **pas** `ANTHROPIC_API_KEY`)
    et Cursor. `forgepilot doctor`.
 4. Refuser tout lot Unity / CityLab tant que le propriétaire n’a pas

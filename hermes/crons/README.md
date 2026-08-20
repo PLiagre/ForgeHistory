@@ -9,7 +9,8 @@ Un cron **quotidien**, en lecture / mesure / proposition :
 1. lire l’état git, `ROADMAP.md`, l’âge de `hermes/DASHBOARD.md` ;
 2. exécuter `python -m sim` (la simulation sans Unity) ;
 3. exécuter les tests `sim/` ;
-4. écrire `hermes/propositions/DERNIERE-VEILLE.md` ;
+4. écrire `hermes/propositions/DERNIERE-VEILLE.md` (gitignoré, pour ne
+   pas salir le dépôt : ForgePilot refuse un arbre modifié) ;
 5. n’ouvrir une `PROPOSITION-*.md` que s’il y a un constat **nouveau**.
 
 ## Ce qui est interdit
