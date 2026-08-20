@@ -6,8 +6,8 @@
 # dependency in this repo, see generator-log.md.
 #
 # `mode:` est lu à l'exécution par les anciens workflows. ADR-0013 conserve
-# leur code comme solution de retour arrière, mais suspend toutes leurs
-# invocations pendant les trois lots ForgePilot.
+# leur code comme solution de retour arrière. ADR-0016 : le workflow
+# vivant est Hermes + ForgePilot ; Unity est en veille.
 mode: manual
 
 # Ceiling on how many times the orchestrator (Lot 006b) may re-invoke

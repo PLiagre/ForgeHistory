@@ -13,7 +13,8 @@ nativement, soit dans WSL2. Windows reste démarré pour conserver Unity
 
 - environ 32 Go de RAM ;
 - un seul lot actif ;
-- aucun cron, aucune fusion automatique et aucune boucle sans ordre humain ;
+- aucun cron **de fusion** ; un cron quotidien de lecture est autorisé
+  depuis ADR-0016 (`hermes/crons/`) ;
 - aucun modèle local, navigateur automatisé, mode voix ou sous-agent ;
 - Claude Code planifie et relit ; Cursor exécute dans un worktree ;
 - un lot CityLab est refusé tant que son worker Unity Windows n'est pas livré.

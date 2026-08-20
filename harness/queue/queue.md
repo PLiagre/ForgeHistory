@@ -1,5 +1,10 @@
 # Queue State
 
+> Cette table n’a plus été tenue après le brief 001. L’état des briefs se
+> lit dans chaque dossier `harness/queue/briefs/NNN-*/` (présence de
+> `verdict.md`) et dans `ROADMAP.md`. Ne pas s’en servir comme file
+> autoritaire.
+
 | Brief | Status | Générateur backend | Notes |
 |---|---|---|---|
 | [001-spatial-primary-key-adr](briefs/001-spatial-primary-key-adr/) | ACCEPT (9/9), verdict PASS | claude | First real (non-demo) brief. ADR-0003 written, unblocks `sim/README.md` + `pipeline/geo/README.md`. Surfaced and fixed 2 real gate defects in `verdict_audit.py` along the way — see `run-report.md`. |

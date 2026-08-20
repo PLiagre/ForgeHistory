@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -8,7 +9,9 @@ import sys
 from .config import CURSOR_EFFORT_REFUSED, load_settings
 from .process import PilotError, git, run_command
 from .workflow import (
+    chain_preview,
     create_worktree,
+    default_task_name,
     execute_invocation,
     executor_invocation,
     existing_worktree,
@@ -19,6 +22,7 @@ from .workflow import (
     publish,
     publish_preview,
     review_invocation,
+    run_chain,
 )
 
 
@@ -75,6 +79,19 @@ def parser() -> argparse.ArgumentParser:
     publish_parser.add_argument("--base")
     publish_parser.add_argument("--title", required=True)
     publish_parser.add_argument("--run", action="store_true")
+
+    enchaine = commands.add_parser(
+        "enchaine",
+        help="plan, execute, publish, review — une commande, pas de fusion",
+    )
+    enchaine.add_argument("task", type=_path)
+    enchaine.add_argument("--repo", type=_path, default=Path.cwd())
+    enchaine.add_argument("--task-name")
+    enchaine.add_argument("--base")
+    enchaine.add_argument("--title")
+    enchaine.add_argument("--model")
+    enchaine.add_argument("--effort")
+    enchaine.add_argument("--run", action="store_true")
     return root
 
 
@@ -183,6 +200,33 @@ def main(argv: list[str] | None = None) -> int:
                 print(format_invocation(publish_preview(args.repo, args.title, base_branch)))
                 return 0
             print(publish(args.repo, args.title, base_branch))
+            return 0
+
+        if args.command == "enchaine":
+            task_name = args.task_name or default_task_name(args.task)
+            if not args.run:
+                payload = chain_preview(
+                    settings,
+                    args.repo,
+                    args.task,
+                    task_name,
+                    model=args.model,
+                    effort=args.effort,
+                )
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                return 0
+            payload = run_chain(
+                settings,
+                args.repo,
+                args.task,
+                task_name,
+                base_ref=args.base or settings.default_base_ref,
+                base_branch=settings.default_base_branch,
+                title=args.title or task_name,
+                model=args.model,
+                effort=args.effort,
+            )
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
             return 0
     except (OSError, KeyError, ValueError, PilotError) as exc:
         print(f"REFUS : {exc}", file=sys.stderr)

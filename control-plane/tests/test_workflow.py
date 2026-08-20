@@ -687,5 +687,226 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual("tools-model", fallback.model)
 
 
+class ChainTests(unittest.TestCase):
+    def _git_repo(self, root: Path) -> None:
+        subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
+        (root / "tracked.txt").write_text("initial\n", encoding="utf-8")
+        (root / ".gitignore").write_text(".forgepilot/\n", encoding="utf-8")
+        subprocess.run(["git", "add", "tracked.txt", ".gitignore"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-m", "initial"], cwd=root, check=True, capture_output=True)
+
+    def test_preview_does_not_run_agents_and_never_merges(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._git_repo(repo)
+            briefs = repo / "harness" / "queue" / "briefs" / "024-exemple"
+            briefs.mkdir(parents=True)
+            task = briefs / "brief.md"
+            task.write_text("Un brief mesurable.\n", encoding="utf-8")
+            out = io.StringIO()
+            with patch(
+                "forgepilot.workflow.execute_invocation",
+                side_effect=AssertionError("execute_invocation appelé"),
+            ):
+                with patch(
+                    "forgepilot.workflow.publish",
+                    side_effect=AssertionError("publish appelé"),
+                ):
+                    with patch(
+                        "forgepilot.workflow.create_worktree",
+                        side_effect=AssertionError("create_worktree appelé"),
+                    ):
+                        with patch("sys.stdout", out):
+                            code = main(
+                                [
+                                    "enchaine",
+                                    str(task),
+                                    "--repo",
+                                    str(repo),
+                                ]
+                            )
+            self.assertEqual(0, code)
+            payload = json.loads(out.getvalue())
+            self.assertEqual("enchaine", payload["command"])
+            self.assertFalse(payload["run"])
+            self.assertFalse(payload["fusion"])
+            self.assertEqual(["plan", "execute", "publish", "review"], payload["steps"])
+            self.assertEqual("024-exemple", payload["task_name"])
+            self.assertTrue(payload["publish"]["draft"])
+            dumped = json.dumps(payload)
+            self.assertNotIn("pr merge", dumped)
+            self.assertNotIn("gh merge", dumped)
+            argv = payload["execute"]["argv"]
+            self.assertIn("--sandbox", argv)
+            self.assertEqual("enabled", argv[argv.index("--sandbox") + 1])
+
+    def test_proposition_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            prop_dir = repo / "hermes" / "propositions"
+            prop_dir.mkdir(parents=True)
+            task = prop_dir / "PROPOSITION-20260820-exemple.md"
+            task.write_text("Une proposition, pas un brief.\n", encoding="utf-8")
+            err = io.StringIO()
+            with patch("sys.stderr", err):
+                code = main(["enchaine", str(task), "--repo", str(repo)])
+            self.assertEqual(2, code)
+            self.assertIn("proposition", err.getvalue().lower())
+
+    def test_empty_task_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            task = repo / "task.md"
+            task.write_text("   \n", encoding="utf-8")
+            err = io.StringIO()
+            with patch("sys.stderr", err):
+                code = main(["enchaine", str(task), "--repo", str(repo)])
+            self.assertEqual(2, code)
+            self.assertIn("vide", err.getvalue().lower())
+
+    def test_run_refuses_anthropic_api_key_before_agents(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            task = repo / "task.md"
+            task.write_text("Faire une chose.\n", encoding="utf-8")
+            err = io.StringIO()
+            with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "must-not-be-used"}, clear=False):
+                with patch(
+                    "forgepilot.workflow.execute_invocation",
+                    side_effect=AssertionError("execute_invocation appelé"),
+                ):
+                    with patch("sys.stderr", err):
+                        code = main(
+                            [
+                                "enchaine",
+                                str(task),
+                                "--repo",
+                                str(repo),
+                                "--run",
+                            ]
+                        )
+            self.assertEqual(2, code)
+            self.assertIn("ANTHROPIC_API_KEY", err.getvalue())
+
+    def test_run_calls_plan_execute_publish_review_never_merge(self):
+        from forgepilot.workflow import Invocation
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("Lot unique mesurable.\n", encoding="utf-8")
+            subprocess.run(["git", "add", "task.md"], cwd=repo, check=True)
+            subprocess.run(["git", "commit", "-m", "task"], cwd=repo, check=True, capture_output=True)
+            roles: list[str] = []
+
+            def fake_execute(invocation, settings, *, stdin=None):
+                roles.append(invocation.role)
+                return {"role": invocation.role}
+
+            fake_review = Invocation(
+                "reviewer",
+                ("claude", "-p", "--output-format", "json"),
+                str(repo),
+                {},
+                prompt="<prompt>",
+            )
+            out = io.StringIO()
+            with patch("forgepilot.workflow.missing_binaries", return_value=[]):
+                with patch("forgepilot.workflow.execute_invocation", side_effect=fake_execute):
+                    with patch(
+                        "forgepilot.workflow.publish",
+                        return_value="https://example.test/pr/1",
+                    ) as pub:
+                        with patch(
+                            "forgepilot.workflow.review_invocation",
+                            return_value=fake_review,
+                        ):
+                            with patch("sys.stdout", out):
+                                code = main(
+                                    [
+                                        "enchaine",
+                                        str(task),
+                                        "--repo",
+                                        str(repo),
+                                        "--task-name",
+                                        "lot-chain",
+                                        "--base",
+                                        "main",
+                                        "--run",
+                                    ]
+                                )
+            self.assertEqual(0, code)
+            payload = json.loads(out.getvalue())
+            self.assertTrue(payload["run"])
+            self.assertFalse(payload["fusion"])
+            self.assertEqual("agent/lot-chain", payload["branch"])
+            self.assertEqual("https://example.test/pr/1", payload["pull_request"])
+            self.assertEqual(["planner", "executor", "reviewer"], roles)
+            pub.assert_called_once()
+            self.assertNotIn("merge", json.dumps(payload).lower())
+            worktree = repo / ".forgepilot" / "worktrees" / "lot-chain"
+            self.assertTrue(worktree.is_dir())
+
+    def test_run_stops_if_plan_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self._git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("Échec plan.\n", encoding="utf-8")
+            subprocess.run(["git", "add", "task.md"], cwd=repo, check=True)
+            subprocess.run(["git", "commit", "-m", "task"], cwd=repo, check=True, capture_output=True)
+            err = io.StringIO()
+            with patch("forgepilot.workflow.missing_binaries", return_value=[]):
+                with patch(
+                    "forgepilot.workflow.execute_invocation",
+                    side_effect=PilotError("plan cassé"),
+                ):
+                    with patch(
+                        "forgepilot.workflow.create_worktree",
+                        side_effect=AssertionError("create_worktree appelé"),
+                    ):
+                        with patch(
+                            "forgepilot.workflow.publish",
+                            side_effect=AssertionError("publish appelé"),
+                        ):
+                            with patch("sys.stderr", err):
+                                code = main(
+                                    [
+                                        "enchaine",
+                                        str(task),
+                                        "--repo",
+                                        str(repo),
+                                        "--run",
+                                    ]
+                                )
+            self.assertEqual(2, code)
+            self.assertIn("plan cassé", err.getvalue())
+            worktrees = repo / ".forgepilot" / "worktrees"
+            self.assertFalse(worktrees.exists())
+
+    def test_effort_ultra_refused_on_enchaine(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            task = repo / "task.md"
+            task.write_text("effort invalide\n", encoding="utf-8")
+            err = io.StringIO()
+            with patch("sys.stderr", err):
+                code = main(
+                    [
+                        "enchaine",
+                        str(task),
+                        "--repo",
+                        str(repo),
+                        "--effort",
+                        "ultra",
+                    ]
+                )
+            self.assertEqual(2, code)
+            self.assertIn("invalide", err.getvalue().lower())
+
+
 if __name__ == "__main__":
     unittest.main()
