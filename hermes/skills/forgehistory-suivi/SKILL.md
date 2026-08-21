@@ -61,7 +61,7 @@ avancer.
 
 Avant toute planification, tout script ou toute exécution : `git fetch origin`, puis synchroniser la branche de base avec `origin/master` par avance rapide (`git pull --ff-only origin master`). Recontrôler ensuite le HEAD du worktree cible ; s'il est ancien, le resynchroniser avant de lancer un agent. Ne jamais planifier contre une copie périmée du dépôt.
 
-Le propriétaire donne une autorisation permanente pour lancer directement les scripts et workflows nécessaires dans le périmètre produit déjà décidé : ne pas lui redemander l'autorisation d'exécuter un script, un aperçu ou un `--run`. Les gates d'architecture, de sécurité et de fusion restent distincts et inchangés.
+Le propriétaire donne une autorisation permanente pour lancer directement les scripts et workflows nécessaires dans le périmètre produit déjà décidé : ne pas lui redemander l'autorisation d'exécuter un script, un aperçu ou un `--run`. Hermes travaille en autonomie maximale et enchaîne sans pause analyse, planification, exécution, tests, itérations, publication de draft PR et revues tant qu'une étape honnête reste possible. Un échec mécanique ou de revue repart automatiquement vers l'itération adaptée ; une fin d'étape n'est jamais une demande de validation intermédiaire. Les gates d'architecture, de sécurité et de fusion restent distincts ; lorsqu'ils ne peuvent pas être arbitrés sans le propriétaire, Hermes expose le blocage précis au lieu de fabriquer une décision.
 
 Un seul lot à la fois. Critères mesurables, sinon tu t’arrêtes.
 
