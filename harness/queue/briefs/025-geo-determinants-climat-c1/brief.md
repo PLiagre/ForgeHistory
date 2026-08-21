@@ -3,6 +3,14 @@
 **Authored**: 2026-08-20T21:15:00Z
 **Author**: forge-planificateur
 **Statut**: PRÊT — exécutable en l'état, aucun arbitrage préalable requis
+**Amendé le**: 2026-08-21 — amendement 001, sur décision du propriétaire,
+avant fusion de la PR #123. Motif : deux constats de la relecture (F1 —
+dénominateur de branches `--source` factuellement faux ; F2 — emplacement des
+cinq compteurs de SC1). Le dossier de décision est
+`amendment-001-branches-source-et-compteurs-sc1.md`, dans ce même répertoire ;
+il explique le pourquoi et ne donne aucune instruction. Les passages amendés
+portent la marque **[A1]** et ce fichier reste la seule instruction
+(`CLAUDE.md` › Single Source of Instruction).
 
 > **Note de transparence (contrat du Planificateur) :** le rôle signataire est
 > le rôle natif du harnais `forge-planificateur`. L'acteur réel est Claude
@@ -52,7 +60,12 @@ structurelle majeure avec les briefs 019, 021 et 024 :
   `geonames_cities500`. **Aucune source climatique.**
 - `pipeline/geo/pipeline.py` accepte huit valeurs de `--source` (`fixture`,
   `natural_earth`, `natural_earth_1400`, `cells`, `adjacency`, `rivers`,
-  `navigability`, `relief`). **Aucune n'est le climat.**
+  `navigability`, `relief`). **Aucune n'est le climat.** **[A1]** Précision
+  ajoutée par l'amendement 001, parce que c'est de là que venait l'erreur de
+  SC5 : ces huit valeurs ne sont pas servies par huit branches. **Sept**
+  d'entre elles ont une branche explicite `if args.source == "..."` ;
+  `fixture`, qui est la valeur par défaut, est servie par le **chemin de
+  repli** en fin de `main()`, celui qui suit la dernière branche.
 
 Conséquence tranchée ici : **G4, G5 et G6 héritaient d'une barre qualité
 écrite avant eux ; le climat n'en a aucune.** Ce lot écrit donc à la fois la
@@ -417,6 +430,14 @@ Sous `pipeline/geo/` :
 | `tests/test_qa_red_c1.py` | cas rouges, un par contrôle (D11) |
 | `README.md` | mise à jour (SC6) |
 
+**[A1] La liste de champs de `stats_c1.json` est close.** Elle n'est pas
+élargie par l'amendement 001. En particulier, les cinq compteurs de SC1
+(inversions, égalités hors tolérance, paires au-dessus du seuil, jours
+d'été/hiver, inversions d'amplitude) **n'y entrent pas** : ce sont des
+résultats de contrôle, ils vivent dans `deliverables/manifest.json` ›
+`counters[]` et dans les `detail` de `logs/v1_080_qa.json` (SC1). Un artefact
+du monde ne porte pas le verdict des contrôles qui l'examinent.
+
 **Nommage.** Les préfixes `G1` à `G12` sont réservés par l'inventaire de
 portage (`geo-pipeline-port-plan.md`), `P1`/`P2` par les propositions de
 peuplement et `A12` par l'apparence. `C1` n'entre en collision avec aucun des
@@ -482,8 +503,20 @@ serait une sur-revendication.
 chaîne `description` de l'analyseur d'arguments, toutes deux pour mentionner
 la nouvelle valeur. Toute autre suppression est un dépassement de périmètre.
 Mesuré par `pipeline_lignes_supprimees` (D12) et par la reconstruction de
-SC5, qui vérifie en plus que **chacune des huit branches `--source`
-préexistantes est byte-identique** à sa version d'origine.
+SC5, qui vérifie en plus que **chacun des sept blocs
+`if args.source == "..."` préexistants est byte-identique** à sa version
+d'origine **et que le chemin de repli `fixture` l'est aussi**. **[A1]**
+
+**Ce que « le chemin de repli `fixture` » désigne exactement**, pour que la
+mesure soit mécanique et non affaire d'appréciation : le bloc de `main()` qui
+**suit la dernière branche `if args.source == "..."`**, depuis la ligne
+`if args.stage != "all":` jusqu'au dernier `return 0` de `main()` inclus —
+c'est-à-dire tout ce qui s'exécute quand `--source` vaut `fixture`. Il
+s'extrait des deux fichiers par ces deux mêmes bornes textuelles, puis se
+compare octet à octet. La mesure porte donc sur `7 + 1 = 8` chemins de code,
+soit la totalité des huit valeurs de `--source` préexistantes : c'est
+strictement plus que ce que l'énoncé d'origine couvrait, puisque celui-ci
+laissait le repli hors de toute mesure.
 
 ### D9 — Ce qui reste intouché
 
@@ -541,8 +574,9 @@ ne passe par une modification de `qa/checks.py` ni de `qa/checks_c1.py`.** Un
 - `pipeline/geo/constants.py` — **ajout en fin de fichier uniquement**,
   zéro ligne supprimée ;
 - `pipeline/geo/pipeline.py` — ajouts, plus **deux lignes existantes au
-  plus** modifiées, les huit branches `--source` préexistantes restant
-  byte-identiques ;
+  plus** modifiées, les **sept** blocs `if args.source == "..."`
+  préexistants **et** le chemin de repli `fixture` (D8) restant
+  byte-identiques **[A1]** ;
 - `pipeline/geo/README.md` (SC6) ;
 - `harness/queue/cost-ledger.jsonl` (une seule ligne ajoutée).
 
@@ -589,6 +623,29 @@ Depuis `pipeline/geo/` :
   fait à consigner dans `deliverables/generator-log.md`, avec les cellules
   concernées nommées.
 - `C1-B` et `C1-C` verts.
+
+**[A1] Où ces cinq compteurs se lisent, et pourquoi pas ailleurs.**
+`inversions_insolation_latitude`, `egalites_insolation_hors_tolerance`,
+`paires_consecutives_au_dessus_du_seuil`,
+`cellules_jour_ete_non_superieur_hiver` et
+`inversions_amplitude_jour_latitude` **ne sont pas des faits du monde : ce
+sont des résultats de contrôle.** Leur emplacement autoritaire est
+`deliverables/manifest.json` › `counters[]`, où chacun porte sa valeur, sa
+`sample_size` réelle et la commande qui l'a produite — comme tout compteur de
+ce lot, et c'est déjà ce que le gate mécanique lit
+(`no_empty_sample_pass`). Le rapport `logs/v1_080_qa.json` les **corrobore**
+dans les chaînes `detail` de `C1-B` et `C1-C`, qui sont la trace produite par
+le contrôle lui-même au moment où il s'exécute.
+
+`artifacts/stats_c1.json` **ne les porte pas, et ne doit pas les porter** :
+sa liste de champs est fixée en D7 et décrit ce que le monde est (comptes,
+distributions, écrêtages réellement rencontrés), pas ce qu'un contrôle a
+trouvé en balayant des paires triées. Y recopier ces cinq nombres créerait un
+second domicile pour une valeur qui en a déjà un — exactement le défaut « la
+même valeur dans deux copies qui divergeront » que D9 refuse ailleurs, et une
+entorse au principe n° 1. La règle d'échantillon non vide reste entière :
+`paires_consecutives_au_dessus_du_seuil` doit être publié et strictement
+positif, et son absence des deux emplacements ci-dessus reste disqualifiante.
 
 ### SC2 — Les distances à la mer sont mesurées, et la littoralité de G4 les confirme (`C1-D`)
 
@@ -651,11 +708,21 @@ des briefs 019/021/024.
   après l'ajout, avec la **même valeur**, comparée par la représentation
   Python de l'objet chargé — jamais par lecture visuelle du diff.
 - `pipeline_lignes_supprimees` vaut au plus `2` (D8).
-- `branches_source_preexistantes_identiques` vaut `8` sur `8` : chacune des
-  huit branches `if args.source == "..."` de l'instantané pré-édition se
-  retrouve byte-identique dans le fichier publié.
+- **[A1]** `branches_source_preexistantes_identiques` vaut `7` sur `7` :
+  chacun des **sept** blocs `if args.source == "..."` de l'instantané
+  pré-édition se retrouve byte-identique dans le fichier publié. Le
+  dénominateur est `7` parce que l'instantané en porte sept, pas huit ; il se
+  recompte sur l'instantané lui-même, jamais d'après cette phrase.
+- **[A1]** `chemin_repli_fixture_identique` vaut `1` sur `1` : le chemin de
+  repli `fixture` de `main()`, délimité comme en D8, est byte-identique entre
+  l'instantané pré-édition et le fichier publié. C'est la huitième valeur de
+  `--source`, celle qu'aucune branche ne sert ; sans ce compteur, elle serait
+  la seule à ne pas être protégée.
 - `valeurs_source_preexistantes_conservees` vaut `8` sur `8` : les huit
-  valeurs de `choices` d'origine sont toujours acceptées.
+  valeurs de `choices` d'origine sont toujours acceptées. **[A1]** Ce
+  dénominateur-là reste `8` et n'est pas touché par l'amendement : `choices`
+  porte bien huit valeurs — c'est le nombre de **branches** qui était faux,
+  pas le nombre de valeurs.
 - `source_climate_non_employee` vaut `1` : la chaîne `"climate"` n'est
   employée comme valeur de `--source` nulle part (D8).
 
@@ -793,7 +860,8 @@ Ce brief ne doit explicitement PAS :
 | `constants_lignes_supprimees` | lignes supprimées au diff contre l'instantané pré-édition | `1` mesure ; doit valoir `0` |
 | `constantes_preexistantes_inchangees` | noms de premier niveau de l'instantané pré-édition encore présents et de même valeur | nombre de noms de l'instantané ; doit être complet |
 | `pipeline_lignes_supprimees` | lignes supprimées au diff contre l'instantané pré-édition | `1` mesure ; doit valoir au plus `2` |
-| `branches_source_preexistantes_identiques` | branches `if args.source == "..."` byte-identiques | `8` |
+| `branches_source_preexistantes_identiques` **[A1]** | blocs `if args.source == "..."` de l'instantané pré-édition retrouvés byte-identiques | `7` (les sept blocs explicites de l'instantané ; recomptés sur l'instantané, jamais d'après ce tableau) |
+| `chemin_repli_fixture_identique` **[A1]** | chemin de repli `fixture` de `main()`, délimité comme en D8, comparé octet à octet entre l'instantané pré-édition et le fichier publié | `1` ; doit valoir `1` |
 | `valeurs_source_preexistantes_conservees` | valeurs de `choices` d'origine encore acceptées | `8` |
 | `source_climate_non_employee` | absence de `"climate"` comme valeur de `--source` | `1` ; doit valoir `1` |
 | `artefacts_precedents_modifies` | `git status --porcelain` sur les quinze artefacts G3/G4/G5 committés | `15` ; doit valoir `0` |
@@ -805,6 +873,25 @@ Un script committé sous
 exécuté depuis la racine, imprime chaque compteur avec son dénominateur,
 dérivé des artefacts et des constantes — jamais une valeur recopiée à la
 main.
+
+**[A1] Emplacement autoritaire des compteurs.** Tout compteur de ce tableau
+se lit dans `deliverables/manifest.json` › `counters[]`, avec sa valeur, sa
+`sample_size` et sa commande. Les artefacts publiés sous `pipeline/geo/` ne
+sont pas des supports de compteur : ils portent ce que le monde est, et le
+compteur dit ce qu'une mesure a trouvé sur eux. Un compteur qui figurerait
+aux deux endroits est un compteur qui divergera.
+
+**[A1] Clause transitoire — le lot 025 a été produit avant cet amendement.**
+Le compteur `chemin_repli_fixture_identique` n'existait pas quand le
+Générateur a produit la PR #123. Il ne déclenche **ni** nouvelle exécution,
+**ni** modification du code, des artefacts, des preuves ou du
+`deliverables/manifest.json` déjà committés : il se mesure entièrement sur
+deux fichiers déjà dans le dépôt, par l'Évaluateur, avec la commande donnée
+dans la rubrique. Son absence du `manifest.json` produit n'est donc pas
+disqualifiante pour ce lot ; elle le redevient pour tout lot postérieur à cet
+amendement. De même, le waiver que le Générateur a ouvert sur le dénominateur
+`8` est **résolu par cet amendement** : il reste au journal comme trace
+honnête de l'escalade, et n'a pas à être retiré.
 
 ---
 
