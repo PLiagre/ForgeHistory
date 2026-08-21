@@ -47,8 +47,13 @@ la mémoire, cadance le travail (y compris un cron quotidien de lecture),
 lance ForgePilot. Il n’écrit pas le code produit, ni un brief, ni un
 verdict, et il ne fusionne pas.
 
-Claude Code planifie et relit en lecture seule. Cursor exécute. Le
-propriétaire fusionne.
+Pendant le pilote multi-modèle accepté le 2026-08-21, Grok 4.6 High/XHigh
+planifie en lecture seule, Composer 2.5 exécute les lots bornés et les
+itérations rapides, puis GPT-5.6 Sol XHigh relit dans une invocation neuve,
+sans recevoir les conclusions de l'exécutant. Hermes rejoue les preuves et la
+CI. Claude reste un témoin critique différé pour l'architecture, la sécurité
+et les invariants fondamentaux ; sa limite fournisseur ne bloque plus les
+lots ordinaires. Le propriétaire fusionne.
 
 La session s’ouvre par `hermes chat -s forgehistory-suivi`. Le produit se
 lance par `python -m sim`.
@@ -66,15 +71,15 @@ Chaîne nominale pendant trois lots d'essai :
 ```
 Propriétaire ──▶ Hermes léger                 point d'entrée et choix de la tâche
   ▼
-Claude Code (lecture seule)                   plan pré-écrit et critères mesurables
+Grok 4.6 High/XHigh (lecture seule)           plan pré-écrit et critères mesurables
   ▼
-Cursor CLI (worktree agent/*)                 unique exécutant : code et tests
+Composer 2.5 (worktree agent/*)               exécutant borné : code et tests
   ▼
 CI portable                                   contrôles mécaniques ForgeHistory
   ▼ si le lot touche VictoriaCityLab / Unity
 Worker Unity Windows                          commit exact, LFS, tests batchmode
   ▼
-Claude Code (nouvelle invocation, lecture seule) revue du diff et des preuves
+GPT-5.6 Sol XHigh (invocation neuve)          revue indépendante du diff et des preuves
   ▼
 Propriétaire                                  décision de fusion
 ```
@@ -153,3 +158,4 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-20 | cursor-cloud (décision propriétaire — `DEMANDE-20260820-simulation-sans-unity-hermes-pilote.md`) | **ADR-0016** : `sim/` sans Unity est le produit vivant ; Unity en veille ; Hermes pilote et propose ; crons quotidiens de lecture autorisés. ADR-0015 accepté. |
 | 2026-08-20 | cursor-cloud (ordre propriétaire) | `forgepilot enchaine` : un brief, un `--run`, draft PR, pas de fusion (ADR-0013 amendement 002). |
 | 2026-08-21 | hermes | brief 025 C1 fusionné par PR #123 : insolation, durées de jour, continentalité et preuves déterministes livrées ; climat observé toujours ouvert ; brief 026 débloqué par la fusion |
+| 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-repartition-modeles-grok-claude.md`) | pilote multi-modèle activé : Grok 4.6 High/XHigh planifie, Composer 2.5 exécute, GPT-5.6 Sol XHigh relit en contexte neuf ; Claude devient un témoin critique différé et sa limite ne bloque plus les lots ordinaires |

@@ -3,9 +3,21 @@ author: hermes
 kind: demande
 created_at: 2026-08-21T09:53:31Z
 concerns: projet
-status: OPEN
+status: ACCEPTED_FOR_PILOT
 ---
 # Répartir les rôles entre Grok 4.6, Composer et Claude
+
+## Décision propriétaire — 2026-08-21
+
+Le propriétaire active le pilote suivant pour les prochains lots et pour la revue corrective du lot 024 :
+
+- Grok 4.6 High ou XHigh planifie en lecture seule dans une invocation neuve ;
+- Composer 2.5 exécute les lots bornés et les itérations rapides ;
+- GPT-5.6 Sol XHigh relit en lecture seule dans une invocation neuve, sans recevoir les conclusions de l'exécutant ;
+- Hermes rejoue les preuves déterministes et vérifie la CI ;
+- Claude n'est plus un blocage opérationnel lorsqu'il atteint sa limite. Il reste un témoin critique différé pour l'architecture, la sécurité et les invariants fondamentaux.
+
+Le pilote conserve le veto propriétaire sur la fusion. L'usage d'un nouveau contexte est obligatoire mais ne suffit pas à lui seul : le reviewer doit appartenir à une autre famille de modèles que l'exécuteur. Le recours manuel à des sessions Cursor séparées est autorisé jusqu'à ce que ForgePilot sache configurer le backend par rôle.
 
 Le propriétaire souhaite réduire fortement l’usage de Claude Code et le réserver aux tâches critiques. Il dispose d’un volume important de crédits Cursor et demande que ForgeHistory utilise davantage les modèles Cursor, notamment Grok 4.6.
 
