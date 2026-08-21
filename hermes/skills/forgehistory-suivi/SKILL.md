@@ -82,6 +82,8 @@ $P enchaine $B --repo $R --run
 Une proposition n'est pas un brief : la commande refuse
 `hermes/propositions/`.
 
+Pour toute exécution longue observable, Hermes installe en même temps un suivi temporaire des transitions (processus, worktree, draft PR, CI, revue, verdict, blocage fournisseur). Il rend compte spontanément au propriétaire à chaque changement d’étape ou blocage ; il ne doit jamais attendre que le propriétaire redemande « où ça en est ». Le suivi reste silencieux sans changement et expire ou est retiré à la fin du workflow.
+
 Les sous-commandes une par une restent là pour un dépannage
 (`iterate` après une revue). Ne fusionne jamais.
 

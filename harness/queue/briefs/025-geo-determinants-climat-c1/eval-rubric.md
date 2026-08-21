@@ -2,6 +2,13 @@
 
 **Authored**: 2026-08-20T21:15:00Z
 **Author**: forge-planificateur
+**Amendé le**: 2026-08-21 — amendement 001, par le Planificateur, sur décision
+du propriétaire, **après la production du lot et avant sa fusion**. Deux
+points seulement : un dénominateur factuellement faux (les branches
+`--source`) et l'endroit où cinq compteurs se lisent. Aucune barre n'est
+abaissée — le détail, et pourquoi ce n'est pas un assouplissement d'après
+coup, est dans `amendment-001-branches-source-et-compteurs-sc1.md`. Les
+passages amendés portent la marque **[A1]**.
 
 Ce document est rédigé par le Planificateur AVANT tout code.
 L'Évaluateur l'applique sans le modifier.
@@ -27,6 +34,17 @@ Pour chaque condition du brief :
 Vocabulaire : voir la section « Vocabulaire » du brief — non reproduit ici
 (Single Source of Instruction).
 
+**[A1] Où se lit un compteur.** L'emplacement autoritaire de **tout** compteur
+de ce lot est `deliverables/manifest.json` › `counters[]`, avec sa valeur, sa
+`sample_size` et la commande qui l'a produite. Les artefacts de
+`pipeline/geo/artifacts/` portent des **faits du monde** ; quand une condition
+ci-dessous en nomme un (par exemple `cellules_par_saut` de `stats_c1.json`),
+c'est ce fait-là qu'elle désigne, et la lecture du compteur reste au
+manifeste. Un compteur qu'on ne trouve pas dans un artefact n'est pas un
+compteur manquant : il est à son domicile. Un compteur qu'on ne trouve **ni**
+au manifeste, **ni** dans `logs/v1_080_qa.json`, **ni** reconstructible depuis
+les artefacts est, lui, un compteur manquant.
+
 **Avertissement transversal.** Le brief cite des mesures de contexte prises
 par le Planificateur (`596` cellules, `372` littorales, `21` îles lacustres,
 `11 444.2` et `7 149.7` MJ/m²/an, les médianes par classe de sauts). Ce sont
@@ -43,19 +61,37 @@ même s'il est vert.
 cd pipeline/geo && ../../.venv/bin/python tests/run_proof_c1.py
 ```
 Lire `C1-B` et `C1-C` dans `logs/v1_080_qa.json`, puis
-`inversions_insolation_latitude`, `egalites_insolation_hors_tolerance`,
+`ecretages_polaires_total` dans `artifacts/stats_c1.json`.
+
+**[A1] Où lire les cinq compteurs de SC1.** `inversions_insolation_latitude`,
+`egalites_insolation_hors_tolerance`,
 `paires_consecutives_au_dessus_du_seuil`,
-`cellules_jour_ete_non_superieur_hiver`,
-`inversions_amplitude_jour_latitude` et `ecretages_polaires_total` dans
-`artifacts/stats_c1.json`.
+`cellules_jour_ete_non_superieur_hiver` et
+`inversions_amplitude_jour_latitude` se lisent dans
+`deliverables/manifest.json` › `counters[]` — chacun avec sa valeur, sa
+`sample_size` et la commande qui l'a produite. C'est leur emplacement
+autoritaire (SC1 du brief). Le rapport `logs/v1_080_qa.json` les corrobore
+dans les chaînes `detail` de `C1-B` et `C1-C`, écrites par le contrôle
+lui-même à l'exécution ; les deux lectures doivent raconter la même chose, et
+un écart entre elles est un fait à consigner.
+
+**Ne pas les chercher dans `artifacts/stats_c1.json` : ils n'y sont pas, et
+c'est voulu.** Cet artefact décrit ce que le monde est ; ces cinq nombres
+disent ce qu'un contrôle a trouvé. Leur absence de `stats_c1.json` n'est donc
+**pas** un défaut, et **exiger** leur présence là serait exiger un second
+domicile pour une valeur qui en a déjà un (principe n° 1). En revanche,
+`ecretages_polaires_total`, `coastal_cell_count_derive` et les distributions
+sont bien des faits du monde et restent dans `stats_c1.json`.
 
 **Le premier point à vérifier n'est pas que les contrôles sont verts, c'est
 qu'ils portent sur quelque chose.** `paires_consecutives_au_dessus_du_seuil`
-doit être publié et strictement positif : c'est l'échantillon sur lequel la
-seconde moitié de `C1-B` et de `C1-C` s'applique. S'il est absent ou nul, les
-deux contrôles passent sur un ensemble vide et ne prouvent rien (règle n° 6).
-Le recompter soi-même depuis les latitudes de `cells_g3.json` et
-`C1_MONOTONE_DLAT_DEG` **lu de `constants.py`**.
+doit être publié — aux deux emplacements ci-dessus — et strictement positif :
+c'est l'échantillon sur lequel la seconde moitié de `C1-B` et de `C1-C`
+s'applique. S'il est absent ou nul, les deux contrôles passent sur un
+ensemble vide et ne prouvent rien (règle n° 6). Le recompter soi-même depuis
+les latitudes de `cells_g3.json` et `C1_MONOTONE_DLAT_DEG` **lu de
+`constants.py`** : c'est cette reconstruction qui tranche, jamais le nombre
+publié.
 
 **Reconstruction indépendante** : réimplémenter la formule de la décision D3
 du brief, **depuis le brief et non depuis le code du Générateur**, pour un
@@ -209,11 +245,38 @@ lot, et elle ne doit pas se faire à l'œil.
    niveau de l'instantané, et vérifier que chacun existe encore dans le
    fichier publié avec la **même valeur**, comparée par représentation de
    l'objet. Un seul nom disparu ou changé de valeur est disqualifiant.
-2. Extraire de chaque version de `pipeline.py` les huit blocs
+2. **[A1]** Extraire de chaque version de `pipeline.py` les blocs
    `if args.source == "..."` préexistants et les comparer texte à texte —
-   byte-identiques exigés. Extraire la liste `choices` des deux versions et
-   vérifier que les huit valeurs d'origine y sont toutes, et que
-   `"climate_drivers"` a été ajoutée.
+   byte-identiques exigés. **Le dénominateur se recompte sur l'instantané**,
+   il ne se lit pas dans un document : l'instantané en porte **sept**, et non
+   huit comme l'énoncé d'origine l'affirmait. La commande qui tranche, depuis
+   la racine :
+
+   ```
+   grep -c 'if args.source == ' \
+     harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/pre-edit/pipeline.py.orig
+   ```
+
+   Puis extraire le **chemin de repli `fixture`** des deux versions — le bloc
+   de `main()` qui suit la dernière branche, de la ligne
+   `if args.stage != "all":` au dernier `return 0` de `main()` inclus (D8) —
+   et le comparer octet à octet : `chemin_repli_fixture_identique` vaut `1`
+   sur `1`. Les deux mesures ensemble couvrent les huit valeurs de
+   `--source` ; ne faire que la première laisserait `fixture`, la valeur par
+   défaut, hors de toute vérification.
+
+   Extraire enfin la liste `choices` des deux versions et vérifier que les
+   **huit** valeurs d'origine y sont toutes — ce dénominateur-là est juste et
+   ne change pas — et que `"climate_drivers"` a été ajoutée.
+
+   **Clause transitoire.** Le lot a été produit avant cet amendement : le
+   Générateur a publié `branches_source_preexistantes_identiques` à `7/7`
+   avec un waiver, et n'a pas publié `chemin_repli_fixture_identique`. Ce
+   compteur-là, l'Évaluateur le mesure lui-même sur les deux fichiers
+   committés — c'est une comparaison de texte, elle n'exige aucune
+   ré-exécution ni aucune retouche de la PR. Son absence du `manifest.json`
+   produit n'est pas disqualifiante pour ce lot ; un `7/7` publié sans que le
+   repli ait été vérifié par personne le serait.
 3. Vérifier que la chaîne `"climate"` **n'est pas** employée comme valeur de
    `--source` : elle est réservée au lot climatique futur (D8). Une
    sur-revendication ici est disqualifiante même si tout le reste est vert.
@@ -231,8 +294,9 @@ contrôle existe pour attraper.
 
 **Résultat attendu** : `constants_lignes_supprimees` nul,
 `constantes_preexistantes_inchangees` complet,
-`pipeline_lignes_supprimees` au plus `2`,
-`branches_source_preexistantes_identiques` et
+`pipeline_lignes_supprimees` au plus `2`, **[A1]**
+`branches_source_preexistantes_identiques` à `7` sur `7`,
+`chemin_repli_fixture_identique` à `1` sur `1`,
 `valeurs_source_preexistantes_conservees` à `8` sur `8`,
 `source_climate_non_employee` à `1`, `qa/checks.py` intact.
 
@@ -269,8 +333,9 @@ en damier ou vide est un échec, même avec sept contrôles verts.
 **Contre-preuve disqualifiante** : dans une copie hors dépôt, introduire un
 horodatage courant dans un artefact — `Q10` doit rougir (deux passes,
 empreintes différentes). Modifier trivialement `pipeline.py` au-delà des deux
-lignes autorisées — `pipeline_lignes_supprimees` ou
-`branches_source_preexistantes_identiques` doit le détecter.
+lignes autorisées — `pipeline_lignes_supprimees`,
+`branches_source_preexistantes_identiques` ou, **[A1]** si la retouche tombe
+dans le chemin `fixture`, `chemin_repli_fixture_identique` doit le détecter.
 
 **Résultat attendu** : code de sortie `0` sur les deux commandes,
 `controles_c1_verts` à `7` sur `7`,
@@ -291,9 +356,12 @@ accompagné d'une sortie rejouable.
 ## Échecs disqualifiants (toute la rubrique, transversal)
 
 - Un `red_proof` vide sur n'importe lequel des sept contrôles.
-- `paires_consecutives_au_dessus_du_seuil` absent, nul, ou non reconstruit
-  par l'Évaluateur : la seconde moitié de `C1-B` et `C1-C` porterait alors sur
-  un échantillon vide, et un contrôle sur échantillon vide passe toujours.
+- **[A1]** `paires_consecutives_au_dessus_du_seuil` absent de
+  `deliverables/manifest.json` › `counters[]` **et** des `detail` de
+  `logs/v1_080_qa.json`, nul, ou non reconstruit par l'Évaluateur : la
+  seconde moitié de `C1-B` et `C1-C` porterait alors sur un échantillon vide,
+  et un contrôle sur échantillon vide passe toujours. Son absence du seul
+  `artifacts/stats_c1.json` n'est **pas** un motif de rejet (Condition 1).
 - Un contrôle qui compare une valeur produite à un nombre de contexte du
   brief au lieu de la dériver (règle n° 2).
 - `qa/checks.py` modifié, même d'un octet.
