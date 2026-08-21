@@ -116,7 +116,8 @@ changement structurel entériné par ADR, doute).
 
 | jalon | ce que l'étape doit réunir pour être close | statut |
 |---|---|---|
-| **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓, des cellules G3 ✓, de l'adjacence maritime G4 ✓ et des fleuves G5 ✓) ; artefacts consommables par `sim/` | **en cours** — déterminants physiques du climat C1 fusionnés (brief 025, PR #123, le 2026-08-21) ; relief G6 en PR #122 ; restent la fusion du relief, une source climatique réelle pour température/précipitations, les ressources et la consommation des artefacts récents par `sim/` |
+| **V0 — Monde visible** (jalon transversal) | snapshot déterministe par cellule exporté par `sim/`, puis visualiseur web mince : carte interactive, couches, sélection et comparaison de snapshots ; aucune logique métier dans le client | **à faire immédiatement après le correctif 024**, avant le lot 026 — décision `DEMANDE-20260821-visualiseur-web-v0.md` |
+| **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓, des cellules G3 ✓, de l'adjacence maritime G4 ✓ et des fleuves G5 ✓) ; artefacts consommables par `sim/` | **en cours** — déterminants physiques du climat C1 fusionnés (brief 025, PR #123, le 2026-08-21) ; première version du relief G6 fusionnée par PR #122 mais correction A1 de couverture DEM complète en cours ; restent la correction du relief, une source climatique réelle pour température/précipitations, les ressources et la consommation des artefacts récents par `sim/` |
 | **E2 — Le monde vivant compte juste** (clôt F2, couche 1) | seuil de survie honnête (graines 015/016 traitées) ; agrégation Province dérivée (ADR-0003) ; monde mesuré stable et falsifiable sur les 596 cellules réelles | **clos** — critères réunis (017 + 018) ; la fusion de `hermes/milestones/ETAPE-02-monde-vivant-compte-juste.md` déclenche l'audit d'étape (ADR-0012) |
 | **E3 — Villes** (couche 2) | urbanisation, entreprises, métiers, routes, infrastructures — émergeant de la couche 1 | à venir |
 | **E4 — États** (couche 3) | fiscalité, lois, diplomatie, technologies, culture, religion | à venir |
@@ -130,12 +131,13 @@ toute veille de décision irréversible du propriétaire.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. **Produit :** le lot 025 C1 est fusionné et le lot 026 ressources est prêt
-   sous condition désormais satisfaite. Examiner d'abord la PR #122 du relief
-   G6 encore ouverte, puis lancer le lot 026. Le climat observé (température,
-   précipitations, saisons) exige encore une source réelle et licenciée.
-   Chaque couche se **joue** par `python -m sim`, jamais par Unity tant qu’il
-   est en veille.
+1. **Produit :** terminer et relire la correction A1 du lot 024, dont la
+   première version a été fusionnée par PR #122 malgré le défaut de couverture
+   DEM. Livrer ensuite **V0-A** (snapshot cellulaire déterministe exporté par
+   `sim/`) puis **V0-B** (visualiseur web mince), avant le lot 026 ressources.
+   Le climat observé (température, précipitations, saisons) exige encore une
+   source réelle et licenciée. Chaque couche se joue par `python -m sim` et se
+   rend dans le visualiseur mince ; jamais par Unity tant qu’il est en veille.
 2. **Hermes :** installer le cron quotidien (`hermes/crons/README.md`) sur
    le VPS ; lire la veille locale `hermes/propositions/DERNIERE-VEILLE.md`
    (gitignorée, le cron ne sale pas le dépôt) ; ouvrir des propositions
@@ -168,3 +170,4 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-21 | hermes | brief 025 C1 fusionné par PR #123 : insolation, durées de jour, continentalité et preuves déterministes livrées ; climat observé toujours ouvert ; brief 026 débloqué par la fusion |
 | 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-repartition-modeles-grok-claude.md`) | pilote multi-modèle activé : Grok 4.6 High/XHigh planifie, Composer 2.5 exécute, GPT-5.6 Sol XHigh relit en contexte neuf ; Claude devient un témoin critique différé et sa limite ne bloque plus les lots ordinaires |
 | 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-workflow-adaptatif-r0-r1-r2.md`) | vérifications proportionnées au risque : R0 documentaire, R1 produit borné par défaut avec CI/revue/contrôles en parallèle, R2 critique renforcé ; corrections et itérations deviennent conditionnelles |
+| 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-visualiseur-web-v0.md`) | jalon transversal V0 inséré après le correctif 024 et avant le lot 026 : export cellulaire déterministe puis visualiseur web mince interactif ; Unity reste en veille |

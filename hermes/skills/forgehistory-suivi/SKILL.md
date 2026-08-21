@@ -65,8 +65,9 @@ Le propriétaire donne une autorisation permanente pour lancer directement les s
 
 Un seul lot à la fois. Critères mesurables, sinon tu t’arrêtes.
 
-- **`sim/` / `pipeline/geo/` / harnais / ForgePilot** — portable, tu peux
-  lancer.
+- **`sim/` / `pipeline/geo/` / `viewer/` / harnais / ForgePilot** — portable, tu peux
+  lancer. Le visualiseur web V0 est un client mince : il lit les snapshots
+  déterministes de `sim/` et ne porte aucune logique métier.
 - **Unity / CityLab** — **refuse.** En veille jusqu’à décision contraire
   écrite du propriétaire.
 
