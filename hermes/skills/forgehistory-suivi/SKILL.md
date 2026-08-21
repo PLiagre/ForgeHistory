@@ -61,9 +61,9 @@ Un seul à la fois. Critères mesurables, sinon tu t’arrêtes.
 - **Unity / CityLab** — **refuse.** En veille jusqu’à décision contraire
   écrite du propriétaire.
 
-S’il n’y a pas de brief : tu proposes le sujet, tu demandes au
-propriétaire d’ouvrir une session Claude pour écrire le brief. Tu ne
-rédiges pas le brief.
+S’il n’y a pas de brief : tu proposes le sujet, puis tu ouvres et supervises toi-même une session Claude Code observable pour écrire le brief. Tu fournis immédiatement au propriétaire le nom tmux et la commande d’attachement ; tu ne lui demandes jamais d’ouvrir Claude à ta place. Tu ne rédiges pas le brief.
+
+Une fois le brief produit et vérifié, tu le déposes automatiquement : synchronise `master` avec `origin/master`, copie le brief validé, commite avec un message `plan:` et pousse sur `master`, sans demander une autorisation supplémentaire. Cette dépose documentaire n’est pas l’exécution du lot. Un brief marqué bloqué peut être déposé, mais ne doit pas être exécuté avant l’arbitrage indiqué. Le `--run` et la fusion conservent leurs gates propres.
 
 ## 4. Faire tourner un lot (ForgePilot)
 
