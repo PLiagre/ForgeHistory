@@ -167,3 +167,18 @@ Aucune autre clause d'ADR-0013 n'est amendée. En particulier, « pendant trois
 lots pilotes : aucun cron, aucun auto-merge et une seule tâche » reste en
 vigueur jusqu'à ce que le bilan prononce la clôture du pilote — voir ADR-0015,
 règle `2`.
+
+---
+
+## Amendement 002 — une commande enchaîne le lot, sans fusionner
+
+**Amended**: 2026-08-20
+**Author**: Cursor (exécutant), sur ordre du propriétaire
+
+Le propriétaire veut lancer Hermes et qu'un lot parte sans six `--run`
+successifs. `forgepilot enchaine <brief>` enchaîne plan → execute → draft PR
+→ review. Sans `--run`, aperçu seulement. Avec `--run`, les agents tournent.
+
+Inchangé : une proposition n'est pas un brief ; Claude planifie et relit en
+lecture seule ; Cursor exécute dans `agent/*` ; **aucune fusion** ; une
+seule tâche de code à la fois ; `ANTHROPIC_API_KEY` reste un refus.

@@ -49,37 +49,32 @@ pass. See [docs/rules/harness-roles.md](docs/rules/harness-roles.md) and
 (Claude Code by default, or Cursor CLI via `harness/backends/`) — see
 [harness/backends/README.md](harness/backends/README.md).
 
-Depuis ADR-0013, ce harnais reste disponible en mode manuel et comme archive de
-preuves. Le workflow pilote nominal vit dans `control-plane/` : Claude Code
-planifie et relit en deux invocations distinctes et en lecture seule ; Cursor est le
-seul exécutant. Le producteur ne fusionne jamais son propre travail.
+Depuis ADR-0016, **Hermes pilote** (propositions, cadence, ForgePilot) ;
+Claude Code planifie et relit en lecture seule ; Cursor exécute. Le harnais
+trois rôles reste la porte mécanique et l'archive de preuves. Le producteur
+ne fusionne jamais son propre travail. Le produit vivant est `sim/`
+(`python -m sim`) ; Unity est en veille.
 
 ## Architecture
 
 - **ROADMAP.md** — the game/project roadmap, owned by Hermes (project
  lead, ADR-0010). Claude (CTO) reads it to plan briefs; evolutions enter
  through `hermes/requests/`.
-- **hermes/** — the project lead's writing contract: reports and evolution
- requests, versioned and author-traceable. Never code, CI, briefs or
- verdicts. See `hermes/README.md`.
-- **control-plane/** — ForgePilot, le pilote minimal ADR-0013. Il lance Claude Code
-  en lecture seule et Cursor dans un worktree isolé ; son état local sous
-  `.forgepilot/` n'est jamais une source de vérité produit. Le déploiement
-  progressif PC Linux → VPS/hybride vit dans
-  `docs/operations/forgepilot-hosting.md`.
-- **sim/** — the simulation engine, testable without Unity. Empty stub (F1+).
-- **pipeline/geo/** — geo/map pipeline, incl. sources.lock. Empty stub (F1).
-- **harness/** — brief queue, three-role agents' shared contract, the
-  mechanical gate (`verdict_audit.py`), pluggable Générateur backends, and
-  the fake-brief rejection demo.
-- **unity/** — thin render client, zero simulation logic. Empty stub.
-- **architecture/** — the multi-agent audit loop: Cursor Cloud audits, Claude
-  challenges, the owner decides, accepted audits become briefs. Contract +
-  lifecycle in `architecture/README.md`; decision in ADR-0005. Additive and
-  inert unless Cursor is used. A machine-driven, no-human-in-the-loop
-  variant of this same loop (`mode: full_auto`) is a documented derogation
-  to ADR-0005 — see [docs/adr/0006-full-auto-agent-pipeline.md](docs/adr/0006-full-auto-agent-pipeline.md)
-  and [docs/rules/full-auto-pipeline.md](docs/rules/full-auto-pipeline.md).
+- **hermes/** — chef de projet : propositions, rapports, demandes, crons
+  de lecture, skill. Jamais le code produit, un brief ou un verdict. Voir
+  `hermes/README.md` et ADR-0016.
+- **control-plane/** — ForgePilot : Claude Code en lecture, Cursor dans un
+  worktree `agent/*`. État local `.forgepilot/` hors git.
+- **sim/** — **produit vivant** : moteur Python, sans Unity. Lancer
+  `python -m sim`. Couche 1 livrée (briefs 011–018) ; couches suivantes ici.
+- **pipeline/geo/** — carte : littoral, cellules G3, mer G4, fleuves G5.
+  Suite : relief, climat, ressources.
+- **harness/** — file de briefs, gate `verdict_audit.py`, backends
+  Générateur, démo faux brief.
+- **unity/** — client visuel **en veille** (ADR-0016). Référence gelée,
+  pas une seconde simulation.
+- **architecture/** — boucle d'audit (jalons), additive. Full-auto GitHub
+  en `mode: manual`.
 - **docs/adr/** — one structural decision = one ADR, dated.
 - **docs/rules/** — modular, auto-referenced rules (never paraphrased
   elsewhere).
@@ -94,6 +89,8 @@ seul exécutant. Le producteur ne fusionne jamais son propre travail.
 ## Key Commands
 
 ```bash
+py -m sim                                 # produit vivant, sans Unity
+py -m sim --ticks 0 --json                # fumée : le monde s'amorce
 py harness/verdict_audit.py <brief_dir>          # tier-1 mechanical gate
 py -m pytest harness/tests/ -v                    # gate's own test suite (red+green)
 py harness/demo/fake_brief_001/run_demo.py        # F0 proof: fake brief is rejected
@@ -104,9 +101,11 @@ py harness/backends/ledger.py tokens              # real Claude token cost per r
 py harness/harness_audit.py                       # harness maturity self-audit
 py harness/budget.py status --brief <brief_dir>   # execution budget (100 warn / 130 checkpoint / 160 stop)
 py harness/budget.py split-check --brief <brief_dir>  # advisory NEEDS_SPLIT pre-flight, before generation
-py hermes/dashboard.py                            # regenerate hermes/DASHBOARD.md (the owner's readable status view)
+py hermes/dashboard.py                            # regenerate hermes/DASHBOARD.md
+bash hermes/crons/quotidien.sh                    # veille quotidienne (mesure, pas de fusion)
 cd control-plane && python3 -m unittest discover -s tests -v  # ForgePilot
-unity/run-unity.ps1 -LogFile <abs> -UnityArgLine '<unity args>'  # Unity batchmode: one call, waits, no polling
+.venv/bin/forgepilot enchaine <brief.md> --repo .            # aperçu du lot
+.venv/bin/forgepilot enchaine <brief.md> --repo . --run      # plan→execute→draft PR→review (pas de fusion)
 ```
 
 Slash commands: `/forge-run <brief>` (full loop), `/forge-cost-report`,
@@ -130,9 +129,10 @@ See [HANDOFF.md](HANDOFF.md) — rewritten at the end of every session.
 |---|---|
 | `harness/queue/briefs/**` | `.claude/skills/forge-harness/SKILL.md` |
 | any `docs/adr/NNNN-*.md` | conventions in `docs/adr/template.md` |
-| `sim/**` | not yet populated — see `sim/README.md` (F1+) |
-| `pipeline/geo/**` | not yet populated — see `pipeline/geo/README.md` (F1) |
+| `sim/**` | `sim/README.md` — produit vivant, sans Unity |
+| `pipeline/geo/**` | `pipeline/geo/README.md` |
+| `unity/**` | en veille, ADR-0016 |
 | `harness/backends/**` | `harness/backends/README.md` (pluggable-Générateur contract) |
-| `architecture/**` | `architecture/README.md` (Cursor audit loop) + ADR-0005 |
-| `harness/pipeline/**` | `docs/rules/full-auto-pipeline.md` + ADR-0006 (full-auto derogation to ADR-0005) |
-| `ROADMAP.md`, `hermes/**` | `hermes/README.md` (contrat d'écriture d'Hermes) + ADR-0010 |
+| `architecture/**` | `architecture/README.md` (boucle d'audit, jalons) + ADR-0005 |
+| `harness/pipeline/**` | `docs/rules/full-auto-pipeline.md` + ADR-0006 (archive, `mode: manual`) |
+| `ROADMAP.md`, `hermes/**` | `hermes/README.md` + ADR-0016 |

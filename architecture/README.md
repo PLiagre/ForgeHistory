@@ -1,26 +1,32 @@
 # architecture/ — la boucle d'audit multi-agents
 
+> **État depuis ADR-0016 (2026-08-20).** Hermes pilote le projet. Cursor
+> est l’exécutant des lots (ForgePilot, worktree `agent/*`), pas seulement
+> un auditeur. Cette boucle d’audit reste **additive** : elle se déclenche
+> aux jalons (`hermes/milestones/`) ou sur `workflow_dispatch`. Le pipeline
+> GitHub full-auto est en `mode: manual`. Le produit vivant est `sim/`.
+
 Ce dossier héberge la **boucle d'audit indépendant** de Forge : Cursor Cloud
 audite un commit, Claude challenge l'audit, le propriétaire tranche, et un
 audit accepté redevient un **brief normal** sous
 `harness/queue/briefs/`.
 
-> **Étape 1 de la migration** — ce commit ne pose que le *squelette* : ce
-> README (contrat + schéma), les dossiers, et rien d'autre. Les commandes
-> `/forge-audit-*`, le `audit-ledger.jsonl` et la CI arrivent aux étapes
-> suivantes. Tant qu'aucun audit n'est traité, **rien ici n'affecte le
-> workflow harness existant** (`/forge-run`, le gate, les briefs).
+> **Étape 1 historique** — le squelette de ce dossier a été posé avant les
+> commandes `/forge-audit-*` et le ledger. La boucle existe désormais ; ce
+> paragraphe n'est plus un état courant.
 
 Conception complète : voir le document d'architecture *« Cursor comme
 auditeur indépendant »* (à figer en `docs/adr/00NN-cursor-as-auditor.md`).
 
-## Principe : Cursor audite, il ne développe jamais
+## Principe : l'audit Cursor n'est pas le lot Cursor
 
-Le développeur canonique reste **Claude Code**. Cursor est un **auditeur en
-lecture seule**. Un audit n'est **jamais** une instruction exécutable : c'est
-une *entrée*. Seul le propriétaire peut, par conversion explicite, la
-transformer en brief — et le brief reste alors la **source unique
-d'instruction** (voir `CLAUDE.md` › « Single Source of Instruction »).
+Sous ForgePilot (ADR-0013), Cursor **développe** les lots dans un worktree
+`agent/*`. Ce dossier-ci décrit un autre rôle, plus rare : Cursor Cloud
+comme **auditeur** à la clôture d'une grande étape. Un audit n'est jamais
+une instruction exécutable.
+
+Le développeur d'un lot n'en prononce pas la recevabilité. Claude juge.
+Hermes pilote. Le propriétaire fusionne.
 
 ## Un seul rôle écrit dans chaque dossier
 

@@ -1,10 +1,12 @@
 # Full-Auto Pipeline — Activation, Roles, Emergency Disable
 
 > **État depuis le 2026-08-14 : suspendu par ADR-0013.** La configuration
-> autoritaire déclare `mode: manual` pendant les trois lots du pilote
-> ForgePilot. Ce document reste la procédure de retour arrière de l'ancien
-> système ; il ne décrit plus le workflow nominal. Le nouveau contrat vit dans
-> `control-plane/README.md` et `docs/adr/0013-forgepilot-hermes-grok-cursor.md`.
+> autoritaire déclare `mode: manual`. Ce document reste la procédure de
+> retour arrière de l'ancien système ; il ne décrit plus le workflow
+> nominal. Le contrat vivant est `hermes/README.md`,
+> `control-plane/README.md` et
+> [0013-forgepilot-hermes-claude-cursor.md](../adr/0013-forgepilot-hermes-claude-cursor.md),
+> amendé par ADR-0016.
 
 Brief `006-full-auto-agent-pipeline`, Lot 006b, Success Condition 20.
 Normative operational doc for the loop `docs/adr/0006-full-auto-agent-pipeline.md`

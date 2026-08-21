@@ -44,3 +44,8 @@ harness/pipeline/demo/output/
 # versionnées, et leur présence bloquait `forgepilot execute`, qui exige
 # un dépôt propre.
 control-plane/*.egg-info/
+
+# Veille quotidienne Hermes (cron) : fichier généré, jamais une source de
+# vérité. S'il était versionné, chaque run salirait le dépôt et ForgePilot
+# refuserait d'ouvrir un worktree.
+hermes/propositions/DERNIERE-VEILLE.md

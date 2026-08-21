@@ -1,5 +1,10 @@
 # unity/
 
+**En veille — ADR-0016 (2026-08-20).** Le produit vivant est `sim/`
+(`python -m sim`). Aucun lot visuel ou Unity tant que le propriétaire n’a
+pas rouvert ce client. Ce dossier reste une **référence gelée** du port
+VictoriaProject (brief 003) : ce n’est pas une seconde source de vérité.
+
 The render client. Zero simulation/business logic — rendering, input,
 animation, and UI only (see `VISION.md`: "Unity n'est jamais responsable de
 la logique métier... Le backend fonctionne sans Unity"). It must only ever

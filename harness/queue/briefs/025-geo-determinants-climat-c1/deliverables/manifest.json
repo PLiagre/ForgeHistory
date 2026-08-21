@@ -1,0 +1,269 @@
+{
+  "brief": "025-geo-determinants-climat-c1",
+  "files": [
+    {
+      "path": "../../../../pipeline/geo/steps/c1_climate_drivers.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/qa/checks_c1.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/tests/run_proof_c1.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/tests/test_qa_red_c1.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/cells_climate_drivers_c1.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/stats_c1.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/MANIFEST_c1.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/registry/climate_drivers_registry.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/logs/v1_080_qa.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/logs/v1_080_climate_drivers.log"
+    },
+    {
+      "path": "../../../../pipeline/geo/capture/v1_080_insolation_window.png"
+    },
+    {
+      "path": "../../../../pipeline/geo/capture/v1_080_continentality_window.png"
+    },
+    {
+      "path": "../../../../pipeline/geo/constants.py",
+      "must_differ_from": "deliverables/pre-edit/constants.py.orig"
+    },
+    {
+      "path": "../../../../pipeline/geo/pipeline.py",
+      "must_differ_from": "deliverables/pre-edit/pipeline.py.orig"
+    },
+    {
+      "path": "deliverables/pre-edit/pipeline-geo-README.md.orig"
+    },
+    {
+      "path": "../../../../pipeline/geo/README.md",
+      "must_differ_from": "deliverables/pre-edit/pipeline-geo-README.md.orig"
+    },
+    {
+      "path": "deliverables/pre-edit/constants.py.orig"
+    },
+    {
+      "path": "deliverables/pre-edit/pipeline.py.orig"
+    },
+    {
+      "path": "deliverables/measure_c1_025.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/manifest.json"
+    },
+    {
+      "path": "../../../../harness/queue/cost-ledger.jsonl"
+    }
+  ],
+  "counters": [
+    {
+      "name": "cellules_avec_insolation",
+      "value": 596,
+      "sample_size": "596 cellules lues de cells_g3.json",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "inversions_insolation_latitude",
+      "value": 0,
+      "sample_size": "595 paires consecutives",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "egalites_insolation_hors_tolerance",
+      "value": 0,
+      "sample_size": "495 paires au-dessus du seuil",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "paires_consecutives_au_dessus_du_seuil",
+      "value": 495,
+      "sample_size": "595 paires consecutives totales",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "cellules_jour_ete_non_superieur_hiver",
+      "value": 0,
+      "sample_size": "596 cellules",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "inversions_amplitude_jour_latitude",
+      "value": 0,
+      "sample_size": "595 paires consecutives",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "ecretages_polaires_total",
+      "value": 0,
+      "sample_size": "596 x 365 jours-cellule evalues",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "coastal_cell_count_derive",
+      "value": 372,
+      "sample_size": "596 cellules totales",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "ecart_littoralite_c1_vs_g4",
+      "value": 0,
+      "sample_size": "1 comparaison avec stats_g4.json",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "cellules_littorales_hors_epsilon",
+      "value": 0,
+      "sample_size": "372 cellules littorales derivees",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "contact_ponctuel_sans_arete_land_sea",
+      "value": 0,
+      "sample_size": "224 cellules non littorales",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "zones_de_mer_inconnues",
+      "value": 0,
+      "sample_size": "596 cellules totales",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "cellules_sans_hops",
+      "value": 0,
+      "sample_size": "596 cellules totales",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "cellules_atteintes_par_strait_seulement",
+      "value": 21,
+      "sample_size": "596 cellules totales",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "classes_de_sauts_non_monotones",
+      "value": 0,
+      "sample_size": "4 classes non vides moins une",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "cellules_centroide_hors_polygone",
+      "value": 12,
+      "sample_size": "596 cellules totales",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "violations_bord_vs_centroide",
+      "value": 0,
+      "sample_size": "584 cellules a centroide interieur",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "cles_de_bareme_trouvees",
+      "value": 0,
+      "sample_size": "20 cles du frozenset",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "controles_c1_verts",
+      "value": 7,
+      "sample_size": "7",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "controles_c1_avec_preuve_rouge_non_vide",
+      "value": 7,
+      "sample_size": "7",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "paires_sha_determinisme_egales",
+      "value": 4,
+      "sample_size": "4 paires du bloc determinism.sha256",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "code_sortie_run_proof_c1",
+      "value": 0,
+      "sample_size": "exit_code dans logs/v1_080_qa.json",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "constants_lignes_supprimees",
+      "value": 0,
+      "sample_size": "1 mesure diff vs pre-edit",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "constantes_preexistantes_inchangees",
+      "value": 171,
+      "sample_size": "171 noms de premier niveau dans l instantane pre-edition",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "pipeline_lignes_supprimees",
+      "value": 2,
+      "sample_size": "1 mesure diff vs pre-edit",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "branches_source_preexistantes_identiques",
+      "value": 7,
+      "sample_size": "7 branches if args.source du pre-edit (ecart brief 8 vs 7+repli documente)",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "valeurs_source_preexistantes_conservees",
+      "value": 8,
+      "sample_size": "8 valeurs choices d origine (+ climate_drivers ajoutee)",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "source_climate_non_employee",
+      "value": 1,
+      "sample_size": "1 si absent comme valeur de --source",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "artefacts_precedents_modifies",
+      "value": 0,
+      "sample_size": "15 artefacts G3/G4/G5",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "fichiers_preuve_suivis_par_git",
+      "value": 12,
+      "sample_size": "12 preuves declarees (git ls-files)",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    },
+    {
+      "name": "tests_harness_passed_025",
+      "value": 348,
+      "sample_size": "364 tests collectes harness/tests/ (16 SKIP, 0 echecs)",
+      "command": ".venv/bin/python harness/queue/briefs/025-geo-determinants-climat-c1/deliverables/measure_c1_025.py"
+    }
+  ],
+  "waivers": [
+    {
+      "claim": "branches_source_preexistantes_identiques denominateur 8 vs 7 branches reelles",
+      "command": "grep -c \"if args.source\" deliverables/pre-edit/pipeline.py.orig",
+      "error": "7 branches explicites + 1 repli fixture — documente dans generator-log.md"
+    }
+  ]
+}

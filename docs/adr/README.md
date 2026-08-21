@@ -16,4 +16,5 @@
 | [0012](0012-audit-contre-audit-par-grandes-etapes.md) | Audit et contre-audit par grandes étapes (jalons `hermes/milestones/`) — plus jamais par PR | accepted | 2026-08-13 |
 | [0013](0013-forgepilot-hermes-claude-cursor.md) | Pilote Hermes léger, Claude Code en lecture et Cursor comme unique exécutant | accepted | 2026-08-14 |
 | [0014](0014-hermes-declenche-claude-juge.md) | Hermes déclenche et rend compte, Claude juge, Cursor exécute — amende 0010 et 0013 | accepted | 2026-08-15 |
-| [0015](0015-capacites-hermes-sous-agents-crons-issues.md) | Les trois capacités d'Hermes : sous-agents qui lisent sans juger, crons déverrouillés par le bilan, issues qui pointent sans instruire | proposed | 2026-08-19 |
+| [0015](0015-capacites-hermes-sous-agents-crons-issues.md) | Les trois capacités d'Hermes : sous-agents qui lisent sans juger, crons de lecture, issues qui pointent sans instruire | accepted | 2026-08-19 |
+| [0016](0016-sim-sans-unity-hermes-pilote-et-propose.md) | `sim/` sans Unity est le produit vivant ; Hermes pilote et propose | accepted | 2026-08-20 |

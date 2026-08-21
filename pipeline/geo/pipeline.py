@@ -952,6 +952,17 @@ def _load_relief_module():
     return mod
 
 
+def _load_climate_drivers_module():
+    """Charge steps/c1_climate_drivers.py."""
+    path = ROOT / "steps" / "c1_climate_drivers.py"
+    spec = importlib.util.spec_from_file_location("climate_c1", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"impossible de charger {path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def run_natural_earth_coastline(clean_build: bool = True) -> Dict[str, Any]:
     """G2 : littoral réel — délègue à steps/02_coastline.py sans dupliquer le tuyau."""
     coastline = _load_coastline_module()
@@ -1009,11 +1020,18 @@ def run_relief_g6() -> Dict[str, Any]:
     return relief.run_relief()
 
 
+def run_climate_drivers_c1() -> Dict[str, Any]:
+    """C1 : insolation astronomique et continentalité — délègue à c1_climate_drivers.py."""
+    climate = _load_climate_drivers_module()
+    return climate.run_climate_drivers()
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Pipeline cartographique (fixture G1, littoral G2, "
-            "corrections G2-bis, cellules G3, adjacence G4, fleuves G5, relief G6)"
+            "corrections G2-bis, cellules G3, adjacence G4, fleuves G5, "
+            "relief G6, déterminants climat C1)"
         )
     )
     parser.add_argument(
@@ -1027,6 +1045,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "rivers",
             "navigability",
             "relief",
+            "climate_drivers",
         ],
         default="fixture",
         help=(
@@ -1036,7 +1055,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "adjacency = G4 zones maritimes + adjacence typée ; "
             "rivers = G5 fleuves + enrichissement arêtes ; "
             "navigability = G5-bis surcharges de navigabilité ; "
-            "relief = G6 altitude / pente / cols"
+            "relief = G6 altitude / pente / cols ; "
+            "climate_drivers = C1 insolation astronomique et continentalité"
         ),
     )
     parser.add_argument(
@@ -1145,6 +1165,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             f"elev_med={m['elev_distribution']['median']} | "
             f"barriers={m['barrier_count']} passes={m['pass_count']} | "
             f"below_0_km2={m['below_0_land_km2']}"
+        )
+        print(f"captures: {result['captures']}")
+        for path, digest in sorted(result["shas"].items()):
+            print(f"  {path}  {digest}")
+        return 0
+
+    if args.source == "climate_drivers":
+        result = run_climate_drivers_c1()
+        m = result["metrics"]
+        print(
+            f"pipeline c1 | source=climate_drivers | "
+            f"projection={result['projection']['epsg']} | "
+            f"cell_count={m['cell_count']} | "
+            f"insolation_median={m['insolation_mj_m2']['median']} | "
+            f"dist_sea_centroid_median={m['dist_sea_centroid_m']['median']} | "
+            f"ecretages_polaires_total={m['ecretages_polaires_total']}"
         )
         print(f"captures: {result['captures']}")
         for path, digest in sorted(result["shas"].items()):

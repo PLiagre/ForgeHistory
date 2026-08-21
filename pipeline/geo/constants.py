@@ -569,3 +569,58 @@ SEED_COUNT_MIN = 10
 SEED_COUNT_MAX = 20
 
 # (GAME_* déplacées plus haut : la fenêtre pilote en dépend)
+
+# --- C1 — déterminants physiques du climat (v1_080) ---
+# Insolation astronomique et continentalité : pas de température ni précipitations.
+C1_PIPELINE_VERSION = "1.15.0-c1-v1_080"
+# Date figée pour le registre — jamais une horloge murale (déterminisme).
+C1_REGISTRY_CREATED = "2026-08-20"
+# Constante solaire de référence (W/m² au sommet de l'atmosphère) — valeur physique standard.
+C1_SOLAR_CONSTANT_W_M2 = 1367.0
+# Obliquité de l'écliptique (°) dans l'approximation de déclinaison employée.
+C1_OBLIQUITY_DEG = 23.45
+# Amplitude de la correction annuelle de distance Terre-Soleil (même approximation).
+C1_ECCENTRICITY_FACTOR = 0.033
+# Année de longueur fixe : évite une sortie dépendante d'une année bissextile.
+C1_DAYS_IN_YEAR = 365
+# Rang du solstice d'été dans l'année fixe de 365 jours.
+C1_SUMMER_SOLSTICE_DAY = 172
+# Rang du solstice d'hiver dans la même année fixe.
+C1_WINTER_SOLSTICE_DAY = 355
+# Conversion joules → mégajoules pour l'insolation annuelle publiée.
+C1_MJ_PER_J = 1_000_000.0
+# Pas d'arrondi insolation : 0,1 MJ/m²/an — fin sans bruit de sommation.
+C1_INSOLATION_DECIMALS = 1
+# Pas d'arrondi durée du jour : millième d'heure (3,6 s).
+C1_DAYLIGHT_DECIMALS = 3
+# Pas d'arrondi distance : décimètre sur des distances en kilomètres.
+C1_DISTANCE_DECIMALS = 1
+# Écart de latitude (°) au-delà duquel l'insolation doit décroître strictement.
+C1_MONOTONE_DLAT_DEG = 0.01
+# Tolérance mètres projetés sur les comparaisons de distance — alignée sur LENGTH_EPS.
+C1_SEA_DISTANCE_EPS_M = 1.0
+# Clés interdites : barèmes de jeu, jamais des grandeurs physiques du monde.
+WORLD_TERMS_FORBIDDEN_KEYS = frozenset(
+    {
+        "bonus",
+        "malus",
+        "modifier",
+        "modifiers",
+        "multiplier",
+        "multiplicateur",
+        "penalty",
+        "penalite",
+        "pénalité",
+        "yield_bonus",
+        "yield_modifier",
+        "rendement_bonus",
+        "production_bonus",
+        "movement_cost",
+        "cout_deplacement",
+        "score",
+        "weight",
+        "poids_gameplay",
+        "relative_intensity",
+        "climate_mod",
+    }
+)

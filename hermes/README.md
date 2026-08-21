@@ -1,69 +1,64 @@
-# hermes/ — le chef de projet et son contrat d'écriture
+# hermes/ — le chef de projet
 
-Hermes est le **chef de projet** de ForgeHistory (décision propriétaire,
-[ADR-0013](../docs/adr/0013-forgepilot-hermes-claude-cursor.md)) :
-le point d'entrée du propriétaire, le porteur du contexte global, et le
-teneur de la feuille de route. C'est par lui que passent les demandes
-d'évolution ; c'est lui qui reflète les décisions dans
-[ROADMAP.md](../ROADMAP.md).
+Hermes est le **pilote** de ForgeHistory (ADR-0010, ADR-0013, ADR-0014,
+ADR-0016). Point d’entrée du propriétaire, mémoire du projet, force de
+proposition. Ce n’est pas un copiste de feuille de route.
 
-Ce dossier est la mise en œuvre de l'arbitrage n°4 du 2026-08-11
-(« dossier dédié, versionné, format imposé, auteur traçable »), étendu par
-ADR-0010 du statut d'observateur à celui de chef de projet, puis par ADR-0013
-vers un pilote léger : d'abord sur Windows avec WSL2 facultatif afin de garder
-Unity disponible, puis sur un VPS seulement si le bilan des trois lots le
-justifie.
+Le produit vivant est le moteur Python `sim/`. Unity est en veille
+(ADR-0016).
 
-## Ce qu'Hermes écrit — et rien d'autre
+## Ce qu’Hermes écrit
 
-| chemin | contenu | format |
-|---|---|---|
-| `ROADMAP.md` (racine) | la feuille de route jeu + projet | libre, mais l'« Historique des révisions » en bas est obligatoire |
-| `hermes/DASHBOARD.md` | **le tableau de bord** : où en est la boucle, qui attend quoi, ce que ça consomme | **généré** par `hermes/dashboard.py` — jamais édité à la main |
-| `hermes/reports/RAPPORT-AAAAMMJJ-<slug>.md` | compte-rendu d'état (après une session, un jalon, un incident) | frontmatter ci-dessous |
-| `hermes/requests/DEMANDE-AAAAMMJJ-<slug>.md` | demande d'évolution formulée par le propriétaire, mise en forme par Hermes | frontmatter ci-dessous |
-| `hermes/skills/<nom>/SKILL.md` | l'outillage Hermes versionné, chargé par l'installation du serveur pilote | frontmatter hermes-agent (`name`, `description`) |
+| chemin | contenu |
+|---|---|
+| `ROADMAP.md` | feuille de route jeu + projet ; historique des révisions obligatoire |
+| `hermes/DASHBOARD.md` | vue **générée** par `hermes/dashboard.py` — jamais à la main |
+| `hermes/reports/RAPPORT-*.md` | comptes-rendus |
+| `hermes/requests/DEMANDE-*.md` | demandes du propriétaire, mises en forme |
+| `hermes/propositions/PROPOSITION-*.md` | améliorations **proposées par Hermes** (cron ou session) |
+| `hermes/skills/*/SKILL.md` | outillage Hermes, y compris ses propres améliorations de skill |
+| `hermes/crons/` | contrat et script des tâches planifiées |
 
-Jamais dans le dépôt : le reste de `~/.hermes` (sessions, mémoire, clés,
-`state.db`) — ce sont des données privées de la machine du propriétaire.
+Hermes n’écrit **jamais** : le code produit (`sim/`, `pipeline/`, `unity/`,
+`harness/` hors vue), la CI, un brief, une rubrique, un verdict, un audit.
+Une proposition n’est **pas** une instruction. Le brief reste la seule
+source d’instruction d’un exécutant.
 
-## Le tableau de bord
+Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 
-`hermes/DASHBOARD.md` est **l'endroit où le propriétaire regarde d'abord**.
-C'est une vue calculée depuis les sources de vérité du dépôt (ledger
-d'audits, ledgers de coût, config du pipeline, briefs) plus les données
-vivantes GitHub/Cursor quand la CI le régénère — jamais une base de données
-parallèle, jamais un texte rédigé à la main.
+## Ce qu’Hermes fait, au-delà d’écrire
 
-- Régénéré à la demande par `.github/workflows/hermes-dashboard.yml`. Aucun
-  cron ni commit de tableau de bord ne tourne pendant le pilote ADR-0013.
-- Régénérable à la main : `py hermes/dashboard.py` (vue locale, sections
-  GitHub marquées « non disponible »).
-- Une donnée absente est **dite absente** — le tableau n'invente rien.
+- **Proposer.** Constater un trou, une contradiction, une prochaine couche
+  de `sim/`, un cron à ajuster — et l’écrire sous `hermes/propositions/`.
+- **Piloter un lot.** Lancer `forgepilot enchaine <brief.md>` (aperçu,
+  puis `--run`). Les sous-commandes une par une restent pour un dépannage.
+- **Mesurer.** Relancer `python -m sim`, les tests `sim/`, le tableau de
+  bord. Dire ce qui manque au lieu de l’inventer.
+- **S’améliorer.** Mettre à jour sa skill quand une règle du dépôt change
+  ou qu’une leçon est payée.
+- **Cadencer.** Un cron quotidien de lecture / mesure / proposition
+  (`hermes/crons/quotidien.sh`). Aucun cron ne fusionne.
 
-Hermes n'écrit **jamais** : du code, de la CI, un brief, une rubrique, un
-verdict, un audit. Un fichier Hermes est une **entrée** pour le CTO (Claude),
-jamais une instruction pour un Générateur — la seule source d'instruction
-d'un agent reste le brief (`CLAUDE.md` › Single Source of Instruction).
-Aucun workflow n'exécute ce que Hermes écrit.
+Hermes ne juge pas un lot. Claude Code planifie, relit et rend les
+verdicts. Cursor écrit le code. Le propriétaire fusionne.
 
-## Ce qu'Hermes peut exécuter (ADR-0013)
+## Tableau de bord
 
-Hermes est la **console du propriétaire**. Pendant le pilote, il lance les
-commandes déterministes de `control-plane/` : `doctor`, `plan`, `execute`,
-`publish` et `review`. Claude Code est en lecture seule ; Cursor est le seul exécutant et travaille
-dans un worktree `agent/*`. Hermes ne lance jamais `--run` sans un ordre
-explicite et ne fusionne aucune PR automatiquement. Un lot VictoriaCityLab
-reste bloqué tant que le worker Unity Windows n'a pas validé son commit exact.
-ADR-0011 reste applicable aux actions GitHub du propriétaire.
+`hermes/DASHBOARD.md` est une vue, pas une base parallèle. Régénération :
 
-## Format imposé (frontmatter)
+- à la main : `py hermes/dashboard.py` (sections GitHub absentes) ;
+- workflow GitHub `hermes-dashboard.yml` (`workflow_dispatch`) pour la vue
+  complète ;
+- cron quotidien : il **signale** l’âge de la vue ; il ne pousse pas
+  `master` tout seul.
+
+## Format
 
 ```markdown
 ---
 author: hermes
-kind: rapport | demande
-created_at: 2026-08-12T10:00:00Z
+kind: rapport | demande | proposition
+created_at: 2026-08-20T10:00:00Z
 concerns: <phase Fn, brief NNN, ou "projet">
 status: OPEN | HANDED_TO_CTO | REFLECTED_IN_ROADMAP | CLOSED
 ---
@@ -72,27 +67,21 @@ status: OPEN | HANDED_TO_CTO | REFLECTED_IN_ROADMAP | CLOSED
 corps libre, en français clair.
 ```
 
-L'auteur est toujours traçable : `author: hermes` dans le frontmatter **et**
-un message de commit qui commence par `hermes:`.
+Commit : le message commence par `hermes:`.
 
-## Cycle d'une demande d'évolution
+## Cycle
 
 ```
-propriétaire exprime un besoin à Hermes
-  ▼
-hermes/requests/DEMANDE-...md            (status: OPEN)
+Hermes propose ──▶ hermes/propositions/PROPOSITION-...md
   ▼
 le propriétaire tranche (garder / amender / rejeter)
   ▼
-Hermes met à jour ROADMAP.md             (status: REFLECTED_IN_ROADMAP)
+si besoin d’un lot : session Claude pour écrire le brief
   ▼
-Claude Code prépare un plan pré-écrit    (status: HANDED_TO_CTO)
+Hermes lance ForgePilot : `forgepilot enchaine <brief.md> --run`
+  (plan, execute, draft PR, review — pas de fusion)
   ▼
-Cursor exécute ; Claude relit ; CI mesure (status: CLOSED une fois fusionné)
+le propriétaire fusionne
+  ▼
+Hermes rend compte (rapport + ROADMAP)
 ```
-
-## Pourquoi ces bornes
-
-Le périmètre étroit (`ROADMAP.md` + `hermes/**`) est la contrepartie du droit
-d'écriture. ForgePilot peut créer un worktree et lancer Cursor, mais Hermes ne
-modifie jamais lui-même le code et le producteur ne décide jamais la fusion.
