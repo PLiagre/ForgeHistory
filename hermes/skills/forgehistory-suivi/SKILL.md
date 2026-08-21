@@ -76,6 +76,14 @@ Une fois le brief produit et vérifié, tu le déposes automatiquement : synchro
 
 ## 4. Faire tourner un lot (ForgePilot)
 
+Classer le lot avant exécution ; **R1 est le niveau par défaut** :
+
+- **R0 — documentaire simple** : contrôles mécaniques adaptés, sans reviewer IA systématique.
+- **R1 — produit borné** : une invocation Grok regroupe analyse et planification ; Composer exécute avec tests ciblés ; après la draft PR, CI complète, revue GPT-5.6 Sol XHigh et reconstructions ciblées Hermes tournent en parallèle.
+- **R2 — critique** : architecture, sécurité, gouvernance, provenance, données massives, invariant fondamental ou faux vert antérieur ; chaîne renforcée et témoin Claude lorsque disponible.
+
+Les corrections et itérations sont conditionnelles. Après une correction bornée, rejouer les tests ciblés et faire relire le delta ainsi que la résolution des constats ; ne recommencer une revue complète que si l'approche change substantiellement. Le rapport final vient après fusion.
+
 Un brief existe déjà. Aperçu, puis `--run` **une seule fois** :
 
 ```bash

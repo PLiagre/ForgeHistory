@@ -55,6 +55,14 @@ CI. Claude reste un témoin critique différé pour l'architecture, la sécurit�
 et les invariants fondamentaux ; sa limite fournisseur ne bloque plus les
 lots ordinaires. Le propriétaire fusionne.
 
+Le workflow est proportionné au risque
+(`hermes/requests/DEMANDE-20260821-workflow-adaptatif-r0-r1-r2.md`) : R0 pour
+la documentation simple, R1 par défaut pour les lots produit bornés, R2 pour
+architecture, sécurité, gouvernance, provenance, données massives, invariants
+fondamentaux ou faux vert antérieur. En R1, analyse et planification sont
+regroupées ; après la draft PR, CI, revue GPT et contrôles Hermes tournent en
+parallèle. Corrections et nouvelles itérations sont conditionnelles.
+
 La session s’ouvre par `hermes chat -s forgehistory-suivi`. Le produit se
 lance par `python -m sim`.
 
@@ -159,3 +167,4 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-20 | cursor-cloud (ordre propriétaire) | `forgepilot enchaine` : un brief, un `--run`, draft PR, pas de fusion (ADR-0013 amendement 002). |
 | 2026-08-21 | hermes | brief 025 C1 fusionné par PR #123 : insolation, durées de jour, continentalité et preuves déterministes livrées ; climat observé toujours ouvert ; brief 026 débloqué par la fusion |
 | 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-repartition-modeles-grok-claude.md`) | pilote multi-modèle activé : Grok 4.6 High/XHigh planifie, Composer 2.5 exécute, GPT-5.6 Sol XHigh relit en contexte neuf ; Claude devient un témoin critique différé et sa limite ne bloque plus les lots ordinaires |
+| 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-workflow-adaptatif-r0-r1-r2.md`) | vérifications proportionnées au risque : R0 documentaire, R1 produit borné par défaut avec CI/revue/contrôles en parallèle, R2 critique renforcé ; corrections et itérations deviennent conditionnelles |
