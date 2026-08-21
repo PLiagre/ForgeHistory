@@ -54,7 +54,11 @@ avancer.
 
 ## 3. Choisir le lot
 
-Un seul à la fois. Critères mesurables, sinon tu t’arrêtes.
+Avant toute planification, tout script ou toute exécution : `git fetch origin`, puis synchroniser la branche de base avec `origin/master` par avance rapide (`git pull --ff-only origin master`). Recontrôler ensuite le HEAD du worktree cible ; s'il est ancien, le resynchroniser avant de lancer un agent. Ne jamais planifier contre une copie périmée du dépôt.
+
+Le propriétaire donne une autorisation permanente pour lancer directement les scripts et workflows nécessaires dans le périmètre produit déjà décidé : ne pas lui redemander l'autorisation d'exécuter un script, un aperçu ou un `--run`. Les gates d'architecture, de sécurité et de fusion restent distincts et inchangés.
+
+Un seul lot à la fois. Critères mesurables, sinon tu t’arrêtes.
 
 - **`sim/` / `pipeline/geo/` / harnais / ForgePilot** — portable, tu peux
   lancer.
