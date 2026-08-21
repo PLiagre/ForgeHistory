@@ -49,4 +49,5 @@
 {"timestamp": "2026-08-15T16:00:59.268466", "backend": "cursor", "brief": "harness/queue/briefs/021-geo-fleuves-g5", "event": "generator-run"}
 {"timestamp": "2026-08-15T16:19:09.900077", "backend": "cursor", "brief": "harness/queue/briefs/022-forgepilot-review-stdin-et-iteration", "event": "generator-run"}
 {"timestamp": "2026-08-16T14:50:00.000000", "backend": "cursor", "brief": "harness/queue/briefs/023-forgepilot-modele-et-effort-par-role", "event": "generator-run"}
+{"timestamp": "2026-08-20T20:31:34.116703", "backend": "cursor", "brief": "harness/queue/briefs/024-geo-relief-g6", "event": "generator-run"}
 {"timestamp": "2026-08-21T07:12:27.411773", "backend": "cursor", "brief": "harness/queue/briefs/025-geo-determinants-climat-c1", "event": "generator-run"}
