@@ -2,13 +2,13 @@
 
 > Vue générée par `hermes/dashboard.py` (rôle Hermes, ADR-0010) —
 > **ne jamais l'éditer à la main**. Depuis ADR-0013, elle n'est
-> réécrite que sur demande : `py hermes/dashboard.py` en local, ou
-> `.github/workflows/hermes-dashboard.yml` déclenché à la main
-> (`workflow_dispatch`). Aucun cron, aucune régénération
-> automatique à la poussée. Une vue périmée reste périmée tant
+> réécrite à la demande (`py hermes/dashboard.py` ou le
+> workflow `hermes-dashboard.yml`). Le cron quotidien Hermes
+> (ADR-0016) mesure et écrit une veille ; il ne pousse pas
+> `master` tout seul. Une vue périmée reste périmée tant
 > que personne ne la régénère.
 >
-> Générée le 2026-08-20 07:58 UTC.
+> Générée le 2026-08-21 13:36 UTC.
 
 ## En bref
 
@@ -111,6 +111,9 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | 021-geo-fleuves-g5 | verdict rendu (voir le fichier) |
 | 022-forgepilot-review-stdin-et-iteration | dernier verdict tracé : REJECT |
 | 023-forgepilot-modele-et-effort-par-role | dernier verdict tracé : REJECT |
+| 024-geo-relief-g6 | pas encore de verdict |
+| 025-geo-determinants-climat-c1 | pas encore de verdict |
+| 026-geo-gisements-1400-r1 | pas encore de verdict |
 
 « État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
 
@@ -119,7 +122,7 @@ Non disponible dans cette génération (API Cursor non interrogée).
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 29 | 2026-08-13 12:32 |
-| cursor | 20 | 2026-08-16 14:50 |
+| cursor | 21 | 2026-08-21 07:12 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau

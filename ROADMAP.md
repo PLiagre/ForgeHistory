@@ -36,7 +36,7 @@ tant que le propriétaire ne le rouvre pas.
 | Phase | Contenu | Statut |
 |---|---|---|
 | **F0** — Harnais | Trois rôles (Planificateur / Générateur / Évaluateur), gate mécanique `verdict_audit.py`, briefs 001→010, boucle d'audit Cursor, pipeline full-auto (FSM, orchestrateur, budgets) | **terminé** |
-| **F1** — Fondations monde | Pipeline géographique (littoral `1400` ✓, cellules G3 ✓, adjacence maritime G4 ✓ brief 019 — PR #105 fusionnée le 2026-08-14 ; provenance du littoral G3 ✓ brief 020 — PR #106 fusionnée le 2026-08-14 ; fleuves G5 ✓ brief 021 — PR #107 fusionnée le 2026-08-15 ; suite : relief, climat, ressources), portage Unity ✓, refonte visuelle carte (briefs 004/005, reprise conditionnée aux logs Unity) | **en cours** |
+| **F1** — Fondations monde | Pipeline géographique (littoral `1400` ✓, cellules G3 ✓, adjacence maritime G4 ✓ brief 019 — PR #105 ; provenance G3 ✓ brief 020 — PR #106 ; fleuves G5 ✓ brief 021 — PR #107 ; déterminants physiques du climat C1 ✓ brief 025 — PR #123 fusionnée le 2026-08-21 ; relief G6 encore en PR #122 ; restent climat observé et ressources), portage Unity ✓ mais Unity en veille | **en cours** |
 | **F2** — Moteur `sim/` couche 1 | Premier code de simulation : monde, terrain, population initiale amorcée historiquement (ADR-002), économie locale physique | **en cours** — briefs 011, 012, 013 livrés et fusionnés ; brief 014 (pipeline : contre-audit comme porte, refus fournisseur comme état) livré, accepté et fusionné le 2026-08-13 (PR #83) ; brief 017 (seuil de survie honnête, fusion des graines 015/016) livré, accepté et fusionné le 2026-08-14 (PR #101, sans squash) ; brief 018 (Province dérivée, ADR-0003) livré, accepté et fusionné le 2026-08-14 (PR #102, sans squash) ; les graines 015/016 ne s'exécutent plus (elles pointent vers 017) ; suites F2 moteur : aucune restante pour clôturer E2 ; reste F1 geo (relief, climat, ressources ; provenance G3 livrée par le brief 020, PR #106 fusionnée le 2026-08-14 ; fleuves G5 livrés par le brief 021, PR #107 fusionnée le 2026-08-15) |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles — chaque couche émerge de la précédente | à venir |
 
@@ -103,7 +103,7 @@ changement structurel entériné par ADR, doute).
 
 | jalon | ce que l'étape doit réunir pour être close | statut |
 |---|---|---|
-| **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓, des cellules G3 ✓ de l'adjacence maritime G4 ✓ brief 019 et des fleuves G5 ✓ brief 021) ; artefacts consommables par `sim/` ; visuel carte repris (briefs 004/005) si les logs Unity sont disponibles | **en cours** — G4 fusionné (PR #105) ; provenance G3 fusionnée (brief 020, PR #106, le 2026-08-14) ; fleuves G5 fusionnés (brief 021, PR #107, le 2026-08-15) ; restent relief, climat, ressources |
+| **E1 — Fondations monde complètes** (clôt F1) | relief, climat et ressources livrés par `pipeline/geo/` (en plus du littoral ✓, des cellules G3 ✓, de l'adjacence maritime G4 ✓ et des fleuves G5 ✓) ; artefacts consommables par `sim/` | **en cours** — déterminants physiques du climat C1 fusionnés (brief 025, PR #123, le 2026-08-21) ; relief G6 en PR #122 ; restent la fusion du relief, une source climatique réelle pour température/précipitations, les ressources et la consommation des artefacts récents par `sim/` |
 | **E2 — Le monde vivant compte juste** (clôt F2, couche 1) | seuil de survie honnête (graines 015/016 traitées) ; agrégation Province dérivée (ADR-0003) ; monde mesuré stable et falsifiable sur les 596 cellules réelles | **clos** — critères réunis (017 + 018) ; la fusion de `hermes/milestones/ETAPE-02-monde-vivant-compte-juste.md` déclenche l'audit d'étape (ADR-0012) |
 | **E3 — Villes** (couche 2) | urbanisation, entreprises, métiers, routes, infrastructures — émergeant de la couche 1 | à venir |
 | **E4 — États** (couche 3) | fiscalité, lois, diplomatie, technologies, culture, religion | à venir |
@@ -117,9 +117,12 @@ toute veille de décision irréversible du propriétaire.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. **Produit :** poursuivre le monde dans `sim/` (et `pipeline/geo/` pour
-   le relief G6, climat, ressources). Chaque couche se **joue** par
-   `python -m sim`, jamais par Unity tant qu’il est en veille.
+1. **Produit :** le lot 025 C1 est fusionné et le lot 026 ressources est prêt
+   sous condition désormais satisfaite. Examiner d'abord la PR #122 du relief
+   G6 encore ouverte, puis lancer le lot 026. Le climat observé (température,
+   précipitations, saisons) exige encore une source réelle et licenciée.
+   Chaque couche se **joue** par `python -m sim`, jamais par Unity tant qu’il
+   est en veille.
 2. **Hermes :** installer le cron quotidien (`hermes/crons/README.md`) sur
    le VPS ; lire la veille locale `hermes/propositions/DERNIERE-VEILLE.md`
    (gitignorée, le cron ne sale pas le dépôt) ; ouvrir des propositions
@@ -149,3 +152,4 @@ toute veille de décision irréversible du propriétaire.
 | 2026-08-20 | hermes (décision propriétaire — `DEMANDE-20260820-abandon-budget-claude.md`) | abandon de l'enveloppe mensuelle Claude et de la cadence associée comme préalable ; les limites fournisseur restent des états opérationnels à signaler |
 | 2026-08-20 | cursor-cloud (décision propriétaire — `DEMANDE-20260820-simulation-sans-unity-hermes-pilote.md`) | **ADR-0016** : `sim/` sans Unity est le produit vivant ; Unity en veille ; Hermes pilote et propose ; crons quotidiens de lecture autorisés. ADR-0015 accepté. |
 | 2026-08-20 | cursor-cloud (ordre propriétaire) | `forgepilot enchaine` : un brief, un `--run`, draft PR, pas de fusion (ADR-0013 amendement 002). |
+| 2026-08-21 | hermes | brief 025 C1 fusionné par PR #123 : insolation, durées de jour, continentalité et preuves déterministes livrées ; climat observé toujours ouvert ; brief 026 débloqué par la fusion |
