@@ -2,7 +2,10 @@
 
 **Authored**: 2026-08-20T21:20:00Z
 **Author**: forge-planificateur
-**Statut du lot jugé**: **BLOQUÉ** tant que l'arbitrage du propriétaire n'est pas constaté
+**Amendé**: 2026-08-21T07:13:06Z — `amendment-001-arbitrage-gisements.md`
+**Statut du lot jugé**: **PRÊT SOUS CONDITION** — l'arbitrage du propriétaire
+est rendu et constatable ; la dépendance dure au lot 025 fusionné reste
+entière
 
 Ce document est rédigé par le Planificateur AVANT tout code.
 L'Évaluateur l'applique sans le modifier.
@@ -34,23 +37,33 @@ Vocabulaire : voir la section « Vocabulaire » du brief — non reproduit ici
    générale, non sourcée par citation primaire » (décision D2 du brief), et
    son contenu relève de l'arbitrage du propriétaire (Condition 0), pas de
    l'Évaluateur. Celui-ci ne rejette pas le lot parce qu'une date lui paraît
-   discutable. Il le rejette si un gisement est rattaché sans être contenu,
-   omis sans être compté, doté d'une quantité, ou si le mécanisme n'est pas
-   réversible.
+   discutable. **Cela vaut mot pour mot pour la classe de richesse** : une
+   `richness_class` qui paraît sous-estimée ou sur-estimée est un point à
+   consigner, jamais un motif de rejet — le propriétaire a accepté l'amorce
+   comme provisoire et remplaçable. Ce qui fait rejeter le lot : un gisement
+   rattaché sans être contenu, omis sans être compté, doté d'une quantité, une
+   classe numérisée ou posée sur une cellule, ou un mécanisme non réversible.
 2. **Les nombres de contexte du brief (`27` gisements, `25` cellules, `596`
-   cellules de maille, `0`) ne sont pas des cibles.** Un contrôle qui s'y
-   compare au lieu de dériver est un contrôle qui nomme sa propre référence
-   (règle n° 2) et se rejette, même vert. **Et si l'amendement d'arbitrage a
-   modifié la liste, ces nombres ne valent plus rien du tout** : toute
-   quantité se relit alors de `data/resources_1400.json` et de
-   `artifacts/cells_g3.json`, jamais de ce document ni du brief.
+   cellules de maille, `0`, et la distribution des trois classes de richesse)
+   ne sont pas des cibles.** Un contrôle qui s'y compare au lieu de dériver est
+   un contrôle qui nomme sa propre référence (règle n° 2) et se rejette, même
+   vert. **Et si l'amendement d'arbitrage avait modifié la liste, ces nombres
+   ne vaudraient plus rien du tout** : toute quantité se relit alors de
+   `data/resources_1400.json` et de `artifacts/cells_g3.json`, jamais de ce
+   document ni du brief. *Constat au 2026-08-21 : l'amendement retient la
+   liste de D4 et l'amende d'une seule colonne, `richness_class` ; les nombres
+   de contexte restent donc comparables — mais l'Évaluateur le vérifie
+   lui-même en Condition 0, il ne le tient pas de cette note.*
 
 **Deux préalables bloquants, à vérifier avant tout le reste.**
 
-**Premier — l'arbitrage du propriétaire.** Ce brief porte une décision produit
-que le Planificateur n'avait pas l'autorité de prendre : quels gisements
-existent dans le monde de 1400, et sous quelle exigence de provenance. Le lot
-ne devient exécutable que par un amendement.
+**Premier — l'arbitrage du propriétaire.** Ce brief portait une décision
+produit que le Planificateur n'avait pas l'autorité de prendre : quels
+gisements existent dans le monde de 1400, sous quelle exigence de provenance,
+et ce qu'un gisement porte. Le propriétaire a tranché le 2026-08-21
+(`hermes/requests/DEMANDE-20260821-arbitrage-gisements-026.md`). Le lot ne
+devient exécutable que par l'amendement qui porte ces réponses, **et suivi par
+git** — un amendement non committé ne se constate pas.
 
 ```
 git ls-files harness/queue/briefs/026-geo-gisements-1400-r1/amendment-001-arbitrage-gisements.md
@@ -89,6 +102,25 @@ réellement écrite dans `data/resources_1400.json` est celle que l'amendement
 retient : ni la liste de D4 si l'amendement l'a remplacée, ni une liste
 retouchée en cours de route.
 
+**Trois vérifications propres à l'arbitrage du 2026-08-21.**
+
+1. **La colonne `richness_class` est celle de D4, ligne par ligne.** Comparer
+   les vingt-sept classes écrites dans `data/resources_1400.json` à la table
+   de D4, entrée par entrée. Une seule classe changée en passant est
+   disqualifiante — au même titre qu'une coordonnée corrigée : le Générateur
+   recopie la donnée déclarée, il ne l'arbitre pas (`Non-Goals` du brief).
+2. **Le vocabulaire appliqué est celui de l'amendement.** Vérifier que
+   `R1_VALID_RICHNESS_CLASSES` de `constants.py` porte exactement les trois
+   valeurs tranchées par l'amendement, et que `valid_richness_classes` du
+   fichier de déclarations coïncide avec elles. Une quatrième classe, un
+   renommage, une variante accentuée ou traduite est disqualifiante.
+3. **L'amendement dit ce qu'il fait de la liste.** Vérifier qu'il l'annonce
+   explicitement — retenue ou remplacée — et qu'il n'existe **pas** deux
+   tables concurrentes dans le répertoire de brief. Une table recopiée à la
+   fois dans l'amendement et dans D4 est un défaut structurel, même si les
+   deux coïncident aujourd'hui : elles dériveront (`CLAUDE.md` › Single Source
+   of Instruction).
+
 **Contre-preuve disqualifiante** : si l'amendement cite une décision
 inexistante et que le lot a tourné quand même, `decision_proprietaire_citee`
 doit valoir `0` et la condition être en échec — un amendement qui s'autorise
@@ -107,13 +139,18 @@ sur `3`, `liste_appliquee_est_celle_de_l_amendement` à `1`.
 cd pipeline/geo && ../../.venv/bin/python tests/run_proof_r1.py
 ```
 Lire `R1-A` dans `logs/v1_081_qa.json`, puis `gisements_declares`,
-`declarations_incompletes`, `natures_hors_vocabulaire`,
-`certitudes_hors_vocabulaire` et `gisements_en_dur_dans_le_module` dans
-`artifacts/stats_r1.json`.
+`declarations_incompletes`, `champs_de_gisement_hors_schema`,
+`natures_hors_vocabulaire`, `certitudes_hors_vocabulaire` et
+`gisements_en_dur_dans_le_module` dans `artifacts/stats_r1.json`.
 
 **Reconstruction indépendante** : ouvrir `data/resources_1400.json` et
-vérifier soi-même, entrée par entrée, la présence et la non-vacuité de chacun
-des champs de `R1_REQUIRED_DEPOSIT_FIELDS`, **lu de `constants.py`**. Vérifier
+vérifier soi-même, entrée par entrée, que l'ensemble de ses clés **égale
+exactement** `R1_REQUIRED_DEPOSIT_FIELDS`, **lu de `constants.py`** — pas
+seulement qu'il le contient — et que chaque valeur est non vide. Faire la
+même vérification d'égalité exacte sur chaque gisement de
+`artifacts/resources_1400_r1.json` contre `R1_PUBLISHED_DEPOSIT_FIELDS`. Un
+schéma qui accepterait une clé en plus laisserait rentrer la quantité que tout
+ce lot existe pour interdire. Vérifier
 que `valid_certainty_levels` du fichier de déclarations coïncide avec
 `R1_VALID_CERTAINTY` et avec ce que `data/corrections_1400.json` emploie déjà
 — aucun niveau nouveau n'a le droit d'apparaître. Vérifier que
@@ -128,9 +165,11 @@ le propriétaire puisse la remplacer sans toucher au code (D2).
 **Contre-preuve disqualifiante** : dans une copie hors dépôt, retirer le
 champ `source` d'une entrée — `R1-A` doit rougir en nommant l'entrée.
 Remplacer une `certainty` par une valeur inventée — `R1-A` doit rougir aussi.
+**Ajouter** à une entrée une clé qui n'est pas au schéma, par exemple
+`tonnage_estime`, sans rien retirer — `R1-A` doit rougir sur le schéma fermé.
 Coller enfin un identifiant de gisement comme littéral dans
 `steps/r1_resources_1400.py`, sans rien changer d'autre — `R1-A` doit rougir
-là encore. Si ce troisième sabotage laisse le contrôle vert, la promesse
+là encore. Si ce dernier sabotage laisse le contrôle vert, la promesse
 « le propriétaire peut remplacer la liste sans toucher au code » n'est pas
 tenue mécaniquement, et la condition est en échec.
 
@@ -171,11 +210,13 @@ tenue mécaniquement, et la condition est en échec.
 5. Comparer `cellules_dotees` et `cellules_a_plusieurs_gisements` aux
    constats du Planificateur (`25` cellules distinctes pour `27` gisements)
    **sans en faire une condition**, et **uniquement si l'amendement
-   d'arbitrage a retenu la liste de D4 sans la modifier**. Si la liste a
-   changé, ces deux constats sont caducs et il n'y a rien à comparer : les
-   deux compteurs restent simplement mesurés et rapportés. Dans les deux cas,
-   un écart s'explique dans le journal du Générateur, il ne se sanctionne
-   pas.
+   d'arbitrage a retenu les entrées de D4 sans en ajouter ni en retirer**.
+   L'ajout de la colonne `richness_class` ne change rien à ces deux constats :
+   il ne touche ni les positions, ni le nombre d'entrées. Si en revanche la
+   liste elle-même a changé, ces constats sont caducs et il n'y a rien à
+   comparer : les deux compteurs restent simplement mesurés et rapportés. Dans
+   tous les cas, un écart s'explique dans le journal du Générateur, il ne se
+   sanctionne pas.
 
 **Contre-preuve disqualifiante** : dans une copie hors dépôt, déplacer un
 gisement dans la cellule voisine sans changer sa position — `R1-B` doit
@@ -242,10 +283,28 @@ git status --porcelain pipeline/geo/artifacts/ pipeline/geo/registry/
 **Reconstruction indépendante** : parcourir soi-même récursivement les six
 fichiers balayés et vérifier qu'aucune clé de `WORLD_TERMS_FORBIDDEN_KEYS` ni
 de `R1_FORBIDDEN_QUANTITY_KEYS`, **lus de `constants.py`**, n'y apparaît, à
-quelque profondeur que ce soit. Vérifier que
-`R1_FORBIDDEN_QUANTITY_KEYS` contient bien les mots de quantité les plus
-tentants (`tonnage`, `reserve`, `yield`, `rendement`, `teneur`) : un jeu de
-clés interdites trop court viderait le contrôle de sa portée (règle n° 6).
+quelque profondeur que ce soit. Refaire la comparaison avec la sémantique
+exacte que D6 décrit — clé normalisée, comparée entière **et** par jetons
+découpés sur `_`, les entrées interdites n'étant jamais découpées. Deux
+conséquences à confirmer plutôt qu'à supposer : `tonnage_estime` serait rouge,
+et la clé `outputs` du manifeste ne l'est pas. Un contrôle implémenté par
+simple sous-chaîne rougirait sur `outputs` et serait donc désarmé au premier
+lancement ; un contrôle implémenté par pure égalité laisserait passer
+`tonnage_estime`. Vérifier que `R1_FORBIDDEN_QUANTITY_KEYS` contient bien les
+mots de quantité les plus tentants (`tonnage`, `reserve`, `yield`,
+`rendement`, `teneur`, `grade`, `intensite`) : un jeu de clés interdites trop
+court viderait le contrôle de sa portée (règle n° 6).
+
+**Sur l'absence délibérée de `richness` et `richesse` dans cette liste.** Le
+brief (D5) les en retire, parce que le propriétaire a décidé qu'un gisement
+porte une classe de richesse et qu'une liste bannissant le mot de la décision
+forcerait à la renommer. L'Évaluateur ne traite donc pas cette absence comme
+un affaiblissement — il vérifie que les **trois** garde-fous qui la
+remplacent sont bien en place et rougissent : le schéma fermé des gisements
+(Condition 1), `R1-G` (Condition 6), et le maintien de `grade`, `teneur`,
+`intensite`, `tonnage`, `reserve`, `rendement` dans la liste. Si l'un des
+trois manque, l'absence de `richness` devient un trou, et la condition est en
+échec.
 Vérifier ensuite que l'ensemble trié des `cell_id` de
 `cells_resources_r1.json` est exactement celui de `cells_g3.json`, et
 qu'aucune clé d'aucun artefact publié ne contient `province`, `owner`,
@@ -304,17 +363,23 @@ git ls-files pipeline/geo/artifacts/*r1* pipeline/geo/logs/*081* \
    `CheckResult` et `q10_determinism` au lieu de les redéfinir.
 4. Relancer `tests/run_proof_r1.py` soi-même et comparer les empreintes de
    sortie à celles déjà committées — identiques exigées.
-5. Lire le `README.md` publié : il doit énoncer R1 comme livré, dire
-   explicitement que ni quantité, ni rendement, ni ressource agricole ou
-   forestière ne le sont, et ne pas décrire le relief (G6) quel que soit
-   l'état du lot 024. Comparer au `pre-edit` committé — doit différer.
+5. Lire le `README.md` publié : il doit énoncer R1 comme livré — présence,
+   nature et classe qualitative de richesse —, dire explicitement que ni
+   quantité, ni rendement, ni ressource agricole ou forestière ne le sont, que
+   la classe est un nom pris dans un vocabulaire fermé de trois valeurs et
+   jamais un nombre, et ne pas décrire le relief (G6) quel que soit l'état du
+   lot 024. Comparer au `pre-edit` committé — doit différer.
 6. **Regarder réellement** `capture/v1_081_resources_window.png` (règle
    n° 11) : les gisements doivent apparaître aux endroits attendus — étain en
    Cornouailles, sel en Pologne et en Franche-Comté, cuivre et fer en Suède
    centrale, mercure en Castille — et **aucun point ne doit flotter en mer**.
    Une carte où tous les points s'agglutinent au même endroit, ou où un point
-   est en pleine eau, est un échec même avec sept contrôles verts. C'est
-   exactement le genre de défaut qu'une suite verte ne voit pas.
+   est en pleine eau, est un échec même avec huit contrôles verts. C'est
+   exactement le genre de défaut qu'une suite verte ne voit pas. **Regarder
+   aussi comment la classe de richesse est rendue, si elle l'est** : une forme
+   de marqueur ou un libellé sont admis ; des points de tailles, de rayons ou
+   d'opacités différents selon la classe ne le sont pas — c'est un barème
+   dessiné, et aucun contrôle sur la donnée ne l'attrapera (D7 du brief).
 
 **Contre-preuve disqualifiante** : dans une copie hors dépôt, changer la
 valeur d'une constante préexistante sans supprimer de ligne — la
@@ -323,8 +388,8 @@ reconstruction du point 1 doit le détecter alors que
 dans un artefact — `Q10` doit rougir.
 
 **Résultat attendu** : code de sortie `0`,
-`controles_r1_verts` à `7` sur `7`,
-`controles_r1_avec_preuve_rouge_non_vide` à `7` sur `7`,
+`controles_r1_verts` à `8` sur `8`,
+`controles_r1_avec_preuve_rouge_non_vide` à `8` sur `8`,
 `constants_lignes_supprimees` nul,
 `branches_source_preexistantes_identiques` à `9` sur `9`, toutes les preuves
 déclarées suivies par git, README honnête.
@@ -338,6 +403,65 @@ point. Rejeter tout `0` silencieux ou tout `PASS` non rejouable.
 
 ---
 
+## Condition 6 — La classe de richesse est un nom, jamais un nombre (`R1-G`)
+
+C'est la condition que l'arbitrage du propriétaire a ajoutée à ce lot. Elle ne
+juge **pas** si une classe est bien attribuée — cela relève de l'amorce
+provisoire, et l'avertissement transversal n° 1 s'applique. Elle juge que la
+classe ne peut pas devenir un barème.
+
+**Vérification** : même exécution que la Condition 1 ; lire `R1-G` dans
+`logs/v1_081_qa.json`, puis `classes_hors_vocabulaire`,
+`classes_en_dur_dans_le_module`, `classes_adossees_a_un_nombre`,
+`somme_par_classe_egale_declares`, `classes_dans_les_cellules` et
+`classes_distinctes_employees` dans `artifacts/stats_r1.json`.
+
+**Reconstruction indépendante** :
+
+1. Relire `R1_VALID_RICHNESS_CLASSES` de `constants.py` et vérifier soi-même,
+   gisement par gisement, dans `data/resources_1400.json` **et** dans
+   `artifacts/resources_1400_r1.json`, que `richness_class` est une chaîne non
+   vide de ce vocabulaire. Un `3`, un `"majeure "` avec espace, un `null` ou
+   une liste comptent comme hors vocabulaire.
+2. Chercher soi-même les trois valeurs du vocabulaire comme **chaînes
+   littérales** dans `steps/r1_resources_1400.py` et `qa/checks_r1.py` : il ne
+   doit y en avoir aucune, et les deux modules doivent **importer** la
+   constante. Une valeur écrite en dur est le premier pas d'une table d'ordre.
+   Chercher aussi, par lecture directe, toute comparaison entre classes
+   (`<`, `>`, tri, `index()`, dictionnaire classe → nombre) : une seule suffit
+   à mettre la condition en échec, même si tous les compteurs sont nuls.
+3. Recalculer soi-même la somme de `par_classe_de_richesse` et la comparer à
+   `gisements_declares` relu du fichier de déclarations. Vérifier que les
+   **trois** classes y figurent, y compris une classe à zéro le cas échéant :
+   une clé absente et un zéro ne se valent pas (règle n° 10).
+4. Parcourir soi-même `cells_resources_r1.json` de bout en bout et vérifier
+   qu'aucune des trois valeurs n'y apparaît, ni en clé ni en valeur. Une
+   cellule porte des identifiants de gisements, rien d'autre.
+5. Vérifier que `classes_distinctes_employees` est **mesuré**, avec les trois
+   classes du vocabulaire pour dénominateur, et qu'aucun contrôle ne s'y
+   compare : ce compteur est un constat. Un `R1-G` qui exigerait que les trois
+   classes soient employées nommerait sa propre référence (règle n° 2) et se
+   rejette, même vert.
+
+**Contre-preuve disqualifiante** : dans une copie hors dépôt, remplacer une
+`richness_class` par le nombre `3` — `R1-G` doit rougir en nommant l'entrée.
+Ajouter à `stats_r1.json` un bloc associant chaque classe à un coefficient
+décimal — `R1-G` doit rougir sur `classes_adossees_a_un_nombre`. Fausser une
+valeur de `par_classe_de_richesse` sans toucher au reste — `R1-G` doit rougir
+sur la somme, et pas seulement sur la présence des trois clés. Ajouter enfin
+`"richness_class": "majeure"` à une cellule de `cells_resources_r1.json` —
+`R1-G` doit rougir : c'est le sabotage le plus important des quatre, parce
+qu'une case notée est exactement la forme de `terrain_endowment.json` que ce
+lot existe pour ne pas produire.
+
+**Résultat attendu** : `R1-G` vert avec une preuve rouge non vide,
+`classes_hors_vocabulaire`, `classes_en_dur_dans_le_module`,
+`classes_adossees_a_un_nombre` et `classes_dans_les_cellules` nuls,
+`somme_par_classe_egale_declares` à `1`, `classes_distinctes_employees`
+mesuré et rapporté sans être comparé à quoi que ce soit.
+
+---
+
 ## Échecs disqualifiants (toute la rubrique, transversal)
 
 - Le lot exécuté sans `amendment-001-arbitrage-gisements.md` suivi par git.
@@ -346,8 +470,21 @@ point. Rejeter tout `0` silencieux ou tout `PASS` non rejouable.
   dans le dépôt.
 - Une liste écrite dans `data/resources_1400.json` qui n'est ni celle de D4
   ni celle que l'amendement retient — y compris une liste de D4 « corrigée »
-  d'un site ou d'une coordonnée en passant.
-- Un `red_proof` vide sur n'importe lequel des sept contrôles.
+  d'un site, d'une coordonnée ou d'une `richness_class` en passant.
+- Une `richness_class` attribuée, déduite ou recalculée par le Générateur au
+  lieu d'être recopiée de D4.
+- Une quatrième classe de richesse, une classe renommée, accentuée ou
+  traduite, dans `constants.py` ou dans le fichier de déclarations.
+- Une classe de richesse convertie en nombre, ordonnée, indexée, pondérée, ou
+  portée par une cellule de `cells_resources_r1.json`.
+- Une valeur du vocabulaire des classes écrite en dur dans
+  `steps/r1_resources_1400.py` ou `qa/checks_r1.py` au lieu d'être importée.
+- Un `par_classe_de_richesse` dont la somme ne fait pas `gisements_declares`,
+  ou auquel manque une classe à zéro.
+- Une capture qui encode la classe de richesse par une taille, un rayon, une
+  opacité ou une intensité de couleur.
+- Deux tables de gisements concurrentes dans le répertoire de brief.
+- Un `red_proof` vide sur n'importe lequel des huit contrôles.
 - Une passe déclarations coupées qui écrit dans `pipeline/geo/artifacts/`.
 - Un rattachement obtenu autrement que par contenance, même s'il tombe juste.
 - Une coordonnée déplacée pour faire tomber un gisement sur la terre.
