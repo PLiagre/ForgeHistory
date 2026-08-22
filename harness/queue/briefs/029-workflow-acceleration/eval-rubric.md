@@ -1,7 +1,7 @@
 # Rubrique d’évaluation — brief 029
 
 Cette rubrique a été écrite avant le code. Le brief 029 est l’unique source
-d’instruction. L’évaluateur relit chaque condition SC0 à SC12 et reconstruit les
+d’instruction. L’évaluateur relit chaque condition SC0 à SC13 et reconstruit les
 preuves depuis le head SHA ; il ne reprend aucun compteur du producteur sans le
 recalculer.
 
@@ -19,6 +19,10 @@ Le lot est refusé si l’un des faits suivants est constaté :
 - une preuve liée à un ancien SHA est présentée comme courante ;
 - les suites existantes régressent ;
 - la CI déclenche un runner persistant du VPS depuis une PR publique.
+- la consolidation de #124 perd une règle A1/A2, ou un verdict 029 est présenté
+  comme verdict du brief 024 ;
+- les dossiers 027/028 contiennent autre chose que leurs documents de
+  planification importés depuis #125.
 
 ## Méthode
 
@@ -31,9 +35,11 @@ Le lot est refusé si l’un des faits suivants est constaté :
 5. Comparer les mesures de la preuve sentinelle aux résultats antérieurs
    lorsqu’ils sont disponibles, sans citer une empreinte figée par valeur.
 6. Regarder toute capture créée par le lot. Le présent lot n’en exige aucune.
+7. Vérifier les commits importés, puis évaluer séparément le brief 024 sur le
+   même head SHA avant de prononcer le verdict 029.
 
 ## Verdict attendu
 
-Le verdict nomme explicitement SC0 à SC12 comme `PASS`, `FAIL` ou `BLOCKED`,
+Le verdict nomme explicitement SC0 à SC13 comme `PASS`, `FAIL` ou `BLOCKED`,
 cite les commandes rejouées et distingue toute preuve complète non exécutable
 faute de cache. Un `BLOCKED` n’est jamais converti en `PASS` par narration.

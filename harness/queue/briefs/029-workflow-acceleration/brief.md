@@ -24,6 +24,23 @@ des conclusions du producteur.
 - Une preuve absente, périmée ou visant un autre SHA ne vaut pas vert.
 - Ce lot ne livre aucune nouvelle mécanique de monde et aucun client visuel.
 
+## Train de consolidation autorisé
+
+Pour que l’accélération G6 porte sur le code réellement destiné à `master`
+et que la fusion de ce lot débloque immédiatement le prochain travail produit,
+la branche consolide deux PR déjà ouvertes, sans en réinventer le contenu :
+
+- le head exact de la PR #124, correction A1/A2 du brief 024, avant le raccord
+  de l’échantillonnage groupé ; les amendements et la rubrique du brief 024
+  restent sa seule instruction et reçoivent un verdict indépendant dédié ;
+- le head exact de la PR #125, limité aux briefs/rubriques de planification 027
+  et 028. Ces deux lots ne sont pas exécutés ici et ne reçoivent aucun faux
+  verdict anticipé.
+
+Le manifeste final trace les commits importés et les éventuelles résolutions
+de conflit. L’évaluateur du lot 029 ne peut pas se substituer à l’évaluateur du
+lot 024 : les deux verdicts sont reconstruits séparément sur le même head SHA.
+
 ## SC0 — État de référence
 
 La branche part de `origin/master` à jour. Les suites `control-plane`,
@@ -188,6 +205,15 @@ La preuve G6 Europe complète est rejouée seulement si le cache DEM nécessaire
 est disponible. Son absence est déclarée avec la commande et l’erreur ; elle
 ne devient jamais un succès supposé.
 
+## SC13 — Consolidation sans perte de preuve
+
+Les commits importés depuis #124 et #125 sont identifiables dans l’historique.
+La résolution du raccord G6 conserve les règles A1/A2 du brief 024 et ajoute le
+groupage sans réintroduire raster synthétique, faux zéro ou lecture hors domaine.
+Le verdict 024 vise le même head SHA que le verdict 029. Les dossiers 027/028
+ne contiennent toujours que leur brief et leur rubrique ; aucune implémentation
+V0 ne se glisse dans ce lot.
+
 ## Livrables
 
 - politique et état durable ForgePilot ;
@@ -198,6 +224,8 @@ ne devient jamais un succès supposé.
 - cache DEM partagé et échantillonnage G6 groupé avec tests sentinelles ;
 - documentation opératoire Hermes/ForgePilot mise à jour ;
 - journal factuel et manifeste du lot sous ce dossier.
+- verdict indépendant du brief 024 sur le head consolidé et plans 027/028
+  importés sans exécution.
 
 ## Hors portée
 
