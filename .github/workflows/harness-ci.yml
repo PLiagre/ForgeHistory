@@ -1,13 +1,14 @@
 name: harness-ci
 
 # Migration step 9: run the deterministic checks that used to depend on an
-# agent remembering to run them. Three jobs:
-#   * tests     -- the full harness pytest suite (PowerShell tests self-skip
-#                  on Linux); test_verdict_audit.py covers the gate's ACCEPT
-#                  and REJECT paths with fresh fixtures.
+# agent remembering to run them. Four jobs:
+#   * harness-tests -- the full harness pytest suite (PowerShell tests
+#                     self-skip on Linux); test_verdict_audit.py covers the
+#                     gate's ACCEPT and REJECT paths with fresh fixtures.
 #   * sim-tests -- the sim/ unit and integration test suite (brief 012, SC6).
 #   * f0-demo   -- the fake brief must be rejected by the mechanical gate,
 #                  proven by a real subprocess (F0's done-criterion).
+#   * risk-gate -- compare the PR declaration with policy-derived risk.
 #
 # Why the honest-brief control is NOT run here: its ACCEPT depends on file
 # mtime invariants (rubric predates deliverables) that a git checkout
@@ -17,13 +18,14 @@ name: harness-ci
 
 on:
   push:
+    branches: [master]
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  tests:
+  harness-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -56,3 +58,40 @@ jobs:
           python-version: "3.13"
       - name: The fake brief must be rejected by the mechanical gate
         run: python harness/demo/fake_brief_001/run_demo.py
+
+  risk-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - name: Refuser un risque de PR inférieur au risque dérivé
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python harness/workflow_risk_gate.py \
+            --repo . \
+            --pr-body-env PR_BODY \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --output "$RUNNER_TEMP/risk-gate.json"
+      - name: Recalculer le risque après fusion sur master
+        if: github.event_name == 'push'
+        env:
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python harness/workflow_risk_gate.py \
+            --repo . \
+            --declared-risk R2 \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --output "$RUNNER_TEMP/risk-gate.json"

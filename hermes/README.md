@@ -30,14 +30,15 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 
 - **Proposer.** Constater un trou, une contradiction, une prochaine couche
   de `sim/`, un cron à ajuster — et l’écrire sous `hermes/propositions/`.
-- **Piloter un lot.** Lancer `forgepilot enchaine <brief.md>` (aperçu,
-  puis `--run`). Les sous-commandes une par une restent pour un dépannage.
+- **Piloter un lot.** Enregistrer puis lancer un run durable avec
+  `forgepilot start <brief.md>` ; suivre et reprendre avec `status` et
+  `resume`. Le runbook est `docs/operations/workflow-acceleration.md`.
 - **Mesurer.** Relancer `python -m sim`, les tests `sim/`, le tableau de
   bord. Dire ce qui manque au lieu de l’inventer.
 - **S’améliorer.** Mettre à jour sa skill quand une règle du dépôt change
   ou qu’une leçon est payée.
-- **Cadencer.** Un cron quotidien de lecture / mesure / proposition
-  (`hermes/crons/quotidien.sh`). Aucun cron ne fusionne.
+- **Cadencer.** Une veille quotidienne script-only et silencieuse sur le
+  chemin vert (`hermes/crons/README.md`). Aucun cron ne fusionne.
 
 Hermes ne juge pas un lot. Claude Code planifie, relit et rend les
 verdicts. Cursor écrit le code. Le propriétaire fusionne.
@@ -78,7 +79,7 @@ le propriétaire tranche (garder / amender / rejeter)
   ▼
 si besoin d’un lot : session Claude pour écrire le brief
   ▼
-Hermes lance ForgePilot : `forgepilot enchaine <brief.md> --run`
+Hermes lance ForgePilot : `forgepilot start <brief.md> --run`
   (plan, execute, draft PR, review — pas de fusion)
   ▼
 le propriétaire fusionne
