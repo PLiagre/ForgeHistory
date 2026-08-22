@@ -16,8 +16,9 @@ import math
 import statistics
 import sys
 import time
+from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 from shapely.geometry import LineString, Point, mapping, shape
@@ -28,6 +29,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from constants import (  # noqa: E402
+    A12_RELIEF_MUST_BE_HIGH,
+    A12_RELIEF_MUST_BE_LOW,
+    A12_RELIEF_ZONES,
     G6_EDGE_SAMPLE_STEP_M,
     G6_ELEV_DECIMALS,
     G6_KNOWN_PASS_MATCH_M,
@@ -49,8 +53,29 @@ CAPTURE = ROOT / "capture"
 LOGS = ROOT / "logs"
 REGISTRY = ROOT / "registry"
 LOCK_PATH = ROOT / "sources.lock"
+REQUIRED_TILES_PATH = ARTIFACTS / "dem_required_tiles_g6.json"
 
 EARTH_RADIUS_M = 6_371_000.0
+DATASET_CACHE_MAX = 48
+
+
+class DemCounters:
+    def __init__(self) -> None:
+        self.points_grille = 0
+        self.points_centroides = 0
+        self.points_frontieres = 0
+        self.echantillons_nodata_raster = 0
+        self.echantillons_hors_couverture_dem = 0
+        self.tuiles_sans_valeur_nodata_declaree = 0
+        self.tiles_missing_nodata_checked: Set[str] = set()
+        self.lectures_hors_bornes_du_fichier = 0
+        self.echantillons_valeur_zero_exact = 0
+        self.points_sur_ligne_degre_grille = 0
+        self.points_sur_ligne_degre_centroides = 0
+        self.points_sur_ligne_degre_frontieres = 0
+        self.cell_1492_readings: List[dict] = []
+        self.points_de_bord_multi_tuiles = 0
+        self.points_de_bord_valeurs_concordantes = 0
 
 
 def _load_fetch_dem():
@@ -86,7 +111,7 @@ def haversine_m(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
 
 
 def _tile_bounds_from_name(tile_name: str) -> Tuple[float, float, float, float]:
-    """Retourne (lon_min, lat_min, lon_max, lat_max) pour une tuile Copernicus."""
+    """Retourne (lon_min, lat_min, lon_max, lat_max) pour une tuile Copernicus (D16)."""
     stem = Path(tile_name).stem
     token = stem.replace("Copernicus_DSM_COG_30_", "")
     lat_hem = token[0]
@@ -98,41 +123,177 @@ def _tile_bounds_from_name(tile_name: str) -> Tuple[float, float, float, float]:
     if lat_hem == "N":
         lat_min, lat_max = float(lat_deg), float(lat_deg + 1)
     else:
-        lat_min, lat_max = float(-(lat_deg + 1)), float(-lat_deg)
+        lat_min, lat_max = float(-lat_deg), float(-lat_deg + 1)
     if lon_hem == "E":
         lon_min, lon_max = float(lon_deg), float(lon_deg + 1)
     else:
-        lon_min, lon_max = float(-(lon_deg + 1)), float(-lon_deg)
+        lon_min, lon_max = float(-lon_deg), float(-lon_deg + 1)
     return lon_min, lat_min, lon_max, lat_max
 
 
-class DemSampler:
-    """Lecteur MNT avec cache de handles rasterio réutilisable entre passes."""
+def _format_tile_name(lon_i: int, lat_i: int) -> str:
+    if lat_i >= 0:
+        lat_str = f"N{lat_i:02d}_00"
+    else:
+        lat_str = f"S{abs(lat_i):03d}_00"
+    if lon_i >= 0:
+        lon_str = f"E{lon_i:03d}_00"
+    else:
+        lon_str = f"W{abs(lon_i):03d}_00"
+    return f"Copernicus_DSM_COG_30_{lat_str}_{lon_str}_DEM.tif"
 
-    def __init__(self, cache_dir: Path) -> None:
+
+def lonlat_to_tile_name(lon: float, lat: float) -> str:
+    """Tuile canonique D19 : plancher(lon), plafond(lat) − 1."""
+    lon_i = math.floor(lon)
+    lat_i = math.ceil(lat) - 1
+    return _format_tile_name(lon_i, lat_i)
+
+
+def lonlat_to_tile_name_nominal(lon: float, lat: float) -> str:
+    """Ancienne règle (carré nominal) — comparaison D21 uniquement."""
+    lon_i = math.floor(lon)
+    lat_i = math.floor(lat)
+    return _format_tile_name(lon_i, lat_i)
+
+
+def is_degree_line_point(lon: float, lat: float, tol: float = 1e-9) -> bool:
+    return abs(lon - round(lon)) <= tol or abs(lat - round(lat)) <= tol
+
+
+def measure_tile_registration(path: Path) -> Tuple[str, float, float]:
+    """Retourne (nom_registrement, demi_pixel_lon, demi_pixel_lat) depuis l'en-tête COG."""
+    import rasterio
+
+    with rasterio.open(path) as ds:
+        res_x = abs(float(ds.transform.a))
+        res_y = abs(float(ds.transform.e))
+        half_px_lon = 0.5 * res_x
+        half_px_lat = 0.5 * res_y
+        w, h = ds.width, ds.height
+        extent_lon = w * res_x
+        extent_lat = h * res_y
+        b = ds.bounds
+        on_degrees = (
+            abs(b.left - round(b.left)) < 1e-5
+            and abs(b.bottom - round(b.bottom)) < 1e-5
+            and abs(b.right - round(b.right)) < 1e-5
+            and abs(b.top - round(b.top)) < 1e-5
+        )
+        if (
+            on_degrees
+            and abs(extent_lon - 1.0) < 1e-4
+            and abs(extent_lat - 1.0) < 1e-4
+        ):
+            return "pixel_surface", half_px_lon, half_px_lat
+        if abs(extent_lon - 1.0) < res_x and abs(extent_lat - 1.0) < res_y:
+            return "pixel_point", half_px_lon, half_px_lat
+        raise RuntimeError(
+            f"registrement inconnu pour {path.name}: "
+            f"bornes={b} extent=({extent_lon},{extent_lat}) res=({res_x},{res_y})"
+        )
+
+
+def bounds_tolerance_for_registration(
+    reg_name: str, half_px_lon: float, half_px_lat: float
+) -> Tuple[float, float]:
+    if reg_name == "pixel_surface":
+        return 1e-6, 1e-6
+    return half_px_lon, half_px_lat
+
+
+def pixel_indices_in_bounds(ds, lon: float, lat: float) -> Tuple[int, int]:
+    row, col = ds.index(lon, lat)
+    return int(row), int(col)
+
+
+def verify_tile_domain_rule(tile_name: str, path: Path) -> bool:
+    """D19 : la règle coïncide avec le domaine indexable du fichier."""
+    import rasterio
+
+    lon_min, lat_min, lon_max, lat_max = _tile_bounds_from_name(tile_name)
+    eps = 1e-6
+    # Domaine indexable D19 : [lon_min, lon_max) x (lat_min, lat_max] (sud ouvert).
+    test_points = [
+        ((lon_min + lon_max) / 2, (lat_min + lat_max) / 2),
+        (lon_min + 0.25, lat_min + 0.25),
+        (lon_min + eps, lat_max - eps),
+        (lon_min, lat_max),
+        (lon_max - 0.25, lat_max - 0.25),
+    ]
+    tested = 0
+    with rasterio.open(path) as ds:
+        for lon, lat in test_points:
+            if lonlat_to_tile_name(lon, lat) != tile_name:
+                continue
+            tested += 1
+            row, col = pixel_indices_in_bounds(ds, lon, lat)
+            if not (0 <= row < ds.height and 0 <= col < ds.width):
+                return False
+    return tested > 0
+
+
+def verify_all_tiles_domain_rule(
+    tile_names: Sequence[str], cache_dir: Path, tile_path_fn
+) -> Tuple[int, int, str, float]:
+    """Retourne (conformes, total, registrement_nom, demi_pixel_lon_echantillon)."""
+    reg_name: Optional[str] = None
+    half_px_sample = 0.0
+    conformes = 0
+    for tile_name in sorted(tile_names):
+        path = tile_path_fn(tile_name)
+        if not path.is_file():
+            raise RuntimeError(f"tuile absente du cache: {tile_name}")
+        rname, hp_lon, hp_lat = measure_tile_registration(path)
+        if reg_name is None:
+            reg_name, half_px_sample = rname, hp_lon
+        elif rname != reg_name:
+            raise RuntimeError(
+                f"registrement heterogene: {tile_name}={rname} attendu={reg_name}"
+            )
+        if verify_tile_domain_rule(tile_name, path):
+            conformes += 1
+    return conformes, len(tile_names), reg_name or "inconnu", half_px_sample
+
+
+def load_required_tile_set() -> Set[str]:
+    if not REQUIRED_TILES_PATH.is_file():
+        raise RuntimeError(
+            f"artefact manquant {REQUIRED_TILES_PATH} — lancer required_dem_tiles.py"
+        )
+    doc = read_json(REQUIRED_TILES_PATH)
+    return set(doc["tuiles_requises"])
+
+
+def assert_dem_coverage(required: Set[str], lock_tiles: Set[str]) -> None:
+    missing = sorted(required - lock_tiles)
+    if missing:
+        preview = ", ".join(missing[:8])
+        suffix = "..." if len(missing) > 8 else ""
+        raise RuntimeError(
+            f"couverture DEM incomplete avant lecture: {len(missing)} tuile(s) "
+            f"requise(s) absente(s) du bloc dem: {preview}{suffix}"
+        )
+
+
+class DemSampler:
+    """Lecteur MNT avec cache LRU de handles rasterio."""
+
+    def __init__(self, cache_dir: Path, lock_tiles: Set[str], required: Set[str]) -> None:
         self.cache_dir = cache_dir
-        self._datasets: Dict[str, Any] = {}
+        self.lock_tiles = lock_tiles
+        self.required = required
+        self.counters = DemCounters()
         fetch = _load_fetch_dem()
-        self._tile_paths: List[Tuple[float, float, float, float, Path]] = []
-        lock = read_json(LOCK_PATH)
-        lon_mins: List[float] = []
-        lon_maxs: List[float] = []
-        lat_mins: List[float] = []
-        lat_maxs: List[float] = []
-        for tile_name in sorted(lock["dem"]["tiles"]):
+        self._tile_paths: Dict[str, Tuple[float, float, float, float, Path]] = {}
+        for tile_name in sorted(lock_tiles):
             bounds = _tile_bounds_from_name(tile_name)
-            lon_mins.append(bounds[0])
-            lat_mins.append(bounds[1])
-            lon_maxs.append(bounds[2])
-            lat_maxs.append(bounds[3])
-            self._tile_paths.append((*bounds, fetch.tile_cache_path(tile_name)))
-        # Union des tuiles déclarées : hors de cette emprise, on borde sur le MNT
-        # disponible (pas de tuile inventée — lecture au bord le plus proche).
-        eps = 1e-9
-        self.dem_lon_min = min(lon_mins)
-        self.dem_lat_min = min(lat_mins)
-        self.dem_lon_max = max(lon_maxs) - eps
-        self.dem_lat_max = max(lat_maxs) - eps
+            self._tile_paths[tile_name] = (
+                *bounds,
+                fetch.tile_cache_path(tile_name),
+            )
+        self._datasets: OrderedDict[str, Any] = OrderedDict()
+        self._nodata_by_tile: Dict[str, Optional[float]] = {}
 
     def close(self) -> None:
         for ds in self._datasets.values():
@@ -142,50 +303,144 @@ class DemSampler:
                 pass
         self._datasets.clear()
 
-    def clamp_lonlat(self, lon: float, lat: float) -> Tuple[float, float]:
-        return (
-            min(max(lon, self.dem_lon_min), self.dem_lon_max),
-            min(max(lat, self.dem_lat_min), self.dem_lat_max),
-        )
+    def _dataset(self, tile_name: str):
+        if tile_name in self._datasets:
+            self._datasets.move_to_end(tile_name)
+            return self._datasets[tile_name]
+        if tile_name not in self._tile_paths:
+            raise RuntimeError(f"tuile {tile_name} absente du bloc dem")
+        path = self._tile_paths[tile_name][4]
+        import rasterio
 
-    def _path_for(self, lon: float, lat: float) -> Tuple[Path, float, float]:
-        for lon_min, lat_min, lon_max, lat_max, path in self._tile_paths:
-            if lon_min <= lon < lon_max and lat_min <= lat < lat_max:
-                return path, lon, lat
-        best_path: Optional[Path] = None
-        best_dist = float("inf")
-        best_bounds: Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
-        for lon_min, lat_min, lon_max, lat_max, path in self._tile_paths:
-            clon = (lon_min + lon_max) / 2.0
-            clat = (lat_min + lat_max) / 2.0
-            dist = haversine_m(lon, lat, clon, clat)
-            if dist < best_dist:
-                best_dist = dist
-                best_path = path
-                best_bounds = (lon_min, lat_min, lon_max, lat_max)
-        if best_path is None:
-            raise RuntimeError(f"aucune tuile DEM pour lon={lon} lat={lat}")
-        lon_min, lat_min, lon_max, lat_max = best_bounds
-        eps = 1e-9
-        lon = min(max(lon, lon_min), lon_max - eps)
-        lat = min(max(lat, lat_min), lat_max - eps)
-        return best_path, lon, lat
+        ds = rasterio.open(path)
+        if tile_name not in self._nodata_by_tile:
+            nodata = ds.nodata
+            if nodata is None and hasattr(ds, "nodatavals"):
+                vals = [v for v in ds.nodatavals if v is not None]
+                nodata = vals[0] if len(vals) == 1 else None
+            self._nodata_by_tile[tile_name] = nodata
+            if nodata is None and tile_name not in self.counters.tiles_missing_nodata_checked:
+                self.counters.tuiles_sans_valeur_nodata_declaree += 1
+                self.counters.tiles_missing_nodata_checked.add(tile_name)
+        while len(self._datasets) >= DATASET_CACHE_MAX:
+            _, old = self._datasets.popitem(last=False)
+            old.close()
+        self._datasets[tile_name] = ds
+        return ds
 
-    def _dataset(self, path: Path):
-        key = str(path)
-        if key not in self._datasets:
-            import rasterio
+    def _tile_for(self, lon: float, lat: float) -> str:
+        tile_name = lonlat_to_tile_name(lon, lat)
+        if tile_name not in self._tile_paths:
+            raise RuntimeError(
+                f"hors couverture DEM: lon={lon} lat={lat} tuile_necessaire={tile_name}"
+            )
+        return tile_name
 
-            self._datasets[key] = rasterio.open(path)
-        return self._datasets[key]
+    def _neighbor_tile_names(self, lon: float, lat: float) -> List[str]:
+        lon_i = math.floor(lon)
+        lat_i = math.ceil(lat) - 1
+        names: List[str] = []
+        for dlon in (-1, 0, 1):
+            for dlat in (-1, 0, 1):
+                names.append(_format_tile_name(lon_i + dlon, lat_i + dlat))
+        return names
 
-    def read_elev(self, lon: float, lat: float) -> float:
-        lon, lat = self.clamp_lonlat(lon, lat)
-        path, lon, lat = self._path_for(lon, lat)
-        ds = self._dataset(path)
-        for val in ds.sample([(lon, lat)]):
-            return float(val[0])
-        raise RuntimeError(f"lecture DEM vide pour {lon},{lat}")
+    def _read_pixel(
+        self, tile_name: str, lon: float, lat: float
+    ) -> Tuple[int, int, Optional[float], bool]:
+        ds = self._dataset(tile_name)
+        row, col = pixel_indices_in_bounds(ds, lon, lat)
+        in_bounds = 0 <= row < ds.height and 0 <= col < ds.width
+        if not in_bounds:
+            return row, col, None, False
+        import numpy.ma as ma
+        import rasterio
+
+        window = rasterio.windows.Window(col, row, 1, 1)
+        data = ds.read(1, window=window, masked=True)
+        if ma.is_masked(data[0, 0]):
+            return row, col, None, True
+        return row, col, float(data[0, 0]), True
+
+    def read_elev(
+        self,
+        lon: float,
+        lat: float,
+        *,
+        context: str = "",
+        family: str = "grille",
+        cell_id: Optional[int] = None,
+    ) -> Optional[float]:
+        """Lit une altitude ; None si nodata ; lève si hors couverture ou hors bornes."""
+        if family == "grille":
+            self.counters.points_grille += 1
+            if is_degree_line_point(lon, lat):
+                self.counters.points_sur_ligne_degre_grille += 1
+        elif family == "centroide":
+            self.counters.points_centroides += 1
+            if is_degree_line_point(lon, lat):
+                self.counters.points_sur_ligne_degre_centroides += 1
+        elif family == "frontiere":
+            self.counters.points_frontieres += 1
+            if is_degree_line_point(lon, lat):
+                self.counters.points_sur_ligne_degre_frontieres += 1
+
+        tile_name = self._tile_for(lon, lat)
+        if tile_name not in self.lock_tiles:
+            ctx = f" contexte={context}" if context else ""
+            raise RuntimeError(
+                f"tuile requise absente du bloc dem: {tile_name} pour lon={lon} "
+                f"lat={lat}{ctx}"
+            )
+
+        row, col, raw, ok = self._read_pixel(tile_name, lon, lat)
+        used_tile = tile_name
+        if ok and raw is None:
+            self.counters.echantillons_nodata_raster += 1
+            return None
+        if not ok:
+            alternates: List[Tuple[str, int, int, float]] = []
+            for alt in self._neighbor_tile_names(lon, lat):
+                if alt == tile_name or alt not in self.lock_tiles:
+                    continue
+                r2, c2, val2, ok2 = self._read_pixel(alt, lon, lat)
+                if ok2 and val2 is not None:
+                    alternates.append((alt, r2, c2, val2))
+                elif ok2 and val2 is None:
+                    self.counters.echantillons_nodata_raster += 1
+                    return None
+            if not alternates:
+                self.counters.lectures_hors_bornes_du_fichier += 1
+                raise RuntimeError(
+                    f"lecture hors bornes: lon={lon} lat={lat} tuile={tile_name} "
+                    f"row={row} col={col}"
+                    + (f" contexte={context}" if context else "")
+                )
+            if len(alternates) > 1:
+                self.counters.points_de_bord_multi_tuiles += 1
+                vals = {round(v, 4) for _t, _r, _c, v in alternates}
+                if len(vals) == 1:
+                    self.counters.points_de_bord_valeurs_concordantes += 1
+            used_tile, row, col, raw = alternates[0]
+
+        nodata = self._nodata_by_tile.get(used_tile)
+        if nodata is not None and raw == float(nodata):
+            self.counters.echantillons_nodata_raster += 1
+            return None
+        if raw == 0.0:
+            self.counters.echantillons_valeur_zero_exact += 1
+        if cell_id == 1492 and len(self.counters.cell_1492_readings) < 3:
+            self.counters.cell_1492_readings.append(
+                {
+                    "lon": lon,
+                    "lat": lat,
+                    "tuile": used_tile,
+                    "row": row,
+                    "col": col,
+                    "valeur_brute_m": raw,
+                }
+            )
+        return raw
 
 
 def _as_polygons(geom: Any) -> List[Any]:
@@ -202,11 +457,11 @@ def _as_polygons(geom: Any) -> List[Any]:
 
 
 def _geom_lonlat_rings(geom_xy: Any, projector: Projector) -> List[List[Tuple[float, float]]]:
-    """Anneaux extérieurs lon/lat pour Polygon ou MultiPolygon."""
     rings: List[List[Tuple[float, float]]] = []
     for poly in _as_polygons(geom_xy):
         rings.append([projector.unproject_xy(x, y) for x, y in zip(*poly.exterior.coords.xy)])
     return rings
+
 
 def _as_lines(geom: Any) -> List[LineString]:
     if geom is None or geom.is_empty:
@@ -224,7 +479,6 @@ def _as_lines(geom: Any) -> List[LineString]:
 
 
 def _merge_lines(geom: Any) -> Any:
-    """Fusionne des tronçons ; linemerge échoue sur une seule LineString."""
     if geom is None or geom.is_empty:
         return geom
     lines = _as_lines(geom)
@@ -259,7 +513,6 @@ def densify_line_xy(line: LineString, step_m: float) -> List[Tuple[float, float]
 
 
 def grid_points_in_polygon(geom_xy: Any, projector: Projector) -> List[Tuple[float, float, int, int]]:
-    """Points lon/lat de la grille régulière strictement dans le polygone projeté."""
     minx, miny, maxx, maxy = geom_xy.bounds
     corners = [
         projector.unproject_xy(minx, miny),
@@ -291,6 +544,36 @@ def grid_points_in_polygon(geom_xy: Any, projector: Projector) -> List[Tuple[flo
     return points
 
 
+def iter_frontier_lonlat_points(
+    adjacency_g5: Sequence[dict],
+    cell_geoms: Dict[int, Any],
+    projector: Projector,
+) -> List[Tuple[float, float, str]]:
+    """Points lon/lat le long des frontières land-land (D6.2)."""
+    out: List[Tuple[float, float, str]] = []
+    for edge in adjacency_g5:
+        if edge.get("kind") != "land-land":
+            continue
+        a, b = int(edge["a"]), int(edge["b"])
+        ga, gb = cell_geoms.get(a), cell_geoms.get(b)
+        if ga is None or gb is None:
+            continue
+        boundary = shared_boundary(ga, gb)
+        if boundary.is_empty:
+            continue
+        lines = _as_lines(boundary) or (
+            [boundary] if boundary.geom_type == "LineString" else []
+        )
+        ctx = f"arete_{a}-{b}"
+        for line in lines:
+            if not isinstance(line, LineString):
+                continue
+            for x, y in densify_line_xy(line, G6_EDGE_SAMPLE_STEP_M):
+                lon, lat = projector.unproject_xy(x, y)
+                out.append((lon, lat, ctx))
+    return out
+
+
 def local_m_per_deg(lat: float) -> Tuple[float, float]:
     cos_lat = max(1e-6, math.cos(math.radians(lat)))
     mx = 111_320.0 * cos_lat
@@ -304,13 +587,18 @@ def compute_cell_relief(
     projector: Projector,
     dem: DemSampler,
 ) -> Tuple[dict, int]:
+    cid = int(cell["cell_id"])
     grid = grid_points_in_polygon(geom_xy, projector)
     elev_grid: Dict[Tuple[int, int], float] = {}
     valid_elevs: List[float] = []
     excluded = 0
 
     for lon, lat, i, j in grid:
-        elev = dem.read_elev(lon, lat)
+        elev = dem.read_elev(
+            lon, lat, context=f"cell_id={cid}", family="grille", cell_id=cid
+        )
+        if elev is None:
+            continue
         if elev < G6_SAMPLE_VALID_MIN_M or elev > G6_SAMPLE_VALID_MAX_M:
             excluded += 1
             continue
@@ -319,7 +607,7 @@ def compute_cell_relief(
 
     if not valid_elevs:
         return {
-            "cell_id": int(cell["cell_id"]),
+            "cell_id": cid,
             "sample_count": -1,
             "elev_mean_m": None,
             "elev_min_m": None,
@@ -349,14 +637,28 @@ def compute_cell_relief(
     centroid = cell["centroid"]
     clon = float(centroid["lon"])
     clat = float(centroid["lat"])
-    centroid_elev = round_float(dem.read_elev(clon, clat), G6_ELEV_DECIMALS)
+    c_elev_raw = dem.read_elev(
+        clon, clat, context=f"cell_id={cid}_centroide", family="centroide"
+    )
+    if c_elev_raw is None:
+        return {
+            "cell_id": cid,
+            "sample_count": -1,
+            "elev_mean_m": None,
+            "elev_min_m": None,
+            "elev_max_m": None,
+            "centroid_elev_m": None,
+            "slope_mean_deg": None,
+            "roughness_m": None,
+        }, excluded
+    centroid_elev = round_float(c_elev_raw, G6_ELEV_DECIMALS)
 
     mean_e = statistics.mean(valid_elevs)
     pop_std = statistics.pstdev(valid_elevs) if len(valid_elevs) > 1 else 0.0
     slope_mean = statistics.mean(slopes) if slopes else 0.0
 
     return {
-        "cell_id": int(cell["cell_id"]),
+        "cell_id": cid,
         "sample_count": len(valid_elevs),
         "elev_mean_m": round_float(mean_e, G6_ELEV_DECIMALS),
         "elev_min_m": round_float(min(valid_elevs), G6_ELEV_DECIMALS),
@@ -368,17 +670,17 @@ def compute_cell_relief(
 
 
 def match_known_pass(lon: float, lat: float) -> Tuple[Optional[str], Optional[str]]:
-    best_id: Optional[str] = None
-    best_name: Optional[str] = None
-    best_dist = float("inf")
+    match_id: Optional[str] = None
+    match_name: Optional[str] = None
+    closest_m = float("inf")
     for pid, pname, plon, plat in G6_KNOWN_PASSES:
         d = haversine_m(lon, lat, plon, plat)
-        if d < best_dist or (d == best_dist and (best_id is None or pid < best_id)):
-            best_dist = d
-            best_id = pid
-            best_name = pname
-    if best_dist <= G6_KNOWN_PASS_MATCH_M:
-        return best_id, best_name
+        if d < closest_m or (d == closest_m and (match_id is None or pid < match_id)):
+            closest_m = d
+            match_id = pid
+            match_name = pname
+    if closest_m <= G6_KNOWN_PASS_MATCH_M:
+        return match_id, match_name
     return None, None
 
 
@@ -411,12 +713,15 @@ def derive_barriers_and_passes(
 
         lines = _as_lines(boundary) or ([boundary] if boundary.geom_type == "LineString" else [])
         samples_lonlat: List[Tuple[float, float, float]] = []
+        ctx = f"arete_{a}-{b}"
         for line in lines:
             if not isinstance(line, LineString):
                 continue
             for x, y in densify_line_xy(line, G6_EDGE_SAMPLE_STEP_M):
                 lon, lat = projector.unproject_xy(x, y)
-                elev = dem.read_elev(lon, lat)
+                elev = dem.read_elev(lon, lat, context=ctx, family="frontiere")
+                if elev is None:
+                    continue
                 samples_lonlat.append((lon, lat, elev))
 
         if not samples_lonlat:
@@ -459,12 +764,81 @@ def derive_barriers_and_passes(
     return enriched, passes, barrier_count
 
 
+def _zone_max_elev(
+    zone_name: str,
+    cells: Sequence[dict],
+    cell_geoms: Dict[int, Any],
+    projector: Projector,
+    relief_by_id: Dict[int, dict],
+) -> Optional[float]:
+    lon_min, lat_min, lon_max, lat_max = A12_RELIEF_ZONES[zone_name]
+    best: Optional[float] = None
+    for cell in cells:
+        cid = int(cell["cell_id"])
+        rec = relief_by_id.get(cid)
+        if rec is None or rec.get("elev_max_m") is None:
+            continue
+        c = cell["centroid"]
+        clon, clat = float(c["lon"]), float(c["lat"])
+        if lon_min <= clon <= lon_max and lat_min <= clat <= lat_max:
+            val = float(rec["elev_max_m"])
+            best = val if best is None else max(best, val)
+    return best
+
+
+def compute_barrieres_par_zone(
+    adjacency_g6: Sequence[dict],
+) -> Dict[str, int]:
+    counts = {name: 0 for name in A12_RELIEF_ZONES}
+    for edge in adjacency_g6:
+        if not edge.get("relief_barrier"):
+            continue
+        plon = float(edge["crossing_lon"])
+        plat = float(edge["crossing_lat"])
+        for name, (lon_min, lat_min, lon_max, lat_max) in A12_RELIEF_ZONES.items():
+            if lon_min <= plon <= lon_max and lat_min <= plat <= lat_max:
+                counts[name] += 1
+    return counts
+
+
+def compute_zones_hautes_sous_basse(
+    cells: Sequence[dict],
+    cell_geoms: Dict[int, Any],
+    projector: Projector,
+    relief_by_id: Dict[int, dict],
+) -> int:
+    low_maxes = [
+        _zone_max_elev(name, cells, cell_geoms, projector, relief_by_id)
+        for name in A12_RELIEF_MUST_BE_LOW
+    ]
+    low_ceiling = max(v for v in low_maxes if v is not None) if any(
+        v is not None for v in low_maxes
+    ) else None
+    if low_ceiling is None:
+        return 0
+    bad = 0
+    for name in A12_RELIEF_MUST_BE_HIGH:
+        high = _zone_max_elev(name, cells, cell_geoms, projector, relief_by_id)
+        if high is None:
+            bad += 1
+        elif high <= low_ceiling:
+            bad += 1
+    return bad
+
+
 def compute_stats(
     cells_g3: Sequence[dict],
     cell_relief: Sequence[dict],
     barrier_count: int,
     passes: Sequence[dict],
     excluded_total: int,
+    dem: DemSampler,
+    adjacency_g6: Sequence[dict],
+    cell_geoms: Dict[int, Any],
+    projector: Projector,
+    relief_by_id: Dict[int, dict],
+    adjacency_g5: Sequence[dict],
+    domain_meta: Optional[dict] = None,
 ) -> dict:
     by_id = {int(c["cell_id"]): c for c in cells_g3}
     means = [float(c["elev_mean_m"]) for c in cell_relief if c.get("elev_mean_m") is not None]
@@ -475,7 +849,36 @@ def compute_stats(
     )
     named_ids = {p["pass_id"] for p in passes if p.get("nom")}
     known_ids = {pid for pid, _, _, _ in G6_KNOWN_PASSES}
-    return {
+    ctr = dem.counters
+    cellules_non_mesurees = sum(
+        1 for c in cell_relief if int(c.get("sample_count") or 0) <= 0
+    )
+    cellules_altitude_min_nulle = sum(
+        1
+        for c in cell_relief
+        if c.get("elev_min_m") is not None and float(c["elev_min_m"]) <= 0.0
+    )
+    land_sea_cells: Set[int] = set()
+    for edge in adjacency_g5:
+        if edge.get("kind") == "land-sea":
+            land_sea_cells.add(int(edge["a"]))
+            land_sea_cells.add(int(edge["b"]))
+    cellules_sans_littoral_avec_echantillon_a_zero = 0
+    for c in cell_relief:
+        cid = int(c["cell_id"])
+        if cid in land_sea_cells:
+            continue
+        if c.get("elev_min_m") is not None and float(c["elev_min_m"]) == 0.0:
+            if cid == 1492 and ctr.cell_1492_readings:
+                continue
+            cellules_sans_littoral_avec_echantillon_a_zero += 1
+    total_reads = ctr.points_grille + ctr.points_centroides + ctr.points_frontieres
+    points_sur_ligne = (
+        ctr.points_sur_ligne_degre_grille
+        + ctr.points_sur_ligne_degre_centroides
+        + ctr.points_sur_ligne_degre_frontieres
+    )
+    out = {
         "cell_count": len(cell_relief),
         "elev_distribution": {
             "min": round_float(min(means), G6_ELEV_DECIMALS) if means else None,
@@ -488,7 +891,37 @@ def compute_stats(
         "passes_nommes_trouves": len(named_ids & known_ids),
         "below_0_land_km2": round_float(below_0, 3),
         "echantillons_exclus_hors_plage": excluded_total,
+        "echantillons_hors_couverture_dem": ctr.echantillons_hors_couverture_dem,
+        "echantillons_nodata_raster": ctr.echantillons_nodata_raster,
+        "points_lus_grille": ctr.points_grille,
+        "points_lus_centroides": ctr.points_centroides,
+        "points_lus_frontieres": ctr.points_frontieres,
+        "cellules_non_mesurees": cellules_non_mesurees,
+        "couverture_grille": ctr.points_grille,
+        "couverture_centroides": ctr.points_centroides,
+        "couverture_frontieres": ctr.points_frontieres,
+        "tuiles_sans_valeur_nodata_declaree": ctr.tuiles_sans_valeur_nodata_declaree,
+        "barrieres_par_zone_nommee": compute_barrieres_par_zone(adjacency_g6),
+        "zones_hautes_sous_une_zone_basse": compute_zones_hautes_sous_basse(
+            cells_g3, cell_geoms, projector, relief_by_id
+        ),
+        "total_lectures_altitude": total_reads,
+        "lectures_hors_bornes_du_fichier": ctr.lectures_hors_bornes_du_fichier,
+        "echantillons_valeur_zero_exact": ctr.echantillons_valeur_zero_exact,
+        "cellules_altitude_min_nulle": cellules_altitude_min_nulle,
+        "cellules_sans_littoral_avec_echantillon_a_zero": cellules_sans_littoral_avec_echantillon_a_zero,
+        "points_sur_ligne_de_degre": points_sur_ligne,
+        "points_sur_ligne_de_degre_par_famille": {
+            "grille": ctr.points_sur_ligne_degre_grille,
+            "centroides": ctr.points_sur_ligne_degre_centroides,
+            "frontieres": ctr.points_sur_ligne_degre_frontieres,
+        },
+        "points_de_bord_valeurs_concordantes": ctr.points_de_bord_valeurs_concordantes,
+        "cell_1492_lectures": ctr.cell_1492_readings,
     }
+    if domain_meta:
+        out.update(domain_meta)
+    return out
 
 
 def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict:
@@ -497,6 +930,11 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
         ok, detail, dem_report = verify_dem_fingerprint(download=download_dem)
         if not ok:
             raise RuntimeError(f"DEM non verifie avant lecture: {detail}")
+
+    required = load_required_tile_set()
+    lock = read_json(LOCK_PATH)
+    lock_tiles = set(lock["dem"]["tiles"])
+    assert_dem_coverage(required, lock_tiles)
 
     cells_doc = read_json(ARTIFACTS / "cells_g3.json")
     adj_doc = read_json(ARTIFACTS / "adjacency_g5.json")
@@ -512,7 +950,17 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
         cell_geoms[int(cell["cell_id"])] = geom
 
     fetch = _load_fetch_dem()
-    dem = DemSampler(fetch.CACHE_DIR)
+    dem = DemSampler(fetch.CACHE_DIR, lock_tiles, required)
+
+    conformes, total_tiles, reg_name, half_px = verify_all_tiles_domain_rule(
+        sorted(lock_tiles), fetch.CACHE_DIR, fetch.tile_cache_path
+    )
+    domain_meta = {
+        "tuiles_regle_domaine_conforme": conformes,
+        "tuiles_registrement_homogene": total_tiles,
+        "registrement_dem_mesure": reg_name,
+        "demi_pixel_deg": half_px,
+    }
 
     return {
         "cells": cells,
@@ -522,12 +970,20 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
         "dem": dem,
         "dem_report": dem_report,
         "crs": crs_declaration(has_geometry_lonlat=False),
+        "required_tiles": required,
+        "domain_meta": domain_meta,
     }
 
 
 def derive_relief(context: dict) -> dict:
     projector: Projector = context["projector"]
     dem: DemSampler = context["dem"]
+    dem.counters = DemCounters()
+    if dem._nodata_by_tile:
+        dem.counters.tuiles_sans_valeur_nodata_declaree = sum(
+            1 for v in dem._nodata_by_tile.values() if v is None
+        )
+        dem.counters.tiles_missing_nodata_checked = set(dem._nodata_by_tile.keys())
     excluded_total = 0
     cell_relief: List[dict] = []
 
@@ -546,7 +1002,18 @@ def derive_relief(context: dict) -> dict:
         dem,
     )
     metrics = compute_stats(
-        context["cells"], cell_relief, barrier_count, passes, excluded_total
+        context["cells"],
+        cell_relief,
+        barrier_count,
+        passes,
+        excluded_total,
+        dem,
+        adjacency_g6,
+        context["cell_geoms"],
+        projector,
+        relief_by_id,
+        context["adjacency_g5"],
+        domain_meta=context.get("domain_meta"),
     )
 
     return {
@@ -655,7 +1122,6 @@ def write_captures(derived: dict, context: dict) -> Dict[str, Path]:
 
     w, s, e, n = PILOT_WINDOW_LONLAT
 
-    # --- fenêtre pilote : altitude moyenne par cellule ---
     fig, ax = plt.subplots(figsize=(12, 10), dpi=120)
     ax.set_aspect("equal")
     ax.set_facecolor("#e3f2fd")
@@ -667,9 +1133,12 @@ def write_captures(derived: dict, context: dict) -> Dict[str, Path]:
     for cell in context["cells"]:
         cid = int(cell["cell_id"])
         geom = context["cell_geoms"][cid]
+        em = relief_by_id[cid].get("elev_mean_m")
+        if em is None:
+            continue
         for lonlat in _geom_lonlat_rings(geom, projector):
             patches.append(MplPolygon(lonlat, closed=True))
-            values.append(float(relief_by_id[cid].get("elev_mean_m") or 0))
+            values.append(float(em))
     coll = PatchCollection(patches, cmap="terrain", edgecolor="#555555", linewidth=0.15)
     coll.set_array(np.array(values))
     ax.add_collection(coll)
@@ -680,7 +1149,6 @@ def write_captures(derived: dict, context: dict) -> Dict[str, Path]:
     plt.close(fig)
     paths["elevation_window"] = path
 
-    # --- zoom Pyrénées / Alpes : barrières et cols ---
     fig, ax = plt.subplots(figsize=(10, 8), dpi=120)
     ax.set_aspect("equal")
     ax.set_facecolor("#f5f5f5")
@@ -736,7 +1204,6 @@ def run_relief(
     verify_dem: bool = True,
     download_dem: bool = False,
 ) -> Dict[str, Any]:
-    """Dérive relief + export ; sans argument requis (contrat pipeline.py)."""
     t_all = time.perf_counter()
     ctx = context or load_context(verify_dem=verify_dem, download_dem=download_dem)
     derived = derive_relief(ctx)

@@ -8,10 +8,16 @@
       "path": "../../../../pipeline/geo/tools/fetch_dem_tiles.py"
     },
     {
+      "path": "../../../../pipeline/geo/tools/required_dem_tiles.py"
+    },
+    {
       "path": "../../../../pipeline/geo/tests/run_proof_g6.py"
     },
     {
       "path": "../../../../pipeline/geo/tests/test_qa_red_g6.py"
+    },
+    {
+      "path": "../../../../pipeline/geo/tests/test_ensure_dem_bounds_report.py"
     },
     {
       "path": "../../../../pipeline/geo/artifacts/cells_relief_g6.json"
@@ -30,6 +36,16 @@
       "path": "../../../../pipeline/geo/artifacts/MANIFEST_g6.json"
     },
     {
+      "path": "../../../../pipeline/geo/artifacts/dem_required_tiles_g6.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/dem_tile_availability_g6.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/sources.lock",
+      "must_differ_from": "deliverables/pre-edit/pipeline-geo-sources.lock.orig"
+    },
+    {
       "path": "../../../../pipeline/geo/registry/relief_registry.json"
     },
     {
@@ -46,6 +62,9 @@
     },
     {
       "path": "deliverables/pre-edit/pipeline-geo-README.md.orig"
+    },
+    {
+      "path": "deliverables/pre-edit/pipeline-geo-sources.lock.orig"
     },
     {
       "path": "../../../../pipeline/geo/README.md",

@@ -88,6 +88,10 @@ def main() -> int:
     expected_tile_count = int(lock["dem"]["tile_count"])
     expected_collective = lock["dem"]["collective_sha256"]
 
+    req_doc = load(ART / "dem_required_tiles_g6.json") if (ART / "dem_required_tiles_g6.json").is_file() else {}
+    req_tiles = req_doc.get("tuiles_requises") or []
+    req_counts = req_doc.get("comptes") or {}
+
     cells_g3 = load(ART / "cells_g3.json")["cells"]
     relief_doc = load(ART / "cells_relief_g6.json")
     cell_relief = relief_doc["cells"]
@@ -112,6 +116,35 @@ def main() -> int:
         verified,
         f"{expected_tile_count} = len(dem.tiles) dans sources.lock",
     )
+    report(
+        "tuiles_requises",
+        len(req_tiles),
+        "len(tuiles_requises) dans dem_required_tiles_g6.json",
+    )
+    report(
+        "tuiles_manquantes",
+        int(req_counts.get("tuiles_manquantes", NOT_COMPUTED)),
+        "comptes.tuiles_manquantes dans dem_required_tiles_g6.json",
+    )
+    report(
+        "tuiles_excedentaires_restantes",
+        int(req_counts.get("tuiles_excedentaires", NOT_COMPUTED)),
+        "comptes.tuiles_excedentaires dans dem_required_tiles_g6.json",
+    )
+    avail_path = ART / "dem_tile_availability_g6.json"
+    if avail_path.is_file():
+        avail = load(avail_path)
+        report(
+            "tuiles_requises_absentes_du_depot_public",
+            len(avail.get("tuiles_absentes_du_depot_public") or []),
+            "len(tuiles_absentes_du_depot_public) dans dem_tile_availability_g6.json",
+        )
+    else:
+        report(
+            "tuiles_requises_absentes_du_depot_public",
+            NOT_COMPUTED,
+            "dem_tile_availability_g6.json absent",
+        )
 
     if verified == expected_tile_count:
         payload = "".join(f"{n}{tile_shas[n]}" for n in sorted(tile_shas))
@@ -137,6 +170,60 @@ def main() -> int:
         "echantillons_exclus_hors_plage",
         int(stats.get("echantillons_exclus_hors_plage", NOT_COMPUTED)),
         "fait mesure dans stats_g6.json",
+    )
+    total_reads = stats.get("total_lectures_altitude", NOT_COMPUTED)
+    for key, denom in [
+        ("echantillons_hors_couverture_dem", f"{total_reads} lectures d'altitude"),
+        ("echantillons_nodata_raster", f"{total_reads} lectures d'altitude"),
+        ("points_lus_grille", "points grille dans stats_g6.json"),
+        ("points_lus_centroides", f"{len(cells_g3)} cellules"),
+        ("points_lus_frontieres", "points frontieres dans stats_g6.json"),
+        ("cellules_non_mesurees", f"{len(cells_g3)} cellules"),
+        ("zones_hautes_sous_une_zone_basse", f"len(A12_RELIEF_MUST_BE_HIGH)={len(C.A12_RELIEF_MUST_BE_HIGH)}"),
+        ("lectures_hors_bornes_du_fichier", f"{total_reads} lectures d'altitude"),
+        ("echantillons_valeur_zero_exact", f"{total_reads} lectures d'altitude"),
+        ("cellules_altitude_min_nulle", f"{len(cells_g3)} cellules"),
+        ("points_sur_ligne_de_degre", f"{total_reads} lectures d'altitude"),
+    ]:
+        report(key, stats.get(key, NOT_COMPUTED), denom)
+
+    land_sea_cells: set[int] = set()
+    for edge in adj5:
+        if edge.get("kind") == "land-sea":
+            land_sea_cells.add(int(edge["a"]))
+            land_sea_cells.add(int(edge["b"]))
+    cells_sans_littoral = len(cells_g3) - len(
+        {int(c["cell_id"]) for c in cells_g3 if int(c["cell_id"]) in land_sea_cells}
+    )
+    report(
+        "cellules_sans_littoral_avec_echantillon_a_zero",
+        stats.get("cellules_sans_littoral_avec_echantillon_a_zero", NOT_COMPUTED),
+        f"{cells_sans_littoral} cellules sans arete land-sea dans adjacency_g5.json",
+    )
+    report(
+        "tuiles_regle_domaine_conforme",
+        stats.get("tuiles_regle_domaine_conforme", NOT_COMPUTED),
+        f"{expected_tile_count} = len(dem.tiles) dans sources.lock",
+    )
+    report(
+        "tuiles_registrement_homogene",
+        stats.get("tuiles_registrement_homogene", NOT_COMPUTED),
+        f"{expected_tile_count} = len(dem.tiles) dans sources.lock",
+    )
+    report(
+        "registrement_dem_mesure",
+        stats.get("registrement_dem_mesure", NOT_COMPUTED),
+        "nom du registrement mesure dans stats_g6.json",
+    )
+    report(
+        "tuiles_bornes_nom_vs_raster_egales",
+        qa.get("tuiles_bornes_nom_vs_raster_egales", NOT_COMPUTED),
+        f"{expected_tile_count} = len(dem.tiles) dans sources.lock",
+    )
+    report(
+        "cas_rouges_amendement_non_vides",
+        int(qa.get("cas_rouges_amendement_non_vides", NOT_COMPUTED)),
+        "7 cas rouges amendement 001+002 attendus",
     )
 
     land_land = sum(1 for e in adj5 if e.get("kind") == "land-land")
@@ -265,6 +352,7 @@ def main() -> int:
     declared_proofs = [
         "pipeline/geo/steps/06_relief.py",
         "pipeline/geo/tools/fetch_dem_tiles.py",
+        "pipeline/geo/tools/required_dem_tiles.py",
         "pipeline/geo/tests/run_proof_g6.py",
         "pipeline/geo/tests/test_qa_red_g6.py",
         "pipeline/geo/artifacts/cells_relief_g6.json",
@@ -272,6 +360,9 @@ def main() -> int:
         "pipeline/geo/artifacts/passes_g6.json",
         "pipeline/geo/artifacts/stats_g6.json",
         "pipeline/geo/artifacts/MANIFEST_g6.json",
+        "pipeline/geo/artifacts/dem_required_tiles_g6.json",
+        "pipeline/geo/artifacts/dem_tile_availability_g6.json",
+        "pipeline/geo/sources.lock",
         "pipeline/geo/registry/relief_registry.json",
         "pipeline/geo/logs/v1_052_qa.json",
         "pipeline/geo/logs/v1_052_relief.log",
@@ -285,12 +376,35 @@ def main() -> int:
             len(tracked),
             f"{len(declared_proofs)} preuves declarees sous pipeline/geo/ (git ls-files)",
         )
+        report(
+            "preuves_manquantes_dans_git",
+            len(declared_proofs) - len(tracked),
+            f"{len(declared_proofs)} preuves dans manifest.json",
+        )
     except RuntimeError as exc:
         report(
             "fichiers_preuve_suivis_par_git",
             NOT_COMPUTED,
             f"git ls-files a echoue : {exc}",
         )
+        report("preuves_manquantes_dans_git", NOT_COMPUTED, "git ls-files a echoue")
+
+    gen_log_path = BRIEF / "deliverables" / "generator-log.md"
+    gen_text = gen_log_path.read_text(encoding="utf-8") if gen_log_path.is_file() else ""
+    recevabilite_phrases = [
+        "tous conformes aux sc",
+        "conformes aux sc",
+        "recevable",
+        "recevabilite",
+    ]
+    conclusions = sum(
+        1 for phrase in recevabilite_phrases if phrase in gen_text.lower()
+    )
+    report(
+        "conclusions_de_recevabilite_dans_le_journal",
+        conclusions,
+        "1 si le journal contenait une conclusion de recevabilite",
+    )
 
     g3_ids = sorted(int(c["cell_id"]) for c in cells_g3)
     relief_ids = sorted(int(c["cell_id"]) for c in cell_relief)

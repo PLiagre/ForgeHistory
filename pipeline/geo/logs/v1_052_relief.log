@@ -3,7 +3,7 @@ pipeline_version: 1.7.0-g6-v1_052
 projection: EPSG:3035 (fallback=False)
 
 === cache DEM (une seule verification) ===
-  tuiles: 179/179 verifiees
+  tuiles: 1110/1110 verifiees
   collective_ok: True recette=sha256_concat_sorted_name_plus_tile_sha256_hex
 
 === entrees lues (une seule fois) ===
@@ -12,27 +12,33 @@ projection: EPSG:3035 (fallback=False)
 
 === relief par cellule (D3-D5) ===
   cell_count: 596
-  echantillons_exclus_hors_plage: 21
-  elev_distribution: {'min': -2.74, 'max': 1787.92, 'mean': 50.4, 'median': 0.0}
+  echantillons_exclus_hors_plage: 46
+  echantillons_hors_couverture_dem: 0
+  echantillons_nodata_raster: 0
+  points_lus_grille: 11449061
+  points_lus_centroides: 596
+  points_lus_frontieres: 154897
+  cellules_non_mesurees: 0
+  elev_distribution: {'min': -2.74, 'max': 1987.63, 'mean': 294.9, 'median': 166.17}
   below_0_land_km2: 4913.348
 
 === barrières et cols (D6-D7) ===
-  barrier_count: 14
-  pass_count: 14
+  barrier_count: 31
+  pass_count: 31
   passes_nommes_trouves: 2 / 9
+  barrieres_par_zone_nommee: {'Alpes': 3, 'Pyrenees': 2, 'Massif_central': 1, 'Ardennes': 0, 'Jura': 1, 'Bassin_parisien': 0, 'Plaine_flamande': 0}
+  zones_hautes_sous_une_zone_basse: 0
 
 === captures regardees ===
-  v1_052_elevation_window.png : altitude moyenne par cellule sur la
-  fenetre pilote (palette terrain continue, pas un hillshade — A12 hors
-  portee). Les massifs (Alpes, Pyrenees, Massif central) ressortent
-  en teintes claires ; plaines et bassins en vert/jaune bas.
-  v1_052_barriers_passes.png : zoom Pyrenees/Alpes — traits rouges =
-  aretes barriere relief ; etoiles vertes = cols nommes (G6_KNOWN_PASSES),
-  croix bleues = cols derives g6_derived_*.
+  v1_052_elevation_window.png : carte choroplethe elev_mean_m sur la
+  fenetre pilote ; teintes terrain plus claires en altitude, plus sombres
+  en plaine/bassin — concorde avec stats_g6.json (median>0).
+  v1_052_barriers_passes.png : zoom montagne ouest — traits rouges =
+  aretes barriere ; etoiles vertes = cols nommes, croix bleues = derives.
 
 === controles verts (donnee saine) ===
   Q10 green=True red_ok=True passed=True detail=match_on=8_files
-  G6-A green=True red_ok=True passed=True detail=verified=179/179 collective=True
+  G6-A green=True red_ok=True passed=True detail=verified=1110/1110 collective=True
   G6-B green=True red_ok=True passed=True detail=ok n=596
   G6-C green=True red_ok=True passed=True detail=ok range=[-80.0,4800.0]
   G6-D green=True red_ok=True passed=True detail=ok
@@ -43,34 +49,43 @@ projection: EPSG:3035 (fallback=False)
   G6-A: became_red=True case=dem_ok=false avant lecture
   G6-B: became_red=True case=cellule_1175_sample_count_zero
   G6-C: became_red=True case=cellule_1175_altitude_hors_plage
-  G6-D: became_red=True case=arete_10170_10173_crossing_sous_centroide
+  G6-D: became_red=True case=arete_9781_9797_crossing_sous_centroide
   G6-E: became_red=True case=cell_id_10466_retire
+
+=== cas rouges amendement (7/7) ===
+  A1-couverture: became_red=True case=garde_couverture: couverture DEM incomplete avant lecture: 1 tuile(s) requise(s) absente(s) du bloc dem: Copernicus_DSM_COG_30_N29_00_E031
+  A1-hors-couverture: became_red=True case=hors_couverture: hors couverture DEM: lon=200.0 lat=50.0 tuile_necessaire=Copernicus_DSM_COG_30_N49_00_E200_00_DEM.tif
+  A1-nodata: became_red=True case=nodata_compte=1_val=None
+  A1-ouest: became_red=True case=W001_correct=(-1.0, 50.0, 0.0, 51.0)_wrong=(-2.0, 50.0, -1.0, 51.0)
+  A2-ligne-degre: became_red=True case=ligne_degre: lecture hors bornes: lon=12.0 lat=33.0 tuile=Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif row=3600 col=0 contexte=test_l
+  A2-lecture-hors-bornes: became_red=True case=hors_bornes: lecture hors bornes: lon=12.0 lat=33.0 tuile=Copernicus_DSM_COG_30_N32_00_E012_00_DEM.tif row=3600 col=0 contexte=test_h
+  A2-tuile-fabriquee: became_red=True case=sondage_Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif_code=404
 
 === determinisme SHA256 (passe 1 vs passe 2) ===
   artifacts/MANIFEST_g6.json: match=True
-    passe1=eefec6e755ca14d38e689225dacb116c7195b57f02ecd319472d03283f1167fd
-    passe2=eefec6e755ca14d38e689225dacb116c7195b57f02ecd319472d03283f1167fd
+    passe1=3791cac9638888b3511fd21d59bdb385332a4d85812ababdea6681c621f56e88
+    passe2=3791cac9638888b3511fd21d59bdb385332a4d85812ababdea6681c621f56e88
   artifacts/adjacency_g6.json: match=True
-    passe1=eef1a62d3638a20c2b69d1649553abaf16252fbf3f08c1b8c577a6e81d95bdb1
-    passe2=eef1a62d3638a20c2b69d1649553abaf16252fbf3f08c1b8c577a6e81d95bdb1
+    passe1=43937ca805d73e66d167b9c1ec7b65828acf42528f006434620d0e6c1485995b
+    passe2=43937ca805d73e66d167b9c1ec7b65828acf42528f006434620d0e6c1485995b
   artifacts/cells_relief_g6.json: match=True
-    passe1=df25948706b91868df027df463e7ec5d0f6015b74401413ff405cf1b32d20b20
-    passe2=df25948706b91868df027df463e7ec5d0f6015b74401413ff405cf1b32d20b20
+    passe1=da523673153baeeaf1cd28659d46292f2c2e2f23e7ddff09dad2fe99194905b2
+    passe2=da523673153baeeaf1cd28659d46292f2c2e2f23e7ddff09dad2fe99194905b2
   artifacts/passes_g6.json: match=True
-    passe1=b7733d28d68df3df7ae2374087932bf5e09c2a9476b0e027e1a0fad1a426dad1
-    passe2=b7733d28d68df3df7ae2374087932bf5e09c2a9476b0e027e1a0fad1a426dad1
+    passe1=23a098e3f80de4c83733d12a69cf469b30f9f1b93764387aa1585a9aeb59e06a
+    passe2=23a098e3f80de4c83733d12a69cf469b30f9f1b93764387aa1585a9aeb59e06a
   artifacts/stats_g6.json: match=True
-    passe1=30d72dd46136abf8321bb0661156efcbc7c4568cf48098062fcb6f64101583f1
-    passe2=30d72dd46136abf8321bb0661156efcbc7c4568cf48098062fcb6f64101583f1
+    passe1=93d8676b19cb4366529013b354c6a8a40e666084fbb4a73e524f383c42fdf2e5
+    passe2=93d8676b19cb4366529013b354c6a8a40e666084fbb4a73e524f383c42fdf2e5
   capture/v1_052_barriers_passes.png: match=True
-    passe1=486a00c10171cf5ad1e5e96975c32518ba63be0c65910a151917402048e39365
-    passe2=486a00c10171cf5ad1e5e96975c32518ba63be0c65910a151917402048e39365
+    passe1=7be6ae97efb7e485dfea8e74f3c59f1e29ac9dbc9a0fc621b7c36a187a8b1100
+    passe2=7be6ae97efb7e485dfea8e74f3c59f1e29ac9dbc9a0fc621b7c36a187a8b1100
   capture/v1_052_elevation_window.png: match=True
-    passe1=231d988e9299b19f3cb62ad1d6503034e7f2b8184e04569dd05351041042a215
-    passe2=231d988e9299b19f3cb62ad1d6503034e7f2b8184e04569dd05351041042a215
+    passe1=ae046aad3a90c77d3d0ccf870e6f9ecbd150bc723816b2188a3de1e48a7a1273
+    passe2=ae046aad3a90c77d3d0ccf870e6f9ecbd150bc723816b2188a3de1e48a7a1273
   registry/relief_registry.json: match=True
-    passe1=7b062564d3f65cf094e01538f2aed9a874890d10bb9541d36eb23a36cd12f693
-    passe2=7b062564d3f65cf094e01538f2aed9a874890d10bb9541d36eb23a36cd12f693
+    passe1=7163564e512524ba9d46cb08e172c6bd586eee230785aa8f90a9790f37061c6d
+    passe2=7163564e512524ba9d46cb08e172c6bd586eee230785aa8f90a9790f37061c6d
 
 === faits structurels mesures ===
   barrier_count_positif: True
@@ -79,6 +94,6 @@ projection: EPSG:3035 (fallback=False)
   passes_nommes_dans_fourchette: True
 
 captures: {"elevation_window": "/home/hermes/src/ForgeHistory/.forgepilot/worktrees/024-geo-relief-g6/pipeline/geo/capture/v1_052_elevation_window.png", "barriers_passes": "/home/hermes/src/ForgeHistory/.forgepilot/worktrees/024-geo-relief-g6/pipeline/geo/capture/v1_052_barriers_passes.png"}
-duree totale de la preuve: 2096.746 s
+duree totale de la preuve: 3185.287 s
 
-MESURE : 596 cellules, barrieres=14 passes=14, cols nommes=2/9 ; 6/6 controles verts et rouges constates ; deux passes identiques en SHA256=OK sur 8 fichiers
+MESURE : 596 cellules, barrieres=31 passes=31, cols nommes=2/9 ; 6/6 controles verts et rouges constates ; deux passes identiques en SHA256=OK sur 8 fichiers
