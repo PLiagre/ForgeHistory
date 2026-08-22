@@ -34,7 +34,7 @@ from constants import (  # noqa: E402
 )
 from io_util import sha256_file, write_json  # noqa: E402
 from qa.checks import run_g6_green  # noqa: E402
-from tests.test_qa_red_g6 import run_all_red_g6  # noqa: E402
+from tests.test_qa_red_g6 import run_all_red_g6, run_amendment_red_g6  # noqa: E402
 
 LOGS = ROOT / "logs"
 ARTIFACTS = ROOT / "artifacts"
@@ -108,6 +108,9 @@ def main() -> int:
         base_cell_ids=base_cell_ids,
         sha_pairs=sha_pairs,
     )
+    required_doc = relief.load_required_tile_set()
+    amend_reds = run_amendment_red_g6(required_tiles=sorted(required_doc))
+    amend_ok = all(bool(v.get("became_red")) for v in amend_reds.values())
 
     checks_out = []
     all_green_ok = True
@@ -145,7 +148,7 @@ def main() -> int:
         <= len(G6_KNOWN_PASSES),
     }
     structural_ok = all(structural.values())
-    ok = all_green_ok and all_red_ok and determinism_match and structural_ok
+    ok = all_green_ok and all_red_ok and determinism_match and structural_ok and amend_ok
 
     qa_report = {
         "pipeline_version": G6_PIPELINE_VERSION,
@@ -173,8 +176,37 @@ def main() -> int:
             "passes_nommes_trouves": metrics["passes_nommes_trouves"],
             "below_0_land_km2": metrics["below_0_land_km2"],
             "echantillons_exclus_hors_plage": metrics["echantillons_exclus_hors_plage"],
+            "echantillons_hors_couverture_dem": metrics.get("echantillons_hors_couverture_dem"),
+            "echantillons_nodata_raster": metrics.get("echantillons_nodata_raster"),
+            "points_lus_grille": metrics.get("points_lus_grille"),
+            "points_lus_centroides": metrics.get("points_lus_centroides"),
+            "points_lus_frontieres": metrics.get("points_lus_frontieres"),
+            "cellules_non_mesurees": metrics.get("cellules_non_mesurees"),
+            "barrieres_par_zone_nommee": metrics.get("barrieres_par_zone_nommee"),
+            "zones_hautes_sous_une_zone_basse": metrics.get("zones_hautes_sous_une_zone_basse"),
             "elev_distribution": metrics["elev_distribution"],
         },
+        "amendment_reds": amend_reds,
+        "cas_rouges_amendement_non_vides": sum(
+            1 for v in amend_reds.values() if v.get("became_red")
+        ),
+        "tuiles_bornes_nom_vs_raster_egales": context.get("dem_report", {}).get(
+            "tuiles_bornes_nom_vs_raster_egales"
+        ),
+        "tuiles_bornes_verifiees": context.get("dem_report", {}).get(
+            "tuiles_bornes_verifiees"
+        ),
+        "registrement_dem_mesure": metrics.get("registrement_dem_mesure"),
+        "tuiles_regle_domaine_conforme": metrics.get("tuiles_regle_domaine_conforme"),
+        "lectures_hors_bornes_du_fichier": metrics.get("lectures_hors_bornes_du_fichier"),
+        "points_de_bord_multi_tuiles": metrics.get("points_de_bord_multi_tuiles"),
+        "points_de_bord_valeurs_concordantes": metrics.get(
+            "points_de_bord_valeurs_concordantes"
+        ),
+        "cellules_altitude_min_nulle": metrics.get("cellules_altitude_min_nulle"),
+        "cellules_sans_littoral_lectures_zero": metrics.get(
+            "cellules_sans_littoral_lectures_zero"
+        ),
         "dem": context.get("dem_report", {}),
     }
     write_json(LOGS / "v1_052_qa.json", qa_report)
@@ -197,6 +229,12 @@ def main() -> int:
         "=== relief par cellule (D3-D5) ===",
         f"  cell_count: {metrics['cell_count']}",
         f"  echantillons_exclus_hors_plage: {metrics['echantillons_exclus_hors_plage']}",
+        f"  echantillons_hors_couverture_dem: {metrics.get('echantillons_hors_couverture_dem')}",
+        f"  echantillons_nodata_raster: {metrics.get('echantillons_nodata_raster')}",
+        f"  points_lus_grille: {metrics.get('points_lus_grille')}",
+        f"  points_lus_centroides: {metrics.get('points_lus_centroides')}",
+        f"  points_lus_frontieres: {metrics.get('points_lus_frontieres')}",
+        f"  cellules_non_mesurees: {metrics.get('cellules_non_mesurees')}",
         f"  elev_distribution: {metrics['elev_distribution']}",
         f"  below_0_land_km2: {metrics['below_0_land_km2']}",
         "",
@@ -205,15 +243,12 @@ def main() -> int:
         f"  pass_count: {metrics['pass_count']}",
         f"  passes_nommes_trouves: {metrics['passes_nommes_trouves']}"
         f" / {len(G6_KNOWN_PASSES)}",
+        f"  barrieres_par_zone_nommee: {metrics.get('barrieres_par_zone_nommee')}",
+        f"  zones_hautes_sous_une_zone_basse: {metrics.get('zones_hautes_sous_une_zone_basse')}",
         "",
-        "=== captures regardees ===",
-        "  v1_052_elevation_window.png : altitude moyenne par cellule sur la",
-        "  fenetre pilote (palette terrain continue, pas un hillshade — A12 hors",
-        "  portee). Les massifs (Alpes, Pyrenees, Massif central) ressortent",
-        "  en teintes claires ; plaines et bassins en vert/jaune bas.",
-        "  v1_052_barriers_passes.png : zoom Pyrenees/Alpes — traits rouges =",
-        "  aretes barriere relief ; etoiles vertes = cols nommes (G6_KNOWN_PASSES),",
-        "  croix bleues = cols derives g6_derived_*.",
+        "=== captures produites ===",
+        f"  elevation_window: {run2['captures'].get('elevation_window', '')}",
+        f"  barriers_passes: {run2['captures'].get('barriers_passes', '')}",
         "",
         "=== controles verts (donnee saine) ===",
     ]
@@ -227,6 +262,12 @@ def main() -> int:
     for qid in ("Q10", "G6-A", "G6-B", "G6-C", "G6-D", "G6-E"):
         lines.append(
             f"  {qid}: became_red={reds[qid]['became_red']} case={reds[qid]['case']}"
+        )
+    lines.append("")
+    lines.append("=== cas rouges amendement (7/7) ===")
+    for qid, proof in amend_reds.items():
+        lines.append(
+            f"  {qid}: became_red={proof['became_red']} case={proof['case']}"
         )
     lines.append("")
     lines.append("=== determinisme SHA256 (passe 1 vs passe 2) ===")
