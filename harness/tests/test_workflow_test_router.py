@@ -72,6 +72,16 @@ def test_g6_certify_plans_one_explicit_heavy_command():
     assert plan["heavy_commands"] == ["g6-europe-certification"]
 
 
+def test_g6_sources_lock_routes_to_the_sentinel_instead_of_refusing():
+    plan = router.build_plan(
+        REPO_ROOT,
+        ["pipeline/geo/sources.lock"],
+        "fast",
+    )
+    assert _ids(plan) == ["git-diff-check", "g6-sentinel"]
+    assert plan["assignments"]["pipeline/geo/sources.lock"] == ["geo-g6"]
+
+
 def test_unknown_sensitive_geo_path_fails_closed():
     with pytest.raises(router.TestRouterError, match="sans règle"):
         router.build_plan(

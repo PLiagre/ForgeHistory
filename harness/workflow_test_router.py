@@ -77,7 +77,7 @@ RULES = (
             "pipeline/geo/tests/*g6*.py",
             "pipeline/geo/artifacts/*g6*.json",
             "pipeline/geo/registry/*relief*.json",
-            "pipeline/geo/sources/sources.lock",
+            "pipeline/geo/sources.lock",
             "pipeline/geo/sources/*dem*",
             "pipeline/geo/tools/*dem*.py",
         ),
