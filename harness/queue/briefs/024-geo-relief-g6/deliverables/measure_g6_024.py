@@ -2,8 +2,7 @@
 """Mesure rejouable des compteurs du brief 024 (G6 — relief).
 
 Chaque compteur est imprimé avec **son dénominateur**, dérivé à l'exécution
-des artefacts, des journaux, des constantes et de l'état git. Aucune valeur
-n'est écrite à la main ici.
+des artefacts, du manifeste, des journaux, des constantes et de l'état git.
 
 Usage, depuis la racine du dépôt :
   .venv/bin/python harness/queue/briefs/024-geo-relief-g6/deliverables/measure_g6_024.py
@@ -28,16 +27,22 @@ REGISTRY = GEO / "registry"
 LOCK = GEO / "sources.lock"
 CACHE = GEO / "sources" / "dem_cache"
 BRIEF = REPO / "harness" / "queue" / "briefs" / "024-geo-relief-g6"
+MANIFEST_PATH = BRIEF / "deliverables" / "manifest.json"
+PRE_EDIT_LOCK = BRIEF / "deliverables" / "pre-edit" / "pipeline-geo-sources.lock.orig"
+EVAL_RUBRIC = BRIEF / "eval-rubric.md"
+GEN_LOG = BRIEF / "deliverables" / "generator-log.md"
 PY = REPO / ".venv" / "bin" / "python"
 
 NOT_COMPUTED = -1
 BASE_REF = "origin/master"
 
 ROWS: list[tuple[str, object, str]] = []
+MEASURED: dict[str, object] = {}
 
 
 def report(name: str, value: object, denominator: str) -> None:
     ROWS.append((name, value, denominator))
+    MEASURED[name] = value
 
 
 def sha256_of(path: Path) -> str:
@@ -45,7 +50,7 @@ def sha256_of(path: Path) -> str:
 
 
 def load(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def git(*args: str) -> str:
@@ -76,6 +81,137 @@ def git_porcelain(*paths: str) -> list[str] | int:
     return [line.strip() for line in out.splitlines() if line.strip()]
 
 
+def manifest_proof_paths() -> list[str]:
+    manifest = load(MANIFEST_PATH)
+    paths: list[str] = []
+    base = MANIFEST_PATH.parent.parent  # racine du brief, pas deliverables/
+    for entry in manifest.get("files", []):
+        rel = entry.get("path", "")
+        if not rel:
+            continue
+        resolved = (base / rel).resolve()
+        try:
+            paths.append(str(resolved.relative_to(REPO)).replace("\\", "/"))
+        except ValueError:
+            paths.append(str(resolved))
+    return paths
+
+
+def git_tracked_proofs(proof_paths: list[str]) -> tuple[int, int]:
+    try:
+        tracked = set(git("ls-files", "--", *proof_paths).splitlines())
+        missing = len(proof_paths) - len(tracked)
+        return len(tracked), missing
+    except RuntimeError:
+        return NOT_COMPUTED, NOT_COMPUTED
+
+
+def count_raster_synthesis_functions() -> int:
+    """Fonctions du dépôt capables d'écrire ou synthétiser un raster DEM (D20).
+
+    Dérivation par AST : définitions nommées ``synthes*``, ``*_from_bounds`` hors
+    détection CRS, et appels ``rasterio.open(..., mode=écriture)`` — pas de grep
+    lexical sur ``from_bounds`` (faux positif ``detect_crs_from_bounds``).
+    """
+    import ast
+
+    geo = REPO / "pipeline" / "geo"
+    write_modes = frozenset({"w", "a", "w+", "r+"})
+    hits: set[tuple[str, str]] = set()
+
+    for path in sorted(geo.rglob("*.py")):
+        rel = path.relative_to(geo).as_posix()
+        if rel.startswith("tests/test_qa_red") or "__pycache__" in rel:
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        except SyntaxError:
+            continue
+
+        for node in tree.body:
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            name = node.name
+            if "synthes" in name.lower():
+                hits.add((rel, name))
+                continue
+            if name.endswith("_from_bounds") and not name.startswith("detect_crs"):
+                hits.add((rel, name))
+                continue
+
+            for child in ast.walk(node):
+                if not isinstance(child, ast.Call):
+                    continue
+                func = child.func
+                if not (
+                    isinstance(func, ast.Attribute)
+                    and func.attr == "open"
+                    and isinstance(func.value, ast.Name)
+                    and func.value.id == "rasterio"
+                ):
+                    continue
+                mode: str | None = None
+                if len(child.args) >= 2 and isinstance(child.args[1], ast.Constant):
+                    mode = str(child.args[1].value)
+                for kw in child.keywords:
+                    if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
+                        mode = str(kw.value.value)
+                if mode in write_modes:
+                    hits.add((rel, name))
+                    break
+
+    return len(hits)
+
+
+def cache_files_hors_lock() -> list[str]:
+    lock = load(LOCK)
+    lock_names = set(lock["dem"]["tiles"])
+    extra: list[str] = []
+    if not CACHE.is_dir():
+        return extra
+    for path in CACHE.rglob("*.tif"):
+        if path.name not in lock_names:
+            extra.append(str(path))
+    return sorted(extra)
+
+
+def parse_journal_counters(text: str) -> dict[str, object]:
+    found: dict[str, object] = {}
+    for line in text.splitlines():
+        m = re.match(r"^-\s*`([^`]+)`\s*=\s*(.+)$", line.strip())
+        if not m:
+            continue
+        key = m.group(1).strip()
+        raw = m.group(2).strip()
+        if "/" in raw and re.match(r"^[\d\s]+/", raw):
+            num = raw.split("/", 1)[0].strip()
+            try:
+                found[key] = int(num)
+            except ValueError:
+                found[key] = num
+        elif re.match(r"^-?\d+$", raw):
+            found[key] = int(raw)
+        elif re.match(r"^-?\d+\.\d+$", raw):
+            found[key] = float(raw)
+        else:
+            found[key] = raw
+    return found
+
+
+def compare_journal_to_measure(journal: dict[str, object]) -> int:
+    matches = 0
+    for key, jval in journal.items():
+        if key not in MEASURED:
+            continue
+        mval = MEASURED[key]
+        if isinstance(jval, (int, float)) and isinstance(mval, (int, float)):
+            if float(jval) == float(mval):
+                matches += 1
+        elif str(jval) == str(mval):
+            matches += 1
+    return matches
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="compteurs mesures du brief 024")
     parser.add_argument("--rerun-proof", action="store_true")
@@ -83,18 +219,25 @@ def main() -> int:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
+    proof_paths = manifest_proof_paths()
+    tracked_count, missing_count = git_tracked_proofs(proof_paths)
+
     lock = load(LOCK)
     dem_tiles = lock["dem"]["tiles"]
     expected_tile_count = int(lock["dem"]["tile_count"])
     expected_collective = lock["dem"]["collective_sha256"]
+    orig_dem_licence = lock["dem"]["licence"]
 
-    req_doc = load(ART / "dem_required_tiles_g6.json") if (ART / "dem_required_tiles_g6.json").is_file() else {}
+    req_doc = (
+        load(ART / "dem_required_tiles_g6.json")
+        if (ART / "dem_required_tiles_g6.json").is_file()
+        else {}
+    )
     req_tiles = req_doc.get("tuiles_requises") or []
     req_counts = req_doc.get("comptes") or {}
 
     cells_g3 = load(ART / "cells_g3.json")["cells"]
-    relief_doc = load(ART / "cells_relief_g6.json")
-    cell_relief = relief_doc["cells"]
+    cell_relief = load(ART / "cells_relief_g6.json")["cells"]
     adj5 = load(ART / "adjacency_g5.json")["adjacency"]
     adj6 = load(ART / "adjacency_g6.json")["adjacency"]
     passes = load(ART / "passes_g6.json")["passes"]
@@ -103,17 +246,27 @@ def main() -> int:
 
     verified = 0
     tile_shas: dict[str, str] = {}
+    sha_mismatch = 0
     for tile_name in sorted(dem_tiles):
         meta = dem_tiles[tile_name]
         stem = Path(tile_name).stem
         path = CACHE / stem / tile_name
-        if path.is_file() and sha256_of(path) == meta["sha256"]:
-            verified += 1
-            tile_shas[tile_name] = meta["sha256"]
+        if path.is_file():
+            actual = sha256_of(path)
+            if actual == meta["sha256"]:
+                verified += 1
+                tile_shas[tile_name] = meta["sha256"]
+            else:
+                sha_mismatch += 1
 
     report(
         "tuiles_verifiees",
         verified,
+        f"{expected_tile_count} = len(dem.tiles) dans sources.lock",
+    )
+    report(
+        "sha256_saisis_a_la_main",
+        sha_mismatch,
         f"{expected_tile_count} = len(dem.tiles) dans sources.lock",
     )
     report(
@@ -122,22 +275,38 @@ def main() -> int:
         "len(tuiles_requises) dans dem_required_tiles_g6.json",
     )
     report(
+        "tuiles_presentes_dans_le_lock",
+        expected_tile_count,
+        f"{len(req_tiles)} tuiles requises derivees",
+    )
+    report(
         "tuiles_manquantes",
         int(req_counts.get("tuiles_manquantes", NOT_COMPUTED)),
-        "comptes.tuiles_manquantes dans dem_required_tiles_g6.json",
+        f"{len(req_tiles)} tuiles requises",
     )
     report(
         "tuiles_excedentaires_restantes",
         int(req_counts.get("tuiles_excedentaires", NOT_COMPUTED)),
-        "comptes.tuiles_excedentaires dans dem_required_tiles_g6.json",
+        f"{expected_tile_count} = len(dem.tiles) dans sources.lock",
     )
+    report(
+        "tuiles_ajoutees",
+        len(req_doc.get("tuiles_ajoutees") or []),
+        f"{len(req_tiles)} tuiles requises",
+    )
+    report(
+        "tuiles_excedentaires_retirees",
+        len(req_doc.get("tuiles_excedentaires_retirees") or []),
+        "tuiles de l'instantane pre-edition",
+    )
+
     avail_path = ART / "dem_tile_availability_g6.json"
     if avail_path.is_file():
         avail = load(avail_path)
         report(
             "tuiles_requises_absentes_du_depot_public",
             len(avail.get("tuiles_absentes_du_depot_public") or []),
-            "len(tuiles_absentes_du_depot_public) dans dem_tile_availability_g6.json",
+            f"{len(req_tiles)} tuiles requises",
         )
     else:
         report(
@@ -145,6 +314,33 @@ def main() -> int:
             NOT_COMPUTED,
             "dem_tile_availability_g6.json absent",
         )
+
+    lock_avail_path = ART / "dem_tile_availability_lock_g6.json"
+    if lock_avail_path.is_file():
+        lock_avail = load(lock_avail_path)
+        report(
+            "tuiles_du_lock_absentes_du_depot_public",
+            len(lock_avail.get("tuiles_absentes_du_depot_public") or []),
+            f"{expected_tile_count} = len(dem.tiles) dans sources.lock",
+        )
+    else:
+        report(
+            "tuiles_du_lock_absentes_du_depot_public",
+            NOT_COMPUTED,
+            "dem_tile_availability_lock_g6.json absent",
+        )
+
+    extra_cache = cache_files_hors_lock()
+    report(
+        "fichiers_du_cache_hors_lock",
+        len(extra_cache),
+        "fichiers .tif presents dans sources/dem_cache/",
+    )
+    report(
+        "fonctions_de_synthese_de_tuile",
+        count_raster_synthesis_functions(),
+        "1 ; doit valoir 0",
+    )
 
     if verified == expected_tile_count:
         payload = "".join(f"{n}{tile_shas[n]}" for n in sorted(tile_shas))
@@ -157,6 +353,35 @@ def main() -> int:
         int(collective_ok),
         "1 si empreinte recalculee == dem.collective_sha256 de sources.lock",
     )
+    report(
+        "recettes_collectives_essayees",
+        int(qa.get("dem", {}).get("recettes_collectives_essayees", NOT_COMPUTED)),
+        "1 ; doit valoir 1",
+    )
+
+    if PRE_EDIT_LOCK.is_file():
+        pre = load(PRE_EDIT_LOCK)
+        cur = load(LOCK)
+        unchanged = sum(
+            1 for k in pre if k != "dem" and cur.get(k) == pre[k]
+        )
+        report(
+            "blocs_sources_lock_hors_dem_inchanges",
+            unchanged,
+            f"{len([k for k in pre if k != 'dem'])} objets hors dem dans l'instantane",
+        )
+        report(
+            "dem_licence_inchangee",
+            int(cur["dem"]["licence"] == pre["dem"]["licence"]),
+            "1 ; doit valoir 1",
+        )
+    else:
+        report(
+            "blocs_sources_lock_hors_dem_inchanges",
+            NOT_COMPUTED,
+            "instantane pre-edition absent",
+        )
+        report("dem_licence_inchangee", NOT_COMPUTED, "instantane pre-edition absent")
 
     sans_echantillon = sum(
         1 for c in cell_relief if int(c.get("sample_count") or 0) <= 0
@@ -184,8 +409,22 @@ def main() -> int:
         ("echantillons_valeur_zero_exact", f"{total_reads} lectures d'altitude"),
         ("cellules_altitude_min_nulle", f"{len(cells_g3)} cellules"),
         ("points_sur_ligne_de_degre", f"{total_reads} lectures d'altitude"),
+        ("couverture_grille", stats.get("couverture_grille", NOT_COMPUTED)),
+        ("couverture_centroides", f"{len(cells_g3)} centroïdes"),
+        ("couverture_frontieres", stats.get("couverture_frontieres", NOT_COMPUTED)),
     ]:
         report(key, stats.get(key, NOT_COMPUTED), denom)
+
+    report(
+        "points_de_bord_multi_tuiles",
+        stats.get("points_de_bord_multi_tuiles", NOT_COMPUTED),
+        "points de bord a plusieurs tuiles indexantes",
+    )
+    report(
+        "points_de_bord_valeurs_concordantes",
+        stats.get("points_de_bord_valeurs_concordantes", NOT_COMPUTED),
+        f"{stats.get('points_de_bord_multi_tuiles', NOT_COMPUTED)} points multi-tuiles",
+    )
 
     land_sea_cells: set[int] = set()
     for edge in adj5:
@@ -214,6 +453,11 @@ def main() -> int:
         "registrement_dem_mesure",
         stats.get("registrement_dem_mesure", NOT_COMPUTED),
         "nom du registrement mesure dans stats_g6.json",
+    )
+    report(
+        "demi_pixel_deg",
+        stats.get("demi_pixel_deg", NOT_COMPUTED),
+        "demi-pixel mesure dans stats_g6.json",
     )
     report(
         "tuiles_bornes_nom_vs_raster_egales",
@@ -349,48 +593,26 @@ def main() -> int:
         "1 si sources/dem_cache/ apparait comme ignore par git status --porcelain --ignored",
     )
 
-    declared_proofs = [
-        "pipeline/geo/steps/06_relief.py",
-        "pipeline/geo/tools/fetch_dem_tiles.py",
-        "pipeline/geo/tools/required_dem_tiles.py",
-        "pipeline/geo/tests/run_proof_g6.py",
-        "pipeline/geo/tests/test_qa_red_g6.py",
-        "pipeline/geo/artifacts/cells_relief_g6.json",
-        "pipeline/geo/artifacts/adjacency_g6.json",
-        "pipeline/geo/artifacts/passes_g6.json",
-        "pipeline/geo/artifacts/stats_g6.json",
-        "pipeline/geo/artifacts/MANIFEST_g6.json",
-        "pipeline/geo/artifacts/dem_required_tiles_g6.json",
-        "pipeline/geo/artifacts/dem_tile_availability_g6.json",
-        "pipeline/geo/sources.lock",
-        "pipeline/geo/registry/relief_registry.json",
-        "pipeline/geo/logs/v1_052_qa.json",
-        "pipeline/geo/logs/v1_052_relief.log",
-        "pipeline/geo/capture/v1_052_elevation_window.png",
-        "pipeline/geo/capture/v1_052_barriers_passes.png",
-    ]
-    try:
-        tracked = set(git("ls-files", *declared_proofs).splitlines())
-        report(
-            "fichiers_preuve_suivis_par_git",
-            len(tracked),
-            f"{len(declared_proofs)} preuves declarees sous pipeline/geo/ (git ls-files)",
-        )
-        report(
-            "preuves_manquantes_dans_git",
-            len(declared_proofs) - len(tracked),
-            f"{len(declared_proofs)} preuves dans manifest.json",
-        )
-    except RuntimeError as exc:
+    if tracked_count == NOT_COMPUTED:
         report(
             "fichiers_preuve_suivis_par_git",
             NOT_COMPUTED,
-            f"git ls-files a echoue : {exc}",
+            "git ls-files a echoue",
         )
         report("preuves_manquantes_dans_git", NOT_COMPUTED, "git ls-files a echoue")
+    else:
+        report(
+            "fichiers_preuve_suivis_par_git",
+            tracked_count,
+            f"{len(proof_paths)} preuves declarees dans deliverables/manifest.json",
+        )
+        report(
+            "preuves_manquantes_dans_git",
+            missing_count,
+            f"{len(proof_paths)} preuves dans manifest.json",
+        )
 
-    gen_log_path = BRIEF / "deliverables" / "generator-log.md"
-    gen_text = gen_log_path.read_text(encoding="utf-8") if gen_log_path.is_file() else ""
+    gen_text = GEN_LOG.read_text(encoding="utf-8") if GEN_LOG.is_file() else ""
     recevabilite_phrases = [
         "tous conformes aux sc",
         "conformes aux sc",
@@ -404,6 +626,23 @@ def main() -> int:
         "conclusions_de_recevabilite_dans_le_journal",
         conclusions,
         "1 si le journal contenait une conclusion de recevabilite",
+    )
+
+    journal_counters = parse_journal_counters(gen_text)
+    journal_matches = compare_journal_to_measure(journal_counters)
+    comparable = sum(1 for k in journal_counters if k in MEASURED)
+    report(
+        "compteurs_du_journal_egaux_a_la_mesure",
+        journal_matches,
+        f"{comparable} compteurs compares entre journal et mesure",
+    )
+
+    rubric_text = EVAL_RUBRIC.read_text(encoding="utf-8") if EVAL_RUBRIC.is_file() else ""
+    rubric_amended = int("2026-08-22" in rubric_text and "amend" in rubric_text.lower())
+    report(
+        "rubrique_amendee_apres_revue",
+        rubric_amended,
+        "1 si eval-rubric.md porte l'amendement 2026-08-22",
     )
 
     g3_ids = sorted(int(c["cell_id"]) for c in cells_g3)

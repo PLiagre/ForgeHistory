@@ -60,6 +60,21 @@ def main() -> int:
             geom = geom.buffer(0)
         cell_geoms[int(cell["cell_id"])] = geom
 
+    lock = read_json(LOCK_PATH)
+    lock_tiles = set(lock["dem"]["tiles"])
+    fetch_path = ROOT / "tools" / "fetch_dem_tiles.py"
+    import importlib.util
+
+    fspec = importlib.util.spec_from_file_location("fetch_req", fetch_path)
+    fetch = importlib.util.module_from_spec(fspec)
+    assert fspec.loader is not None
+    fspec.loader.exec_module(fetch)
+    sample_tile = sorted(lock_tiles)[0]
+    _, half_px_lon, _ = relief.measure_tile_registration(
+        fetch.tile_cache_path(sample_tile)
+    )
+    tile_resolver = relief.DemSampler(fetch.CACHE_DIR, lock_tiles, set())
+
     grid_points = 0
     centroid_points = 0
     frontier_points = 0
@@ -69,13 +84,20 @@ def main() -> int:
     lon_min = lon_max = lat_min = lat_max = None
     required: Set[str] = set()
     required_nominal: Set[str] = set()
+    retired_by_rule: Set[str] = set()
+    added_by_rule: Set[str] = set()
 
     def note_point(lon: float, lat: float, family: str) -> None:
         nonlocal lon_min, lon_max, lat_min, lat_max
         nonlocal points_sur_ligne_grille, points_sur_ligne_centroides
         nonlocal points_sur_ligne_frontieres
-        required.add(relief.lonlat_to_tile_name(lon, lat))
-        required_nominal.add(relief.lonlat_to_tile_name_nominal(lon, lat))
+        canonical = tile_resolver._resolve_tile_name(lon, lat)
+        nominal = relief.lonlat_to_tile_name_nominal(lon, lat)
+        required.add(canonical)
+        required_nominal.add(nominal)
+        if relief.is_degree_line_point(lon, lat) and canonical != nominal:
+            retired_by_rule.add(nominal)
+            added_by_rule.add(canonical)
         if relief.is_degree_line_point(lon, lat):
             if family == "grille":
                 points_sur_ligne_grille += 1
@@ -108,8 +130,6 @@ def main() -> int:
         frontier_points += 1
         note_point(lon, lat, "frontiere")
 
-    lock = read_json(LOCK_PATH)
-    lock_tiles = set(lock["dem"]["tiles"])
     present = required & lock_tiles
     missing = sorted(required - lock_tiles)
     excess = sorted(lock_tiles - required)
@@ -121,8 +141,8 @@ def main() -> int:
     tuiles_excedentaires_retirees = (
         sorted(pre_edit_tiles - set(lock["dem"]["tiles"])) if pre_edit_tiles else []
     )
-    tuiles_retirees_par_la_regle_de_domaine = sorted(required_nominal - required)
-    tuiles_ajoutees_par_la_regle_de_domaine = sorted(required - required_nominal)
+    tuiles_retirees_par_la_regle_de_domaine = sorted(retired_by_rule)
+    tuiles_ajoutees_par_la_regle_de_domaine = sorted(added_by_rule)
 
     doc = {
         "tuiles_requises": sorted(required),
@@ -182,6 +202,7 @@ def main() -> int:
     )
     print(f"emprise: lon=[{lon_min}, {lon_max}] lat=[{lat_min}, {lat_max}]")
     print(f"artefact: {OUTPUT}")
+    tile_resolver.close()
     return 0
 
 

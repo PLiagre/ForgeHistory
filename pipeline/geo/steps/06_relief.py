@@ -73,9 +73,10 @@ class DemCounters:
         self.points_sur_ligne_degre_grille = 0
         self.points_sur_ligne_degre_centroides = 0
         self.points_sur_ligne_degre_frontieres = 0
-        self.cell_1492_readings: List[dict] = []
+        self.cell_zero_readings: List[dict] = []
         self.points_de_bord_multi_tuiles = 0
         self.points_de_bord_valeurs_concordantes = 0
+        self.cells_with_raw_zero_sample: Set[int] = set()
 
 
 def _load_fetch_dem():
@@ -143,10 +144,22 @@ def _format_tile_name(lon_i: int, lat_i: int) -> str:
     return f"Copernicus_DSM_COG_30_{lat_str}_{lon_str}_DEM.tif"
 
 
-def lonlat_to_tile_name(lon: float, lat: float) -> str:
-    """Tuile canonique D19 : plancher(lon), plafond(lat) − 1."""
+def lonlat_to_tile_name(lon: float, lat: float, half_pixel_deg: float = 0.0) -> str:
+    """Tuile canonique D19 : plancher(lon), plafond(lat) − 1.
+
+    Avec registrement pixel_point (D22), les points dans la bande sud d'un
+    demi-pixel sous chaque ligne de degré sont attribués à la tuile du sud ;
+    ceux dans la bande est d'un demi-pixel avant chaque méridien sont attribués
+    à la tuile de l'est — sans repli ni recherche de voisines.
+    """
     lon_i = math.floor(lon)
     lat_i = math.ceil(lat) - 1
+    if half_pixel_deg > 0.0:
+        if lat <= lat_i + half_pixel_deg + 1e-12:
+            lat_i -= 1
+        lon_east_edge = lon_i + 1
+        if lon >= lon_east_edge - half_pixel_deg - 1e-12 and lon < lon_east_edge:
+            lon_i += 1
     return _format_tile_name(lon_i, lat_i)
 
 
@@ -207,7 +220,9 @@ def pixel_indices_in_bounds(ds, lon: float, lat: float) -> Tuple[int, int]:
     return int(row), int(col)
 
 
-def verify_tile_domain_rule(tile_name: str, path: Path) -> bool:
+def verify_tile_domain_rule(
+    tile_name: str, path: Path, half_pixel_deg: float = 0.0
+) -> bool:
     """D19 : la règle coïncide avec le domaine indexable du fichier."""
     import rasterio
 
@@ -224,17 +239,36 @@ def verify_tile_domain_rule(tile_name: str, path: Path) -> bool:
     tested = 0
     with rasterio.open(path) as ds:
         for lon, lat in test_points:
-            if lonlat_to_tile_name(lon, lat) != tile_name:
+            if lonlat_to_tile_name(lon, lat, half_pixel_deg) != tile_name:
                 continue
             tested += 1
             row, col = pixel_indices_in_bounds(ds, lon, lat)
             if not (0 <= row < ds.height and 0 <= col < ds.width):
                 return False
+        # Latitude entière : la tuile nord nommée ne doit pas indexer le point.
+        if lat_max == int(lat_max) and lat_max > lat_min:
+            lat_int = float(int(lat_max))
+            lon_mid = (lon_min + lon_max) / 2
+            north_name = _format_tile_name(
+                int(math.floor(lon_mid)), int(math.floor(lat_int))
+            )
+            if north_name == tile_name:
+                row_n, col_n = pixel_indices_in_bounds(ds, lon_mid, lat_int)
+                if 0 <= row_n < ds.height and 0 <= col_n < ds.width:
+                    return False
+            south_name = lonlat_to_tile_name(lon_mid, lat_int, half_pixel_deg)
+            if south_name == tile_name:
+                row_s, col_s = pixel_indices_in_bounds(ds, lon_mid, lat_int)
+                if row_s != 0:
+                    return False
     return tested > 0
 
 
 def verify_all_tiles_domain_rule(
-    tile_names: Sequence[str], cache_dir: Path, tile_path_fn
+    tile_names: Sequence[str],
+    cache_dir: Path,
+    tile_path_fn,
+    half_pixel_deg: float = 0.0,
 ) -> Tuple[int, int, str, float]:
     """Retourne (conformes, total, registrement_nom, demi_pixel_lon_echantillon)."""
     reg_name: Optional[str] = None
@@ -251,7 +285,7 @@ def verify_all_tiles_domain_rule(
             raise RuntimeError(
                 f"registrement heterogene: {tile_name}={rname} attendu={reg_name}"
             )
-        if verify_tile_domain_rule(tile_name, path):
+        if verify_tile_domain_rule(tile_name, path, half_pixel_deg):
             conformes += 1
     return conformes, len(tile_names), reg_name or "inconnu", half_px_sample
 
@@ -279,19 +313,28 @@ def assert_dem_coverage(required: Set[str], lock_tiles: Set[str]) -> None:
 class DemSampler:
     """Lecteur MNT avec cache LRU de handles rasterio."""
 
-    def __init__(self, cache_dir: Path, lock_tiles: Set[str], required: Set[str]) -> None:
+    def __init__(
+        self,
+        cache_dir: Path,
+        lock_tiles: Set[str],
+        required: Set[str],
+        half_pixel_deg: float = 0.0,
+    ) -> None:
         self.cache_dir = cache_dir
         self.lock_tiles = lock_tiles
         self.required = required
+        self.half_pixel_deg = half_pixel_deg
         self.counters = DemCounters()
         fetch = _load_fetch_dem()
         self._tile_paths: Dict[str, Tuple[float, float, float, float, Path]] = {}
+        self._tile_half_px: Dict[str, Tuple[float, float]] = {}
         for tile_name in sorted(lock_tiles):
             bounds = _tile_bounds_from_name(tile_name)
-            self._tile_paths[tile_name] = (
-                *bounds,
-                fetch.tile_cache_path(tile_name),
-            )
+            path = fetch.tile_cache_path(tile_name)
+            self._tile_paths[tile_name] = (*bounds, path)
+            if path.is_file():
+                _, hp_lon, hp_lat = measure_tile_registration(path)
+                self._tile_half_px[tile_name] = (hp_lon, hp_lat)
         self._datasets: OrderedDict[str, Any] = OrderedDict()
         self._nodata_by_tile: Dict[str, Optional[float]] = {}
 
@@ -328,22 +371,79 @@ class DemSampler:
         self._datasets[tile_name] = ds
         return ds
 
+    def _resolve_tile_name(self, lon: float, lat: float) -> str:
+        """Attribution D19 + bandes demi-pixel mesurées par tuile (D22)."""
+        lon_i = math.floor(lon)
+        lat_i = math.ceil(lat) - 1
+        south_name = _format_tile_name(lon_i, lat_i - 1)
+        hp_lat_s = self._tile_half_px.get(south_name, (self.half_pixel_deg, self.half_pixel_deg))[1]
+        if hp_lat_s > 0.0 and lat <= lat_i + hp_lat_s + 1e-12:
+            lat_i -= 1
+        lon_base = lon_i
+        tile = _format_tile_name(lon_i, lat_i)
+        hp_lon = self._tile_half_px.get(tile, (self.half_pixel_deg, self.half_pixel_deg))[0]
+        lon_east = lon_base + 1
+        if hp_lon > 0.0 and lon >= lon_east - hp_lon - 1e-12 and lon < lon_east:
+            lon_i += 1
+            tile = _format_tile_name(lon_i, lat_i)
+        return tile
+
     def _tile_for(self, lon: float, lat: float) -> str:
-        tile_name = lonlat_to_tile_name(lon, lat)
+        tile_name = self._resolve_tile_name(lon, lat)
         if tile_name not in self._tile_paths:
             raise RuntimeError(
                 f"hors couverture DEM: lon={lon} lat={lat} tuile_necessaire={tile_name}"
             )
         return tile_name
 
-    def _neighbor_tile_names(self, lon: float, lat: float) -> List[str]:
+    def _candidate_tiles_for_point(self, lon: float, lat: float) -> List[str]:
+        """Tuiles candidates susceptibles d'indexer le point (voisinage 3×3 + tuile nominale nord)."""
         lon_i = math.floor(lon)
         lat_i = math.ceil(lat) - 1
-        names: List[str] = []
+        south_name = _format_tile_name(lon_i, lat_i - 1)
+        hp_lat_s = self._tile_half_px.get(south_name, (self.half_pixel_deg, self.half_pixel_deg))[1]
+        if hp_lat_s > 0.0 and lat <= lat_i + hp_lat_s + 1e-12:
+            lat_i -= 1
+        lon_base = lon_i
+        tile = _format_tile_name(lon_i, lat_i)
+        hp_lon = self._tile_half_px.get(tile, (self.half_pixel_deg, self.half_pixel_deg))[0]
+        lon_east = lon_base + 1
+        if hp_lon > 0.0 and lon >= lon_east - hp_lon - 1e-12 and lon < lon_east:
+            lon_i += 1
+        names: Set[str] = set()
         for dlon in (-1, 0, 1):
             for dlat in (-1, 0, 1):
-                names.append(_format_tile_name(lon_i + dlon, lat_i + dlat))
-        return names
+                names.add(_format_tile_name(lon_i + dlon, lat_i + dlat))
+        if is_degree_line_point(lon, lat):
+            names.add(_format_tile_name(lon_i, math.floor(lat)))
+        return sorted(n for n in names if n in self.lock_tiles)
+
+    def _indexing_tiles(
+        self, lon: float, lat: float
+    ) -> List[Tuple[str, int, int, Optional[float]]]:
+        """Tuiles du lock qui indexent réellement le point (indices dans le tableau)."""
+        hits: List[Tuple[str, int, int, Optional[float]]] = []
+        for tile_name in self._candidate_tiles_for_point(lon, lat):
+            row, col, raw, ok = self._read_pixel(tile_name, lon, lat)
+            if ok:
+                hits.append((tile_name, row, col, raw))
+        return hits
+
+    def _compare_border_tiles(self, lon: float, lat: float) -> None:
+        """D19 : concorde des valeurs quand plusieurs tuiles indexent le point."""
+        hits = self._indexing_tiles(lon, lat)
+        if len(hits) <= 1:
+            return
+        values = [
+            round(float(v), 4)
+            for _t, _r, _c, v in hits
+            if v is not None
+        ]
+        if not values:
+            return
+        self.counters.points_de_bord_multi_tuiles += 1
+        if len(set(values)) == 1:
+            self.counters.points_de_bord_valeurs_concordantes += 1
 
     def _read_pixel(
         self, tile_name: str, lon: float, lat: float
@@ -393,35 +493,21 @@ class DemSampler:
                 f"lat={lat}{ctx}"
             )
 
+        if is_degree_line_point(lon, lat):
+            self._compare_border_tiles(lon, lat)
+
         row, col, raw, ok = self._read_pixel(tile_name, lon, lat)
         used_tile = tile_name
         if ok and raw is None:
             self.counters.echantillons_nodata_raster += 1
             return None
         if not ok:
-            alternates: List[Tuple[str, int, int, float]] = []
-            for alt in self._neighbor_tile_names(lon, lat):
-                if alt == tile_name or alt not in self.lock_tiles:
-                    continue
-                r2, c2, val2, ok2 = self._read_pixel(alt, lon, lat)
-                if ok2 and val2 is not None:
-                    alternates.append((alt, r2, c2, val2))
-                elif ok2 and val2 is None:
-                    self.counters.echantillons_nodata_raster += 1
-                    return None
-            if not alternates:
-                self.counters.lectures_hors_bornes_du_fichier += 1
-                raise RuntimeError(
-                    f"lecture hors bornes: lon={lon} lat={lat} tuile={tile_name} "
-                    f"row={row} col={col}"
-                    + (f" contexte={context}" if context else "")
-                )
-            if len(alternates) > 1:
-                self.counters.points_de_bord_multi_tuiles += 1
-                vals = {round(v, 4) for _t, _r, _c, v in alternates}
-                if len(vals) == 1:
-                    self.counters.points_de_bord_valeurs_concordantes += 1
-            used_tile, row, col, raw = alternates[0]
+            self.counters.lectures_hors_bornes_du_fichier += 1
+            raise RuntimeError(
+                f"lecture hors bornes: lon={lon} lat={lat} tuile={tile_name} "
+                f"row={row} col={col}"
+                + (f" contexte={context}" if context else "")
+            )
 
         nodata = self._nodata_by_tile.get(used_tile)
         if nodata is not None and raw == float(nodata):
@@ -429,17 +515,20 @@ class DemSampler:
             return None
         if raw == 0.0:
             self.counters.echantillons_valeur_zero_exact += 1
-        if cell_id == 1492 and len(self.counters.cell_1492_readings) < 3:
-            self.counters.cell_1492_readings.append(
-                {
-                    "lon": lon,
-                    "lat": lat,
-                    "tuile": used_tile,
-                    "row": row,
-                    "col": col,
-                    "valeur_brute_m": raw,
-                }
-            )
+            if cell_id is not None:
+                cid = int(cell_id)
+                self.counters.cells_with_raw_zero_sample.add(cid)
+                self.counters.cell_zero_readings.append(
+                    {
+                        "cell_id": cid,
+                        "lon": round_float(lon, 6),
+                        "lat": round_float(lat, 6),
+                        "tuile": used_tile,
+                        "row": row,
+                        "col": col,
+                        "valeur": raw,
+                    }
+                )
         return raw
 
 
@@ -655,7 +744,9 @@ def compute_cell_relief(
 
     mean_e = statistics.mean(valid_elevs)
     pop_std = statistics.pstdev(valid_elevs) if len(valid_elevs) > 1 else 0.0
-    slope_mean = statistics.mean(slopes) if slopes else 0.0
+    slope_mean: Optional[float] = (
+        round_float(statistics.mean(slopes), G6_SLOPE_DECIMALS) if slopes else None
+    )
 
     return {
         "cell_id": cid,
@@ -664,7 +755,7 @@ def compute_cell_relief(
         "elev_min_m": round_float(min(valid_elevs), G6_ELEV_DECIMALS),
         "elev_max_m": round_float(max(valid_elevs), G6_ELEV_DECIMALS),
         "centroid_elev_m": centroid_elev,
-        "slope_mean_deg": round_float(slope_mean, G6_SLOPE_DECIMALS),
+        "slope_mean_deg": slope_mean,
         "roughness_m": round_float(pop_std, G6_ROUGH_DECIMALS),
     }, excluded
 
@@ -772,17 +863,32 @@ def _zone_max_elev(
     relief_by_id: Dict[int, dict],
 ) -> Optional[float]:
     lon_min, lat_min, lon_max, lat_max = A12_RELIEF_ZONES[zone_name]
+    from shapely.geometry import box
+
+    zone_poly = box(lon_min, lat_min, lon_max, lat_max)
     best: Optional[float] = None
     for cell in cells:
         cid = int(cell["cell_id"])
         rec = relief_by_id.get(cid)
         if rec is None or rec.get("elev_max_m") is None:
             continue
-        c = cell["centroid"]
-        clon, clat = float(c["lon"]), float(c["lat"])
-        if lon_min <= clon <= lon_max and lat_min <= clat <= lat_max:
-            val = float(rec["elev_max_m"])
-            best = val if best is None else max(best, val)
+        geom = cell_geoms.get(cid)
+        if geom is None:
+            continue
+        minx, miny, maxx, maxy = geom.bounds
+        corners = [
+            projector.unproject_xy(minx, miny),
+            projector.unproject_xy(maxx, miny),
+            projector.unproject_xy(maxx, maxy),
+            projector.unproject_xy(minx, maxy),
+        ]
+        lons = [c[0] for c in corners]
+        lats = [c[1] for c in corners]
+        cell_box = box(min(lons), min(lats), max(lons), max(lats))
+        if not zone_poly.intersects(cell_box):
+            continue
+        val = float(rec["elev_max_m"])
+        best = val if best is None else max(best, val)
     return best
 
 
@@ -863,15 +969,11 @@ def compute_stats(
         if edge.get("kind") == "land-sea":
             land_sea_cells.add(int(edge["a"]))
             land_sea_cells.add(int(edge["b"]))
-    cellules_sans_littoral_avec_echantillon_a_zero = 0
-    for c in cell_relief:
-        cid = int(c["cell_id"])
-        if cid in land_sea_cells:
-            continue
-        if c.get("elev_min_m") is not None and float(c["elev_min_m"]) == 0.0:
-            if cid == 1492 and ctr.cell_1492_readings:
-                continue
-            cellules_sans_littoral_avec_echantillon_a_zero += 1
+    cellules_sans_littoral_avec_echantillon_a_zero = sum(
+        1
+        for cid in ctr.cells_with_raw_zero_sample
+        if cid not in land_sea_cells
+    )
     total_reads = ctr.points_grille + ctr.points_centroides + ctr.points_frontieres
     points_sur_ligne = (
         ctr.points_sur_ligne_degre_grille
@@ -916,8 +1018,13 @@ def compute_stats(
             "centroides": ctr.points_sur_ligne_degre_centroides,
             "frontieres": ctr.points_sur_ligne_degre_frontieres,
         },
+        "points_de_bord_multi_tuiles": ctr.points_de_bord_multi_tuiles,
         "points_de_bord_valeurs_concordantes": ctr.points_de_bord_valeurs_concordantes,
-        "cell_1492_lectures": ctr.cell_1492_readings,
+        "cellules_sans_littoral_lectures_zero": [
+            reading
+            for reading in ctr.cell_zero_readings
+            if int(reading["cell_id"]) not in land_sea_cells
+        ],
     }
     if domain_meta:
         out.update(domain_meta)
@@ -950,10 +1057,11 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
         cell_geoms[int(cell["cell_id"])] = geom
 
     fetch = _load_fetch_dem()
-    dem = DemSampler(fetch.CACHE_DIR, lock_tiles, required)
-
+    sample_tile = sorted(lock_tiles)[0]
+    sample_path = fetch.tile_cache_path(sample_tile)
+    _, half_px_lon, _ = measure_tile_registration(sample_path)
     conformes, total_tiles, reg_name, half_px = verify_all_tiles_domain_rule(
-        sorted(lock_tiles), fetch.CACHE_DIR, fetch.tile_cache_path
+        sorted(lock_tiles), fetch.CACHE_DIR, fetch.tile_cache_path, half_px_lon
     )
     domain_meta = {
         "tuiles_regle_domaine_conforme": conformes,
@@ -961,6 +1069,9 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
         "registrement_dem_mesure": reg_name,
         "demi_pixel_deg": half_px,
     }
+    dem = DemSampler(
+        fetch.CACHE_DIR, lock_tiles, required, half_pixel_deg=half_px_lon
+    )
 
     return {
         "cells": cells,
@@ -1058,7 +1169,7 @@ def export_g6(derived: dict, context: dict) -> Dict[str, str]:
             **derived["metrics"],
             "pipeline_version": G6_PIPELINE_VERSION,
         },
-        float_decimals=G6_ELEV_DECIMALS,
+        float_decimals=6,
     )
 
     lock = read_json(LOCK_PATH)

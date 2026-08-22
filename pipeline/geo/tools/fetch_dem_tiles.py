@@ -32,6 +32,7 @@ LOCK_PATH = ROOT / "sources.lock"
 CACHE_DIR = ROOT / "sources" / "dem_cache"
 REQUIRED_ARTIFACT = ROOT / "artifacts" / "dem_required_tiles_g6.json"
 AVAILABILITY_ARTIFACT = ROOT / "artifacts" / "dem_tile_availability_g6.json"
+AVAILABILITY_LOCK_ARTIFACT = ROOT / "artifacts" / "dem_tile_availability_lock_g6.json"
 S3_HOST = "copernicus-dem-90m.s3.amazonaws.com"
 
 COLLECTIVE_RECIPE = "sha256_concat_sorted_name_plus_tile_sha256_hex"
@@ -145,6 +146,29 @@ def verify_tile(path: Path, expected_sha: str, expected_bytes: int | None) -> bo
     return sha256_file(path) == expected_sha
 
 
+def verify_tile_public(tile_name: str, expected_sha: str, expected_bytes: int | None) -> bool:
+    """Lie les octets locaux à la source publique : HEAD 200 puis SHA256 identique."""
+    code = head_tile(tile_name)
+    if code != 200:
+        return False
+    path = tile_cache_path(tile_name)
+    if not verify_tile(path, expected_sha, expected_bytes):
+        return False
+    return True
+
+
+def download_and_verify_tile(
+    tile_name: str, expected_sha: str, expected_bytes: int | None
+) -> None:
+    path = tile_cache_path(tile_name)
+    download_tile(tile_name, path)
+    if not verify_tile(path, expected_sha, expected_bytes):
+        actual = sha256_file(path) if path.is_file() else "missing"
+        raise RuntimeError(
+            f"octets publics divergent pour {tile_name}: attendu={expected_sha} calcule={actual}"
+        )
+
+
 def download_tile(tile_name: str, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     url = tile_s3_url(tile_name)
@@ -224,8 +248,8 @@ def probe_lock_tiles() -> dict:
         "tuiles_absentes_du_depot_public": missing,
         "par_tuile": availability,
     }
-    AVAILABILITY_ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
-    AVAILABILITY_ARTIFACT.write_text(
+    AVAILABILITY_LOCK_ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
+    AVAILABILITY_LOCK_ARTIFACT.write_text(
         json.dumps(report, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
@@ -311,6 +335,11 @@ def regenerate_dem_lock() -> dict:
         path = tile_cache_path(tile_name)
         if not path.is_file():
             raise RuntimeError(f"tuile manquante dans le cache: {tile_name}")
+        meta_probe = head_tile(tile_name)
+        if meta_probe != 200:
+            raise RuntimeError(
+                f"tuile {tile_name} absente du depot public (HEAD={meta_probe})"
+            )
         digest = sha256_file(path)
         nbytes = path.stat().st_size
         tile_entries[tile_name] = {"bytes": nbytes, "sha256": digest}
@@ -369,10 +398,12 @@ def ensure_dem_cache(*, download: bool = True) -> dict:
             f"tile_count={expected_count} mais {len(tiles_spec)} entrees dans sources.lock"
         )
 
+    cache_extra = cache_files_hors_lock()
     verified = 0
     downloaded = 0
     tile_shas: Dict[str, str] = {}
     failures: List[str] = []
+    public_missing: List[str] = []
 
     for tile_name in sorted(tiles_spec):
         meta = tiles_spec[tile_name]
@@ -380,17 +411,30 @@ def ensure_dem_cache(*, download: bool = True) -> dict:
         expected_bytes = meta.get("bytes")
         path = tile_cache_path(tile_name)
 
-        if not verify_tile(path, expected_sha, expected_bytes):
-            if download:
-                download_tile(tile_name, path)
+        head_code = head_tile(tile_name)
+        if head_code != 200:
+            public_missing.append(tile_name)
+            failures.append(f"{tile_name}: depot public HEAD={head_code}")
+            continue
+
+        if verify_tile_public(tile_name, expected_sha, expected_bytes):
+            tile_shas[tile_name] = sha256_file(path)
+            verified += 1
+            continue
+
+        if download:
+            try:
+                download_and_verify_tile(tile_name, expected_sha, expected_bytes)
                 downloaded += 1
-            if not verify_tile(path, expected_sha, expected_bytes):
-                actual = sha256_file(path) if path.is_file() else "missing"
-                failures.append(f"{tile_name}: attendu={expected_sha} calcule={actual}")
+                tile_shas[tile_name] = sha256_file(path)
+                verified += 1
+                continue
+            except RuntimeError as exc:
+                failures.append(str(exc))
                 continue
 
-        tile_shas[tile_name] = sha256_file(path)
-        verified += 1
+        actual = sha256_file(path) if path.is_file() else "missing"
+        failures.append(f"{tile_name}: attendu={expected_sha} calcule={actual}")
 
     collective = compute_collective_sha256(tile_shas) if verified == expected_count else ""
     collective_ok = collective == expected_collective
@@ -405,7 +449,16 @@ def ensure_dem_cache(*, download: bool = True) -> dict:
         )
 
     all_failures = failures + bound_failures
-    ok = verified == expected_count and not all_failures and collective_ok
+    if cache_extra:
+        all_failures.append(
+            f"cache hors lock: {len(cache_extra)} fichier(s) — {cache_extra[:3]}"
+        )
+    ok = (
+        verified == expected_count
+        and not all_failures
+        and collective_ok
+        and not cache_extra
+    )
     return {
         "tile_count": expected_count,
         "verified": verified,
@@ -419,6 +472,9 @@ def ensure_dem_cache(*, download: bool = True) -> dict:
         "ok": ok,
         "tuiles_bornes_nom_vs_raster_egales": bound_equal,
         "tuiles_bornes_verifiees": bound_checked,
+        "fichiers_du_cache_hors_lock": len(cache_extra),
+        "tuiles_du_lock_absentes_du_depot_public": len(public_missing),
+        "cache_files_hors_lock": cache_extra,
     }
 
 

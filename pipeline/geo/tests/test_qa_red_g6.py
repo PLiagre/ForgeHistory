@@ -203,7 +203,7 @@ def red_amend_nodata_counter() -> Tuple[str, bool]:
 
 
 def red_amend_west_convention() -> Tuple[str, bool]:
-    """D16 : W001 avec bornes fausses [-2,-1) diverge du raster."""
+    """D16 : bornes W001 fausses font échouer verify_bounds_all_cached (chemin production)."""
     import importlib.util
     from pathlib import Path
 
@@ -214,19 +214,33 @@ def red_amend_west_convention() -> Tuple[str, bool]:
     assert fspec.loader is not None
     fspec.loader.exec_module(fetch)
 
-    tile = "Copernicus_DSM_COG_30_N50_00_W001_00_DEM.tif"
-    correct = fetch.tile_bounds_from_name(tile)
-    wrong = (-2.0, 50.0, -1.0, 51.0)
-    ok_correct = correct == (-1.0, 50.0, 0.0, 51.0)
-    ok_wrong_differs = wrong != correct
-    return (
-        f"W001_correct={correct}_wrong={wrong}",
-        ok_correct and ok_wrong_differs,
-    )
+    tiles_spec, _, _, _ = fetch.load_dem_spec()
+    w001 = next((t for t in tiles_spec if "W001" in t), None)
+    if w001 is None:
+        return "aucune tuile W001 dans le lock", False
+    path = fetch.tile_cache_path(w001)
+    if not path.is_file():
+        return f"{w001} absente du cache", False
+
+    orig_bounds = fetch.tile_bounds_from_name
+
+    def wrong_bounds(tile_name: str):
+        bounds = orig_bounds(tile_name)
+        if "W001" in tile_name:
+            return (-2.0, bounds[1], -1.0, bounds[3])
+        return bounds
+
+    fetch.tile_bounds_from_name = wrong_bounds
+    try:
+        equal, checked, failures, _, _ = fetch.verify_bounds_all_cached([w001])
+        ok = checked == 1 and equal == 0 and bool(failures)
+        return f"W001 equal={equal} failures={failures[0][:80]}", ok
+    finally:
+        fetch.tile_bounds_from_name = orig_bounds
 
 
 def red_amend_degree_line() -> Tuple[str, bool]:
-    """D19/D23 : latitude entière — ancienne tuile du nord lève hors bornes."""
+    """D19/D23 : latitude entière — le chemin canonique lève hors bornes."""
     import importlib.util
     from pathlib import Path
 
@@ -243,11 +257,11 @@ def red_amend_degree_line() -> Tuple[str, bool]:
     fspec.loader.exec_module(fetch)
 
     lon, lat = 12.0, 33.0
-    wrong_tile = mod.lonlat_to_tile_name_nominal(lon, lat)
-    sampler = mod.DemSampler(fetch.CACHE_DIR, {wrong_tile}, {wrong_tile})
-    sampler._tile_paths[wrong_tile] = (
-        *mod._tile_bounds_from_name(wrong_tile),
-        fetch.CACHE_DIR / "x" / wrong_tile,
+    tile = mod.lonlat_to_tile_name(lon, lat)
+    sampler = mod.DemSampler(fetch.CACHE_DIR, {tile}, {tile})
+    sampler._tile_paths[tile] = (
+        *mod._tile_bounds_from_name(tile),
+        fetch.CACHE_DIR / Path(tile).stem / tile,
     )
 
     class FakeDS:
@@ -267,15 +281,14 @@ def red_amend_degree_line() -> Tuple[str, bool]:
         def close(self):
             pass
 
-    sampler._datasets[wrong_tile] = FakeDS()
-    sampler._nodata_by_tile[wrong_tile] = None
-    sampler._tile_for = lambda lo, la: mod.lonlat_to_tile_name_nominal(lo, la)  # type: ignore[method-assign]
+    sampler._datasets[tile] = FakeDS()
+    sampler._nodata_by_tile[tile] = None
     try:
         sampler.read_elev(lon, lat, context="test_ligne_degre", family="grille")
-        return f"lat={lat}_sans_echec_avec_tuile={wrong_tile}", False
+        return f"lat={lat}_tuile={tile}_sans_echec", False
     except RuntimeError as exc:
         msg = str(exc)
-        ok = "hors bornes" in msg and "row=" in msg
+        ok = "hors bornes" in msg and tile in msg
         return f"ligne_degre: {msg[:120]}", ok
     finally:
         sampler.close()
@@ -338,7 +351,7 @@ def red_amend_out_of_bounds_read() -> Tuple[str, bool]:
 
 
 def red_amend_fabricated_tile_probe() -> Tuple[str, bool]:
-    """D20 : tuile du cache absente du depot public — sondage nomme la tuile."""
+    """D20 : fichier cache hors lock fait échouer ensure_dem_cache."""
     import importlib.util
     from pathlib import Path
 
@@ -349,10 +362,20 @@ def red_amend_fabricated_tile_probe() -> Tuple[str, bool]:
     assert fspec.loader is not None
     fspec.loader.exec_module(fetch)
 
-    fake = "Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif"
-    code = fetch.head_tile(fake)
-    ok = code != 200
-    return f"sondage_{fake}_code={code}", ok
+    extra_dir = fetch.CACHE_DIR / "Copernicus_DSM_COG_30_FAKE_00_E000_00_DEM"
+    extra_path = extra_dir / "Copernicus_DSM_COG_30_FAKE_00_E000_00_DEM.tif"
+    extra_dir.mkdir(parents=True, exist_ok=True)
+    extra_path.write_bytes(b"tuile-fabriquee")
+    try:
+        report = fetch.ensure_dem_cache(download=False)
+        extra_count = int(report.get("fichiers_du_cache_hors_lock", 0))
+        ok = extra_count > 0 and not report["ok"]
+        return f"hors_lock={extra_count} ok={report['ok']}", ok
+    finally:
+        if extra_path.is_file():
+            extra_path.unlink()
+        if extra_dir.is_dir():
+            extra_dir.rmdir()
 
 
 def run_all_red_g6(

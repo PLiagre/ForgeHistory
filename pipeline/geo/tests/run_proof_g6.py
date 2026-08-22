@@ -199,8 +199,14 @@ def main() -> int:
         "registrement_dem_mesure": metrics.get("registrement_dem_mesure"),
         "tuiles_regle_domaine_conforme": metrics.get("tuiles_regle_domaine_conforme"),
         "lectures_hors_bornes_du_fichier": metrics.get("lectures_hors_bornes_du_fichier"),
+        "points_de_bord_multi_tuiles": metrics.get("points_de_bord_multi_tuiles"),
+        "points_de_bord_valeurs_concordantes": metrics.get(
+            "points_de_bord_valeurs_concordantes"
+        ),
         "cellules_altitude_min_nulle": metrics.get("cellules_altitude_min_nulle"),
-        "cell_1492_lectures": metrics.get("cell_1492_lectures"),
+        "cellules_sans_littoral_lectures_zero": metrics.get(
+            "cellules_sans_littoral_lectures_zero"
+        ),
         "dem": context.get("dem_report", {}),
     }
     write_json(LOGS / "v1_052_qa.json", qa_report)
@@ -240,12 +246,9 @@ def main() -> int:
         f"  barrieres_par_zone_nommee: {metrics.get('barrieres_par_zone_nommee')}",
         f"  zones_hautes_sous_une_zone_basse: {metrics.get('zones_hautes_sous_une_zone_basse')}",
         "",
-        "=== captures regardees ===",
-        "  v1_052_elevation_window.png : carte choroplethe elev_mean_m sur la",
-        "  fenetre pilote ; teintes terrain plus claires en altitude, plus sombres",
-        "  en plaine/bassin — concorde avec stats_g6.json (median>0).",
-        "  v1_052_barriers_passes.png : zoom montagne ouest — traits rouges =",
-        "  aretes barriere ; etoiles vertes = cols nommes, croix bleues = derives.",
+        "=== captures produites ===",
+        f"  elevation_window: {run2['captures'].get('elevation_window', '')}",
+        f"  barriers_passes: {run2['captures'].get('barriers_passes', '')}",
         "",
         "=== controles verts (donnee saine) ===",
     ]

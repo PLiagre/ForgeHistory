@@ -17,9 +17,6 @@
       "path": "../../../../pipeline/geo/tests/test_qa_red_g6.py"
     },
     {
-      "path": "../../../../pipeline/geo/tests/test_ensure_dem_bounds_report.py"
-    },
-    {
       "path": "../../../../pipeline/geo/artifacts/cells_relief_g6.json"
     },
     {
@@ -40,6 +37,9 @@
     },
     {
       "path": "../../../../pipeline/geo/artifacts/dem_tile_availability_g6.json"
+    },
+    {
+      "path": "../../../../pipeline/geo/artifacts/dem_tile_availability_lock_g6.json"
     },
     {
       "path": "../../../../pipeline/geo/sources.lock",
