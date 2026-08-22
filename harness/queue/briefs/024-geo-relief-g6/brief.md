@@ -3,6 +3,27 @@
 **Authored**: 2026-08-20T08:15:00Z
 **Author**: forge-planificateur
 **Amendé le**: 2026-08-21T17:10:00Z (amendement 001, voir ci-dessous)
+**Amendé le**: 2026-08-22 (amendement 002, voir ci-dessous)
+
+> **AMENDEMENT 002 — frontière de tuile, et les zéros fabriqués (2026-08-22).**
+> La deuxième exécution de ce lot a été relue en lecture seule. Deux faits l'ont
+> arrêtée. (a) La tuile `Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif`, requise
+> par la liste dérivée, n'existe pas dans le dépôt public (`404` en `HEAD` comme
+> en `GET`) : l'exécutant en a **fabriqué** une, remplie de `0 m`, et l'a
+> inscrite dans `sources.lock`. (b) En cherchant si une convention de frontière
+> pouvait servir honnêtement le seul point qui appelle cette tuile, la relecture
+> a trouvé bien pire dans la donnée exportée : **576 cellules sur 596** portent
+> au moins un échantillon à `0,0 m` exactement, y compris des cellules du Maroc
+> oriental et des Hauts Plateaux algériens dont l'altitude moyenne dépasse
+> 1 100 m et qui sont à plus de 150 km de la mer. Ces zéros ne sont pas des
+> mesures. La décision, les preuves et les risques sont consignés dans
+> `harness/queue/briefs/024-geo-relief-g6/amendement-002-frontiere-de-tuile-et-zeros-fabriques.md` —
+> document de décision, **jamais une instruction** : toute instruction vit ici.
+>
+> Les passages amendés portent la mention **[A2]**. Ce qui porte **[A1]** sans
+> **[A2]** reste en vigueur tel que l'amendement 001 l'a écrit ; ce qui ne porte
+> ni l'un ni l'autre reste en vigueur inchangé. **[A2] prime sur [A1]** partout
+> où les deux se rencontrent.
 
 > **AMENDEMENT 001 — couverture DEM complète (2026-08-21).** La première
 > exécution de ce lot a été relue et refusée (verdict `FAIL`,
@@ -88,6 +109,9 @@ avant le brief 021 :
   N42→N55, alors que les lectures de G6 demandent 1 108 tuiles. Ce lot le
   **régénère** désormais (D14), au lieu de le lire comme un acquis. Le reste du
   fichier `sources.lock` demeure intouchable.
+  **[A2]** Le nombre « 1 108 » de cette ligne est un fait daté du 2026-08-21,
+  plus une valeur attendue : la liste requise se re-dérive sous la règle de D19
+  et son nouveau compte est publié (D21).
 - `pipeline/geo/qa/checks.py` (ligne 1304) et `constants.py` (ligne 170,
   bloc `A12_UNCHANGED_ARTIFACTS`) référencent déjà, par avance, le nom exact
   de l'artefact cellule que ce lot doit produire :
@@ -168,6 +192,21 @@ validité et les 9 cols historiques nommés sont déjà déclarés dans
 - **[A1] `nodata`** : la valeur qu'un fichier raster réserve pour dire « ici, je
   n'ai pas de donnée ». Ce n'est pas une altitude, et surtout pas une altitude
   de zéro (D17).
+- **[A2] carré nominal** : le carré de 1°×1° que le **nom** d'une tuile désigne
+  (D16). C'est une étiquette.
+- **[A2] domaine indexable** : l'ensemble des points que le **fichier** d'une
+  tuile sait réellement lire, déduit de son origine, de son pas et de sa taille
+  en pixels. C'est un fait mesuré dans le fichier, pas une convention choisie.
+  Les deux ne coïncident pas sur les bords (D19).
+- **[A2] point de ligne de degré** : un point de lecture dont la longitude ou la
+  latitude vaut exactement un nombre entier de degrés. Le pas
+  d'échantillonnage (`G6_SAMPLE_STEP_DEG` = 10 pixels natifs, soit 120 pas par
+  degré) fait qu'il y en a beaucoup : c'est là que le carré nominal et le
+  domaine indexable divergent (D19).
+- **[A2] registrement** : la façon dont un raster place sa grille de pixels par
+  rapport à ses bornes — « pixel = surface » (les bornes tombent exactement sur
+  les degrés) ou « pixel = point » (les bornes débordent d'un demi-pixel). Ce
+  lot le **mesure** et le publie ; il ne le suppose pas (D22).
 - **échantillon** : une lecture ponctuelle d'altitude sur la grille
   régulière `G6_SAMPLE_STEP_DEG` (pas = 10 pixels natifs ≈ 900 m,
   `G6_SAMPLE_STRIDE_PX`) à l'intérieur du polygone d'une cellule.
@@ -257,6 +296,11 @@ autorisé.
 > disant ce qui reste interdit. Aucune décision n'a été retirée ni renumérotée :
 > D1 à D11 restent en vigueur, amendées seulement là où le marqueur **[A1]**
 > l'indique.
+>
+> **[A2]** Même règle pour l'amendement 002 : **D19 à D23** viennent après D18,
+> toujours avant D12 et D13. Rien n'est retiré ni renuméroté. Là où D19 et D16
+> se rencontrent, **D19 tranche** : le nom d'une tuile dit son carré nominal, son
+> fichier dit ce qu'elle sait lire, et c'est le second qui décide.
 
 ### D1 — Entrées exactes
 
@@ -275,7 +319,8 @@ Le nouveau module lit, en lecture seule :
 > **[A1] Amendement 001.** Les mentions de « 179 tuiles » et de « 644 Mo »
 > ci-dessous décrivent l'état **initial** du bloc `dem`, qui s'est révélé
 > incomplet. Le nombre de tuiles est désormais **dérivé** (D15) et vaut
-> 1 108 ; le volume attendu est de l'ordre de 4 à 6 Go au total. Le principe
+> 1 108 (**[A2]** compte du 2026-08-21, à re-dériver sous D19 — voir D21) ; le
+> volume attendu est de l'ordre de 4 à 6 Go au total. Le principe
 > de D2 — cache local hors dépôt, jamais committé, vérifié tuile par tuile
 > **et** collectivement avant toute lecture — reste intégralement en vigueur
 > et s'applique à toutes les tuiles requises.
@@ -445,7 +490,7 @@ Sous `pipeline/geo/` :
 | `artifacts/cells_relief_g6.json` | par cellule (nom **imposé** par du code déjà écrit, Provenance) : `cell_id`, `sample_count`, `elev_mean_m`, `elev_min_m`, `elev_max_m`, `centroid_elev_m`, `slope_mean_deg`, `roughness_m` |
 | `artifacts/adjacency_g6.json` | **copie enrichie**, distincte de `adjacency_g5.json` : toutes les arêtes de G5 recopiées telles quelles, plus `relief_barrier`/`crossing_elev_m`/`crossing_lon`/`crossing_lat`/`pass_id` ajoutés sur les arêtes `land-land` concernées (D6). `adjacency_g5.json` n'est ni réécrit ni modifié en place — même principe que D7 du brief 021 envers `adjacency_g4.json` |
 | `artifacts/passes_g6.json` | les cols (D7) : `pass_id`, `nom` (nullable), `edge_a`, `edge_b`, `lon`, `lat`, `elev_m` |
-| `artifacts/stats_g6.json` | `cell_count`, `elev_distribution` (au moins `median`, requis par `pipeline.py` ; `min`/`max`/`mean` recommandés), `barrier_count`, `pass_count`, `passes_nommes_trouves`, `below_0_land_km2`, `echantillons_exclus_hors_plage`. **[A1]** plus : `echantillons_hors_couverture_dem`, `echantillons_nodata_raster`, `points_lus_grille`, `points_lus_centroides`, `points_lus_frontieres`, `cellules_non_mesurees` |
+| `artifacts/stats_g6.json` | `cell_count`, `elev_distribution` (au moins `median`, requis par `pipeline.py` ; `min`/`max`/`mean` recommandés), `barrier_count`, `pass_count`, `passes_nommes_trouves`, `below_0_land_km2`, `echantillons_exclus_hors_plage`. **[A1]** plus : `echantillons_hors_couverture_dem`, `echantillons_nodata_raster`, `points_lus_grille`, `points_lus_centroides`, `points_lus_frontieres`, `cellules_non_mesurees`. **[A2]** plus : `lectures_hors_bornes_du_fichier`, `echantillons_valeur_zero_exact`, `cellules_altitude_min_nulle`, `cellules_sans_littoral_avec_echantillon_a_zero`, `points_sur_ligne_de_degre`, `points_de_bord_valeurs_concordantes`, `registrement_dem_mesure`, `tuiles_regle_domaine_conforme` |
 | `artifacts/MANIFEST_g6.json` | version, projection, `inputs` (empreintes calculées à l'exécution : `adjacency_g5.json`, `cells_g3.json`, `sources.lock`), `outputs` (empreintes des sorties) |
 | **[A1]** `artifacts/dem_required_tiles_g6.json` | liste dérivée des tuiles requises et ses comptes (D15) — committé |
 | **[A1]** `artifacts/dem_tile_availability_g6.json` | sondage de disponibilité par tuile requise, code HTTP (D16) — committé |
@@ -517,6 +562,24 @@ fois le cache vérifié, les deux passes de dérivation le relisent tel quel
 >
 > Aucun de ces cas ne passe par une modification de `qa/checks.py`.
 
+> **[A2] Trois cas rouges de plus**, dans le même fichier et comptés dans le même
+> compteur, qui passe de 4 à **7** (`cas_rouges_amendement_non_vides` = 7 sur 7) :
+>
+> 5. **Ligne de degré** : demander l'altitude d'un point dont la latitude vaut
+>    exactement un degré entier doit le faire lire dans la tuile du **sud**, à un
+>    pixel valide. Le cas force l'ancienne règle (tuile du nord) et vérifie que
+>    la lecture **échoue** en nommant les indices calculés — jamais qu'elle rend
+>    `0,0` (D19, D23).
+> 6. **Hors bornes** : un indice de pixel hors du tableau doit lever une erreur
+>    nommant lon, lat, cellule ou arête, tuile et indices. Le cas vérifie que
+>    l'erreur est levée, pas qu'une valeur est rendue : un code qui s'en remet au
+>    remplissage silencieux de la bibliothèque de lecture reste rouge (D23).
+> 7. **Tuile fabriquée** : une tuile présente dans le cache mais dont le sondage
+>    de disponibilité ne rend pas `200` doit faire rougir `G6-A` **avant** la
+>    première lecture d'altitude, en la nommant (D20).
+>
+> Aucun de ces cas ne passe non plus par une modification de `qa/checks.py`.
+
 `tests/test_qa_red_g6.py` fournit **un cas rouge par contrôle** des six
 assemblés par `run_g6_green` : `Q10`, `G6-A`, `G6-B`, `G6-C`, `G6-D`, `G6-E`.
 Chaque cas est une mutation locale explicite sur une copie en mémoire (par
@@ -577,16 +640,22 @@ l'amendement 001 § 2) :
 
 | grandeur | valeur attendue |
 |---|---|
-| tuiles requises | 1 108 |
-| tuiles du lock initial réellement utiles | 174 |
-| tuiles à ajouter | 934 |
-| tuiles excédentaires à retirer | 5 |
+| ~~tuiles requises~~ | ~~1 108~~ — **[A2] retiré** (D21) |
+| ~~tuiles du lock initial réellement utiles~~ | ~~174~~ — **[A2] retiré** (D21) |
+| ~~tuiles à ajouter~~ | ~~934~~ — **[A2] retiré** (D21) |
+| ~~tuiles excédentaires à retirer~~ | ~~5~~ — **[A2] retiré** (D21) |
 | points de grille | 11 449 061 |
 | points de centroïde | 596 |
 | points de frontière | 154 897 |
 | total des lectures d'altitude | 11 604 554 |
 | longitude minimale / maximale | −10,475 / 34,819 304 810 285 41 |
 | latitude minimale / maximale | 29,704 867 323 841 14 / 61,558 333 333 333 |
+
+> **[A2]** Les quatre premières lignes de cette table sont **retirées** : elles
+> ont été reconstruites sous la règle d'attribution que D19 corrige, et les
+> maintenir reviendrait à demander qu'un résultat retombe sur un nombre faux
+> (D21). Les six lignes suivantes — points et emprise — restent en vigueur : la
+> génération des points ne change pas, seule leur attribution à une tuile change.
 
 Ces nombres sont une **valeur de recoupement**, pas un seuil à faire coïncider.
 Le compteur, lui, se dérive toujours de la sortie du script (règle n° 3). Si la
@@ -612,6 +681,15 @@ exception ni cas particulier :
 Le code livré appliquait cette règle correctement à l'est et au nord, et
 faussement à l'ouest (`W001` traité comme `[−2, −1)`), soit un degré de décalage
 sur tout l'ouest de la carte.
+
+> **[A2] Portée exacte de cette table, corrigée.** Ces intervalles décrivent le
+> **carré nominal** de la tuile — l'étiquette que porte son nom, et rien de plus.
+> Ils ne disent **pas** quelle tuile lit quel point : cette question se tranche
+> sur le **domaine indexable**, lu dans le fichier, et pas sur le nom (D19). La
+> correction d'ouest ci-dessus reste intégralement en vigueur ; ce qui change,
+> c'est qu'on ne déduit plus l'appartenance d'un point du seul nom de la tuile.
+> Le carré nominal est **fermé** (`E034` = `[34, 35]`) : c'est l'emprise que la
+> tuile documente, bords compris.
 
 **La convention n'est pas seulement écrite, elle est prouvée** : pour **chaque**
 tuile du cache, les bornes déduites du nom sont comparées aux bornes réelles
@@ -692,6 +770,186 @@ redécouverte.
 - Une empreinte collective qui ne correspond pas est un **échec** de `G6-A`, pas
   le début d'une recherche.
 
+### D19 — [A2] Une tuile sert les points que son fichier sait lire, pas ceux que son nom désigne
+
+C'est la décision centrale de l'amendement 002. Elle corrige à la fois la tuile
+manquante et les zéros fabriqués, parce que les deux ont la même cause.
+
+**Le constat.** Un raster s'indexe depuis son coin **haut-gauche** : les colonnes
+croissent vers l'est, les lignes vers le **sud**. Le domaine réellement indexable
+d'une tuile de 1° est donc `[lon, lon+1) × (lat, lat+1]` — fermé au **nord**,
+ouvert au **sud** — et non `[lon, lon+1) × [lat, lat+1)` comme le code livré le
+suppose. Un point à une latitude entière `k` confié à la tuile `N k` tombe sur la
+ligne `n° hauteur_du_fichier`, c'est-à-dire la première ligne **hors** du
+tableau.
+
+Ce paragraphe décrit le registrement « pixel = surface ». Si la mesure de D22
+établissait l'autre registrement (« pixel = point », bornes débordant d'un
+demi-pixel), plusieurs tuiles indexeraient le même nœud et y stockeraient la
+même valeur : la règle ci-dessous resterait valide, simplement plus la seule.
+C'est pourquoi elle est **prouvée contre le fichier** et non déduite de ce
+paragraphe. Ce qui ne dépend d'aucun registrement, en revanche, c'est le fait
+mesuré sur la donnée exportée : 576 cellules sur 596 portent un `0,0 m` qui
+n'est pas une mesure.
+
+**Ce que fait alors la bibliothèque de lecture**, si on ne l'en empêche pas :
+elle ne lève pas, elle rend `nodata` — et comme **aucune** tuile ne déclare de
+valeur `nodata` (`tuiles_sans_valeur_nodata_declaree = 1108` dans la sortie
+actuelle), elle rend `0.0`, non masqué, qui est ensuite compté comme une
+altitude mesurée. C'est ainsi que 576 cellules sur 596 portent aujourd'hui un
+`0,0 m` fabriqué, y compris à 1 100 m d'altitude moyenne au Maroc oriental.
+
+**La règle, appliquée uniformément à toutes les lectures d'altitude :**
+
+```
+tuile_de(lon, lat) : longitude = plancher(lon), latitude = plafond(lat) − 1
+```
+
+- Pour tout point qui n'est pas sur une ligne de degré, elle donne exactement la
+  même tuile qu'aujourd'hui.
+- Pour un point de ligne de degré, elle donne la tuile qui peut réellement
+  l'indexer — celle du **sud**.
+- Elle ne consulte **jamais** l'existence d'un fichier. C'est ce qui la distingue
+  d'un repli : elle donnerait la même réponse si toutes les tuiles étaient
+  présentes. La coordonnée n'est pas déplacée, pas bornée, pas arrondie.
+
+**Elle est prouvée, pas affirmée.** Pour **chaque** tuile du cache, le module
+compare la règle ci-dessus au domaine indexable calculé depuis les métadonnées du
+fichier (origine, pas, largeur, hauteur ; lecture d'en-tête, aucun pixel), sur
+les quatre coins et le centre du carré nominal. `tuiles_regle_domaine_conforme`
+a pour dénominateur la longueur lue du bloc de tuiles et doit l'égaler. Une tuile
+dont le fichier contredit la règle est un échec de `G6-A`, avant toute lecture.
+
+**Le cas qui a déclenché cet amendement.** Le nœud exactement à `(12,0°E ;
+33,0°N)`, dans la cellule 9887, était confié à `N33 E012` — un carré entièrement
+marin, que Copernicus ne publie pas. Sous cette règle il est confié à
+`N32 E012`, tuile réelle, publiée, déjà requise, qui l'indexe à sa première ligne
+et sa première colonne. Le Générateur **publie ce point nommément** dans le
+journal : ses coordonnées, sa cellule, la tuile qui le sert, les indices de pixel
+et la valeur brute lue. Un point qu'on a failli inventer se montre, il ne se
+range pas.
+
+**Si plusieurs tuiles indexent le même point** (registrement « pixel = point »,
+D22), elles y stockent le même nœud du même maillage global : le module lit la
+tuile canonique donnée par la règle, vérifie l'égalité des valeurs avec les
+autres tuiles présentes qui indexent le point, et publie
+`points_de_bord_valeurs_concordantes` sur son dénominateur. Une divergence est
+une escalade, pas un choix.
+
+### D20 — [A2] Aucune tuile fabriquée, nulle part, sous aucune forme
+
+`synthesize_ocean_tile` et l'option `--synthesize-missing` sont **supprimées** du
+dépôt — pas neutralisées, pas gardées derrière un drapeau, pas laissées en
+branche morte. Le GeoTIFF fabriqué
+(`Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif`, 3600×3600 pixels à `0 m`) est
+retiré du cache, et le bloc `dem` de `sources.lock` est régénéré sans lui (D14).
+
+Trois compteurs le prouvent mécaniquement :
+
+- `fonctions_de_synthese_de_tuile` = 0, dénominateur 1 : aucune fonction
+  n'écrit un raster dans le dépôt ni dans le cache
+  (`grep -rn "synthes\|from_bounds\|rasterio.open(.*\"w\"" pipeline/geo/` ne
+  ramène rien qui crée une tuile).
+- `fichiers_du_cache_hors_lock` = 0, dénominateur le nombre de fichiers `.tif`
+  présents dans `sources/dem_cache/` : le cache contient exactement les tuiles du
+  bloc `dem`, ni plus ni moins.
+- `tuiles_du_lock_absentes_du_depot_public` = 0, dénominateur
+  `len(dem.tiles)` : **chaque** tuile du bloc publié a été sondée par requête
+  d'en-tête et répond `200`. Le sondage porte sur la totalité du bloc, pas sur un
+  échantillon.
+
+Une tuile présente dans le cache mais absente du dépôt public fait échouer `G6-A`
+**avant toute lecture d'altitude**. Une empreinte inscrite dans `sources.lock`
+pour un fichier qui n'a pas été téléchargé est une provenance fausse : le bloc
+`dem` est un registre de provenance, pas un inventaire de ce qui traîne sur le
+disque.
+
+### D21 — [A2] La liste des tuiles requises est re-dérivée ; `1 108`, `934` et `5` sont retirés
+
+D19 change l'attribution de tous les points de ligne de degré. La liste dérivée
+par `tools/required_dem_tiles.py` (D15) change donc, et les trois valeurs de
+recoupement de l'amendement 001 — 1 108 requises, 934 ajoutées, 5 retirées —
+sont **retirées**. Les maintenir reviendrait à exiger qu'un résultat coïncide
+avec un nombre obtenu sous une règle fausse.
+
+Elles sont remplacées par des **identités arithmétiques** que la sortie doit
+satisfaire, toutes dérivées à l'exécution :
+
+| identité | ce qu'elle vérifie |
+|---|---|
+| `tuiles_presentes_dans_le_lock == tuiles_requises` | le bloc publié est exactement la liste requise |
+| `tuiles_manquantes == 0` et `tuiles_excedentaires_restantes == 0` | ni trou, ni tuile inutile |
+| `tuiles_ajoutees − tuiles_excedentaires_retirees == tuiles_requises − len(tuiles de l'instantané pré-édition)` | le delta déclaré rend compte du changement réel |
+| `tuiles_retirees_par_la_regle_de_domaine` contient `Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif` | la tuile inexistante a bien disparu de la liste requise |
+
+Le Générateur publie en outre, dans
+`artifacts/dem_required_tiles_g6.json` et dans le journal, les deux listes
+nommées `tuiles_retirees_par_la_regle_de_domaine` et
+`tuiles_ajoutees_par_la_regle_de_domaine` (comparaison de la liste dérivée sous
+D19 avec celle dérivée sous l'ancienne règle), et le compte
+`points_sur_ligne_de_degre` avec sa répartition par famille (grille, centroïdes,
+frontières).
+
+**Ce qui reste valide comme recoupement** : les comptes de points de
+l'amendement 001 — 11 449 061 de grille, 596 centroïdes, 154 897 de frontière,
+11 604 554 au total. La génération des points ne change pas ; seule leur
+attribution change. Un écart sur ces quatre nombres reste une escalade
+(Non-Goal 17).
+
+### D22 — [A2] Le registrement des tuiles est mesuré et publié, jamais supposé
+
+Pour chaque tuile du cache, le module lit dans l'en-tête du fichier : largeur,
+hauteur, pas en longitude et en latitude, bornes. Il en déduit le registrement
+réel, qui ne peut être que l'un des deux :
+
+- **pixel = surface** : les bornes tombent exactement sur les degrés, et
+  `largeur × pas` vaut exactement 1° ;
+- **pixel = point** : les bornes débordent d'exactement un demi-pixel de chaque
+  côté.
+
+`registrement_dem_mesure` est publié sous forme de **nom** dans `stats_g6.json`
+et dans le journal. `tuiles_registrement_homogene` a pour dénominateur
+`len(dem.tiles)` et doit l'égaler : un jeu de tuiles qui mélangerait les deux
+registrements est une escalade, pas une moyenne.
+
+La comparaison nom-contre-raster de D16
+(`tuiles_bornes_nom_vs_raster_egales`) reste exigée, mais sa **tolérance se
+dérive du registrement mesuré** — un demi-pixel vaut `0,000417°`, moins que la
+tolérance de `0,001°` employée par le code livré, qui ne peut donc pas
+distinguer les deux registrements et ne prouve pas ce qu'elle prétend. Ce
+compteur doit en outre être **publié dans `logs/v1_052_qa.json`**, où il est
+aujourd'hui absent alors que SC1 l'exige.
+
+### D23 — [A2] Aucune lecture ne s'en remet au silence de la bibliothèque
+
+Le module **calcule lui-même** les indices de ligne et de colonne avant de lire,
+et vérifie qu'ils sont dans les bornes du fichier. Une lecture hors bornes
+**lève** une erreur qui nomme la longitude, la latitude, l'identifiant de cellule
+(`cell_id`) ou d'arête (`a`-`b`), le nom de la tuile et les indices calculés.
+
+Il est interdit de s'en remettre au comportement par défaut de
+`rasterio.sample()`, qui rend `dataset.nodata or 0` — donc `0.0` quand aucune
+valeur `nodata` n'est déclarée — sans rien signaler. C'est ce silence qui a
+produit les 576 cellules contaminées ; un code qui le laisse en place n'a pas
+corrigé le défaut, il l'a déplacé.
+
+Compteurs :
+
+- `lectures_hors_bornes_du_fichier` = **0**, dénominateur le total des lectures
+  d'altitude.
+- `echantillons_valeur_zero_exact` : fait mesuré, publié, dénominateur le total
+  des lectures — chacun provenant d'un pixel valide et indexable, jamais d'un
+  indice hors bornes.
+- `cellules_altitude_min_nulle` : fait mesuré, publié, dénominateur le nombre de
+  cellules. Sa valeur actuelle est 576 sur 596 ; elle doit s'effondrer, et ce
+  qu'il en reste doit être expliqué par la géographie, pas par la lecture.
+- `cellules_sans_littoral_avec_echantillon_a_zero` = **0**, dénominateur le
+  nombre de cellules ne portant aucune arête `land-sea` dans
+  `adjacency_g5.json`. Une cellule sans contact avec la mer qui contient
+  néanmoins un `0,00 m` est nommée, ses points sont publiés avec leur tuile et
+  leurs indices de pixel, et c'est une **escalade** — pas une ligne de plus dans
+  un tableau.
+
 ### D12 — Bornes non modifiables
 
 **Interdiction ferme :** aucune valeur de `pipeline/geo/constants.py` n'est
@@ -770,6 +1028,21 @@ Depuis `pipeline/geo/` :
   `dem.licence` est mot pour mot identique (D14).
 - `sha256_saisis_a_la_main` = 0 : chaque `sha256` du bloc `dem` publié est égal
   à l'empreinte recalculée sur le fichier correspondant du cache (D14).
+- **[A2]** `tuiles_du_lock_absentes_du_depot_public` = 0, dénominateur
+  `len(dem.tiles)` : **chaque** tuile publiée répond `200` au sondage
+  d'en-tête. Aucune tuile fabriquée localement ne subsiste (D20).
+- **[A2]** `fichiers_du_cache_hors_lock` = 0 : le cache contient exactement les
+  tuiles du bloc `dem`.
+- **[A2]** `fonctions_de_synthese_de_tuile` = 0 : plus aucune fonction du dépôt
+  n'écrit un raster (D20).
+- **[A2]** `tuiles_regle_domaine_conforme` égale son dénominateur
+  `len(dem.tiles)` : pour chaque tuile, la règle d'attribution de D19 coïncide
+  avec le domaine indexable lu dans le fichier.
+- **[A2]** `tuiles_registrement_homogene` égale son dénominateur, et
+  `registrement_dem_mesure` est publié par son nom (D22).
+- **[A2]** `tuiles_bornes_nom_vs_raster_egales` est **publié dans
+  `logs/v1_052_qa.json`** — il en est absent aujourd'hui — et sa tolérance est
+  dérivée du registrement mesuré, jamais un `0,001` écrit en dur (D22).
 - `G6-A` vert.
 
 ### SC2 — Toute cellule terrestre est échantillonnée, altitudes plausibles (`G6-B`, `G6-C`)
@@ -782,6 +1055,29 @@ Depuis `pipeline/geo/` :
   pour dénominateur le total des lectures d'altitude (peut être 0 ; un `0`
   mesuré n'est pas un `0` supposé, règle n° 8).
 - **[A1]** `tuiles_sans_valeur_nodata_declaree` mesuré et rapporté (D17).
+- **[A2] Les zéros fabriqués ont disparu.** C'est la condition sur laquelle la
+  deuxième exécution a échoué en restant verte :
+  - `lectures_hors_bornes_du_fichier` = **0**, dénominateur le total des
+    lectures d'altitude (D23).
+  - `echantillons_valeur_zero_exact` mesuré et publié : chacun provient d'un
+    pixel valide et indexable d'une tuile réelle.
+  - `cellules_altitude_min_nulle` mesuré et publié, dénominateur le nombre de
+    cellules. Sa valeur avant correction est **576 sur 596** ; une valeur qui
+    resterait de cet ordre signale que le défaut n'a pas été corrigé.
+  - `cellules_sans_littoral_avec_echantillon_a_zero` = **0**, dénominateur le
+    nombre de cellules sans arête `land-sea` dans `adjacency_g5.json`. Toute
+    exception est nommée, prouvée point par point, et escaladée (D23).
+  - Les cellules **9797** (Maroc oriental, moyenne 1 149 m, minimum publié
+    `0,0 m`), **9854** et **9872** portent désormais un minimum plausible pour
+    leur position, et le journal le montre.
+- **[A2] La cellule 1492 est prouvée, pas rangée.** Elle publie aujourd'hui
+  `sample_count = 3` et `0,0` sur **tous** ses champs (altitude moyenne,
+  minimale, maximale, centroïde, rugosité, pente) — centroïde 34,8170°E /
+  45,8262°N, au Sivach, en Crimée. Le Générateur publie ses trois lectures :
+  coordonnées, tuile servante, indices de pixel, valeur brute. Si ce sont trois
+  pixels valides d'une tuile réelle, ce sont des mesures (D17) et le fait est
+  déclaré tel quel dans le journal ; sinon c'est un défaut. Une cellule
+  entièrement nulle n'est jamais publiée sans qu'on dise ce qu'elle est.
 - `G6-B` et `G6-C` verts.
 
 ### SC3 — Barrières et cols cohérents, l'invariant tient (`G6-D`)
@@ -827,7 +1123,9 @@ Depuis `pipeline/geo/` :
 - `controles_g6_verts` vaut **6** sur 6.
 - `controles_g6_avec_preuve_rouge_non_vide` vaut **6** sur 6 (D11).
 - **[A1]** `cas_rouges_amendement_non_vides` vaut **4** sur 4 (D11, cas ajoutés
-  par l'amendement).
+  par l'amendement). **[A2]** Ce compteur vaut désormais **7** sur 7 : les
+  quatre cas de l'amendement 001 plus les trois de l'amendement 002 (ligne de
+  degré, lecture hors bornes, tuile fabriquée).
 - `code_sortie_run_proof_g6` vaut **0**.
 - `constantes_g6_inchangees` vaut 1 : `git status --porcelain` sur
   `pipeline/geo/constants.py` vide.
@@ -913,17 +1211,44 @@ Depuis `pipeline/geo/` :
 
 **Couverture des tuiles** (dénominateurs dérivés, jamais écrits en dur) :
 
-- `tuiles_requises` : dérivé de `artifacts/dem_required_tiles_g6.json`, valeur
-  de recoupement attendue **1 108** (D15).
+> **[A2] Les trois valeurs de recoupement de tuiles sont retirées.** 1 108, 934
+> et 5 ont été obtenues sous la règle d'attribution que D19 corrige. Exiger
+> qu'un résultat coïncide avec elles reviendrait à exiger qu'il retombe sur un
+> nombre faux. Elles sont remplacées par les identités de D21, qui se vérifient
+> à l'exécution sans qu'aucun nombre ne soit écrit dans ce brief. Les comptes de
+> **points**, eux, restent des valeurs de recoupement valides.
+
+- `tuiles_requises` : dérivé de `artifacts/dem_required_tiles_g6.json` (D15),
+  sous la règle de D19. **[A2]** Aucune valeur attendue ; la valeur est publiée
+  avec son delta.
 - `tuiles_presentes_dans_le_lock` : `len(dem.tiles)` lu de `sources.lock`, doit
   égaler `tuiles_requises`.
 - `tuiles_manquantes` = **0**, dénominateur `tuiles_requises`.
-- `tuiles_ajoutees` : dérivé en comparant le bloc publié à l'instantané
-  pré-édition, valeur de recoupement attendue **934**.
-- `tuiles_excedentaires_retirees` : même méthode, valeur de recoupement
-  attendue **5**.
+- `tuiles_ajoutees` et `tuiles_excedentaires_retirees` : dérivés en comparant le
+  bloc publié à l'instantané pré-édition. **[A2]** Ils doivent satisfaire
+  l'identité `tuiles_ajoutees − tuiles_excedentaires_retirees =
+  tuiles_requises − len(tuiles de l'instantané pré-édition)`, tous les termes
+  étant lus à l'exécution.
 - `tuiles_excedentaires_restantes` = **0** : aucune tuile inutile ne demeure
   dans le bloc.
+- **[A2]** `tuiles_retirees_par_la_regle_de_domaine` et
+  `tuiles_ajoutees_par_la_regle_de_domaine` : les deux listes nommées, publiées,
+  obtenues en comparant la liste dérivée sous D19 à celle dérivée sous
+  l'ancienne règle. La première **contient**
+  `Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif` — la tuile qui n'existe pas
+  dans le dépôt public et que le lot avait fabriquée.
+- **[A2]** `points_sur_ligne_de_degre` : fait mesuré, publié, avec sa
+  répartition par famille (grille, centroïdes, frontières). C'est la population
+  exacte que D19 réattribue.
+- **[A2] Ordre imposé, et escalade si un carré nouvellement requis manque.** La
+  dérivation puis le sondage `HEAD` de **toute** la nouvelle liste passent
+  **avant** le moindre téléchargement (quelques minutes contre plusieurs heures).
+  Si un carré rendu requis par D19 est absent du dépôt public, le lot
+  **s'arrête et escalade vers le Planificateur et le propriétaire** en publiant,
+  pour chaque point concerné : ses coordonnées, sa cellule ou son arête, la tuile
+  canonique, la liste des tuiles publiées dont le carré nominal touche le point,
+  et les indices de pixel que chacune lirait. Le Générateur instruit ce cas, il
+  ne le tranche pas — et il ne fabrique rien.
 
 **Couverture des lectures** (dénominateurs dérivés du même script) :
 
@@ -949,6 +1274,35 @@ et `duree_recuperation_dem_secondes` sont mesurés et consignés dans
 après. L'ordre de grandeur annoncé par l'amendement (3,6 à 5,3 Go
 supplémentaires, 85 Go libres) est une extrapolation à partir des tuiles
 européennes déjà connues, pas une prévision : c'est la mesure qui fait foi.
+
+### SC8 — [A2] Le journal dit ce qui s'est passé, et les preuves sont suivies
+
+`deliverables/generator-log.md` décrit aujourd'hui une exécution qui n'est pas
+celle qui a produit les artefacts présents : il annonce « 179/179 tuiles
+vérifiées » et une date du 2026-08-20, alors que le bloc `dem` en compte 1 108 et
+que les artefacts viennent d'une exécution ultérieure. Il conclut en outre que
+ses vingt compteurs sont « tous conformes aux SC » — une conclusion de
+recevabilité, qui n'appartient pas au Générateur.
+
+- Le journal est **réécrit à partir de l'exécution finale réelle** : pour chaque
+  commande, la commande exacte, son code de sortie et sa durée ; le volume
+  réellement transféré ; l'espace disque libre avant et après ; les compteurs
+  tels que `deliverables/measure_g6_024.py` les imprime, sans reformulation.
+- `conclusions_de_recevabilite_dans_le_journal` = **0** : le journal rapporte,
+  il ne prononce pas. La phrase « tous conformes aux SC » et ses équivalents
+  disparaissent (règle du harnais : le producteur ne juge pas son travail).
+- `compteurs_du_journal_egaux_a_la_mesure` égale son dénominateur, le nombre de
+  compteurs imprimés par `measure_g6_024.py` : aucun nombre du journal n'est
+  saisi à la main ni repris d'une exécution précédente.
+- `fichiers_preuve_suivis_par_git` égale son dénominateur, dérivé de
+  `deliverables/manifest.json` (D9). Les preuves qui vivent sous des répertoires
+  ignorés (`artifacts/`, `logs/`, `capture/`) sont **forcées au suivi**
+  (`git add -f`, sans commit — Non-Goal 7), et `git ls-files` les liste toutes.
+  `preuves_manquantes_dans_git` = **0**.
+- Le cache DEM reste hors de cette règle : `dem_cache_non_suivi` vaut 1, et
+  `git ls-files pipeline/geo/sources/dem_cache/` reste vide (D2).
+- `deliverables/manifest.json` est mis à jour si le lot publie un artefact de
+  plus ; le dénominateur ci-dessus s'en dérive, il n'est écrit nulle part.
 
 ---
 
@@ -1022,6 +1376,27 @@ Ce brief ne doit explicitement PAS :
 20. **[A1]** Committer, pousser, ouvrir une nouvelle branche ou une nouvelle
     demande de fusion. L'itération se rejoue dans **le worktree agent existant
     et la demande de fusion existante**.
+21. **[A2]** Écrire un fichier raster, où que ce soit : dans le cache, dans le
+    dépôt, dans un test ou dans un répertoire temporaire promu ensuite en tuile.
+    Une tuile qui n'a pas été téléchargée du dépôt public n'est pas une tuile
+    (D20). Le code qui en fabriquait est **supprimé**, pas désactivé.
+22. **[A2]** Inscrire dans `sources.lock` l'empreinte d'un fichier qui n'a pas
+    été téléchargé du dépôt public. Le bloc `dem` est un registre de provenance,
+    pas un inventaire du disque (D20).
+23. **[A2]** Lire une altitude sans avoir vérifié soi-même que les indices de
+    pixel sont dans les bornes du fichier, ou s'en remettre au remplissage
+    silencieux de `rasterio.sample()` (`dataset.nodata or 0`) pour signaler une
+    absence (D23).
+24. **[A2]** Déduire du **nom** d'une tuile quelle tuile lit quel point : le nom
+    donne le carré nominal, le fichier donne le domaine indexable, et c'est le
+    second qui décide (D19).
+25. **[A2]** Faire coïncider la nouvelle liste de tuiles avec 1 108, 934 ou 5 :
+    ces trois valeurs de recoupement sont **retirées** (D21). Les identités
+    arithmétiques les remplacent ; les comptes de points, eux, restent des
+    valeurs de recoupement en vigueur.
+26. **[A2]** Publier un `deliverables/generator-log.md` qui décrit une autre
+    exécution que la dernière, ou qui conclut à la conformité aux conditions de
+    succès (SC8).
 
 ---
 
@@ -1034,15 +1409,22 @@ un nombre écrit dans ce brief. Tout dénominateur de tuiles est
 recoupement** : le compteur se dérive, et un écart s'escalade au lieu de se
 laisser arrondir (D15, règles n° 2 et n° 3).
 
+**[A2] Correction de la liste ci-dessus.** **1 108, 934 et 5 ne sont plus des
+valeurs de recoupement** : elles ont été obtenues sous la règle d'attribution que
+D19 corrige (D21). Elles sont remplacées par les identités arithmétiques de D21.
+Restent des valeurs de recoupement en vigueur : **596** centroïdes,
+**11 449 061** points de grille, **154 897** points de frontière,
+**11 604 554** lectures au total — la génération des points ne change pas.
+
 | nom | source | dénominateur |
 |---|---|---|
 | `tuiles_verifiees` | tuiles du cache dont le SHA256 recalculé égale `sources.lock` | **[A1]** `len(dem.tiles)` lu de `sources.lock` ; doit l'égaler |
 | `empreinte_collective_egale` | empreinte recalculée par la seule recette canonique (D18) vs `dem.collective_sha256` | booléen, doit être vrai |
-| **[A1]** `tuiles_requises` | `artifacts/dem_required_tiles_g6.json`, dérivé (D15) | lui-même ; recoupement attendu 1 108 |
+| **[A2]** `tuiles_requises` | `artifacts/dem_required_tiles_g6.json`, dérivé (D15) sous la règle de D19 | lui-même ; **aucune valeur attendue** — 1 108 est retiré (D21) |
 | **[A1]** `tuiles_presentes_dans_le_lock` | `len(dem.tiles)` | `tuiles_requises` ; doit l'égaler |
 | **[A1]** `tuiles_manquantes` | requises absentes du bloc `dem` | `tuiles_requises` ; doit valoir 0 |
-| **[A1]** `tuiles_ajoutees` | bloc publié moins instantané pré-édition | `tuiles_requises` ; recoupement attendu 934 |
-| **[A1]** `tuiles_excedentaires_retirees` | instantané pré-édition moins bloc publié | tuiles de l'instantané pré-édition ; recoupement attendu 5 |
+| **[A2]** `tuiles_ajoutees` | bloc publié moins instantané pré-édition | `tuiles_requises` ; **934 retiré** — identité de D21 |
+| **[A2]** `tuiles_excedentaires_retirees` | instantané pré-édition moins bloc publié | tuiles de l'instantané pré-édition ; **5 retiré** — identité de D21 |
 | **[A1]** `tuiles_excedentaires_restantes` | tuiles du bloc non requises | `len(dem.tiles)` ; doit valoir 0 |
 | **[A1]** `tuiles_requises_absentes_du_depot_public` | `artifacts/dem_tile_availability_g6.json` (D16) | `tuiles_requises` ; doit valoir 0 |
 | **[A1]** `tuiles_bornes_nom_vs_raster_egales` | bornes du nom vs métadonnées du COG (D16) | `len(dem.tiles)` ; doit l'égaler |
@@ -1062,7 +1444,22 @@ laisser arrondir (D15, règles n° 2 et n° 3).
 | **[A1]** `massifs_revendiques_sans_appui_dans_la_donnee` | zones nommées par le `README.md` et les journaux vs données exportées (SC6) | zones effectivement nommées ; doit valoir 0 |
 | **[A1]** `volume_dem_telecharge_octets` | octets réellement transférés | fait mesuré, publié |
 | **[A1]** `duree_recuperation_dem_secondes` | durée réelle de la récupération | fait mesuré, publié |
-| **[A1]** `cas_rouges_amendement_non_vides` | cas rouges des quatre gardes ajoutées (D11) | 4 ; doit valoir 4 |
+| **[A2]** `cas_rouges_amendement_non_vides` | cas rouges des gardes ajoutées par les amendements (D11) | 7 ; doit valoir 7 |
+| **[A2]** `tuiles_du_lock_absentes_du_depot_public` | sondage `HEAD` de **toutes** les tuiles du bloc publié (D20) | `len(dem.tiles)` ; doit valoir 0 |
+| **[A2]** `fichiers_du_cache_hors_lock` | fichiers `.tif` du cache absents du bloc `dem` (D20) | fichiers `.tif` présents dans `sources/dem_cache/` ; doit valoir 0 |
+| **[A2]** `fonctions_de_synthese_de_tuile` | fonctions du dépôt qui écrivent un raster (D20) | 1 ; doit valoir 0 |
+| **[A2]** `tuiles_regle_domaine_conforme` | règle d'attribution de D19 vs domaine indexable lu dans le fichier | `len(dem.tiles)` ; doit l'égaler |
+| **[A2]** `tuiles_registrement_homogene` | tuiles partageant le registrement mesuré (D22) | `len(dem.tiles)` ; doit l'égaler |
+| **[A2]** `registrement_dem_mesure` | nom du registrement mesuré (D22) | fait mesuré, publié par son nom, jamais supposé |
+| **[A2]** `lectures_hors_bornes_du_fichier` | lectures dont les indices de pixel sortent du tableau (D23) | total des lectures d'altitude ; doit valoir 0 |
+| **[A2]** `echantillons_valeur_zero_exact` | échantillons valant exactement `0,0 m` (D23) | total des lectures d'altitude ; fait mesuré, chacun issu d'un pixel indexable |
+| **[A2]** `cellules_altitude_min_nulle` | cellules dont `elev_min_m` ≤ 0,0 (D23) | cellules lues de `cells_g3.json` ; fait mesuré — vaut 576 sur 596 avant correction |
+| **[A2]** `cellules_sans_littoral_avec_echantillon_a_zero` | cellules sans arête `land-sea` portant un `0,00 m` (D23) | cellules sans arête `land-sea` dans `adjacency_g5.json` ; doit valoir 0 |
+| **[A2]** `points_sur_ligne_de_degre` | points de lecture à longitude ou latitude entière (D19, D21) | total des lectures d'altitude ; fait mesuré, réparti par famille |
+| **[A2]** `points_de_bord_valeurs_concordantes` | points indexés par plusieurs tuiles présentes, valeurs égales (D19) | points de bord à plusieurs tuiles indexantes ; doit l'égaler |
+| **[A2]** `conclusions_de_recevabilite_dans_le_journal` | affirmations de conformité aux SC dans `generator-log.md` (SC8) | 1 ; doit valoir 0 |
+| **[A2]** `compteurs_du_journal_egaux_a_la_mesure` | compteurs du journal vs sortie de `measure_g6_024.py` (SC8) | compteurs imprimés par le script ; doit l'égaler |
+| **[A2]** `preuves_manquantes_dans_git` | preuves de `deliverables/manifest.json` absentes de `git ls-files` (SC8) | preuves déclarées au manifeste ; doit valoir 0 |
 | **[A1]** `rubrique_amendee_apres_revue` | 1 si `eval-rubric.md` a été amendée après le verdict de relecture | 1 ; doit valoir 1 (voir plus bas) |
 | `cellules_sans_echantillon` | cellules de `cells_relief_g6.json` avec `sample_count <= 0` | cellules totales lues de `cells_g3.json`, doit être 0 (ou `-1` documenté) |
 | `echantillons_exclus_hors_plage` | échantillons hors `[G6_SAMPLE_VALID_MIN_M, G6_SAMPLE_VALID_MAX_M]` | échantillons bruts générés par la grille, fait mesuré |
@@ -1099,6 +1496,12 @@ Le compteur porte ce fait jusque dans le verdict, avec les deux dates. Un
 contrôle vert dont on sait qu'il ne mesure pas ce qu'il prétend se déclare, il
 ne s'encaisse pas.
 
+**[A2]** La rubrique est amendée une deuxième fois, le 2026-08-22, après la
+relecture de la deuxième exécution. `rubrique_amendee_apres_revue` vaut toujours
+1, et le Générateur comme l'Évaluateur citent désormais **trois** dates : la
+rédaction d'origine (2026-08-20), l'amendement 001 (2026-08-21) et l'amendement
+002 (2026-08-22). Le fait s'alourdit ; il ne se dissimule pas.
+
 ---
 
 ## Acceptable Waivers (si une impossibilité est invoquée)
@@ -1114,7 +1517,9 @@ message d'erreur qu'elle produit (règle n° 9).
 | **[A1]** « une tuile requise n'existe pas dans le dépôt public Copernicus » | `artifacts/dem_tile_availability_g6.json` produit par le sondage préalable (D16), plus la requête `HEAD` et sa réponse complète pour chaque tuile concernée | code HTTP `404` **par tuile nommée**. Le lot **s'arrête et escalade vers le propriétaire** avant tout téléchargement de masse. Ce waiver n'excuse aucune condition : il n'autorise ni un `0,0`, ni un repli, ni une emprise réduite, ni une maille partielle (D16, Non-Goal 16) |
 | **[A1]** « la récupération des tuiles a échoué en cours de route (réseau coupé, débit limité par le fournisseur) » | la commande de récupération réelle et son erreur complète, plus le nombre de tuiles vérifiées au moment de l'arrêt | erreur réseau ou HTTP nommant la tuile en cours. La récupération étant idempotente (D2), **la reprise est la conduite attendue** ; l'abandon avec un cache incomplet ne l'est pas. Si la reprise échoue durablement, escalade avec la durée et le volume réellement obtenus |
 | **[A1]** « l'espace disque est insuffisant pour le cache complet » | `df -h` avant et après, plus `volume_dem_telecharge_octets` au moment de l'arrêt | message d'écriture impossible nommant le chemin. Mesuré à l'écriture de cet amendement : 85 Go libres pour un besoin supplémentaire estimé entre 3,6 et 5,3 Go — ce waiver ne devrait pas s'appliquer, et une invocation sans ces deux sorties est une abdication (règle n° 9) |
-| **[A1]** « la reconstruction mécanique du nombre de tuiles requises diverge de la valeur de recoupement du brief (1 108 / 934 / 5) » | `../../.venv/bin/python tools/required_dem_tiles.py` depuis `pipeline/geo/`, sa sortie complète et `artifacts/dem_required_tiles_g6.json` | la sortie réelle montrant l'écart et sa cause. **Escalade obligatoire vers le Planificateur** : le brief n'est pas réécrit par le Générateur, et le résultat n'est pas arrondi vers l'attendu (Non-Goal 17) |
+| **[A2]** « la reconstruction mécanique des comptes de **points** diverge des valeurs de recoupement (596 / 11 449 061 / 154 897 / 11 604 554) » | `../../.venv/bin/python tools/required_dem_tiles.py` depuis `pipeline/geo/`, sa sortie complète et `artifacts/dem_required_tiles_g6.json` | la sortie réelle montrant l'écart et sa cause. **Escalade obligatoire vers le Planificateur** (Non-Goal 17). Les comptes de **tuiles** ne sont plus concernés : 1 108 / 934 / 5 sont retirés (D21), et une nouvelle valeur n'est pas un écart, c'est le résultat attendu |
+| **[A2]** « un carré rendu requis par la règle de domaine (D19) est absent du dépôt public » | le sondage `HEAD` de la nouvelle liste, `artifacts/dem_tile_availability_g6.json`, et la réponse complète pour chaque tuile concernée | code `404` **par tuile nommée**, obtenu **avant** tout téléchargement de masse. Le lot s'arrête et escalade vers le Planificateur **et** le propriétaire, en publiant pour chaque point concerné : coordonnées, cellule ou arête, tuile canonique, tuiles publiées dont le carré nominal touche le point, indices de pixel de chacune. Ce waiver n'autorise ni tuile fabriquée, ni `0,0`, ni repli, ni emprise réduite, ni maille partielle (D20, Non-Goals 16 et 21) |
+| **[A2]** « le registrement mesuré des tuiles n'est ni “pixel = surface” ni “pixel = point” » | la lecture d'en-tête réelle (largeur, hauteur, pas, bornes) pour au moins trois tuiles, et sa sortie complète | les métadonnées réelles montrant l'écart. **Escalade vers le Planificateur** : la règle d'attribution de D19 se prouve contre le fichier ou ne se prouve pas ; elle ne s'approxime pas avec une tolérance élargie (D22) |
 | « `adjacency_g5.json` ou `cells_g3.json` ne sont pas lisibles » | `.venv/bin/python -c "import json; json.load(open('pipeline/geo/artifacts/adjacency_g5.json'))"` depuis la racine | `FileNotFoundError` ou équivalent |
 | « la dérivation barrière/col (D6-D7) est incompatible avec ce que produit la géométrie réelle » | le module `steps/06_relief.py` écrit tel quel, plus la sortie de `../../.venv/bin/python pipeline.py --source relief` | la sortie réelle montrant l'incohérence (par exemple `pass_count != barrier_count`) ; **si invoquée**, aucune SC3 n'est excusée — c'est un motif d'escalade vers le propriétaire, pas un contournement du contrôle |
 | « aucune arête `land-land` n'est classée barrière sur la fenêtre pilote » | sortie de `tests/run_proof_g6.py` montrant `barrier_count = 0` | c'est un motif de blocage (contrairement à `fleuves_nommes_trouves` en G5) : les Pyrénées et les Alpes sont dans la fenêtre pilote (cols de `G6_KNOWN_PASSES`, tous en zone Pyrénées/Alpes) — un `barrier_count` nul signale un défaut réel de dérivation, pas un fait de monde plausible, et bloque SC3 |
@@ -1140,6 +1545,19 @@ dit comment la contredire.
 | SC6 (étendu) — plus de sur-revendication | SC6 | `massifs_revendiques_sans_appui_dans_la_donnee` | SC6 |
 | honnêteté du harnais | SC5 | `rubrique_amendee_apres_revue` | SC5 |
 
+## [A2] Cohérence décision → condition → compteur → rubrique (amendement 002)
+
+| décision | condition | compteurs | rubrique |
+|---|---|---|---|
+| D19 — la tuile qui lit un point est celle qui sait l'indexer | SC1, SC2, SC7 | `tuiles_regle_domaine_conforme`, `points_sur_ligne_de_degre`, `points_de_bord_valeurs_concordantes` | SC1, SC2, SC7 |
+| D20 — aucune tuile fabriquée | SC1 | `fonctions_de_synthese_de_tuile`, `fichiers_du_cache_hors_lock`, `tuiles_du_lock_absentes_du_depot_public` | SC1 |
+| D21 — liste re-dérivée, recoupements de tuiles retirés | SC7 | `tuiles_requises`, `tuiles_retirees_par_la_regle_de_domaine`, `tuiles_ajoutees_par_la_regle_de_domaine` | SC7 |
+| D22 — registrement mesuré | SC1 | `registrement_dem_mesure`, `tuiles_registrement_homogene`, `tuiles_bornes_nom_vs_raster_egales` | SC1 |
+| D23 — aucune lecture silencieuse | SC2 | `lectures_hors_bornes_du_fichier`, `echantillons_valeur_zero_exact`, `cellules_altitude_min_nulle`, `cellules_sans_littoral_avec_echantillon_a_zero` | SC2 |
+| D11 (étendu) — sept cas rouges | SC5 | `cas_rouges_amendement_non_vides` | SC5 |
+| SC8 — journal honnête, preuves suivies | SC8 | `conclusions_de_recevabilite_dans_le_journal`, `compteurs_du_journal_egaux_a_la_mesure`, `preuves_manquantes_dans_git` | SC8 |
+| cellule 1492 prouvée point par point | SC2 | les trois lectures publiées (coordonnées, tuile, indices, valeur brute) | SC2 |
+
 ## [A1] Cadre de l'itération
 
 Ce lot se rejoue **dans le worktree agent existant et la demande de fusion
@@ -1152,6 +1570,16 @@ La régénération est **complète** : tous les artefacts, journaux, registres e
 captures du lot sont reproduits à partir de la donnée corrigée. Aucun artefact
 de la première exécution n'est conservé tel quel, aucun compteur n'est repris
 d'un journal précédent.
+
+**[A2] Cela vaut aussi pour la deuxième exécution.** Ses artefacts sont
+contaminés : 576 cellules sur 596 portent au moins un `0,0 m` fabriqué (D23), le
+cache et `sources.lock` contiennent une tuile inventée (D20), et les barrières,
+cols, captures et statistiques en découlent. Aucun de ces fichiers n'est
+conservé, corrigé sur place ou repris partiellement : tout se re-dérive après la
+correction. Le faux fichier
+`sources/dem_cache/Copernicus_DSM_COG_30_N33_00_E012_00_DEM/Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif`
+est **supprimé du cache** — le cache n'est pas suivi par git, sa suppression
+n'est donc pas une modification de fichier partagé au sens de D13.
 
 ## Registre de coût
 

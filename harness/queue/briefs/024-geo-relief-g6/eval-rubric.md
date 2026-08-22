@@ -3,6 +3,24 @@
 **Authored**: 2026-08-20T08:15:00Z
 **Author**: forge-planificateur
 **Amendé le**: 2026-08-21T17:10:00Z (amendement 001)
+**Amendé le**: 2026-08-22 (amendement 002)
+
+> **AMENDEMENT 002 (2026-08-22).** Cette rubrique est amendée une deuxième fois,
+> après relecture en lecture seule de la deuxième exécution. Deux faits l'ont
+> motivée : une tuile DEM **fabriquée** localement pour remplacer une tuile
+> absente du dépôt public, et — trouvés en cherchant à répondre honnêtement à ce
+> premier point — des `0,0 m` fabriqués dans **576 cellules sur 596**, invisibles
+> pour tous les compteurs de l'amendement 001. La décision et ses preuves sont
+> dans
+> `harness/queue/briefs/024-geo-relief-g6/amendement-002-frontiere-de-tuile-et-zeros-fabriques.md` ;
+> les instructions, elles, sont dans `brief.md` et nulle part ailleurs.
+>
+> `rubrique_amendee_apres_revue` vaut toujours 1, et l'Évaluateur cite désormais
+> **trois** dates : 2026-08-20 (rédaction), 2026-08-21 (amendement 001),
+> 2026-08-22 (amendement 002). Un `rubric_predates_deliverables` vert ne vaut ici
+> aucune preuve d'antériorité.
+>
+> Les sections amendées portent la mention **[A2]**, qui prime sur **[A1]**.
 
 Ce document est rédigé par le Planificateur AVANT tout code.
 L'Évaluateur l'applique sans le modifier.
@@ -92,12 +110,44 @@ dénominateur), `empreinte_collective_egale` (doit être vrai),
    COG. `W001` doit couvrir `[−1, 0)`. Un `[−2, −1)` est le défaut d'origine et
    est disqualifiant.
 
+**[A2] Reconstructions supplémentaires — la tuile fabriquée et le registrement** :
+
+7. **Aucune tuile fabriquée.** La deuxième exécution a créé de toutes pièces
+   `Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif` (3600×3600 pixels à `0 m`),
+   l'a mise dans le cache et **inscrite dans `sources.lock`**. Vérifier que la
+   fonction et l'option qui le permettaient n'existent plus :
+   `grep -rn "synthes" pipeline/geo/` ne doit rien ramener, et
+   `grep -rn "from_bounds\|rasterio.open" pipeline/geo/tools/ pipeline/geo/steps/`
+   ne doit ramener aucune écriture de raster. Vérifier que le nom de cette tuile
+   **n'apparaît plus** dans `sources.lock` ni dans
+   `artifacts/dem_required_tiles_g6.json`. Recalculer soi-même
+   `fichiers_du_cache_hors_lock` (le cache contient exactement le bloc `dem`) et
+   contrôler dans `artifacts/dem_tile_availability_g6.json` que **toutes** les
+   tuiles du bloc publié — pas seulement les requises — répondent `200`.
+8. **Le registrement est mesuré.** Lire `registrement_dem_mesure` et
+   `tuiles_registrement_homogene`. Ouvrir soi-même l'en-tête de deux ou trois
+   tuiles du cache (largeur, hauteur, pas, bornes) et vérifier que le nom publié
+   décrit ce que les fichiers disent. Vérifier que la tolérance de
+   `tuiles_bornes_nom_vs_raster_egales` est dérivée du registrement et non un
+   `0,001` écrit en dur — cette tolérance-là est plus large qu'un demi-pixel
+   (`0,000417°`) et ne prouve donc pas ce qu'elle prétend. Vérifier que ce
+   compteur est bien **publié dans `logs/v1_052_qa.json`** : il en était absent.
+9. **La règle d'attribution est prouvée contre le fichier.** Vérifier
+   `tuiles_regle_domaine_conforme` = son dénominateur, et refaire le calcul
+   soi-même pour une tuile : pour un point à une latitude entière `k`, la tuile
+   `N k` doit donner un indice de ligne **hors bornes**, et la tuile `N (k−1)`
+   la ligne 0. C'est le fait qui fonde D19 ; s'il est faux, tout le reste de
+   l'amendement 002 doit être réexaminé, pas contourné.
+
 **Contre-preuves disqualifiantes** (montées par l'Évaluateur, dans une copie
 hors dépôt) :
 
 - altérer un octet d'une tuile du cache, ou renommer une tuile absente comme
   présente — `G6-A` doit rougir, empreinte individuelle **et** collective, et
   **sans qu'aucune recette de repli ne soit essayée** ;
+- **[A2]** déposer dans le cache un GeoTIFF fabriqué (rempli de zéros) portant
+  le nom d'une tuile du bloc — `G6-A` doit rougir **avant toute lecture
+  d'altitude**, par le sondage de disponibilité, en nommant la tuile ;
 - supprimer une tuile du cache — `G6-A` doit rougir avant toute lecture
   d'altitude (pas un `elev_mean_m` calculé en silence sur les tuiles
   restantes) ;
@@ -150,12 +200,52 @@ première exécution a échoué en restant verte. Vérifier explicitement :
    (`grep -n "nodata" pipeline/geo/steps/06_relief.py`) et qu'aucune valeur
    sentinelle de raster n'y est écrite en dur.
 
+**[A2] Reconstruction supplémentaire — les zéros fabriqués, deuxième prise.**
+C'est ici que la **deuxième** exécution a échoué en restant verte, et c'est le
+point le plus important de cette itération avec SC7. Les compteurs de
+l'amendement 001 sont aveugles à ce défaut : `echantillons_hors_couverture_dem`
+et `echantillons_nodata_raster` valaient tous deux `0` pendant que des altitudes
+de `0,0 m` étaient inventées.
+
+1. **Le compte global.** Recalculer soi-même, sur `cells_relief_g6.json`, le
+   nombre de cellules dont `elev_min_m` est ≤ 0,0. Il valait **576 sur 596**.
+   Une valeur restée de cet ordre signale que le défaut n'a pas été corrigé.
+   Comparer à `cellules_altitude_min_nulle` publié.
+2. **Les cellules impossibles.** Vérifier nommément **9797** (centroïde
+   1,534°O / 33,531°N, Maroc oriental, altitude moyenne 1 149 m, rugosité
+   164 m), **9854** et **9872** : elles publiaient toutes trois `elev_min_m =
+   0,0` à plus de 150 km de la mer et à plus de 1 100 m de moyenne. Elles
+   doivent porter un minimum plausible pour leur position. Un `0,0` qui
+   subsisterait doit être prouvé pixel par pixel, ou c'est disqualifiant.
+3. **La cellule 1492.** Elle publiait `sample_count = 3` et `0,0` sur **tous**
+   ses champs (centroïde 34,8170°E / 45,8262°N, Sivach, Crimée). Vérifier que le
+   journal publie ses **trois** lectures — coordonnées, tuile servante, indices
+   de pixel, valeur brute — et que la conclusion tirée correspond à ce que ces
+   trois lectures montrent. Trois pixels valides d'une tuile réelle : ce sont des
+   mesures, et le fait est déclaré. Autre chose : c'est un défaut. Une cellule
+   entièrement nulle publiée sans explication reste disqualifiante.
+4. **Le compteur qui mord.** Vérifier `lectures_hors_bornes_du_fichier = 0` avec
+   pour dénominateur le total des lectures, et
+   `cellules_sans_littoral_avec_echantillon_a_zero = 0` avec pour dénominateur
+   les cellules sans arête `land-sea` dans `adjacency_g5.json` — recalculer soi-
+   même ce dénominateur, ne pas le reprendre du manifeste.
+5. **Le code ne s'en remet plus au silence.** Lire `steps/06_relief.py` :
+   vérifier que les indices de pixel sont calculés et **contrôlés** avant la
+   lecture, et qu'aucun chemin ne s'appuie sur le remplissage par défaut de
+   `rasterio.sample()` (`dataset.nodata or 0`, donc `0.0` quand aucune valeur
+   `nodata` n'est déclarée — et `tuiles_sans_valeur_nodata_declaree` valait
+   1 108 sur 1 108).
+
 **Contre-preuve disqualifiante** : dans une copie hors dépôt, forcer
 `sample_count = 0` sur une cellule qui en a réellement — `G6-B` doit
 rougir. Forcer `elev_mean_m` d'une cellule à une valeur hors plage (par
 exemple 6000) — `G6-C` doit rougir. **[A1]** Forcer un échantillon à la valeur
 `nodata` du fichier — il ne doit ni devenir `0,0`, ni compter comme valide, et
-`echantillons_nodata_raster` doit augmenter.
+`echantillons_nodata_raster` doit augmenter. **[A2]** Demander une altitude à
+une latitude exactement entière en forçant l'ancienne règle d'attribution (tuile
+du nord) — la lecture doit **lever** en nommant les indices calculés, jamais
+rendre `0,0`. **[A2]** Demander une altitude avec des indices de pixel hors du
+tableau — la lecture doit lever, pas rendre une valeur.
 
 **Résultat attendu** : `G6-B` et `G6-C` verts, chacun avec un `red_proof`
 non vide dans `test_qa_red_g6.py`.
@@ -260,8 +350,16 @@ par le Générateur.
 graine non fixée dans une copie hors dépôt — le déterminisme doit rougir
 (deux passes produisant des empreintes différentes).
 
+**[A2] Sept cas rouges d'amendement, pas quatre.** Vérifier
+`cas_rouges_amendement_non_vides = 7` sur 7, et lire les trois cas ajoutés dans
+`tests/test_qa_red_g6.py` : ligne de degré, lecture hors bornes, tuile
+fabriquée. Pour chacun, vérifier que la preuve rouge est **non vide** et qu'elle
+décrit un échec réel (une erreur levée, une tuile nommée), pas un booléen
+retourné. Un cas rouge qui vérifierait qu'une valeur est rendue au lieu d'une
+erreur ne prouve rien.
+
 **Résultat attendu** : `code_sortie_run_proof_g6 == 0`, 6/6 verts, 6/6 avec
-preuve rouge.
+preuve rouge, 7/7 cas rouges d'amendement non vides.
 
 ---
 
@@ -376,12 +474,30 @@ puis lire `artifacts/dem_required_tiles_g6.json`,
 2. **Les comptes.** Recalculer soi-même, depuis
    `artifacts/dem_required_tiles_g6.json` et `sources.lock` : requises,
    présentes, manquantes, excédentaires. Vérifier que
-   `tuiles_manquantes = 0` et `tuiles_excedentaires_restantes = 0`, et que
-   l'addition tient (utiles + ajoutées = requises).
-   Valeurs de recoupement attendues, énoncées par le brief : 1 108 requises,
-   934 ajoutées, 5 retirées. **Un écart n'est acceptable que s'il est
-   accompagné de la reconstruction mécanique qui le prouve** (Waivers du
-   brief) ; un nombre silencieusement ajusté pour coïncider est disqualifiant.
+   `tuiles_manquantes = 0` et `tuiles_excedentaires_restantes = 0`.
+   **[A2] Ne pas attendre 1 108, 934 ni 5** : ces trois valeurs de recoupement
+   sont **retirées** par l'amendement 002, parce qu'elles ont été obtenues sous
+   la règle d'attribution que D19 corrige. Vérifier à leur place l'identité du
+   brief : `tuiles_ajoutees − tuiles_excedentaires_retirees =
+   tuiles_requises − len(tuiles de l'instantané pré-édition)`, tous les termes
+   recalculés par l'Évaluateur. Un Générateur qui aurait « retrouvé » 1 108
+   après correction doit expliquer comment, et c'est suspect, pas rassurant.
+2-bis. **[A2] La règle de domaine a bien mordu.** Vérifier que
+   `tuiles_retirees_par_la_regle_de_domaine` contient
+   `Copernicus_DSM_COG_30_N33_00_E012_00_DEM.tif` — la tuile inexistante que la
+   deuxième exécution avait fabriquée — et que ce nom n'apparaît plus ni dans
+   `sources.lock`, ni dans la liste requise, ni dans le cache. Lire
+   `tuiles_ajoutees_par_la_regle_de_domaine` : pour chaque tuile ajoutée,
+   vérifier dans `artifacts/dem_tile_availability_g6.json` qu'elle répond `200`.
+   Vérifier `points_sur_ligne_de_degre` et sa répartition par famille : c'est la
+   population que la règle réattribue, et elle doit être publiée, pas déduite.
+2-ter. **[A2] Le point qui a déclenché l'amendement.** Vérifier que le journal
+   publie nommément le nœud `(12,0°E ; 33,0°N)` de la cellule 9887 : la tuile qui
+   le sert désormais (`Copernicus_DSM_COG_30_N32_00_E012_00_DEM.tif`), ses
+   indices de pixel et la valeur brute lue. Vérifier soi-même que cette tuile
+   figure bien dans le bloc `dem` et répond `200`. Si le journal se contente
+   d'affirmer que le cas est réglé sans publier la lecture, la condition n'est
+   pas satisfaite.
 3. **Les lectures.** Vérifier `echantillons_hors_couverture_dem = 0`, et que
    son dénominateur est bien le total des lectures d'altitude (recoupement
    attendu 11 604 554 = 11 449 061 + 596 + 154 897). Vérifier que
@@ -414,11 +530,69 @@ puis lire `artifacts/dem_required_tiles_g6.json`,
   cesser d'égaler leurs dénominateurs, et `echantillons_hors_couverture_dem`
   doit devenir non nul ou la lecture échouer.
 
+**[A2] Contre-preuves ajoutées** (copie hors dépôt) :
+
+- rétablir l'ancienne règle d'attribution (tuile du nord pour une latitude
+  entière) — les lectures de ligne de degré doivent échouer, et
+  `lectures_hors_bornes_du_fichier` devenir non nul ; si tout reste vert et que
+  des `0,0` réapparaissent, la condition n'est pas satisfaite ;
+- retirer du bloc `dem` une tuile ajoutée par la règle de domaine — la garde de
+  couverture doit s'arrêter en la nommant, avant tout échantillonnage.
+
 **Résultat attendu** : couverture requise complète,
 `echantillons_hors_couverture_dem = 0`, tuiles requises / présentes /
 manquantes / excédentaires publiées et cohérentes, couverture des centroïdes,
 de la grille et des frontières égale à son dénominateur,
-`cellules_non_mesurees = 0`. Aucune maille partielle, sous aucune forme.
+`cellules_non_mesurees = 0`. **[A2]** `lectures_hors_bornes_du_fichier = 0`,
+liste des tuiles re-dérivée et publiée avec son delta, aucune tuile fabriquée.
+Aucune maille partielle, sous aucune forme.
+
+---
+
+## SC8 — [A2] Le journal dit ce qui s'est passé, et les preuves sont suivies
+
+**Vérification** :
+```
+.venv/bin/python harness/queue/briefs/024-geo-relief-g6/deliverables/measure_g6_024.py
+git ls-files pipeline/geo/artifacts/*g6* pipeline/geo/logs/*052* pipeline/geo/capture/*052*
+git status --porcelain --ignored pipeline/geo/sources/dem_cache/
+```
+
+**Reconstruction indépendante** :
+
+1. **Le journal décrit la bonne exécution.** Le journal livré avec la deuxième
+   exécution annonçait « 179/179 tuiles vérifiées » et une date du 2026-08-20,
+   alors que le bloc `dem` en comptait 1 108 et que les artefacts venaient d'une
+   exécution ultérieure. Vérifier que chaque commande citée, son code de sortie
+   et sa durée correspondent à l'exécution qui a produit les artefacts présents
+   — recouper avec `logs/v1_052_qa.json` et les empreintes des artefacts.
+2. **Le journal ne conclut pas.** `conclusions_de_recevabilite_dans_le_journal`
+   doit valoir 0. La formule « tous conformes aux SC » du journal précédent, et
+   toute variante, est un empiètement sur le rôle de l'Évaluateur : le
+   producteur rapporte, il ne prononce pas.
+3. **Les nombres du journal viennent de la mesure.** Relancer
+   `measure_g6_024.py` et comparer chaque compteur au journal
+   (`compteurs_du_journal_egaux_a_la_mesure` égale son dénominateur). Un nombre
+   du journal qui ne se retrouve pas dans la sortie du script est saisi à la
+   main : disqualifiant.
+4. **Les preuves sont suivies.** Recalculer soi-même le dénominateur depuis
+   `deliverables/manifest.json`, puis vérifier par `git ls-files` que chaque
+   preuve déclarée y figure (`preuves_manquantes_dans_git = 0`). Les preuves qui
+   vivent sous des répertoires ignorés doivent avoir été forcées au suivi
+   (`git add -f`) **sans commit**. Vérifier en même temps que le cache DEM, lui,
+   n'est **pas** suivi : `git ls-files pipeline/geo/sources/dem_cache/` vide.
+5. **Le coût est mesuré.** `volume_dem_telecharge_octets`,
+   `duree_recuperation_dem_secondes` et l'espace disque libre avant/après
+   viennent d'une mesure, jamais d'une estimation reprise de l'amendement 001.
+
+**Contre-preuve disqualifiante** : dans une copie hors dépôt, retirer une preuve
+de l'index git — `preuves_manquantes_dans_git` doit devenir non nul. Modifier un
+compteur dans le journal sans toucher aux artefacts —
+`compteurs_du_journal_egaux_a_la_mesure` doit cesser d'égaler son dénominateur.
+
+**Résultat attendu** : un journal qui raconte l'exécution réelle, ne juge pas, et
+dont chaque nombre se rejoue ; toutes les preuves déclarées suivies par git ; le
+cache DEM ignoré.
 
 ---
 
@@ -475,3 +649,39 @@ de la grille et des frontières égale à son dénominateur,
 - `rubrique_amendee_apres_revue` absent ou différent de 1 : le fait que cette
   rubrique ait été amendée après le verdict doit rester visible dans le
   verdict.
+
+**[A2] Ajoutés par l'amendement 002** :
+
+- Une tuile DEM **fabriquée** localement, sous quelque forme que ce soit :
+  raster écrit par le dépôt, tuile remplie de zéros, fichier du cache qui ne
+  répond pas `200` au sondage de disponibilité.
+- Une empreinte inscrite dans `sources.lock` pour un fichier qui n'a pas été
+  téléchargé du dépôt public.
+- Du code de synthèse de tuile encore présent, même désactivé, même derrière une
+  option (`--synthesize-missing` ou équivalent).
+- Une lecture d'altitude dont les indices de pixel ne sont pas vérifiés avant la
+  lecture, ou qui s'en remet au remplissage silencieux de `rasterio.sample()`
+  pour signaler une absence.
+- L'appartenance d'un point à une tuile déduite du **nom** de la tuile au lieu du
+  domaine indexable lu dans le fichier ; ou la règle de D19 affirmée sans être
+  prouvée tuile par tuile (`tuiles_regle_domaine_conforme` absent ou inférieur à
+  son dénominateur).
+- `lectures_hors_bornes_du_fichier` différent de 0, ou absent.
+- `cellules_sans_littoral_avec_echantillon_a_zero` différent de 0 sans que
+  chaque cellule concernée soit nommée et prouvée pixel par pixel.
+- Une cellule entièrement nulle (`elev_min_m`, `elev_mean_m`, `elev_max_m`,
+  `centroid_elev_m`, `roughness_m` et `slope_mean_deg` tous à `0,0`) publiée sans
+  que ses lectures soient publiées — la cellule **1492** en particulier.
+- Un `cellules_altitude_min_nulle` resté de l'ordre de 576 sur 596 : le défaut
+  n'a pas été corrigé, quels que soient les contrôles verts par ailleurs.
+- Les valeurs 1 108, 934 ou 5 réintroduites comme cibles à atteindre après
+  correction (elles sont retirées), ou une nouvelle valeur ajustée pour
+  coïncider avec elles.
+- `registrement_dem_mesure` absent, ou une tolérance de comparaison de bornes
+  écrite en dur au lieu d'être dérivée du registrement mesuré.
+- `cas_rouges_amendement_non_vides` différent de 7.
+- Un `deliverables/generator-log.md` décrivant une autre exécution que la
+  dernière, contenant une conclusion de recevabilité, ou un compteur qui ne se
+  retrouve pas dans la sortie de `measure_g6_024.py`.
+- Une preuve déclarée au manifeste absente de `git ls-files`, ou une tuile DEM
+  qui, elle, s'y trouverait.
