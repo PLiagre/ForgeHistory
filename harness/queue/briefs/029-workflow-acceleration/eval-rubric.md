@@ -1,5 +1,8 @@
 # Rubrique d’évaluation — brief 029
 
+**Authored**: 2026-08-22T14:47:12Z
+**Author**: forge-planificateur
+
 Cette rubrique a été écrite avant le code. Le brief 029 est l’unique source
 d’instruction. L’évaluateur relit chaque condition SC0 à SC13 et reconstruit les
 preuves depuis le head SHA ; il ne reprend aucun compteur du producteur sans le

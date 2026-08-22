@@ -1,5 +1,8 @@
 # Brief 029 — Accélération du workflow Hermes / ForgePilot / Cursor
 
+**Authored**: 2026-08-22T14:47:12Z
+**Author**: forge-planificateur
+
 **Risque : R2.** Ce lot touche l’orchestration, la CI, la production des
 preuves et le traitement de données DEM. Il ne change pas les principes de
 simulation ni le droit de fusion du propriétaire.
