@@ -57,11 +57,22 @@ def test_certify_requires_final_sha():
         )
 
 
+def test_certify_requires_base_as_well_as_final_sha():
+    with pytest.raises(router.TestRouterError, match="base et le SHA final"):
+        router.build_plan(
+            REPO_ROOT,
+            ["pipeline/geo/steps/06_relief.py"],
+            "certify",
+            head_sha="a" * 40,
+        )
+
+
 def test_g6_certify_plans_one_explicit_heavy_command():
     plan = router.build_plan(
         REPO_ROOT,
         ["pipeline/geo/steps/06_relief.py"],
         "certify",
+        base_sha="b" * 40,
         head_sha="a" * 40,
     )
     assert _ids(plan) == [
@@ -89,6 +100,21 @@ def test_unknown_sensitive_geo_path_fails_closed():
             ["pipeline/geo/steps/99_unknown.py"],
             "fast",
         )
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["SECURITY.md", ".claude/agents/forge.md", "hermes/reports/bilan.md"],
+)
+def test_policy_sensitive_governance_paths_never_fall_back_to_documentation(path):
+    plan = router.build_plan(REPO_ROOT, [path], "fast")
+    assert plan["assignments"][path] == ["governance"]
+    assert "single-source-tests" in _ids(plan)
+
+
+def test_unknown_sensitive_data_suffix_fails_closed():
+    with pytest.raises(router.TestRouterError, match="sans règle"):
+        router.build_plan(REPO_ROOT, ["root.geojson"], "fast")
 
 
 def test_plain_documentation_does_not_invent_a_test_suite():
@@ -126,6 +152,7 @@ def test_router_itself_raises_a_requested_risk_before_selecting_profile():
         [".github/workflows/harness-ci.yml"],
         risk="R0",
         policy_path=policy_path,
+        base_sha="b" * 40,
         head_sha="a" * 40,
     )
     assert plan["requested_risk"] == "R0"
@@ -212,6 +239,8 @@ def test_heavy_command_requires_explicit_opt_in(tmp_path):
 
 def test_heavy_command_uses_repository_scoped_lock(monkeypatch, tmp_path):
     monkeypatch.setattr(router, "_current_head", lambda repo: "a" * 40)
+    shared_lock = tmp_path / "shared" / "heavy.lock"
+    monkeypatch.setattr(router, "_heavy_lock_path", lambda repo: shared_lock)
 
     def fake_runner(argv, **kwargs):
         return subprocess.CompletedProcess(argv, 0, stdout="ok", stderr="")
@@ -225,4 +254,17 @@ def test_heavy_command_uses_repository_scoped_lock(monkeypatch, tmp_path):
     }
     result = router.run_plan(plan, tmp_path, allow_heavy=True, runner=fake_runner)
     assert result["status"] == "passed"
-    assert result["heavy_lock"] == str(tmp_path / ".forgepilot" / "heavy-proof.lock")
+    assert result["heavy_lock"] == str(shared_lock)
+
+
+def test_heavy_lock_can_be_global_to_the_vps(tmp_path):
+    target = (tmp_path / "vps-heavy.lock").resolve()
+    assert router._heavy_lock_path(
+        tmp_path,
+        environ={"FORGEPILOT_HEAVY_LOCK": str(target)},
+    ) == target
+    with pytest.raises(router.TestRouterError, match="chemin absolu"):
+        router._heavy_lock_path(
+            tmp_path,
+            environ={"FORGEPILOT_HEAVY_LOCK": "relative.lock"},
+        )

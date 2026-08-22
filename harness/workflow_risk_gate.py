@@ -169,9 +169,10 @@ def _matches(path: str, patterns: Sequence[str]) -> bool:
     """Applique la même sémantique de glob que le chargeur ForgePilot."""
 
     for pattern in patterns:
-        if fnmatch.fnmatchcase(path, pattern) or fnmatch.fnmatchcase(
-            path, pattern.replace("/**/", "/")
-        ):
+        candidates = {pattern, pattern.replace("/**/", "/")}
+        if pattern.startswith("**/"):
+            candidates.add(pattern[3:])
+        if any(fnmatch.fnmatchcase(path, candidate) for candidate in candidates):
             return True
     return False
 
@@ -207,7 +208,7 @@ def parse_declared_risk(text: str) -> str:
 
 
 def changed_paths(repo: Path | str, base: str, head: str) -> tuple[str, ...]:
-    """Retourne les chemins réellement changés entre deux objets Git."""
+    """Retourne tous les chemins changés, y compris les deux côtés d'un renommage."""
 
     repo_path = Path(repo).resolve()
     if not base or not head:
@@ -218,7 +219,8 @@ def changed_paths(repo: Path | str, base: str, head: str) -> tuple[str, ...]:
             "diff-tree",
             "--root",
             "--no-commit-id",
-            "--name-only",
+            "--name-status",
+            "-z",
             "-r",
             head,
         ]
@@ -226,7 +228,9 @@ def changed_paths(repo: Path | str, base: str, head: str) -> tuple[str, ...]:
         command = [
             "git",
             "diff",
-            "--name-only",
+            "--name-status",
+            "-z",
+            "--find-renames",
             base,
             head,
             "--",
@@ -234,16 +238,39 @@ def changed_paths(repo: Path | str, base: str, head: str) -> tuple[str, ...]:
     completed = subprocess.run(
         command,
         cwd=repo_path,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
         capture_output=True,
         check=False,
     )
     if completed.returncode != 0:
-        detail = completed.stderr.strip() or completed.stdout.strip() or "erreur Git sans détail"
+        detail = (
+            completed.stderr
+            or completed.stdout
+            or "erreur Git sans détail".encode("utf-8")
+        ).decode(
+            "utf-8", errors="replace"
+        ).strip()
         raise RiskGateError(f"git diff impossible : {detail}")
-    return normalize_paths(completed.stdout.splitlines())
+
+    fields = completed.stdout.split(b"\0")
+    if fields and fields[-1] == b"":
+        fields.pop()
+    paths: list[str] = []
+    index = 0
+    try:
+        while index < len(fields):
+            status = fields[index].decode("ascii", errors="strict")
+            index += 1
+            if not status or status[0] not in "ACDMRTUXB":
+                raise RiskGateError(f"statut Git inattendu : {status!r}")
+            path_count = 2 if status[0] in {"R", "C"} else 1
+            if index + path_count > len(fields):
+                raise RiskGateError("sortie Git tronquée pendant le classement")
+            for raw_path in fields[index : index + path_count]:
+                paths.append(raw_path.decode("utf-8", errors="strict"))
+            index += path_count
+    except UnicodeDecodeError as exc:
+        raise RiskGateError("chemin Git non UTF-8 : classement refusé") from exc
+    return normalize_paths(paths)
 
 
 def evaluate(

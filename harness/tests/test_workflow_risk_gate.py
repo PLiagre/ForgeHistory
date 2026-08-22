@@ -166,6 +166,38 @@ def test_changed_paths_are_rebuilt_from_the_exact_git_range(tmp_path):
     )
 
 
+def test_changed_paths_keep_both_sides_of_a_rename(tmp_path):
+    def git(*args):
+        completed = subprocess.run(
+            ["git", *args],
+            cwd=tmp_path,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        return completed.stdout.strip()
+
+    git("init", "-q")
+    git("config", "user.name", "risk-test")
+    git("config", "user.email", "risk-test@example.invalid")
+    source = tmp_path / "SECURITY.md"
+    source.write_text("secret governance\n", encoding="utf-8")
+    git("add", "SECURITY.md")
+    git("commit", "-qm", "base")
+    base = git("rev-parse", "HEAD")
+    destination = tmp_path / "docs" / "operations" / "security.md"
+    destination.parent.mkdir(parents=True)
+    source.rename(destination)
+    git("add", "--all")
+    git("commit", "-qm", "rename")
+    head = git("rev-parse", "HEAD")
+
+    assert gate.changed_paths(tmp_path, base, head) == (
+        "SECURITY.md",
+        "docs/operations/security.md",
+    )
+
+
 def test_harness_derivation_matches_authoritative_forgepilot_loader():
     """Une divergence entre les deux consommateurs doit rougir immédiatement."""
 
@@ -186,6 +218,7 @@ def test_harness_derivation_matches_authoritative_forgepilot_loader():
         [".github/workflows/harness-ci.yml"],
         ["pipeline/geo/tests/test_g6_acceleration.py"],
         ["docs/operations/a.md", "sim/world.py"],
+        ["root.geojson"],
     )
     for paths in cases:
         assert gate.derive_risk(local, paths) == policy_module.derive_risk(

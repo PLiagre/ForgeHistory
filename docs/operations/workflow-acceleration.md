@@ -61,9 +61,10 @@ preuve Europe par accident.
 
 ## Exploitation sur 8 Gio / 100 Gio
 
-- Ne lancer qu'une preuve lourde à la fois. Le routeur prend le verrou local
-  `.forgepilot/heavy-proof.lock` autour de `run --allow-heavy`; l'ordonnanceur
-  VPS conserve lui aussi une seule tâche lourde active.
+- Ne lancer qu'une preuve lourde à la fois. Le routeur verrouille par défaut le
+  Git common dir, partagé par tous les worktrees. Si plusieurs clones vivent
+  sur le VPS, définir `FORGEPILOT_HEAVY_LOCK` vers un même chemin absolu hors
+  des clones avant `run --allow-heavy`.
 - Monter le cache partagé via `FORGEHISTORY_DEM_CACHE_ROOT`. Le code du cache
   choisit ensuite le sous-répertoire lié à `sources.lock`.
 - Exécuter Cursor et les preuves sous un utilisateur sans jeton GitHub ou
@@ -81,6 +82,28 @@ La procédure quotidienne et son installation vivent dans
 les worktrees et le cache sans suppression. Le contrôleur ne transmet rien à
 Discord quand le code de sortie vaut zéro et que la sortie est vide ; une
 alerte non vide est transmise telle quelle, sans appeler de modèle.
+
+## Après fusion : checks protégés
+
+Une fois les nouveaux workflows présents sur `master`, remplacer les anciens
+contextes de protection par : `harness-tests`, `sim-tests`,
+`forgepilot-tests`, `audit-schema`, `audit-check`, `actionlint`, `gitleaks` et
+`risk-gate`. Tous sont émis sur chaque PR ; `forgepilot-tests` n'est donc pas
+conditionné par un filtre de chemins.
+
+Vérifier d'abord l'état courant, puis appliquer le changement avec un compte
+administrateur :
+
+```bash
+gh api repos/PLiagre/ForgeHistory/branches/master/protection/required_status_checks
+gh api --method PATCH \
+  repos/PLiagre/ForgeHistory/branches/master/protection/required_status_checks \
+  -F strict=true \
+  -f 'contexts[]=harness-tests' -f 'contexts[]=sim-tests' \
+  -f 'contexts[]=forgepilot-tests' -f 'contexts[]=audit-schema' \
+  -f 'contexts[]=audit-check' -f 'contexts[]=actionlint' \
+  -f 'contexts[]=gitleaks' -f 'contexts[]=risk-gate'
+```
 
 ## Matériau de verdict
 

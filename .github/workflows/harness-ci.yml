@@ -82,6 +82,13 @@ jobs:
             --base "$BASE_SHA" \
             --head "$HEAD_SHA" \
             --output "$RUNNER_TEMP/risk-gate.json"
+          python harness/workflow_test_router.py plan \
+            --repo . \
+            --profile fast \
+            --risk R2 \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
+            --output "$RUNNER_TEMP/targeted-proof-plan.json"
       - name: Recalculer le risque après fusion sur master
         if: github.event_name == 'push'
         env:
@@ -95,3 +102,10 @@ jobs:
             --base "$BASE_SHA" \
             --head "$HEAD_SHA" \
             --output "$RUNNER_TEMP/risk-gate.json"
+          python harness/workflow_test_router.py plan \
+            --repo . \
+            --profile fast \
+            --risk R2 \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
+            --output "$RUNNER_TEMP/targeted-proof-plan.json"

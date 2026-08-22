@@ -32,6 +32,7 @@ try:
         RISKS,
         TEST_PROFILES,
         RiskGateError,
+        changed_paths,
         derive_risk,
         effective_risk,
         load_policy,
@@ -43,6 +44,7 @@ except ModuleNotFoundError:  # import depuis ``harness.workflow_test_router``
         RISKS,
         TEST_PROFILES,
         RiskGateError,
+        changed_paths,
         derive_risk,
         effective_risk,
         load_policy,
@@ -107,6 +109,10 @@ RULES = (
     RouteRule(
         "gouvernance",
         (
+            ".claude/**",
+            ".gitleaks.toml",
+            ".gitignore",
+            "SECURITY.md",
             "AGENTS.md",
             "CLAUDE.md",
             "VISION.md",
@@ -115,8 +121,7 @@ RULES = (
             "docs/adr/**",
             "docs/rules/**",
             "docs/operations/**",
-            "hermes/README.md",
-            "hermes/skills/**",
+            "hermes/**",
         ),
         "governance",
     ),
@@ -125,17 +130,40 @@ RULES = (
 
 SENSITIVE_PREFIXES = (
     ".github/",
+    ".claude/",
     "control-plane/",
     "docs/adr/",
     "docs/rules/",
     "harness/",
-    "hermes/crons/",
-    "hermes/skills/",
+    "hermes/",
     "pipeline/geo/",
     "sim/",
 )
-SENSITIVE_ROOTS = frozenset({".cursorignore", "AGENTS.md", "CLAUDE.md", "VISION.md"})
-SENSITIVE_SUFFIXES = frozenset({".py", ".sh", ".ps1", ".toml", ".yml", ".yaml"})
+SENSITIVE_ROOTS = frozenset(
+    {
+        ".cursorignore",
+        ".gitleaks.toml",
+        ".gitignore",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "SECURITY.md",
+        "VISION.md",
+    }
+)
+SENSITIVE_SUFFIXES = frozenset(
+    {
+        ".geojson",
+        ".npy",
+        ".npz",
+        ".parquet",
+        ".ps1",
+        ".py",
+        ".sh",
+        ".toml",
+        ".yaml",
+        ".yml",
+    }
+)
 PROFILE_RANK = {"fast": 0, "pr": 1, "certify": 2}
 
 
@@ -335,8 +363,10 @@ def build_plan(
             profile = policy_profile
     if profile not in TEST_PROFILES:
         raise TestRouterError(f"profil de tests inconnu : {profile!r}")
-    if profile == "certify" and not head_sha:
-        raise TestRouterError("le profil certify exige le SHA final (--head-sha)")
+    if profile == "certify" and (not base_sha or not head_sha):
+        raise TestRouterError(
+            "le profil certify exige la base et le SHA final (--base-sha/--head-sha)"
+        )
 
     try:
         assignments, refused = route_targets(normalized)
@@ -412,11 +442,39 @@ def _current_head(repo: Path) -> str:
     return completed.stdout.strip()
 
 
+def _heavy_lock_path(
+    repo: Path,
+    *,
+    environ: Mapping[str, str] | None = None,
+) -> Path:
+    """Choisit un verrou partagé par les worktrees, ou global au VPS si configuré."""
+
+    environment = os.environ if environ is None else environ
+    configured = environment.get("FORGEPILOT_HEAVY_LOCK", "").strip()
+    if configured:
+        path = Path(configured).expanduser()
+        if not path.is_absolute():
+            raise TestRouterError("FORGEPILOT_HEAVY_LOCK doit être un chemin absolu")
+        return path
+    completed = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=repo,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode != 0 or not completed.stdout.strip():
+        raise TestRouterError("répertoire Git commun illisible pour le verrou lourd")
+    return Path(completed.stdout.strip()).resolve() / "forgepilot-heavy-proof.lock"
+
+
 @contextmanager
 def _exclusive_heavy_lock(repo: Path):
-    """Refuse une deuxième preuve lourde concurrente sur le même VPS."""
+    """Refuse une deuxième preuve lourde concurrente sur le même Git/VPS."""
 
-    lock_path = repo / ".forgepilot" / "heavy-proof.lock"
+    lock_path = _heavy_lock_path(repo)
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     stream = lock_path.open("a+b")
     acquired = False
@@ -603,6 +661,11 @@ def _paths_from_args(args: argparse.Namespace) -> list[str]:
             paths.extend(args.paths_from.read_text(encoding="utf-8").splitlines())
         except OSError as exc:
             raise TestRouterError(f"liste de chemins illisible : {exc}") from exc
+    if not paths and args.base_sha and args.head_sha:
+        try:
+            paths.extend(changed_paths(args.repo, args.base_sha, args.head_sha))
+        except RiskGateError as exc:
+            raise TestRouterError(str(exc)) from exc
     return paths
 
 

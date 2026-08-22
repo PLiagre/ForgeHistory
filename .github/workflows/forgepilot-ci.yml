@@ -2,18 +2,8 @@ name: forgepilot-ci
 
 on:
   pull_request:
-    paths:
-      - 'control-plane/**'
-      - 'harness/workflow_risk_gate.py'
-      - 'harness/workflow_test_router.py'
-      - '.github/workflows/forgepilot-ci.yml'
   push:
     branches: [master]
-    paths:
-      - 'control-plane/**'
-      - 'harness/workflow_risk_gate.py'
-      - 'harness/workflow_test_router.py'
-      - '.github/workflows/forgepilot-ci.yml'
   workflow_dispatch:
 
 permissions:

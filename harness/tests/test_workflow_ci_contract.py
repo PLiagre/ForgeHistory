@@ -62,6 +62,11 @@ def test_required_check_names_are_unique_and_unambiguous():
     assert counts["schema"] == 0
 
 
+def test_forgepilot_required_check_is_not_skipped_by_path_filters():
+    triggers = _trigger_block(_read("forgepilot-ci.yml"))
+    assert "paths:" not in triggers
+
+
 def test_risk_gate_is_wired_to_pr_body_and_exact_git_shas():
     workflow = _read("harness-ci.yml")
     assert "PR_BODY: ${{ github.event.pull_request.body }}" in workflow
@@ -69,6 +74,9 @@ def test_risk_gate_is_wired_to_pr_body_and_exact_git_shas():
     assert "HEAD_SHA: ${{ github.event.pull_request.head.sha }}" in workflow
     assert "--pr-body-env PR_BODY" in workflow
     assert "harness/workflow_risk_gate.py" in workflow
+    assert "harness/workflow_test_router.py plan" in workflow
+    assert "--base-sha \"$BASE_SHA\"" in workflow
+    assert "--head-sha \"$HEAD_SHA\"" in workflow
 
 
 def test_public_pr_workflows_never_use_a_self_hosted_runner():
