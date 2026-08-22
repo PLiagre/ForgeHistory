@@ -26,6 +26,9 @@ from shapely.ops import linemerge, unary_union
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+TOOLS = ROOT / "tools"
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
 
 from constants import (  # noqa: E402
     G6_EDGE_SAMPLE_STEP_M,
@@ -43,6 +46,11 @@ from constants import (  # noqa: E402
 )
 from io_util import read_json, round_float, sha256_file, write_json  # noqa: E402
 from projection import Projector, crs_declaration, detect_projection  # noqa: E402
+from dem_batch import (  # noqa: E402
+    MeasurementTable,
+    measurement_table_key,
+    read_grouped_windows,
+)
 
 ARTIFACTS = ROOT / "artifacts"
 CAPTURE = ROOT / "capture"
@@ -107,14 +115,28 @@ def _tile_bounds_from_name(tile_name: str) -> Tuple[float, float, float, float]:
 
 
 class DemSampler:
-    """Lecteur MNT avec cache de handles rasterio réutilisable entre passes."""
+    """Lecteur MNT groupé par tuile, avec table de mesures réutilisable."""
 
-    def __init__(self, cache_dir: Path) -> None:
-        self.cache_dir = cache_dir
+    def __init__(
+        self,
+        cache_dir: Path,
+        *,
+        lock_path: Path = LOCK_PATH,
+        measurement_table: Optional[MeasurementTable] = None,
+    ) -> None:
+        self.cache_dir = Path(cache_dir)
+        self.lock_path = Path(lock_path)
+        self.measurement_table = measurement_table
         self._datasets: Dict[str, Any] = {}
+        self.last_batch_metrics: Dict[str, int] = {}
+        self.sampling_metrics: Dict[str, int] = {}
+        self.reset_sampling_metrics()
         fetch = _load_fetch_dem()
         self._tile_paths: List[Tuple[float, float, float, float, Path]] = []
-        lock = read_json(LOCK_PATH)
+        self._tiles_by_degree: Dict[
+            Tuple[int, int], Tuple[float, float, float, float, Path]
+        ] = {}
+        lock = read_json(self.lock_path)
         lon_mins: List[float] = []
         lon_maxs: List[float] = []
         lat_mins: List[float] = []
@@ -125,7 +147,12 @@ class DemSampler:
             lat_mins.append(bounds[1])
             lon_maxs.append(bounds[2])
             lat_maxs.append(bounds[3])
-            self._tile_paths.append((*bounds, fetch.tile_cache_path(tile_name)))
+            record = (
+                *bounds,
+                fetch.tile_cache_path(tile_name, cache_dir=self.cache_dir),
+            )
+            self._tile_paths.append(record)
+            self._tiles_by_degree[(math.floor(bounds[0]), math.floor(bounds[1]))] = record
         # Union des tuiles déclarées : hors de cette emprise, on borde sur le MNT
         # disponible (pas de tuile inventée — lecture au bord le plus proche).
         eps = 1e-9
@@ -142,6 +169,16 @@ class DemSampler:
                 pass
         self._datasets.clear()
 
+    def reset_sampling_metrics(self) -> None:
+        self.last_batch_metrics = {}
+        self.sampling_metrics = {
+            "point_count": 0,
+            "tile_count": 0,
+            "raster_reads": 0,
+            "pixels_loaded": 0,
+            "measurement_cache_hits": 0,
+        }
+
     def clamp_lonlat(self, lon: float, lat: float) -> Tuple[float, float]:
         return (
             min(max(lon, self.dem_lon_min), self.dem_lon_max),
@@ -149,7 +186,9 @@ class DemSampler:
         )
 
     def _path_for(self, lon: float, lat: float) -> Tuple[Path, float, float]:
-        for lon_min, lat_min, lon_max, lat_max, path in self._tile_paths:
+        direct = self._tiles_by_degree.get((math.floor(lon), math.floor(lat)))
+        candidates = [direct] if direct is not None else self._tile_paths
+        for lon_min, lat_min, lon_max, lat_max, path in candidates:
             if lon_min <= lon < lon_max and lat_min <= lat < lat_max:
                 return path, lon, lat
         best_path: Optional[Path] = None
@@ -179,13 +218,77 @@ class DemSampler:
             self._datasets[key] = rasterio.open(path)
         return self._datasets[key]
 
+    def read_many(
+        self,
+        points: Sequence[Tuple[float, float]],
+        *,
+        measurement_id: Optional[str] = None,
+    ) -> List[Optional[float]]:
+        """Lit un lot ordonné avec au plus une fenêtre Rasterio par tuile."""
+        if not points:
+            self.last_batch_metrics = {
+                "point_count": 0,
+                "tile_count": 0,
+                "raster_reads": 0,
+                "pixels_loaded": 0,
+            }
+            return []
+
+        if self.measurement_table is not None and measurement_id:
+            cached = self.measurement_table.get(measurement_id, len(points))
+            if cached is not None:
+                self.last_batch_metrics = {
+                    "point_count": len(points),
+                    "tile_count": 0,
+                    "raster_reads": 0,
+                    "pixels_loaded": 0,
+                }
+                self.sampling_metrics["point_count"] += len(points)
+                self.sampling_metrics["measurement_cache_hits"] += len(points)
+                return cached
+
+        locations: Dict[str, List[Tuple[int, float, float]]] = {}
+        paths: Dict[str, Path] = {}
+        for index, (raw_lon, raw_lat) in enumerate(points):
+            lon, lat = self.clamp_lonlat(float(raw_lon), float(raw_lat))
+            path, lon, lat = self._path_for(lon, lat)
+            key = str(path)
+            paths[key] = path
+            locations.setdefault(key, []).append((index, lon, lat))
+
+        grouped: Dict[str, List[Tuple[int, int, int]]] = {}
+        from rasterio.transform import rowcol
+
+        for key, tile_points in locations.items():
+            dataset = self._dataset(paths[key])
+            rows, cols = rowcol(
+                dataset.transform,
+                [point[1] for point in tile_points],
+                [point[2] for point in tile_points],
+            )
+            grouped[key] = [
+                (point[0], int(row), int(col))
+                for point, row, col in zip(tile_points, rows, cols)
+            ]
+
+        values, metrics = read_grouped_windows(
+            grouped,
+            lambda key: self._dataset(paths[str(key)]),
+            output_size=len(points),
+            masked=False,
+        )
+        self.last_batch_metrics = metrics
+        for key, value in metrics.items():
+            self.sampling_metrics[key] += int(value)
+        if self.measurement_table is not None and measurement_id:
+            self.measurement_table.put(measurement_id, values)
+        return values
+
     def read_elev(self, lon: float, lat: float) -> float:
-        lon, lat = self.clamp_lonlat(lon, lat)
-        path, lon, lat = self._path_for(lon, lat)
-        ds = self._dataset(path)
-        for val in ds.sample([(lon, lat)]):
-            return float(val[0])
-        raise RuntimeError(f"lecture DEM vide pour {lon},{lat}")
+        value = self.read_many([(lon, lat)])[0]
+        if value is None:
+            raise RuntimeError(f"lecture DEM nodata pour {lon},{lat}")
+        return value
 
 
 def _as_polygons(geom: Any) -> List[Any]:
@@ -304,13 +407,24 @@ def compute_cell_relief(
     projector: Projector,
     dem: DemSampler,
 ) -> Tuple[dict, int]:
+    cid = int(cell["cell_id"])
     grid = grid_points_in_polygon(geom_xy, projector)
     elev_grid: Dict[Tuple[int, int], float] = {}
     valid_elevs: List[float] = []
     excluded = 0
 
-    for lon, lat, i, j in grid:
-        elev = dem.read_elev(lon, lat)
+    centroid = cell["centroid"]
+    clon = float(centroid["lon"])
+    clat = float(centroid["lat"])
+    requests = [(lon, lat) for lon, lat, _i, _j in grid]
+    requests.append((clon, clat))
+    measured = dem.read_many(
+        requests, measurement_id=f"cell:{cid}:grid_and_centroid"
+    )
+
+    for (lon, lat, i, j), elev in zip(grid, measured[:-1]):
+        if elev is None:
+            continue
         if elev < G6_SAMPLE_VALID_MIN_M or elev > G6_SAMPLE_VALID_MAX_M:
             excluded += 1
             continue
@@ -319,7 +433,7 @@ def compute_cell_relief(
 
     if not valid_elevs:
         return {
-            "cell_id": int(cell["cell_id"]),
+            "cell_id": cid,
             "sample_count": -1,
             "elev_mean_m": None,
             "elev_min_m": None,
@@ -346,17 +460,26 @@ def compute_cell_relief(
         slope = math.degrees(math.atan(math.sqrt(dzdx * dzdx + dzdy * dzdy)))
         slopes.append(slope)
 
-    centroid = cell["centroid"]
-    clon = float(centroid["lon"])
-    clat = float(centroid["lat"])
-    centroid_elev = round_float(dem.read_elev(clon, clat), G6_ELEV_DECIMALS)
+    centroid_raw = measured[-1]
+    if centroid_raw is None:
+        return {
+            "cell_id": cid,
+            "sample_count": -1,
+            "elev_mean_m": None,
+            "elev_min_m": None,
+            "elev_max_m": None,
+            "centroid_elev_m": None,
+            "slope_mean_deg": None,
+            "roughness_m": None,
+        }, excluded
+    centroid_elev = round_float(centroid_raw, G6_ELEV_DECIMALS)
 
     mean_e = statistics.mean(valid_elevs)
     pop_std = statistics.pstdev(valid_elevs) if len(valid_elevs) > 1 else 0.0
     slope_mean = statistics.mean(slopes) if slopes else 0.0
 
     return {
-        "cell_id": int(cell["cell_id"]),
+        "cell_id": cid,
         "sample_count": len(valid_elevs),
         "elev_mean_m": round_float(mean_e, G6_ELEV_DECIMALS),
         "elev_min_m": round_float(min(valid_elevs), G6_ELEV_DECIMALS),
@@ -410,14 +533,22 @@ def derive_barriers_and_passes(
             raise RuntimeError(f"frontiere vide pour arete {a}-{b} malgre adjacence")
 
         lines = _as_lines(boundary) or ([boundary] if boundary.geom_type == "LineString" else [])
-        samples_lonlat: List[Tuple[float, float, float]] = []
+        sample_points: List[Tuple[float, float]] = []
         for line in lines:
             if not isinstance(line, LineString):
                 continue
             for x, y in densify_line_xy(line, G6_EDGE_SAMPLE_STEP_M):
                 lon, lat = projector.unproject_xy(x, y)
-                elev = dem.read_elev(lon, lat)
-                samples_lonlat.append((lon, lat, elev))
+                sample_points.append((lon, lat))
+
+        elevations = dem.read_many(
+            sample_points, measurement_id=f"edge:{a}:{b}:frontier"
+        )
+        samples_lonlat = [
+            (lon, lat, elev)
+            for (lon, lat), elev in zip(sample_points, elevations)
+            if elev is not None
+        ]
 
         if not samples_lonlat:
             enriched.append(out)
@@ -512,7 +643,20 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
         cell_geoms[int(cell["cell_id"])] = geom
 
     fetch = _load_fetch_dem()
-    dem = DemSampler(fetch.CACHE_DIR)
+    effective_cache = Path(dem_report.get("cache_dir", fetch.CACHE_DIR))
+    table_key, table_inputs = measurement_table_key(
+        sources_lock=LOCK_PATH,
+        cells=ARTIFACTS / "cells_g3.json",
+        adjacency=ARTIFACTS / "adjacency_g5.json",
+        sampling_code=Path(__file__),
+        sample_step=G6_SAMPLE_STEP_DEG,
+    )
+    measurement_table = MeasurementTable(effective_cache, table_key, table_inputs)
+    dem = DemSampler(
+        effective_cache,
+        lock_path=LOCK_PATH,
+        measurement_table=measurement_table,
+    )
 
     return {
         "cells": cells,
@@ -521,6 +665,8 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
         "projector": projector,
         "dem": dem,
         "dem_report": dem_report,
+        "measurement_table_key": table_key,
+        "measurement_table_inputs": table_inputs,
         "crs": crs_declaration(has_geometry_lonlat=False),
     }
 
@@ -528,6 +674,7 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
 def derive_relief(context: dict) -> dict:
     projector: Projector = context["projector"]
     dem: DemSampler = context["dem"]
+    dem.reset_sampling_metrics()
     excluded_total = 0
     cell_relief: List[dict] = []
 
@@ -548,6 +695,8 @@ def derive_relief(context: dict) -> dict:
     metrics = compute_stats(
         context["cells"], cell_relief, barrier_count, passes, excluded_total
     )
+    if dem.measurement_table is not None:
+        dem.measurement_table.save()
 
     return {
         "cell_relief": cell_relief,
@@ -766,6 +915,18 @@ def run_relief(
             f"{ctx.get('dem_report', {}).get('tile_count')}"
             if ctx.get("dem_report")
             else "ok"
+        ),
+        "sampling": dict(ctx["dem"].sampling_metrics),
+        "measurement_table": (
+            {
+                "key": ctx.get("measurement_table_key"),
+                "path": str(ctx["dem"].measurement_table.data_path),
+                "cache_hits": ctx["dem"].measurement_table.cache_hits,
+                "cache_misses": ctx["dem"].measurement_table.cache_misses,
+                "writes": ctx["dem"].measurement_table.writes,
+            }
+            if ctx["dem"].measurement_table is not None
+            else None
         ),
         "elapsed_s": time.perf_counter() - t_all,
     }

@@ -453,6 +453,33 @@ Les comptes exacts vivent dans `artifacts/stats_g6.json` et
 `barrier_count` est strictement positif sur la fenêtre pilote (Pyrénées/Alpes) ;
 `pass_count == barrier_count` exactement.
 
+### Cache et preuve rapide (brief 029)
+
+Le cache historique reste `sources/dem_cache/`. Sur un VPS qui partage le
+cache entre plusieurs worktrees, définir `FORGEHISTORY_DEM_CACHE_ROOT` vers
+une racine hors du dépôt. Le chemin effectif est alors
+`<racine>/<SHA256 complet de sources.lock>/` : une modification du lock ouvre
+un nouvel espace au lieu de faire passer des tuiles anciennes pour courantes.
+Chaque téléchargement est atomique et verrouillé par le système. Une tuile
+incorrecte, absente ou hors lock rend la vérification rouge.
+
+G6 groupe les points par tuile et lit une fenêtre Rasterio par groupe. La
+première passe peut figer ses lots d'altitudes sous
+`<cache>/measurements/g6/`; la clé lie `sources.lock`, `cells_g3.json`,
+`adjacency_g5.json`, le code d'échantillonnage et le pas. La deuxième passe
+rejoue ces mesures sans relire les pixels. Les vrais zéros sont stockés comme
+des valeurs ; un masque de validité distinct représente nodata.
+
+La sentinelle rapide crée ses minuscules rasters dans un dossier temporaire ;
+elle ne lit ni ne télécharge le cache Europe :
+
+```bash
+../../.venv/bin/python -m pytest tests/test_g6_acceleration.py -q
+```
+
+La certification complète reste `../../.venv/bin/python tests/run_proof_g6.py`
+et refuse explicitement de démarrer si le cache verrouillé n'est pas complet.
+
 ### Ce que ce lot ne livre pas
 
 - **Climat et ressources** — lots suivants du jalon E1.
