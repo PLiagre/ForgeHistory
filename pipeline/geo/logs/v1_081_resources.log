@@ -1,4 +1,4 @@
-R1 proof v1_081 | elapsed_s=2.71
+R1 proof v1_081
 determinism_match=True pairs=5
 cells_on!=off=True
 all_green=True all_red=True exit=0

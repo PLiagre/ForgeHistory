@@ -11,7 +11,6 @@ import importlib.util
 import json
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,7 +40,6 @@ def _load_r1():
 def main() -> int:
     LOGS.mkdir(parents=True, exist_ok=True)
     r1 = _load_r1()
-    t_all = time.perf_counter()
 
     context = r1.load_context()
     declared_ids = [str(d["id"]) for d in context["declarations"].get("deposits") or []]
@@ -185,9 +183,8 @@ def main() -> int:
     (LOGS / "v1_081_declarations_on.txt").write_text(on_line + "\n", encoding="utf-8")
     (LOGS / "v1_081_declarations_off.txt").write_text(off_line + "\n", encoding="utf-8")
 
-    elapsed = time.perf_counter() - t_all
     log_lines = [
-        f"R1 proof v1_081 | elapsed_s={elapsed:.2f}",
+        "R1 proof v1_081",
         f"determinism_match={determinism_match} pairs={len(sha_pairs)}",
         f"cells_on!=off={reversibility_ok}",
         f"all_green={all_green_ok} all_red={all_red_ok} exit={0 if ok else 1}",
