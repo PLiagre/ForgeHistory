@@ -686,6 +686,39 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual("BLOCKED", final["step"])
             self.assertIn("ne sont pas rejouées", str(final["error"]))
 
+    def test_recover_executor_archives_valid_result_and_reopens_ambiguous_run(self):
+        from forgepilot.durable import recover_executor_result
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            state_path, state = register_run(
+                load_settings(), repo, task, "recover", base_ref="main", base_branch="main"
+            )
+            worktree, branch = create_worktree(repo, "recover", str(state["base_sha"]))
+            plan_path = state_path.parent / "plan.json"
+            plan_path.write_text(json.dumps(valid_plan()), encoding="utf-8")
+            state.update({
+                "artifacts": {"plan": "plan.json"},
+                "worktree": str(worktree),
+                "branch": branch,
+                "step": "BLOCKED",
+                "error": "Reprise Cursor ambiguë : des écritures existent sans résultat final archivé ; elles ne sont pas rejouées automatiquement.",
+            })
+            save_state(state_path, state)
+            (worktree / "feature.txt").write_text("livré\n", encoding="utf-8")
+            recovered = repo / "recovered.json"
+            recovered.write_text(json.dumps(valid_executor(session_id="recovered-session")), encoding="utf-8")
+
+            final = recover_executor_result(repo, str(state["run_id"]), recovered)
+
+            self.assertEqual("EXECUTING", final["step"])
+            self.assertEqual("recovered-session", final["executor_session"])
+            self.assertTrue((state_path.parent / "executor.json").is_file())
+
     def test_complete_run_persists_sha_pr_models_and_durations(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

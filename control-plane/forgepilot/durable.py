@@ -296,6 +296,47 @@ def _run_agent(
     )
 
 
+def recover_executor_result(
+    repo: Path,
+    run_id: str,
+    result_path: Path,
+) -> dict[str, object]:
+    """Archive un résultat Cursor retrouvé après un blocage d'écriture ambiguë."""
+
+    state_path = run_state_path(repo, run_id)
+    state = load_state(state_path)
+    expected_error = (
+        "Reprise Cursor ambiguë : des écritures existent sans résultat final archivé ; "
+        "elles ne sont pas rejouées automatiquement."
+    )
+    if state.get("step") != "BLOCKED" or state.get("error") != expected_error:
+        raise PilotError(
+            "Récupération exécuteur refusée : le run n'est pas bloqué sur une écriture Cursor ambiguë."
+        )
+    worktree = _state_worktree(repo, state)
+    if not _executor_effect_is_ambiguous(worktree, state.get("base_sha")):
+        raise PilotError("Récupération exécuteur refusée : aucune écriture Cursor à préserver.")
+    output_path = state_path.parent / "executor.json"
+    if output_path.exists():
+        raise PilotError("Récupération exécuteur refusée : executor.json existe déjà.")
+    try:
+        raw_result = json.loads(result_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        raise PilotError("Résultat exécuteur de récupération illisible.") from exc
+    result = validate_executor(raw_result)
+    write_normalized_json(output_path, result)
+    return transition(
+        state_path,
+        state,
+        "EXECUTING",
+        role=None,
+        updates={
+            "resume_from": None,
+            "executor_session": extract_session_id(result),
+        },
+    )
+
+
 def _query_existing_pr(worktree: Path) -> str | None:
     branch = git(worktree, "branch", "--show-current")
     try:

@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 from .config import CURSOR_EFFORT_REFUSED, load_settings
-from .durable import declared_risk, register_run, resume_run
+from .durable import declared_risk, recover_executor_result, register_run, resume_run
 from .merge import merge_run
 from .process import PilotError, git, run_command
 from .protocol import validate_plan
@@ -138,6 +138,14 @@ def parser() -> argparse.ArgumentParser:
     resume.add_argument("run_id", nargs="?", default="latest")
     resume.add_argument("--repo", type=_path, default=Path.cwd())
     resume.add_argument("--allow-heavy", action="store_true")
+
+    recover_executor = commands.add_parser(
+        "recover-executor",
+        help="archiver un résultat exécuteur retrouvé après un blocage ambigu",
+    )
+    recover_executor.add_argument("run_id")
+    recover_executor.add_argument("--repo", type=_path, default=Path.cwd())
+    recover_executor.add_argument("--result", type=_path, required=True)
 
     verdict = commands.add_parser(
         "verdict",
@@ -391,6 +399,11 @@ def main(argv: list[str] | None = None) -> int:
                 args.run_id,
                 allow_heavy=args.allow_heavy,
             )
+            print(json.dumps(state, indent=2, ensure_ascii=False))
+            return 0
+
+        if args.command == "recover-executor":
+            state = recover_executor_result(args.repo, args.run_id, args.result)
             print(json.dumps(state, indent=2, ensure_ascii=False))
             return 0
 
