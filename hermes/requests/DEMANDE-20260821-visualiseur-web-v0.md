@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-21T20:30:00Z
 concerns: sim, présentation
-status: ACCEPTED
+status: CLOSED
 ---
 # Insérer V0 — visualiseur web mince après le lot 024
 

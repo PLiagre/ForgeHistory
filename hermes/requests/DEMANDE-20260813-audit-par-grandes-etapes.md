@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-13T13:43:00Z
 concerns: projet
-status: REFLECTED_IN_ROADMAP
+status: CLOSED
 ---
 # Demande propriétaire — audit et contre-audit par grandes étapes, plus par PR
 

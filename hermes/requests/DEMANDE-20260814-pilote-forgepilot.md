@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-14T12:00:00Z
 concerns: projet
-status: REFLECTED_IN_ROADMAP
+status: CLOSED
 ---
 # Tester un workflow Hermes, Claude Code et Cursor simplifié
 

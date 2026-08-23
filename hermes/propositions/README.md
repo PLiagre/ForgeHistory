@@ -12,6 +12,8 @@ Ce n’est pas une file de briefs. Une proposition n’instruit personne.
 - Si un brief existe déjà, **pointer** vers lui. Ne pas le recopier.
 - Statuts : `OPEN` (à trancher) → `HANDED_TO_CTO` (brief demandé) →
   `REFLECTED_IN_ROADMAP` ou `CLOSED`.
+- Au boot, Hermes ne lit que `status: OPEN`. Zéro OPEN = rien n'attend.
+  Au plus une proposition OPEN à la fois.
 - Un cron ne crée une proposition que s’il a **un constat nouveau**.
   Sinon il met à jour `DERNIERE-VEILLE.md` seulement. Ce fichier est
   **local** (gitignoré) : le cron ne doit jamais salir le dépôt.

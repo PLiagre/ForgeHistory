@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-21T07:03:28Z
 concerns: brief 026
-status: HANDED_TO_CTO
+status: CLOSED
 ---
 # Arbitrage propriétaire — gisements extractifs du lot 026
 

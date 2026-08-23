@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-21T09:53:31Z
 concerns: projet
-status: ACCEPTED_FOR_PILOT
+status: CLOSED
 ---
 # Répartir les rôles entre Grok 4.6, Composer et Claude
 

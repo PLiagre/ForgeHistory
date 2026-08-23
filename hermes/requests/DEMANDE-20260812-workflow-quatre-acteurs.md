@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-12T08:19:00Z
 concerns: projet
-status: REFLECTED_IN_ROADMAP
+status: CLOSED
 ---
 # Demande propriétaire — workflow complet à quatre acteurs
 

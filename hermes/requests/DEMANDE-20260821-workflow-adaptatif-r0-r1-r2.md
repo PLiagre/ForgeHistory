@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-21T20:00:00Z
 concerns: workflow
-status: ACCEPTED
+status: CLOSED
 ---
 # Adapter les vérifications au risque R0 / R1 / R2
 

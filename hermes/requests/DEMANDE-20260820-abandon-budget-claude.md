@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-20T07:57:55Z
 concerns: projet
-status: REFLECTED_IN_ROADMAP
+status: CLOSED
 ---
 # Abandon du budget Claude comme décision de pilotage
 

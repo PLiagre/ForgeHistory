@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-22T12:00:00Z
 concerns: brief 024, relief G6
-status: ACCEPTED
+status: CLOSED
 ---
 # Accepter les zéros DEM publics et mesurés du lot 024
 

@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-14T12:59:13Z
 concerns: projet
-status: REFLECTED_IN_ROADMAP
+status: CLOSED
 ---
 # Intégrer Unity Windows sans dépendre du poste de contrôle
 
