@@ -413,7 +413,7 @@ clarté ».*
 ### Ce que le relief dit, et ce qu'il ne dit pas
 
 - **Altitude, pente, rugosité** : mesurées cellule par cellule depuis le MNT
-  Copernicus DEM GLO-90 (179 tuiles COG, cache local
+  Copernicus DEM GLO-90 (tuiles COG déclarées dans `sources.lock`, cache local
   `sources/dem_cache/`, jamais committé). Échantillonnage sur grille régulière
   `G6_SAMPLE_STEP_DEG` ; échantillons hors `[-80 m, 4800 m]` exclus avant toute
   statistique.
@@ -432,9 +432,12 @@ clarté ».*
   DEM vérifié ; produit `cells_relief_g6.json`, `adjacency_g6.json` (copie
   enrichie), `passes_g6.json`, `stats_g6.json`, `MANIFEST_g6.json` ;
   `registry/relief_registry.json`.
-- `tools/fetch_dem_tiles.py` — téléchargement idempotent des 179 tuiles
-  Copernicus (motif S3 `<stem>/<stem>.tif`) avec vérification SHA256 par tuile
-  et collective avant toute lecture d'altitude.
+- `tools/fetch_dem_tiles.py` — téléchargement idempotent Copernicus (motif S3
+  `<stem>/<stem>.tif`) avec vérification SHA256 par tuile et collective avant
+  toute lecture d'altitude ; sondage HEAD, téléchargement des tuiles requises,
+  régénération explicite du bloc `dem` de `sources.lock`.
+- `tools/required_dem_tiles.py` — dérive la liste des tuiles 1°×1° requises
+  (D15) sans ouvrir de raster.
 - `tests/run_proof_g6.py`, `tests/test_qa_red_g6.py` — six contrôles verts
   (`Q10`, `G6-A` … `G6-E`), chacun avec une preuve rouge non vide ; deux passes
   déterministes.
@@ -450,8 +453,35 @@ inchangés (crochet déjà câblé).
 
 Les comptes exacts vivent dans `artifacts/stats_g6.json` et
 `logs/v1_052_qa.json` — ils se relisent, ils ne se recopient pas ici.
-`barrier_count` est strictement positif sur la fenêtre pilote (Pyrénées/Alpes) ;
+`barrier_count` est strictement positif sur la fenêtre pilote ;
 `pass_count == barrier_count` exactement.
+
+### Cache et preuve rapide (brief 029)
+
+Le cache historique reste `sources/dem_cache/`. Sur un VPS qui partage le
+cache entre plusieurs worktrees, définir `FORGEHISTORY_DEM_CACHE_ROOT` vers
+une racine hors du dépôt. Le chemin effectif est alors
+`<racine>/<SHA256 complet de sources.lock>/` : une modification du lock ouvre
+un nouvel espace au lieu de faire passer des tuiles anciennes pour courantes.
+Chaque téléchargement est atomique et verrouillé par le système. Une tuile
+incorrecte, absente ou hors lock rend la vérification rouge.
+
+G6 groupe les points par tuile et lit une fenêtre Rasterio par groupe. La
+première passe peut figer ses lots d'altitudes sous
+`<cache>/measurements/g6/`; la clé lie `sources.lock`, `cells_g3.json`,
+`adjacency_g5.json`, le code d'échantillonnage et le pas. La deuxième passe
+rejoue ces mesures sans relire les pixels. Les vrais zéros sont stockés comme
+des valeurs ; un masque de validité distinct représente nodata.
+
+La sentinelle rapide crée ses minuscules rasters dans un dossier temporaire ;
+elle ne lit ni ne télécharge le cache Europe :
+
+```bash
+../../.venv/bin/python -m pytest tests/test_g6_acceleration.py -q
+```
+
+La certification complète reste `../../.venv/bin/python tests/run_proof_g6.py`
+et refuse explicitement de démarrer si le cache verrouillé n'est pas complet.
 
 ### Ce que ce lot ne livre pas
 

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Regard mince — ForgeHistory</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Regard mince</h1>
+    <p>Lecture d'une photographie <code>sim/</code>. Aucune simulation ici.</p>
+    <label>Couche
+      <select id="layer"></select>
+    </label>
+    <p id="unavailable"></p>
+  </header>
+  <main>
+    <canvas id="map" width="960" height="640"></canvas>
+    <aside id="panel">
+      <h2>Cellule</h2>
+      <p id="hint">Cliquer une cellule.</p>
+      <dl id="details"></dl>
+    </aside>
+  </main>
+  <footer id="legend">
+    <span class="swatch zero"></span> zéro mesuré
+    <span class="swatch absent"></span> absent
+    <span class="swatch unknown"></span> non calculé
+    <span class="swatch incomparable"></span> incomparable
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

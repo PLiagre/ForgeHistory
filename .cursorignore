@@ -1,0 +1,11 @@
+# Références visuelles Unity gelées (ADR-0016), jamais nécessaires au produit
+# vivant ``sim/`` ni à l'index de travail courant.
+unity/game_unity/Captures/
+
+# Sorties visuelles régénérées par les preuves géographiques. Le code, les
+# artefacts JSON et les sources géographiques restent indexables.
+pipeline/geo/capture/
+
+# Preuve historique XML très volumineuse du port Unity. Le brief et ses autres
+# livrables restent visibles ; seul le dossier d'évidence gelé est écarté.
+harness/queue/briefs/003-port-unity-game/deliverables/evidence/

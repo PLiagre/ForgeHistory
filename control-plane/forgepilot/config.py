@@ -5,6 +5,7 @@ from pathlib import Path
 import tomllib
 
 from .process import PilotError
+from .policy import WorkflowPolicy, load_policy
 
 
 ROLES = ("planner", "reviewer", "executor")
@@ -44,13 +45,17 @@ class Settings:
     cursor_model: str
     timeout_seconds: int
     roles: dict[str, RoleSettings] = field(default_factory=dict)
+    policy: WorkflowPolicy | None = None
 
 
 def default_config_path() -> Path:
     return Path(__file__).resolve().parent.parent / "config.toml"
 
 
-def load_settings(path: Path | str | None = None) -> Settings:
+def load_settings(
+    path: Path | str | None = None,
+    policy_path: Path | str | None = None,
+) -> Settings:
     config_path = Path(path) if path is not None else default_config_path()
     with config_path.open("rb") as stream:
         raw = tomllib.load(stream)
@@ -73,6 +78,19 @@ def load_settings(path: Path | str | None = None) -> Settings:
             model=str(section.get("model", "") or ""),
             effort=effort,
         )
+    workflow = raw.get("workflow", {})
+    if workflow and not isinstance(workflow, dict):
+        raise PilotError("Section [workflow] invalide.")
+    configured_policy = workflow.get("policy_file") if workflow else None
+    loaded_policy: WorkflowPolicy | None = None
+    if policy_path is not None:
+        loaded_policy = load_policy(policy_path)
+    elif configured_policy:
+        configured_path = Path(str(configured_policy))
+        if not configured_path.is_absolute():
+            configured_path = config_path.parent / configured_path
+        loaded_policy = load_policy(configured_path)
+
     return Settings(
         project_id=str(project["id"]),
         engine_repository=str(project["engine_repository"]),
@@ -85,4 +103,5 @@ def load_settings(path: Path | str | None = None) -> Settings:
         cursor_model=str(tools.get("cursor_model", "auto")),
         timeout_seconds=int(tools.get("timeout_seconds", 1800)),
         roles=roles,
+        policy=loaded_policy,
     )

@@ -1,15 +1,16 @@
-# ForgePilot — control plane minimal
+# ForgePilot — pilote durable Hermes / Cursor / Claude
 
-ForgePilot est le pilote réversible du nouveau workflow. Il ne remplace ni
-ForgeHistory ni VictoriaCityLab et ne stocke aucune simulation. Il donne à
-Hermes une commande de lot (`enchaine`) et les sous-commandes une par une :
-vérifier, planifier, exécuter, itérer, publier une draft PR, relire.
+ForgePilot est le pilote réversible du workflow. Il ne stocke aucune
+simulation. Hermes, configuré sur Nous Portal, contrôle la cadence ; Claude
+planifie et relit dans deux invocations distinctes en lecture seule ; Cursor
+exécute. Le contrat détaillé du chantier durable est le brief 029. Ce fichier
+documente uniquement les commandes et les formats opératoires.
 
 ## Frontières
 
 | composant | responsabilité | accès en écriture |
 |---|---|---|
-| Hermes | dialogue propriétaire, choix de la tâche, lancement des commandes | aucun code |
+| Hermes / Nous Portal | dialogue propriétaire, choix de la tâche, lancement et suivi | aucun code, aucun jugement, aucune fusion |
 | Claude Code | plan avant le code, puis revue d'un diff dans une nouvelle invocation | aucun (`Read,Glob,Grep`) |
 | Cursor CLI | implémentation dans un worktree `agent/*` isolé | worktree du lot |
 | ForgePilot | commit, push et ouverture déterministe d'une draft PR | branche `agent/*` |
@@ -72,22 +73,41 @@ VictoriaCityLab étant public, le runner personnel ne répond jamais directement
 une validation `workflow_dispatch` d'une branche contrôlée par le propriétaire
 est autorisée. La vérification visuelle des scènes reste humaine.
 
-## Premier essai
+## Chemin durable recommandé
 
-Créer un fichier de tâche court qui pointe vers l'identifiant autoritaire de la
-roadmap ou de l'issue (un **brief**, jamais une proposition Hermes), puis :
+Passer le brief autoritaire, jamais une proposition Hermes :
 
 ```bash
 forgepilot doctor --repo /srv/ForgeHistory --check-auth
-forgepilot enchaine /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md \
-    --repo /srv/ForgeHistory
-forgepilot enchaine /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md \
+forgepilot start /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md \
     --repo /srv/ForgeHistory --run
+forgepilot status latest --repo /srv/ForgeHistory
+forgepilot resume latest --repo /srv/ForgeHistory
+forgepilot verdict latest --repo /srv/ForgeHistory
 ```
 
-`enchaine` fait, dans l'ordre : plan Claude, execute Cursor, draft PR,
-review Claude. **Aucune fusion.** Sans `--run`, la commande affiche
-l'enchaînement et ne lance aucun agent.
+Sans `--run`, `start` enregistre le lot sans lancer d'agent. Il imprime
+l'identifiant stable à réutiliser à la place de `latest`. `resume` repart de
+la première étape incomplète. Une étape est écrite dans l'état avant l'effet
+suivant ; une branche ou un worktree déjà créés sont récupérés, pas recréés.
+
+L'état atomique vit dans :
+
+```text
+.forgepilot/runs/<RUN_ID>/state.json
+```
+
+Le même dossier contient le plan normalisé, les sorties filtrées, le feedback,
+le bundle et le matériau de revue liés au SHA. Les prompts et secrets n'y sont
+jamais archivés. `verdict --comment-pr` rend le matériau visible sur la PR ; il
+ne fusionne rien. Le corps de PR porte `Forge-Risk: Rn` pour le contrôle CI.
+Une certification lourde reste interdite par défaut. Lorsque le cache requis
+est réellement disponible, `resume <RUN_ID> --allow-heavy` l'autorise et
+persiste cette décision explicite ; elle n'est jamais déduite d'un succès
+partiel.
+
+`enchaine` reste disponible comme façade compatible et aperçu. `start` est le
+chemin recommandé dès qu'une reprise ou une itération est possible.
 
 Les sous-commandes une par une restent disponibles pour un dépannage
 (`iterate` après une revue) :
@@ -97,9 +117,8 @@ forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory
 forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory --run
 forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory
 forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --run
-forgepilot iterate /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory
-forgepilot iterate /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --run
-forgepilot publish --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --title "fh-001" --run
+forgepilot iterate /chemin/vers/plan.json --feedback /chemin/feedback.json --task-name fh-001 --repo /srv/ForgeHistory --run
+forgepilot publish --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --title "fh-001" --plan /chemin/plan.json --run
 forgepilot review /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master --run
 ```
 
@@ -108,29 +127,18 @@ agent. Les sorties réelles vont dans `.forgepilot/runs/`, ignoré par Git.
 Le prompt de Claude Code (`plan`, `review`) passe par stdin, car le noyau
 limite chaque argument à 128 Ko.
 
-## Modèle et effort par rôle
+## Politique effective R0 / R1 / R2
 
-Chaque rôle a sa section dans `config.toml` :
+[`workflow-policy.toml`](workflow-policy.toml) est l'unique politique de
+workflow versionnée. `config.toml` pointe vers elle. Elle nomme le contrôleur,
+les backends compatibles, les modèles, les efforts, le profil de tests et les
+quatre délais distincts de chaque risque. `doctor` et les aperçus impriment sa
+valeur effective avant tout agent.
 
-```toml
-[roles.planner]
-model  = "claude-opus-5"
-effort = "xhigh"
-
-[roles.reviewer]
-model  = "claude-opus-5"
-effort = "low"
-
-[roles.executor]
-model  = "composer-2.5"
-```
-
-Ordre de priorité (du plus fort au plus faible) : drapeau `--model` /
-`--effort` passé à l'appel, puis `[roles.<rôle>]`, puis
-`[tools] claude_model` / `cursor_model`, puis le défaut du binaire (aucun
-drapeau ajouté). Les sous-commandes `plan`, `review`, `execute`, `iterate` et `enchaine`
-acceptent `--model` ; seules `plan`, `review` et `enchaine` acceptent `--effort`
-(l'effort d'`enchaine` ne s'applique qu'à Claude, pas à Cursor).
+Le risque demandé est un plancher. Le classement des chemins peut uniquement
+l'élever. Après le plan Claude, ForgePilot reclasse aussi
+`files_allowed_to_change` avant de démarrer Cursor. Une politique absente,
+invalide ou incompatible bloque `doctor`, `start` et `resume`.
 
 Cursor n'a pas de drapeau d'effort séparé : l'effort est cuit dans le nom du
 modèle (`gpt-5.3-codex-high`, etc.), donc `--effort` sur `execute` /
@@ -139,6 +147,24 @@ explication.
 
 L'aperçu sans `--run` affiche le modèle et l'effort retenus ; le prompt reste
 masqué à `<prompt>`.
+
+## Publication et itération
+
+Le plan JSON est validé avant exécution. `blocked: true` arrête le lot avant la
+création du worktree. Avant commit, chaque chemin modifié est comparé à
+`files_allowed_to_change`, puis seuls ces chemins sont ajoutés explicitement à
+l'index Git.
+
+Une revue `FAIL` crée un fichier de feedback lisible. `resume` le transmet à
+Cursor et ajoute `--resume <session>` lorsque le CLI a fourni un identifiant.
+Les tests `fast` du routeur sont exécutés avant de pousser la correction. La
+revue suivante reçoit le delta et les constats antérieurs ; si Cursor déclare
+`approach_changed: true`, elle redevient complète. Deux itérations sans
+amélioration arrêtent le lot.
+
+Le bundle de revue contient les SHA, le plan, les diffs écrits à la main, les
+empreintes d'artefacts et les résultats mécaniques. Il exclut la conclusion de
+Cursor et refuse tout dépassement de taille sans troncature.
 
 ## Conditions du pilote
 

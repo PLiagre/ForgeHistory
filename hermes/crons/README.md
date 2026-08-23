@@ -1,33 +1,37 @@
 # Crons Hermes
 
-Contrat des tâches planifiées (ADR-0015 amendement 001, ADR-0016).
+Autorités : [ADR-0015](../../docs/adr/0015-capacites-hermes-sous-agents-crons-issues.md),
+[ADR-0016](../../docs/adr/0016-sim-sans-unity-hermes-pilote-et-propose.md) et
+[runbook du workflow](../../docs/operations/workflow-acceleration.md). Le brief
+[029](../../harness/queue/briefs/029-workflow-acceleration/brief.md) reste
+l'unique instruction du lot qui a créé cette veille.
 
-## Ce qui est autorisé
+`quotidien.sh` lance directement `veille.py` : aucun modèle ni agent n'est
+appelé. Sur le chemin vert, stdout et stderr restent vides. Le rapport local
+git-ignoré est actualisé sous
+`hermes/propositions/DERNIERE-VEILLE.md`. Une alerte produit un code non nul et
+une seule synthèse sur stderr, que le contrôleur peut relayer à Discord.
 
-Un cron **quotidien**, en lecture / mesure / proposition :
+Mesure explicite sans tests produit :
 
-1. lire l’état git, `ROADMAP.md`, l’âge de `hermes/DASHBOARD.md` ;
-2. exécuter `python -m sim` (la simulation sans Unity) ;
-3. exécuter les tests `sim/` ;
-4. écrire `hermes/propositions/DERNIERE-VEILLE.md` (gitignoré, pour ne
-   pas salir le dépôt : ForgePilot refuse un arbre modifié) ;
-5. n’ouvrir une `PROPOSITION-*.md` que s’il y a un constat **nouveau**.
-
-## Ce qui est interdit
-
-- `git push`, `gh pr merge`, toute fusion ;
-- écrire hors de `hermes/propositions/` et du log local ;
-- lancer ForgePilot `--run` ;
-- rédiger un brief, un verdict, du code produit ;
-- réactiver `mode: full_auto`.
-
-## Installer (VPS, crontab de l’utilisateur hermes)
-
-Une fois par jour, hors heures de pointe Claude si possible :
-
-```cron
-15 6 * * * /home/ubuntu/src/ForgeHistory/hermes/crons/quotidien.sh >> /home/ubuntu/.hermes/cron-quotidien.log 2>&1
+```bash
+.venv/bin/python hermes/crons/veille.py --repo . --metrics-only --json
 ```
 
-Ajuster le chemin. Le script refuse de tourner si le dépôt n’est pas
-celui de ForgeHistory (présence de `sim/__main__.py` et `hermes/crons/`).
+La sortie inclut l'espace disque, les worktrees et l'âge du cache DEM. Si
+`FORGEHISTORY_DEM_CACHE_ROOT` est défini, le chemin mesuré reprend la clé issue
+de `pipeline/geo/sources.lock`; sinon le repli historique est observé. Le
+script ne nettoie rien.
+
+## Installation VPS
+
+Le planificateur Hermes doit enregistrer cette commande comme tâche
+`no_agent=true` (ou équivalent « script seul »). L'entrée crontab équivalente
+est :
+
+```cron
+15 6 * * * /home/ubuntu/src/ForgeHistory/hermes/crons/quotidien.sh
+```
+
+Le journal cron ne reçoit donc que les alertes. Les preuves lourdes et
+ForgePilot ne sont jamais lancés par cette tâche quotidienne.

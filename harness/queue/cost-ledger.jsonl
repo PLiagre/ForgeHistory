@@ -51,3 +51,6 @@
 {"timestamp": "2026-08-16T14:50:00.000000", "backend": "cursor", "brief": "harness/queue/briefs/023-forgepilot-modele-et-effort-par-role", "event": "generator-run"}
 {"timestamp": "2026-08-20T20:31:34.116703", "backend": "cursor", "brief": "harness/queue/briefs/024-geo-relief-g6", "event": "generator-run"}
 {"timestamp": "2026-08-21T07:12:27.411773", "backend": "cursor", "brief": "harness/queue/briefs/025-geo-determinants-climat-c1", "event": "generator-run"}
+{"timestamp": "2026-08-23T08:27:20.034779", "backend": "cursor", "brief": "harness/queue/briefs/027-sim-snapshot-cellulaire-v0a", "event": "generator-run"}
+{"timestamp": "2026-08-23T08:27:20.144024", "backend": "cursor", "brief": "harness/queue/briefs/028-visualiseur-web-mince-v0b", "event": "generator-run"}
+{"timestamp": "2026-08-23T08:27:20.251248", "backend": "cursor", "brief": "harness/queue/briefs/029-workflow-acceleration", "event": "generator-run"}

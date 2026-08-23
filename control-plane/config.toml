@@ -10,15 +10,6 @@ claude_binary = "claude"
 cursor_binary = "agent"
 claude_model = ""
 cursor_model = "auto"
-timeout_seconds = 1800
 
-[roles.planner]
-model = "claude-opus-5"
-effort = "xhigh"
-
-[roles.reviewer]
-model = "claude-opus-5"
-effort = "low"
-
-[roles.executor]
-model = "composer-2.5"
+[workflow]
+policy_file = "workflow-policy.toml"
