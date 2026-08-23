@@ -1,22 +1,24 @@
 # ForgePilot — pilote durable Hermes / Cursor / Claude
 
 ForgePilot est le pilote réversible du workflow. Il ne stocke aucune
-simulation. Hermes, configuré sur Nous Portal, contrôle la cadence ; Claude
-planifie et relit dans deux invocations distinctes en lecture seule ; Cursor
-exécute. Le contrat détaillé du chantier durable est le brief 029. Ce fichier
-documente uniquement les commandes et les formats opératoires.
+simulation. Hermes, configuré sur Nous Portal, contrôle la cadence ; Grok
+4.6 planifie et juge la PR ; Composer exécute ; Claude Opus 5 n'est qu'un
+témoin rare (ADR-0017). Le contrat détaillé du chantier durable est le
+brief 029. Ce fichier documente uniquement les commandes et les formats
+opératoires.
 
 ## Frontières
 
 | composant | responsabilité | accès en écriture |
 |---|---|---|
-| Hermes / Nous Portal | dialogue propriétaire, choix de la tâche, lancement et suivi | aucun code, aucun jugement, aucune fusion |
-| Claude Code | plan avant le code, puis revue d'un diff dans une nouvelle invocation | aucun (`Read,Glob,Grep`) |
-| Cursor CLI | implémentation dans un worktree `agent/*` isolé | worktree du lot |
-| ForgePilot | commit, push et ouverture déterministe d'une draft PR | branche `agent/*` |
+| Hermes / Nous Portal | dialogue, lancement, suivi (`openai/gpt-5.4`) | aucun code, aucun jugement, aucune fusion |
+| Cursor Grok 4.6 | plan, puis juge de PR (`xhigh`, invocation neuve) | aucun (plan / ask) |
+| Cursor Composer 2.5 | implémentation dans un worktree `agent/*` | worktree du lot |
+| Claude Opus 5 | témoin rare (`forgepilot witness`) | aucun |
+| ForgePilot | commit, push, draft PR, `merge` mécanique | branche `agent/*` |
 | CI portable | tests ForgeHistory et contrôles sans Unity | artefacts de CI seulement |
 | worker Unity Windows | import, compilation et tests du commit CityLab exact | résultats et artefacts Unity seulement |
-| propriétaire | décision de fusion | bouton de merge |
+| propriétaire | label d'arrêt, témoin, veto | `do-not-merge` |
 
 ACP n'est pas utilisé pour le pilote. Hermes sait servir ACP, mais ne sait pas
 encore piloter un agent externe comme client ACP générique. Hermes lance donc
@@ -84,6 +86,8 @@ forgepilot start /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md \
 forgepilot status latest --repo /srv/ForgeHistory
 forgepilot resume latest --repo /srv/ForgeHistory
 forgepilot verdict latest --repo /srv/ForgeHistory
+forgepilot merge latest --repo /srv/ForgeHistory
+forgepilot merge latest --repo /srv/ForgeHistory --run
 ```
 
 Sans `--run`, `start` enregistre le lot sans lancer d'agent. Il imprime
@@ -120,6 +124,7 @@ forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHi
 forgepilot iterate /chemin/vers/plan.json --feedback /chemin/feedback.json --task-name fh-001 --repo /srv/ForgeHistory --run
 forgepilot publish --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --title "fh-001" --plan /chemin/plan.json --run
 forgepilot review /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master --run
+forgepilot witness /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master
 ```
 
 Sans `--run`, une commande affiche son invocation normalisée et ne lance aucun

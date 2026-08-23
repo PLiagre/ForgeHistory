@@ -8,6 +8,7 @@ import sys
 
 from .config import CURSOR_EFFORT_REFUSED, load_settings
 from .durable import declared_risk, register_run, resume_run
+from .merge import merge_run
 from .process import PilotError, git, run_command
 from .protocol import validate_plan
 from .review import (
@@ -30,6 +31,7 @@ from .workflow import (
     publish,
     publish_preview,
     review_invocation,
+    witness_invocation,
 )
 
 
@@ -145,6 +147,24 @@ def parser() -> argparse.ArgumentParser:
     verdict.add_argument("--repo", type=_path, default=Path.cwd())
     verdict.add_argument("--output", type=_path)
     verdict.add_argument("--comment-pr", action="store_true")
+
+    witness = commands.add_parser(
+        "witness",
+        help="témoin Claude Opus 5 hors chemin quotidien (ADR-0017)",
+    )
+    witness.add_argument("plan", type=_path)
+    witness.add_argument("--repo", type=_path, default=Path.cwd())
+    witness.add_argument("--base")
+    witness.add_argument("--bundle", type=_path)
+    witness.add_argument("--run", action="store_true")
+
+    merge = commands.add_parser(
+        "merge",
+        help="fusionner si juge PASS et checks verts sur le SHA jugé",
+    )
+    merge.add_argument("run_id", nargs="?", default="latest")
+    merge.add_argument("--repo", type=_path, default=Path.cwd())
+    merge.add_argument("--run", action="store_true")
     return root
 
 
@@ -394,6 +414,22 @@ def main(argv: list[str] | None = None) -> int:
                 worktree = Path(str(state.get("worktree") or args.repo))
                 comment_review_on_pr(worktree, pull_request, output)
             print(output)
+            return 0
+
+        if args.command == "witness":
+            base = args.base or settings.default_base_ref
+            invocation = witness_invocation(
+                settings,
+                args.repo,
+                args.plan,
+                base,
+                bundle_path=args.bundle,
+            )
+            return _run_or_print(invocation, settings, args.repo, args.run)
+
+        if args.command == "merge":
+            payload = merge_run(args.repo, args.run_id, apply=args.run)
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
             return 0
     except (OSError, KeyError, ValueError, PilotError) as exc:
         print(f"REFUS : {exc}", file=sys.stderr)

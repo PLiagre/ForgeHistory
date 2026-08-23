@@ -110,7 +110,7 @@ def archive_review_material(
         "base_sha": base_sha,
         "head_sha": head_sha,
         "tree_sha": tree_sha,
-        "reviewer": "claude-independent-read-only",
+        "reviewer": "independent-read-only",
         "bundle": str(bundle_path),
         "verdict": review.get("verdict"),
         "acceptance_criteria": review.get("acceptance_criteria", []),
@@ -151,7 +151,8 @@ def render_verdict_material(material_path: Path, output: Path) -> Path:
     lines = [
         "# Matériau pour verdict.md",
         "",
-        "> Généré par ForgePilot depuis une revue en lecture seule. La décision de fusion reste humaine.",
+        "> Généré par ForgePilot depuis une revue en lecture seule. "
+        "La fusion mécanique exige un PASS sur ce SHA et des checks verts (ADR-0017).",
         "",
         f"- SHA de base : `{material.get('base_sha')}`",
         f"- SHA évalué : `{material.get('head_sha')}`",

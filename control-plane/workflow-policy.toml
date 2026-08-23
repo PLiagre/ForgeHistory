@@ -5,10 +5,17 @@ review_bundle_max_bytes = 262144
 [controller]
 backend = "hermes"
 provider = "nous_portal"
-model = "default"
+model = "openai/gpt-5.4"
 can_plan = false
 can_review = false
 can_merge = false
+
+# Témoin hors chemin quotidien (ADR-0017). Hermes ou le propriétaire
+# l'appelle ; ce n'est pas le juge de chaque PR.
+[witness]
+backend = "claude"
+model = "claude-opus-5"
+effort = "high"
 
 [classification]
 # R0 est volontairement étroit : ces chemins ne peuvent rester R0 que si
@@ -87,9 +94,9 @@ reviewer = 900
 proof = 7200
 
 [risks.R1.roles.planner]
-backend = "claude"
-model = "claude-opus-5"
-effort = "xhigh"
+backend = "cursor"
+model = "cursor-grok-4.6"
+effort = "high"
 
 [risks.R1.roles.executor]
 backend = "cursor"
@@ -97,9 +104,9 @@ model = "composer-2.5"
 resume = true
 
 [risks.R1.roles.reviewer]
-backend = "claude"
-model = "claude-opus-5"
-effort = "low"
+backend = "cursor"
+model = "cursor-grok-4.6"
+effort = "xhigh"
 
 [risks.R2]
 test_profile = "certify"
@@ -111,9 +118,9 @@ reviewer = 1200
 proof = 21600
 
 [risks.R2.roles.planner]
-backend = "claude"
-model = "claude-opus-5"
-effort = "max"
+backend = "cursor"
+model = "cursor-grok-4.6"
+effort = "xhigh"
 
 [risks.R2.roles.executor]
 backend = "cursor"
@@ -121,6 +128,6 @@ model = "composer-2.5"
 resume = true
 
 [risks.R2.roles.reviewer]
-backend = "claude"
-model = "claude-opus-5"
-effort = "high"
+backend = "cursor"
+model = "cursor-grok-4.6"
+effort = "xhigh"

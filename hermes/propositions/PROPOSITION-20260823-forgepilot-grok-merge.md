@@ -3,7 +3,7 @@ author: cursor-cloud
 kind: proposition
 created_at: 2026-08-23T10:00:00Z
 concerns: projet
-status: OPEN
+status: REFLECTED_IN_ROADMAP
 ---
 # ForgePilot : Grok 4.6 partout sauf le code, juge haute capacité seulement avant fusion
 
