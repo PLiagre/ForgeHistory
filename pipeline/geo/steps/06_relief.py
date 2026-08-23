@@ -27,6 +27,9 @@ from shapely.ops import linemerge, unary_union
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+TOOLS = ROOT / "tools"
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
 
 from constants import (  # noqa: E402
     A12_RELIEF_MUST_BE_HIGH,
@@ -408,6 +411,17 @@ class DemSampler:
             except Exception:  # noqa: BLE001
                 pass
         self._datasets.clear()
+
+    def reset_derivation_state(self) -> None:
+        """Remet les compteurs à zéro pour une nouvelle dérivation.
+
+        ``_nodata_by_tile`` est aussi vidé : le garder ferait recompter
+        ``tuiles_sans_valeur_nodata_declaree`` (précharge + extras de la
+        table de mesures) et casserait Q10 sur ``stats_g6.json``.
+        """
+        self.counters = DemCounters()
+        self._nodata_by_tile.clear()
+        self.reset_sampling_metrics()
 
     def _dataset(self, tile_name: str):
         if tile_name in self._datasets:
@@ -1327,12 +1341,7 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
 def derive_relief(context: dict) -> dict:
     projector: Projector = context["projector"]
     dem: DemSampler = context["dem"]
-    dem.counters = DemCounters()
-    if dem._nodata_by_tile:
-        dem.counters.tuiles_sans_valeur_nodata_declaree = sum(
-            1 for v in dem._nodata_by_tile.values() if v is None
-        )
-        dem.counters.tiles_missing_nodata_checked = set(dem._nodata_by_tile.keys())
+    dem.reset_derivation_state()
     excluded_total = 0
     cell_relief: List[dict] = []
 
