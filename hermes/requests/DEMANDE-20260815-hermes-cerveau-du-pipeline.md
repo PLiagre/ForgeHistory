@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-15T20:00:00Z
 concerns: projet
-status: REFLECTED_IN_ROADMAP
+status: CLOSED
 ---
 # Hermes pilote, Claude juge, Cursor exécute — vers un pipeline long et supervisé
 

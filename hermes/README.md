@@ -24,6 +24,11 @@ Hermes n’écrit **jamais** : le code produit (`sim/`, `pipeline/`, `unity/`,
 Une proposition n’est **pas** une instruction. Le brief reste la seule
 source d’instruction d’un exécutant.
 
+Au boot, Hermes ne lit que les `PROPOSITION-*` et `DEMANDE-*` en
+`status: OPEN`. Zéro OPEN = rien n'attend. Les autres statuts restent
+dans git ; ils ne se parcourent pas au démarrage. `architecture/` non
+plus, sauf demande explicite.
+
 Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 
 ## Ce qu’Hermes fait, au-delà d’écrire
@@ -45,7 +50,8 @@ verdicts. Cursor écrit le code. Le propriétaire fusionne.
 
 ## Tableau de bord
 
-`hermes/DASHBOARD.md` est une vue, pas une base parallèle. Régénération :
+`hermes/DASHBOARD.md` est une vue, pas une base parallèle. Elle ne liste
+plus la file d'audits Cursor : cette boucle est historique. Régénération :
 
 - à la main : `py hermes/dashboard.py` (sections GitHub absentes) ;
 - workflow GitHub `hermes-dashboard.yml` (`workflow_dispatch`) pour la vue

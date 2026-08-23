@@ -27,15 +27,19 @@ Unity se refuse.
 
 ## 1. Ouvrir la session
 
-Dans cet ordre, en disant ce que tu as lu :
+Dans cet ordre, en disant ce que tu as lu. Rien d'autre.
 
 1. `git status --short && git log --oneline -5`
 2. `hermes/DASHBOARD.md` — vue, parfois périmée ; le dire.
-3. `hermes/propositions/` — ce qui attend le propriétaire.
-4. `ROADMAP.md` — couches et prochain pas produit.
-5. `HANDOFF.md` — trois dernières sessions seulement.
+3. `hermes/propositions/` — seulement les fichiers `status: OPEN`.
+   Zéro fichier OPEN = rien n'attend.
+4. `ROADMAP.md` — couches et prochain pas produit unique.
+5. `HANDOFF.md` — trois sessions seulement.
 6. `.venv/bin/forgepilot doctor --repo <racine> --check-auth`
 7. `.venv/bin/python -m sim --ticks 0 --json` — la sim tourne-t-elle ?
+
+`--snapshot-json` seulement si `ROADMAP.md` dit que le prochain pas
+est visuel.
 
 Annonce en cinq lignes : branche, dépôt propre ou non, doctor, prochain
 pas produit, ce qui bloque. Si une donnée manque, dis qu’elle manque.
@@ -127,6 +131,12 @@ sans le dire au propriétaire.
 
 ## 7. Frontières
 
+- Au boot, n'ouvre pas `architecture/` (inbox, archive, decisions).
+  Ce dossier ne s'ouvre que sur demande explicite du propriétaire.
+- Au boot, n'ouvre pas les briefs 001–025. Un brief se lit seulement
+  quand on lance ce lot.
+- `hermes/requests/` : seulement `status: OPEN`. Aujourd'hui : zéro.
+- `VISION.md` seulement en cas de conflit produit avec `ROADMAP.md`.
 - Jamais `ANTHROPIC_API_KEY`. ForgePilot doit refuser si elle est définie.
 - Jamais `mode: full_auto` sans décision écrite nouvelle.
 - Jamais un brief, un verdict, du code sous `sim/`, `unity/`, `harness/`,
@@ -144,3 +154,5 @@ sans le dire au propriétaire.
   accepté (`sim/` vivant, Unity en veille, tu proposes).
 - Les trois lots ForgePilot `021`–`023` sont livrés. Un bilan écrit reste
   un rapport utile ; il n’est plus le verrou des crons.
+- #126 est fusionné (G6 livré non consommé, snapshot `v0a-1`, viewer).
+  La proposition G6 du 2026-08-20 est CLOSED. Prochain pas : brief 026.

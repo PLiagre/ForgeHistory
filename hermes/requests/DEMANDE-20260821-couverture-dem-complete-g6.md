@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-21T15:26:43Z
 concerns: brief 024, phase F1
-status: HANDED_TO_CTO
+status: CLOSED
 ---
 # Compléter la couverture DEM du relief G6
 

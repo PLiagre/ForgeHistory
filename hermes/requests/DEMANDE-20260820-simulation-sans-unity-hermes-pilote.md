@@ -4,7 +4,7 @@ recorded_by: cursor-cloud
 kind: demande
 created_at: 2026-08-20T09:08:00Z
 concerns: projet
-status: REFLECTED_IN_ROADMAP
+status: CLOSED
 ---
 # La simulation Python est le produit ; Hermes pilote et propose
 

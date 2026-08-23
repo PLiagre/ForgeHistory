@@ -86,6 +86,13 @@ def test_public_pr_workflows_never_use_a_self_hosted_runner():
         assert "runs-on: [self-hosted" not in text, path.name
 
 
+def test_cursor_scope_applies_only_to_inbox_deposits():
+    workflow = _read("audit-guard.yml")
+    assert "startsWith(github.head_ref, 'cursor/')" in workflow
+    assert "aucun fichier sous architecture/inbox/" in workflow
+    assert "grep -v '^architecture/inbox/'" in workflow
+
+
 def test_legacy_full_auto_remains_disabled():
     config = (REPO_ROOT / "harness" / "pipeline" / "config.yaml").read_text(
         encoding="utf-8"

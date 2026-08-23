@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-20T20:30:31Z
 concerns: projet
-status: HANDED_TO_CTO
+status: CLOSED
 ---
 # Exploiter pleinement Claude Code pour préparer les prochains lots
 

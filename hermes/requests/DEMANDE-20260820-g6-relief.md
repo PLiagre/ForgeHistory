@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-20T07:59:54Z
 concerns: phase F1, jalon E1
-status: HANDED_TO_CTO
+status: CLOSED
 ---
 # Poursuivre les fondations du monde avec G6 — Relief
 

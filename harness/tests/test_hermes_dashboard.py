@@ -1,10 +1,10 @@
 """Tests du générateur de tableau de bord Hermes (hermes/dashboard.py).
 
 Le tableau de bord est une VUE générée depuis les sources de vérité du
-dépôt (ledgers, config, briefs) — ces tests prouvent sur un dépôt-fixture
-jetable que la vue reflète fidèlement ce que disent les fichiers, qu'une
-donnée optionnelle absente produit « non disponible » (jamais une
-invention), et qu'une ligne de ledger corrompue n'abat pas la génération.
+dépôt — ces tests prouvent sur un dépôt-fixture jetable que la vue
+reflète le mode, le budget et les items Hermes OPEN, qu'une donnée
+optionnelle absente produit « non disponible », et qu'un audit déjà
+décidé n'est jamais présenté comme « à faire ».
 """
 from __future__ import annotations
 
@@ -20,8 +20,10 @@ import dashboard  # noqa: E402
 def _fixture_root(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     (root / "harness" / "pipeline").mkdir(parents=True)
-    (root / "harness" / "queue" / "briefs" / "001-fixture").mkdir(parents=True)
+    (root / "harness" / "queue").mkdir(parents=True)
     (root / "architecture").mkdir(parents=True)
+    (root / "hermes" / "propositions").mkdir(parents=True)
+    (root / "hermes" / "requests").mkdir(parents=True)
 
     (root / "harness" / "pipeline" / "config.yaml").write_text(
         "mode: full_auto\nmax_forge_run_iterations: 3\n", encoding="utf-8"
@@ -34,9 +36,15 @@ def _fixture_root(tmp_path: Path) -> Path:
                         "event": "AUDIT_ARCHIVED"}),
             json.dumps({"timestamp": "2026-08-12T09:00:00Z", "audit_id": "CURSOR-bbb-ouvert",
                         "event": "AUDIT_PROPOSED"}),
+            json.dumps({"timestamp": "2026-08-12T11:41:00Z", "audit_id": "CURSOR-cdc683f-decide",
+                        "event": "AUDIT_APPROVED"}),
             "{ligne corrompue volontaire",
         ]) + "\n",
         encoding="utf-8",
+    )
+    (root / "architecture" / "decisions").mkdir()
+    (root / "architecture" / "decisions" / "DECISION-CURSOR-cdc683f-decide.md").write_text(
+        "décision déjà écrite\n", encoding="utf-8"
     )
     (root / "harness" / "pipeline" / "ci-budget-ledger.jsonl").write_text(
         json.dumps({"timestamp": "2026-08-12T09:30:00Z", "step": "challenge:x", "usd": 1.25}) + "\n",
@@ -53,14 +61,17 @@ def _fixture_root(tmp_path: Path) -> Path:
         ]) + "\n",
         encoding="utf-8",
     )
-    (root / "harness" / "queue" / "briefs" / "001-fixture" / "verdict.md").write_text(
-        "corps\n\nVERDICT: REJECT\n\npuis correction\n\nVERDICT: ACCEPT\n", encoding="utf-8"
+    (root / "hermes" / "propositions" / "PROPOSITION-20260812-ouverte.md").write_text(
+        "---\nstatus: OPEN\nkind: proposition\n---\n# Proposition encore ouverte\n",
+        encoding="utf-8",
     )
-    # Un audit déposé dans l'inbox SANS ligne au ledger : la convention du
-    # dépôt le traite comme AUDIT_PROPOSED implicite -- la vue doit le lister.
-    (root / "architecture" / "inbox").mkdir()
-    (root / "architecture" / "inbox" / "CURSOR-ccc-inbox-seul.md").write_text(
-        "---\naudit_id: CURSOR-ccc-inbox-seul\nstatus: PROPOSED\n---\n# corps\n", encoding="utf-8"
+    (root / "hermes" / "propositions" / "PROPOSITION-20260811-close.md").write_text(
+        "---\nstatus: CLOSED\nkind: proposition\n---\n# Proposition close\n",
+        encoding="utf-8",
+    )
+    (root / "hermes" / "requests" / "DEMANDE-20260812-close.md").write_text(
+        "---\nstatus: CLOSED\nkind: demande\n---\n# Demande déjà close\n",
+        encoding="utf-8",
     )
     return root
 
@@ -71,30 +82,41 @@ def test_dashboard_reflete_les_sources_de_verite(tmp_path):
     root = _fixture_root(tmp_path)
     contenu = dashboard.generer(root, now=datetime(2026, 8, 12, 10, 0, tzinfo=timezone.utc))
 
-    # Le mode vient de config.yaml, pas d'une constante.
     assert "`full_auto`" in contenu
-    # L'audit ouvert est listé avec son état humain ; le clos est compté, pas listé.
-    assert "CURSOR-bbb-ouvert" in contenu
-    assert "attend le contre-audit" in contenu
-    # L'audit présent dans l'inbox mais absent du ledger est listé aussi
-    # (AUDIT_PROPOSED implicite), jamais passé sous silence.
-    assert "CURSOR-ccc-inbox-seul" in contenu
-    assert "CURSOR-aaa-clos" not in contenu.split("## La boucle d'audit")[1].split("##")[0].replace(
-        "boucle(s) close(s)", "")
-    # Budget du mois courant : la ligne d'août est comptée.
     assert "1.25 USD" in contenu
-    # Le dernier verdict tracé du brief fixture est ACCEPT (le REJECT antérieur
-    # ne masque pas la correction).
-    assert "dernier verdict tracé : ACCEPT" in contenu
-    # Usage backends : 2 runs codex, 1 run claude.
     assert "| codex | 2 |" in contenu
     assert "| claude | 1 |" in contenu
+    assert "PROPOSITION-20260812-ouverte.md" in contenu
+    assert "Proposition encore ouverte" in contenu
+    assert "PROPOSITION-20260811-close.md" not in contenu
+    assert "DEMANDE-20260812-close.md" not in contenu
+
+
+def test_dashboard_ne_presente_plus_les_audits_comme_a_faire(tmp_path):
+    root = _fixture_root(tmp_path)
+    contenu = dashboard.generer(root)
+
+    assert "Convertir l'audit" not in contenu
+    assert "/forge-audit-convert" not in contenu
+    assert "CURSOR-bbb-ouvert" not in contenu
+    assert "CURSOR-cdc683f-decide" not in contenu
+    assert "CURSOR-aaa-clos" not in contenu
+    assert "architecture/README.md" in contenu
+    assert "historique" in contenu
+
+
+def test_dashboard_rien_n_attend_sans_item_open(tmp_path):
+    root = _fixture_root(tmp_path)
+    (root / "hermes" / "propositions" / "PROPOSITION-20260812-ouverte.md").write_text(
+        "---\nstatus: CLOSED\n---\n# close\n", encoding="utf-8"
+    )
+    contenu = dashboard.generer(root)
+    assert "Rien n'attend." in contenu
 
 
 def test_donnees_optionnelles_absentes_disent_non_disponible(tmp_path):
     root = _fixture_root(tmp_path)
     contenu = dashboard.generer(root)
-    # Sans données GitHub/Cursor fournies, la vue le DIT au lieu d'inventer.
     assert contenu.count("Non disponible dans cette génération") == 2
 
 
@@ -116,7 +138,7 @@ def test_donnees_optionnelles_presentes_sont_tabulees(tmp_path):
 
 def test_generation_ecrit_le_fichier(tmp_path):
     root = _fixture_root(tmp_path)
-    (root / "hermes").mkdir()
+    (root / "hermes").mkdir(exist_ok=True)
     code = dashboard.main(["--repo-root", str(root)])
     assert code == 0
     assert (root / "hermes" / "DASHBOARD.md").exists()

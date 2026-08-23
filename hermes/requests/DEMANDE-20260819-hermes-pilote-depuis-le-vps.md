@@ -3,7 +3,7 @@ author: hermes
 kind: demande
 created_at: 2026-08-19T15:43:41Z
 concerns: projet
-status: OPEN
+status: CLOSED
 ---
 # Piloter ForgeHistory depuis le VPS avec les capacités d’Hermes
 

@@ -3,9 +3,12 @@ author: cursor-cloud
 kind: proposition
 created_at: 2026-08-20T09:20:00Z
 concerns: sim
-status: OPEN
+status: CLOSED
 ---
 # Prochaine couche du monde : relief G6, puis lecture par sim/
+
+Caduque après la fusion de #126 : G6 est livré dans `pipeline/geo/`.
+`sim/` ne le consomme pas encore. Le prochain pas produit est le brief 026.
 
 ## Constat
 

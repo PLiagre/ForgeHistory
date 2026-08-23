@@ -1,5 +1,10 @@
 # Vision — Moteur de simulation historique vivant
 
+> **Où vit le produit aujourd'hui (2026-08-23).** Le moteur tourne dans
+> `sim/` (`python -m sim`). `viewer/` est un regard mince sur un snapshot.
+> Unity est en veille. Cette note de statut ne change pas les piliers
+> ci-dessous.
+
 > Ce document est la source de vérité de la vision produit. Il prime sur
 > PROJECT_BRIEF.md en cas de conflit. Décisions d'architecture associées :
 > [ADR-001](docs/adr/ADR-001-moteur-vivant-lod.md) (moteur multi-échelle) et
