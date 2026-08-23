@@ -8,8 +8,10 @@ ou `BLOCKED`), `acceptance_criteria`, `findings`, `checks_observed`,
 critère exact du plan. `checks_observed` utilise le même format avec la clé
 `check`. Un test absent est absent, jamais supposé vert. Chaque constat est un
 objet stable avec exactement `id`, `path`, `issue`, `evidence` et, si utile,
-`severity`, afin qu'une itération suivante puisse prouver sa résolution. Un
-`PASS` exige tous les statuts à `PASS` et aucun constat. Laisse
+`severity`. La sévérité, lorsqu'elle est présente, vaut exclusivement `P0`,
+`P1`, `P2` ou `P3` — jamais `high`, `medium` ou `low` — afin qu'une itération
+suivante puisse prouver sa résolution. Un `PASS` exige tous les statuts à
+`PASS` et aucun constat. Laisse
 `human_decision_required` à `true` et n'ajoute aucun autre champ.
 
 Le bundle ci-dessous est borné et indépendant : il contient le plan, les SHA,
