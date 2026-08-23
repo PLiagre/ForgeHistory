@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
 import re
-from typing import Iterable
+import subprocess
+from typing import Callable, Iterable
 
 from .config import (
     CURSOR_EFFORT_REFUSED,
@@ -14,7 +15,10 @@ from .config import (
     Settings,
     assert_valid_effort,
 )
-from .process import PilotError, git, resolve_binary, run_command
+from .policy import effective_risk
+from .process import PilotError, git, resolve_binary, run_command, run_command_stream
+from .protocol import extract_session_id, validate_plan, write_normalized_json
+from .publication import enforce_allowed_paths, stage_explicit_paths, working_tree_paths
 
 
 READ_ONLY_CLAUDE_TOOLS = "Read,Glob,Grep"
@@ -26,6 +30,11 @@ PROPOSITION_REFUSED = (
 API_KEY_REFUSED = (
     "ANTHROPIC_API_KEY est défini ; le pilote doit utiliser l'abonnement Claude Pro."
 )
+CONTROLLER_SECRET_ENV = re.compile(
+    r"(?:discord|github|^gh_|api[_-]?key|access[_-]?token|secret|password|authorization)",
+    re.IGNORECASE,
+)
+PORTABLE_CURSOR_COMMAND_UNITS = 30_000
 
 
 @dataclass(frozen=True)
@@ -37,6 +46,7 @@ class Invocation:
     prompt: str | None = None
     model: str | None = None
     effort: str | None = None
+    backend: str | None = None
 
 
 def _read_prompt(name: str) -> str:
@@ -85,9 +95,13 @@ def resolve_role(
     role: str,
     model: str | None = None,
     effort: str | None = None,
+    risk: str | None = None,
 ) -> RoleSettings:
     """Priorité D3 : drapeau > [roles.*] > [tools] > défaut du binaire."""
     role_cfg = settings.roles.get(role, RoleSettings())
+    if risk and settings.policy is not None:
+        policy_role = settings.policy.profile(risk).roles[role]
+        role_cfg = RoleSettings(model=policy_role.model, effort=policy_role.effort)
     if model:
         resolved_model = model
     elif role_cfg.model:
@@ -108,11 +122,27 @@ def resolve_role(
     return RoleSettings(model=resolved_model or "", effort=resolved_effort or "")
 
 
+def _assert_policy_backend(
+    settings: Settings,
+    risk: str | None,
+    role: str,
+    expected: str,
+) -> None:
+    if risk is None or settings.policy is None:
+        return
+    backend = settings.policy.profile(risk).roles[role].backend
+    if backend != expected:
+        raise PilotError(
+            f"Le profil {risk} affecte {role} au backend {backend!r}, pas {expected!r}."
+        )
+
+
 def _claude_argv(
     settings: Settings,
     role: str,
     model: str | None = None,
     effort: str | None = None,
+    risk: str | None = None,
 ) -> list[str]:
     argv = [
         settings.claude_binary,
@@ -130,7 +160,7 @@ def _claude_argv(
         "--no-chrome",
         "--no-session-persistence",
     ]
-    resolved = resolve_role(settings, role, model=model, effort=effort)
+    resolved = resolve_role(settings, role, model=model, effort=effort, risk=risk)
     if resolved.model:
         argv.extend(["--model", resolved.model])
     if resolved.effort:
@@ -145,11 +175,13 @@ def plan_invocation(
     *,
     model: str | None = None,
     effort: str | None = None,
+    risk: str | None = None,
 ) -> Invocation:
+    _assert_policy_backend(settings, risk, "planner", "claude")
     task_body = _task_text(task)
     prompt = _read_prompt("planner.md").replace("{{TASK}}", task_body)
-    resolved = resolve_role(settings, "planner", model=model, effort=effort)
-    argv = _claude_argv(settings, "planner", model=model, effort=effort)
+    resolved = resolve_role(settings, "planner", model=model, effort=effort, risk=risk)
+    argv = _claude_argv(settings, "planner", model=model, effort=effort, risk=risk)
     return Invocation(
         "planner",
         tuple(argv),
@@ -158,6 +190,7 @@ def plan_invocation(
         prompt,
         model=resolved.model or None,
         effort=resolved.effort or None,
+        backend="claude",
     )
 
 
@@ -169,19 +202,31 @@ def review_invocation(
     *,
     model: str | None = None,
     effort: str | None = None,
+    risk: str | None = None,
+    bundle_path: Path | None = None,
 ) -> Invocation:
-    plan_body = _task_text(plan)
-    diff = git(repo, "diff", "--no-ext-diff", f"{base}...HEAD")
-    if not diff:
-        raise PilotError(f"Aucun diff à relire contre {base}.")
-    prompt = (
-        _read_prompt("reviewer.md")
-        .replace("{{PLAN}}", plan_body)
-        .replace("{{BASE}}", base)
-        .replace("{{DIFF}}", diff)
-    )
-    resolved = resolve_role(settings, "reviewer", model=model, effort=effort)
-    argv = _claude_argv(settings, "reviewer", model=model, effort=effort)
+    _assert_policy_backend(settings, risk, "reviewer", "claude")
+    if bundle_path is not None:
+        bundle_body = _task_text(bundle_path)
+    else:
+        plan_body = _task_text(plan)
+        diff = git(repo, "diff", "--no-ext-diff", f"{base}...HEAD")
+        if not diff:
+            raise PilotError(f"Aucun diff à relire contre {base}.")
+        bundle_body = json.dumps(
+            {
+                "base": base,
+                "plan": plan_body,
+                "manual_diffs": {"legacy-diff": diff},
+                "generated_artifacts": [],
+                "mechanical_results": [],
+                "producer_conclusions_included": False,
+            },
+            ensure_ascii=False,
+        )
+    prompt = _read_prompt("reviewer.md").replace("{{REVIEW_BUNDLE}}", bundle_body)
+    resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
+    argv = _claude_argv(settings, "reviewer", model=model, effort=effort, risk=risk)
     return Invocation(
         "reviewer",
         tuple(argv),
@@ -190,6 +235,7 @@ def review_invocation(
         prompt,
         model=resolved.model or None,
         effort=resolved.effort or None,
+        backend="claude",
     )
 
 
@@ -200,12 +246,24 @@ def executor_invocation(
     *,
     model: str | None = None,
     effort: str | None = None,
+    risk: str | None = None,
+    feedback: Path | None = None,
+    resume_session: str | None = None,
 ) -> Invocation:
+    _assert_policy_backend(settings, risk, "executor", "cursor")
     if effort:
         raise PilotError(CURSOR_EFFORT_REFUSED)
     plan_body = _task_text(plan)
-    prompt = _read_prompt("executor.md").replace("{{PLAN}}", plan_body)
-    resolved = resolve_role(settings, "executor", model=model, effort=None)
+    if feedback is not None:
+        feedback_body = _task_text(feedback)
+        prompt = (
+            _read_prompt("iterator.md")
+            .replace("{{PLAN}}", plan_body)
+            .replace("{{FEEDBACK}}", feedback_body)
+        )
+    else:
+        prompt = _read_prompt("executor.md").replace("{{PLAN}}", plan_body)
+    resolved = resolve_role(settings, "executor", model=model, effort=None, risk=risk)
     argv = [
         settings.cursor_binary,
         "-p",
@@ -221,13 +279,28 @@ def executor_invocation(
     ]
     if resolved.model:
         argv.extend(["--model", resolved.model])
+    if resume_session:
+        argv.extend(["--resume", resume_session])
+    # Cursor CLI impose aujourd'hui le prompt avec `-p`. Refuser avant
+    # CreateProcessW avec une marge explicite est préférable à un échec opaque
+    # (la limite Windows est 32 767 unités UTF-16 pour la ligne complète).
+    command_line = subprocess.list2cmdline(argv)
+    command_units = len(command_line.encode("utf-16-le")) // 2 + 1
+    if command_units > PORTABLE_CURSOR_COMMAND_UNITS:
+        raise PilotError(
+            "Prompt Cursor trop grand pour une invocation portable "
+            f"({command_units} unités UTF-16 > {PORTABLE_CURSOR_COMMAND_UNITS}) ; "
+            "scinder le plan ou le feedback."
+        )
     return Invocation(
         "executor",
         tuple(argv),
         str(worktree),
         {},
+        prompt=prompt,
         model=resolved.model or None,
         effort=None,
+        backend="cursor",
     )
 
 
@@ -269,36 +342,75 @@ def existing_worktree(repo: Path, task_name: str) -> tuple[Path, str, str]:
     return worktree, expected_branch, status
 
 
-def execute_invocation(invocation: Invocation, settings: Settings, *, stdin: str | None = None) -> object:
+def _stream_argv(invocation: Invocation) -> tuple[str, ...]:
+    argv = list(invocation.argv)
+    if "--output-format" in argv:
+        index = argv.index("--output-format") + 1
+        if index < len(argv):
+            argv[index] = "stream-json"
+    if invocation.role in {"planner", "reviewer"} and "--verbose" not in argv:
+        argv.append("--verbose")
+    return tuple(argv)
+
+
+def execute_invocation(
+    invocation: Invocation,
+    settings: Settings,
+    *,
+    stdin: str | None = None,
+    timeout_seconds: int | None = None,
+    stream: bool = False,
+    on_event: Callable[[object], None] | None = None,
+) -> object:
     resolve_binary(invocation.argv[0])
-    result = run_command(
-        invocation.argv,
-        cwd=Path(invocation.cwd),
-        timeout_seconds=settings.timeout_seconds,
-        env=invocation.environment,
-        stdin=stdin if stdin is not None else invocation.prompt,
-    )
-    return result.json()
+    runner = run_command_stream if stream else run_command
+    kwargs: dict[str, object] = {
+        "cwd": Path(invocation.cwd),
+        "timeout_seconds": timeout_seconds or settings.timeout_seconds,
+        "env": invocation.environment,
+        "stdin": (
+            stdin
+            if stdin is not None
+            else (None if invocation.role == "executor" else invocation.prompt)
+        ),
+        "remove_env": tuple(
+            name for name in os.environ if CONTROLLER_SECRET_ENV.search(name)
+        ),
+    }
+    if stream:
+        captured_session: list[str] = []
+
+        def observe(event: object) -> None:
+            session = extract_session_id(event)
+            if session:
+                captured_session[:] = [session]
+            if on_event is not None:
+                on_event(event)
+
+        kwargs["on_event"] = observe
+    result = runner(_stream_argv(invocation) if stream else invocation.argv, **kwargs)
+    payload = result.json()
+    if stream and captured_session and extract_session_id(payload) is None:
+        if isinstance(payload, dict):
+            payload = dict(payload)
+            payload["session_id"] = captured_session[-1]
+        else:
+            payload = {"result": payload, "session_id": captured_session[-1]}
+    return payload
 
 
 def persist_result(repo: Path, role: str, invocation: Invocation, result: object) -> Path:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = repo / ".forgepilot" / "runs" / f"{stamp}-{role}"
     run_dir.mkdir(parents=True, exist_ok=False)
-    stored = (
-        replace(invocation, prompt="<prompt>")
-        if invocation.prompt is not None
-        else invocation
-    )
     payload = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "role": role,
-        "invocation": asdict(stored),
+        "invocation": json.loads(format_invocation(invocation)),
         "result": result,
     }
     target = run_dir / "result.json"
-    target.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return target
+    return write_normalized_json(target, payload)
 
 
 def format_invocation(invocation: Invocation) -> str:
@@ -311,7 +423,10 @@ def format_invocation(invocation: Invocation) -> str:
         "role": invocation.role,
         "argv": redacted,
         "cwd": invocation.cwd,
-        "environment": invocation.environment,
+        "environment": {
+            key: ("<secret>" if re.search(r"(?:key|token|secret|password|authorization)", key, re.I) else value)
+            for key, value in invocation.environment.items()
+        },
         "model": invocation.model,
         "effort": invocation.effort,
     }
@@ -328,12 +443,24 @@ def missing_binaries(settings: Settings) -> Iterable[str]:
             yield name
 
 
-def publish_preview(repo: Path, title: str, base_branch: str) -> Invocation:
+def publish_preview(
+    repo: Path,
+    title: str,
+    base_branch: str,
+    *,
+    risk: str = "R1",
+    brief: str | None = None,
+) -> Invocation:
     branch = git(repo, "branch", "--show-current")
     if not branch.startswith("agent/"):
         raise PilotError(f"Publication refusée depuis la branche {branch!r} ; préfixe agent/ requis.")
     if not git(repo, "status", "--porcelain"):
         raise PilotError("Aucun changement à publier.")
+    body = (
+        "Produit par Cursor dans ForgePilot. Fusion humaine obligatoire.\n\n"
+        f"Forge-Risk: {risk}\n"
+        f"Forge-Brief: {brief or title}"
+    )
     argv = (
         "gh",
         "pr",
@@ -346,16 +473,29 @@ def publish_preview(repo: Path, title: str, base_branch: str) -> Invocation:
         "--title",
         title,
         "--body",
-        "Produit par Cursor dans ForgePilot. Fusion humaine obligatoire.",
+        body,
     )
     return Invocation("publisher", argv, str(repo), {})
 
 
-def publish(repo: Path, title: str, base_branch: str) -> str:
-    invocation = publish_preview(repo, title, base_branch)
+def publish(
+    repo: Path,
+    title: str,
+    base_branch: str,
+    *,
+    allowed_paths: Iterable[str] | None = None,
+    risk: str = "R1",
+    brief: str | None = None,
+) -> str:
+    invocation = publish_preview(repo, title, base_branch, risk=risk, brief=brief)
     resolve_binary("gh")
+    if allowed_paths is None:
+        raise PilotError(
+            "Publication refusée : fournir le plan et files_allowed_to_change."
+        )
+    paths = enforce_allowed_paths(working_tree_paths(repo), allowed_paths)
     git(repo, "diff", "--check")
-    git(repo, "add", "-A")
+    stage_explicit_paths(repo, paths)
     git(repo, "diff", "--cached", "--check")
     git(repo, "commit", "-m", title)
     branch = git(repo, "branch", "--show-current")
@@ -376,6 +516,8 @@ def chain_preview(
     *,
     model: str | None = None,
     effort: str | None = None,
+    requested_risk: str = "R1",
+    changed_paths: Iterable[str] = (),
 ) -> dict[str, object]:
     """Aperçu du lot complet. Aucun agent, aucune fusion."""
     assert_task_is_instruction(task)
@@ -383,18 +525,35 @@ def chain_preview(
     if effort:
         assert_valid_effort(effort)
     slug = _slug(task_name)
+    risk = requested_risk
+    derived = "R1"
+    if settings.policy is not None:
+        risk, derived = effective_risk(settings.policy, requested_risk, changed_paths)
+        if risk == "R0":
+            return {
+                "command": "enchaine",
+                "run": False,
+                "fusion": False,
+                "task_name": slug,
+                "risk": {"requested": requested_risk, "derived": derived, "effective": risk},
+                "policy": settings.policy.summary(),
+                "steps": ["mechanical-only"],
+                "note": "R0 ne lance aucun agent ; contrôles mécaniques dédiés uniquement.",
+            }
     plan_inv = plan_invocation(
-        settings, repo, task, model=model, effort=effort
+        settings, repo, task, model=model, effort=effort, risk=risk
     )
     preview_worktree = repo / ".forgepilot" / "worktrees" / slug
     exec_inv = executor_invocation(
-        settings, preview_worktree, task, model=model
+        settings, preview_worktree, task, model=model, risk=risk
     )
     return {
         "command": "enchaine",
         "run": False,
         "fusion": False,
         "task_name": slug,
+        "risk": {"requested": requested_risk, "derived": derived, "effective": risk},
+        "policy": settings.policy.summary() if settings.policy is not None else None,
         "steps": list(CHAIN_STEPS),
         "plan": json.loads(format_invocation(plan_inv)),
         "execute": json.loads(format_invocation(exec_inv)),
@@ -424,8 +583,17 @@ def run_chain(
     title: str,
     model: str | None = None,
     effort: str | None = None,
+    requested_risk: str = "R1",
+    changed_paths: Iterable[str] = (),
 ) -> dict[str, object]:
     """plan → execute → publish (draft) → review. Jamais de fusion."""
+    raise PilotError(
+        "run_chain mutateur désactivé : employer register_run/resume_run pour "
+        "conserver l'état, les verrous et les preuves exactes."
+    )
+
+    # Corps historique conservé temporairement pour compatibilité de lecture ;
+    # il est intentionnellement inaccessible depuis le CLI et cette API.
     assert_not_api_billing()
     assert_task_is_instruction(task)
     _task_text(task)
@@ -438,20 +606,46 @@ def run_chain(
     slug = _slug(task_name)
     pr_title = title.strip() or slug
 
+    risk = requested_risk
+    if settings.policy is not None:
+        risk, _ = effective_risk(settings.policy, requested_risk, changed_paths)
     plan_inv = plan_invocation(
-        settings, repo, task, model=model, effort=effort
+        settings, repo, task, model=model, effort=effort, risk=risk
     )
     plan_result = execute_invocation(plan_inv, settings)
+    plan_payload: dict[str, object] | None = None
+    try:
+        plan_payload = validate_plan(plan_result)
+    except PilotError:
+        # Compatibilité pour les tests/anciens adaptateurs qui ne simulent que
+        # le rôle. Une vraie publication reste fermée sans périmètre explicite.
+        if not (isinstance(plan_result, dict) and plan_result.get("role") == "planner"):
+            raise
+    if plan_payload is not None and plan_payload["blocked"]:
+        raise PilotError("Plan bloqué : Cursor ne sera pas lancé.")
+    if plan_payload is not None and settings.policy is not None:
+        risk, _ = effective_risk(
+            settings.policy,
+            risk,
+            plan_payload["files_allowed_to_change"],
+        )
     plan_path = persist_result(repo, "planner", plan_inv, plan_result)
 
     worktree, branch = create_worktree(repo, slug, base_ref)
     exec_inv = executor_invocation(
-        settings, worktree, plan_path, model=model
+        settings, worktree, plan_path, model=model, risk=risk
     )
     exec_result = execute_invocation(exec_inv, settings)
     exec_path = persist_result(repo, "executor", exec_inv, exec_result)
 
-    pull_request = publish(worktree, pr_title, base_branch)
+    pull_request = publish(
+        worktree,
+        pr_title,
+        base_branch,
+        allowed_paths=(plan_payload or {}).get("files_allowed_to_change"),
+        risk=risk,
+        brief=slug,
+    )
 
     review_inv = review_invocation(
         settings,
@@ -460,6 +654,7 @@ def run_chain(
         base_ref,
         model=model,
         effort=effort,
+        risk=risk,
     )
     review_result = execute_invocation(review_inv, settings)
     review_path = persist_result(repo, "reviewer", review_inv, review_result)

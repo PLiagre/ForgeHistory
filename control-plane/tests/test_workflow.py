@@ -37,6 +37,13 @@ SETTINGS = Settings(
 )
 
 
+def _argument_size_bound() -> int:
+    """Borne prudente portable : ARG_MAX Unix, CreateProcess Windows."""
+    if hasattr(os, "sysconf"):
+        return 32 * os.sysconf("SC_PAGESIZE")
+    return 32_768
+
+
 class WorkflowTests(unittest.TestCase):
     def test_doctor_refuses_anthropic_api_billing(self):
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "must-not-be-used"}, clear=False):
@@ -119,7 +126,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_review_keeps_argv_under_system_arg_limit(self):
         """SC1 : aucun élément d'argv ne dépasse 32 × SC_PAGESIZE (lu du système)."""
-        bound = 32 * os.sysconf("SC_PAGESIZE")
+        bound = _argument_size_bound()
         marker = "MARKER_OVERFLOW_022_UNIQUE_a7f3"
         synthetic = marker + ("D" * (bound + 64 - len(marker)))
         self.assertGreater(len(synthetic.encode()), bound)
@@ -262,7 +269,7 @@ class WorkflowTests(unittest.TestCase):
         startswith('--') du nouveau format_invocation : sans lui,
         --output-format juste après -p serait remplacé par <prompt>.
         """
-        bound = 32 * os.sysconf("SC_PAGESIZE")
+        bound = _argument_size_bound()
         marker = "PROMPT_LEAK_MARKER_022_b9e1"
         synthetic = marker + ("E" * 256)
         self.assertLess(len(synthetic.encode()), bound)
@@ -790,9 +797,7 @@ class ChainTests(unittest.TestCase):
             self.assertEqual(2, code)
             self.assertIn("ANTHROPIC_API_KEY", err.getvalue())
 
-    def test_run_calls_plan_execute_publish_review_never_merge(self):
-        from forgepilot.workflow import Invocation
-
+    def test_run_delegates_to_durable_controller_never_merge(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             self._git_repo(repo)
@@ -800,55 +805,41 @@ class ChainTests(unittest.TestCase):
             task.write_text("Lot unique mesurable.\n", encoding="utf-8")
             subprocess.run(["git", "add", "task.md"], cwd=repo, check=True)
             subprocess.run(["git", "commit", "-m", "task"], cwd=repo, check=True, capture_output=True)
-            roles: list[str] = []
-
-            def fake_execute(invocation, settings, *, stdin=None):
-                roles.append(invocation.role)
-                return {"role": invocation.role}
-
-            fake_review = Invocation(
-                "reviewer",
-                ("claude", "-p", "--output-format", "json"),
-                str(repo),
-                {},
-                prompt="<prompt>",
-            )
+            state_path = repo / ".forgepilot" / "runs" / "run-1" / "state.json"
+            registered = {"run_id": "run-1", "step": "REGISTERED", "fusion": False}
+            completed = {
+                "run_id": "run-1",
+                "step": "COMPLETE",
+                "branch": "agent/lot-chain",
+                "pull_request": "https://example.test/pr/1",
+                "fusion": False,
+            }
             out = io.StringIO()
-            with patch("forgepilot.workflow.missing_binaries", return_value=[]):
-                with patch("forgepilot.workflow.execute_invocation", side_effect=fake_execute):
-                    with patch(
-                        "forgepilot.workflow.publish",
-                        return_value="https://example.test/pr/1",
-                    ) as pub:
-                        with patch(
-                            "forgepilot.workflow.review_invocation",
-                            return_value=fake_review,
-                        ):
-                            with patch("sys.stdout", out):
-                                code = main(
-                                    [
-                                        "enchaine",
-                                        str(task),
-                                        "--repo",
-                                        str(repo),
-                                        "--task-name",
-                                        "lot-chain",
-                                        "--base",
-                                        "main",
-                                        "--run",
-                                    ]
-                                )
+            with patch(
+                "forgepilot.cli.register_run", return_value=(state_path, registered)
+            ) as register, patch(
+                "forgepilot.cli.resume_run", return_value=completed
+            ) as resume, patch("sys.stdout", out):
+                code = main(
+                    [
+                        "enchaine",
+                        str(task),
+                        "--repo",
+                        str(repo),
+                        "--task-name",
+                        "lot-chain",
+                        "--base",
+                        "main",
+                        "--run",
+                    ]
+                )
             self.assertEqual(0, code)
             payload = json.loads(out.getvalue())
-            self.assertTrue(payload["run"])
-            self.assertFalse(payload["fusion"])
-            self.assertEqual("agent/lot-chain", payload["branch"])
-            self.assertEqual("https://example.test/pr/1", payload["pull_request"])
-            self.assertEqual(["planner", "executor", "reviewer"], roles)
-            pub.assert_called_once()
+            self.assertEqual(completed, payload["state"])
+            register.assert_called_once()
+            resume.assert_called_once()
+            self.assertEqual((repo, "run-1"), resume.call_args.args[1:])
             self.assertNotIn("merge", json.dumps(payload).lower())
-            worktree = repo / ".forgepilot" / "worktrees" / "lot-chain"
-            self.assertTrue(worktree.is_dir())
 
     def test_run_stops_if_plan_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -859,29 +850,22 @@ class ChainTests(unittest.TestCase):
             subprocess.run(["git", "add", "task.md"], cwd=repo, check=True)
             subprocess.run(["git", "commit", "-m", "task"], cwd=repo, check=True, capture_output=True)
             err = io.StringIO()
-            with patch("forgepilot.workflow.missing_binaries", return_value=[]):
-                with patch(
-                    "forgepilot.workflow.execute_invocation",
-                    side_effect=PilotError("plan cassé"),
-                ):
-                    with patch(
-                        "forgepilot.workflow.create_worktree",
-                        side_effect=AssertionError("create_worktree appelé"),
-                    ):
-                        with patch(
-                            "forgepilot.workflow.publish",
-                            side_effect=AssertionError("publish appelé"),
-                        ):
-                            with patch("sys.stderr", err):
-                                code = main(
-                                    [
-                                        "enchaine",
-                                        str(task),
-                                        "--repo",
-                                        str(repo),
-                                        "--run",
-                                    ]
-                                )
+            state_path = repo / ".forgepilot" / "runs" / "run-2" / "state.json"
+            registered = {"run_id": "run-2", "step": "REGISTERED"}
+            with patch(
+                "forgepilot.cli.register_run", return_value=(state_path, registered)
+            ), patch(
+                "forgepilot.cli.resume_run", side_effect=PilotError("plan cassé")
+            ), patch("sys.stderr", err):
+                code = main(
+                    [
+                        "enchaine",
+                        str(task),
+                        "--repo",
+                        str(repo),
+                        "--run",
+                    ]
+                )
             self.assertEqual(2, code)
             self.assertIn("plan cassé", err.getvalue())
             worktrees = repo / ".forgepilot" / "worktrees"
