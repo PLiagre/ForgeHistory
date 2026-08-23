@@ -538,8 +538,10 @@ def execute_invocation(
         cursor_result = payload.get("result")
         if isinstance(cursor_result, str):
             candidate = cursor_result.strip()
-            if candidate.startswith("```json\n") and candidate.endswith("\n```"):
-                candidate = candidate[len("```json\n") : -len("\n```")].strip()
+            fence = "```json\n"
+            if candidate.endswith("\n```") and candidate.count(fence) == 1:
+                fence_index = candidate.index(fence)
+                candidate = candidate[fence_index + len(fence) : -len("\n```")].strip()
             try:
                 payload = json.loads(candidate)
             except json.JSONDecodeError as exc:
