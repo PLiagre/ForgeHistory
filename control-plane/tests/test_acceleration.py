@@ -872,6 +872,43 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                     _iterate(load_settings(), repo, state_path, state, plan)
             self.assertEqual([False], seen)
 
+    def test_continue_after_external_merge_rebases_feedback_onto_new_branch(self):
+        from forgepilot.durable import continue_after_external_merge
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            old_head = self.commit(repo, "task")
+            state_path, state = register_run(
+                load_settings(), repo, task, "external-merge", base_ref="main", base_branch="main"
+            )
+            worktree, branch = create_worktree(repo, "external-merge", old_head)
+            (repo / "merged.txt").write_text("merged\n", encoding="utf-8")
+            new_base = self.commit(repo, "external merge")
+            feedback = state_path.parent / "feedback.json"
+            feedback.write_text(json.dumps({"head_sha_reviewed": old_head, "findings": []}), encoding="utf-8")
+            state.update({
+                "artifacts": {"feedback": "feedback.json"},
+                "worktree": str(worktree),
+                "branch": branch,
+                "head_sha": old_head,
+                "step": "NEEDS_FIX",
+                "pull_request": "https://example.test/pr/closed",
+                "iteration": {"count": 1, "plateau_count": 0, "last_findings": [], "last_finding_count": 0},
+            })
+            save_state(state_path, state)
+
+            final = continue_after_external_merge(repo, str(state["run_id"]), new_base)
+
+            self.assertEqual("ITERATING", final["step"])
+            self.assertEqual(new_base, final["head_sha"])
+            self.assertIsNone(final["pull_request"])
+            self.assertEqual(old_head, final["iteration_base_sha"])
+            self.assertEqual(new_base, subprocess.run(["git", "rev-parse", "HEAD"], cwd=worktree, check=True, capture_output=True, text=True).stdout.strip())
+            self.assertIn("-fix-2", final["branch"])
+
     def test_complete_run_persists_sha_pr_models_and_durations(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

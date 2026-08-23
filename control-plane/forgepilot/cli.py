@@ -8,6 +8,7 @@ import sys
 
 from .config import CURSOR_EFFORT_REFUSED, load_settings
 from .durable import (
+    continue_after_external_merge,
     declared_risk,
     recover_executor_result,
     recover_iteration_result,
@@ -160,6 +161,14 @@ def parser() -> argparse.ArgumentParser:
     recover_iteration.add_argument("run_id")
     recover_iteration.add_argument("--repo", type=_path, default=Path.cwd())
     recover_iteration.add_argument("--result", type=_path, required=True)
+
+    continue_merged = commands.add_parser(
+        "continue-after-merge",
+        help="poursuivre une correction après fusion externe du SHA relu",
+    )
+    continue_merged.add_argument("run_id")
+    continue_merged.add_argument("--repo", type=_path, default=Path.cwd())
+    continue_merged.add_argument("--base", required=True)
 
     verdict = commands.add_parser(
         "verdict",
@@ -423,6 +432,11 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "recover-iteration":
             state = recover_iteration_result(args.repo, args.run_id, args.result)
+            print(json.dumps(state, indent=2, ensure_ascii=False))
+            return 0
+
+        if args.command == "continue-after-merge":
+            state = continue_after_external_merge(args.repo, args.run_id, args.base)
             print(json.dumps(state, indent=2, ensure_ascii=False))
             return 0
 

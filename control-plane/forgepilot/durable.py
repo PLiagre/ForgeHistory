@@ -384,6 +384,59 @@ def recover_iteration_result(
     )
 
 
+def continue_after_external_merge(
+    repo: Path,
+    run_id: str,
+    new_base: str,
+) -> dict[str, object]:
+    """Repart du master fusionné tout en conservant le feedback du SHA fautif."""
+
+    state_path = run_state_path(repo, run_id)
+    state = load_state(state_path)
+    if state.get("step") != "NEEDS_FIX":
+        raise PilotError("Reprise post-fusion refusée : le run n'attend pas une correction.")
+    feedback = _artifact_path(state_path, state, "feedback")
+    if feedback is None or not feedback.is_file():
+        raise PilotError("Reprise post-fusion refusée : feedback structuré absent.")
+    old_head = state.get("head_sha")
+    if not isinstance(old_head, str) or not old_head:
+        raise PilotError("Reprise post-fusion refusée : SHA relu absent.")
+    merged_sha = git(repo, "rev-parse", new_base)
+    try:
+        git(repo, "merge-base", "--is-ancestor", old_head, merged_sha)
+    except PilotError as exc:
+        raise PilotError(
+            "Reprise post-fusion refusée : le SHA relu n'appartient pas à la nouvelle base."
+        ) from exc
+    worktree = _state_worktree(repo, state)
+    if working_tree_paths(worktree):
+        raise PilotError("Reprise post-fusion refusée : worktree de correction non propre.")
+    iteration = state.get("iteration")
+    count = int(iteration.get("count", 0)) + 1 if isinstance(iteration, dict) else 1
+    branch = f"agent/{state['task_name']}-fix-{count}"
+    if git(repo, "branch", "--list", branch):
+        raise PilotError(f"Reprise post-fusion refusée : branche {branch!r} déjà présente.")
+    git(worktree, "checkout", "-b", branch, merged_sha)
+    changed = transition(
+        state_path,
+        state,
+        "ITERATING",
+        role="executor",
+        updates={
+            "branch": branch,
+            "head_sha": merged_sha,
+            "candidate": None,
+            "pull_request": None,
+            "proofs": [],
+            "iteration_active": True,
+            "iteration_base_sha": old_head,
+            "resume_from": None,
+            "external_merge_base_sha": merged_sha,
+        },
+    )
+    return changed
+
+
 def _query_existing_pr(worktree: Path) -> str | None:
     branch = git(worktree, "branch", "--show-current")
     try:
