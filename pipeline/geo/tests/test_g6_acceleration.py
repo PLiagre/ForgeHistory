@@ -88,20 +88,22 @@ def _tile_path(cache_dir: Path, tile_name: str) -> Path:
     return cache_dir / Path(tile_name).stem / tile_name
 
 
-def _write_raster(path: Path, west: float, values: np.ndarray) -> None:
+def _write_raster(
+    path: Path, west: float, values: np.ndarray, *, nodata: float | None = -9999.0
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with rasterio.open(
-        path,
-        "w",
-        driver="GTiff",
-        width=4,
-        height=4,
-        count=1,
-        dtype="float32",
-        crs="EPSG:4326",
-        transform=from_origin(west, 43.0, 0.25, 0.25),
-        nodata=-9999.0,
-    ) as dataset:
+    profile = {
+        "driver": "GTiff",
+        "width": 4,
+        "height": 4,
+        "count": 1,
+        "dtype": "float32",
+        "crs": "EPSG:4326",
+        "transform": from_origin(west, 43.0, 0.25, 0.25),
+    }
+    if nodata is not None:
+        profile["nodata"] = nodata
+    with rasterio.open(path, "w", **profile) as dataset:
         dataset.write(values.astype("float32"), 1)
 
 
@@ -298,6 +300,43 @@ def test_sentinelle_reliefs_cote_plaine_degre_nodata_zero(
     assert replay.counters.public_ints() == cold_counters
     replay.close()
     replay_table.close()
+
+
+def test_deux_passes_meme_sampler_ne_doublent_pas_tuiles_sans_nodata(
+    tmp_path: Path, relief, batch_io
+) -> None:
+    """Q10 : la preuve réutilise le même sampler ; les extras ne doivent pas s'ajouter au préchargement."""
+    name = "Copernicus_DSM_COG_30_N42_00_E000_00_DEM.tif"
+    cache_dir = tmp_path / "cache"
+    lock_path = tmp_path / "sources.lock"
+    values = np.full((4, 4), 100.0, dtype="float32")
+    _write_raster(_tile_path(cache_dir, name), 0.0, values, nodata=None)
+    _write_lock(lock_path, {name: _tile_path(cache_dir, name).read_bytes()})
+
+    table = batch_io.MeasurementTable(
+        cache_dir, "d" * 64, {"sentinelle": "q10-meme-sampler"}
+    )
+    dem = relief.DemSampler(
+        cache_dir, lock_path=lock_path, measurement_table=table
+    )
+    points = [(0.125, 42.875), (0.375, 42.875)]
+    first_values = dem.read_many(points, measurement_id="sentinel:q10")
+    first = dem.counters.public_ints()
+    assert first["tuiles_sans_valeur_nodata_declaree"] == 1
+    table.save()
+    dem.close()
+    assert dem._nodata_by_tile
+
+    dem.reset_derivation_state()
+    assert dem.counters.tuiles_sans_valeur_nodata_declaree == 0
+    assert dem._nodata_by_tile == {}
+    second_values = dem.read_many(points, measurement_id="sentinel:q10")
+    second = dem.counters.public_ints()
+    assert second_values == first_values
+    assert second == first
+    assert second["tuiles_sans_valeur_nodata_declaree"] == 1
+    dem.close()
+    table.close()
 
 
 def test_compteurs_domaine_zero_nodata_et_bornes(relief) -> None:

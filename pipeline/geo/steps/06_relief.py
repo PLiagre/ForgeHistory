@@ -412,6 +412,17 @@ class DemSampler:
                 pass
         self._datasets.clear()
 
+    def reset_derivation_state(self) -> None:
+        """Remet les compteurs à zéro pour une nouvelle dérivation.
+
+        ``_nodata_by_tile`` est aussi vidé : le garder ferait recompter
+        ``tuiles_sans_valeur_nodata_declaree`` (précharge + extras de la
+        table de mesures) et casserait Q10 sur ``stats_g6.json``.
+        """
+        self.counters = DemCounters()
+        self._nodata_by_tile.clear()
+        self.reset_sampling_metrics()
+
     def _dataset(self, tile_name: str):
         if tile_name in self._datasets:
             self._datasets.move_to_end(tile_name)
@@ -1330,12 +1341,7 @@ def load_context(*, verify_dem: bool = True, download_dem: bool = False) -> dict
 def derive_relief(context: dict) -> dict:
     projector: Projector = context["projector"]
     dem: DemSampler = context["dem"]
-    dem.counters = DemCounters()
-    if dem._nodata_by_tile:
-        dem.counters.tuiles_sans_valeur_nodata_declaree = sum(
-            1 for v in dem._nodata_by_tile.values() if v is None
-        )
-        dem.counters.tiles_missing_nodata_checked = set(dem._nodata_by_tile.keys())
+    dem.reset_derivation_state()
     excluded_total = 0
     cell_relief: List[dict] = []
 
