@@ -1,10 +1,20 @@
 # architecture/ — la boucle d'audit multi-agents
 
+> **Hermes n'ouvre pas ce dossier au boot.** Inbox, archive et decisions
+> sont une mémoire d'audit, pas la file de pilotage. Les ouvrir seulement
+> sur demande explicite du propriétaire, ou à la clôture d'un jalon
+> (`hermes/milestones/`). Voir `hermes/skills/forgehistory-suivi/SKILL.md`.
+
 > **État depuis ADR-0016 (2026-08-20).** Hermes pilote le projet. Cursor
 > est l’exécutant des lots (ForgePilot, worktree `agent/*`), pas seulement
 > un auditeur. Cette boucle d’audit reste **additive** : elle se déclenche
 > aux jalons (`hermes/milestones/`) ou sur `workflow_dispatch`. Le pipeline
 > GitHub full-auto est en `mode: manual`. Le produit vivant est `sim/`.
+
+> **Inbox.** `inbox/` reste append-only (un fichier n'est ni édité ni
+> supprimé). Un item déjà décidé, converti, ou plus vieux que le pilote
+> clos **reste ici** ; il n'est plus une lecture de démarrage. L'archive
+> gèle les boucles closes ; elle ne se parcourt pas non plus au boot.
 
 Ce dossier héberge la **boucle d'audit indépendant** de Forge : Cursor Cloud
 audite un commit, Claude challenge l'audit, le propriétaire tranche, et un

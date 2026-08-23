@@ -66,15 +66,16 @@ ne fusionne jamais son propre travail. Le produit vivant est `sim/`
 - **control-plane/** — ForgePilot : Claude Code en lecture, Cursor dans un
   worktree `agent/*`. État local `.forgepilot/` hors git.
 - **sim/** — **produit vivant** : moteur Python, sans Unity. Lancer
-  `python -m sim`. Couche 1 livrée (briefs 011–018) ; couches suivantes ici.
-- **pipeline/geo/** — carte : littoral, cellules G3, mer G4, fleuves G5.
-  Suite : relief, climat, ressources.
+  `python -m sim`. Couche 1 commencée (011–018, snapshot `v0a-1`).
+- **pipeline/geo/** — G3, G4, G5, C1, G6 livré non consommé par `sim/`.
+  Suite : ressources (026), climat observé.
+- **viewer/** — regard mince sur un snapshot. Pas une seconde simulation.
 - **harness/** — file de briefs, gate `verdict_audit.py`, backends
   Générateur, démo faux brief.
 - **unity/** — client visuel **en veille** (ADR-0016). Référence gelée,
   pas une seconde simulation.
-- **architecture/** — boucle d'audit (jalons), additive. Full-auto GitHub
-  en `mode: manual`.
+- **architecture/** — boucle d'audit historique (jalons). Ne pas ouvrir
+  au boot Hermes. Full-auto GitHub en `mode: manual`.
 - **docs/adr/** — one structural decision = one ADR, dated.
 - **docs/rules/** — modular, auto-referenced rules (never paraphrased
   elsewhere).
@@ -130,9 +131,10 @@ See [HANDOFF.md](HANDOFF.md) — rewritten at the end of every session.
 | `harness/queue/briefs/**` | `.claude/skills/forge-harness/SKILL.md` |
 | any `docs/adr/NNNN-*.md` | conventions in `docs/adr/template.md` |
 | `sim/**` | `sim/README.md` — produit vivant, sans Unity |
+| `viewer/**` | `viewer/README.md` — regard mince |
 | `pipeline/geo/**` | `pipeline/geo/README.md` |
 | `unity/**` | en veille, ADR-0016 |
 | `harness/backends/**` | `harness/backends/README.md` (pluggable-Générateur contract) |
-| `architecture/**` | `architecture/README.md` (boucle d'audit, jalons) + ADR-0005 |
+| `architecture/**` | sur demande explicite seulement — `architecture/README.md` |
 | `harness/pipeline/**` | `docs/rules/full-auto-pipeline.md` + ADR-0006 (archive, `mode: manual`) |
 | `ROADMAP.md`, `hermes/**` | `hermes/README.md` + ADR-0016 |

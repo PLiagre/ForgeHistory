@@ -3,55 +3,33 @@
 > **Borné à trois sessions** par ADR-0014 amendement 001. Les sessions plus
 > anciennes sont dans git ; le récit du projet va dans `hermes/reports/`.
 
-## Session la plus récente — 2026-08-20 : forgepilot enchaine
+## Session la plus récente — 2026-08-23 : #126 fusionné, base saine
 
-**Contexte** : le propriétaire veut lancer Hermes et qu'un lot parte tout
-seul une fois le brief écrit. Pas de fusion automatique.
-
-### Ce qui a été fait
-
-`forgepilot enchaine <brief.md>` : aperçu sans `--run`, puis plan →
-execute → draft PR → review. Refuse une proposition Hermes. Jamais de
-fusion. Skill Hermes et README alignés. ADR-0013 amendement 002.
-
-### Prochain pas
-
-Sur le VPS : `forge-start` puis `hermes chat -s forgehistory-suivi`.
-Quand un brief existe, Hermes lance `enchaine` (aperçu, puis `--run`).
-G6 reste une proposition : il faut encore une session Claude pour le
-brief.
-
----
-
-## Session précédente — 2026-08-20 : sim/ sans Unity, Hermes pilote
-
-**Contexte** : décision propriétaire. Unity visuel en veille. La simulation
-doit tourner sans Unity. Hermes ne doit plus être un teneur de roadmap :
-il propose, y compris des crons quotidiens.
+**Contexte** : #126 est dans `origin/master` (`7901ce8`). Les docs de
+pilotage étaient périmés et trop nombreux. Lot documentaire seulement.
 
 ### Ce qui a été fait
 
-1. Demande `hermes/requests/DEMANDE-20260820-simulation-sans-unity-hermes-pilote.md`.
-2. **ADR-0016 accepté** : `sim/` est le produit vivant ; Unity en veille ;
-   Hermes pilote et propose.
-3. **ADR-0015 accepté** (amendement : crons quotidiens maintenant, aucun
-   cron ne fusionne).
-4. Contrat Hermes élargi : `hermes/README.md`, skill `forgehistory-suivi`,
-   `hermes/propositions/`, `hermes/crons/quotidien.sh`.
-5. Entrée réelle : `python -m sim` (`sim/__main__.py`).
-6. Docs alignés : `ROADMAP.md`, `CLAUDE.md`, `AGENTS.md`, `sim/README.md`,
-   `unity/README.md`, `architecture/README.md`.
+1. Vérité produit : G6 livré non consommé, V0 première tranche, viewer
+   mince, Unity en veille.
+2. Dashboard sans file d'audits morts. Demandes et proposition G6 fermées.
+3. Skill Hermes : boot court. `architecture/` et briefs 001–025 hors boot.
 
 ### Prochain pas
 
-Hermes installe le cron quotidien sur le VPS et propose la prochaine
-couche de `sim/` (G6 relief côté geo, ou économie au-delà de la nourriture
-côté moteur). Tout lot Unity se refuse.
+Un seul : exécuter le brief 026 (gisements). G6 consommable attend le
+cache Copernicus. Rien n'attend côté propositions.
 
 ---
 
-## Session encore avant — 2026-08-19 : skill à jour, verdicts 022/023, ADR-0015 proposé
+## Session précédente — 2026-08-20 : forgepilot enchaine
 
-Skill `forgehistory-suivi` alignée sur l’état réel (verdicts 022/023
-ACCEPT, ADR-0014 accepté, VPS déjà là). ADR-0015 alors `proposed`.
-Demandes bootstrap VPS.
+`forgepilot enchaine <brief.md>` : aperçu, puis plan → execute → draft PR
+→ review. Refuse une proposition Hermes. Jamais de fusion.
+
+---
+
+## Session encore avant — 2026-08-20 : sim/ sans Unity, Hermes pilote
+
+ADR-0016 : `sim/` est le produit vivant. Unity en veille. Hermes propose
+et cadance. Entrée : `python -m sim`.
