@@ -537,8 +537,11 @@ def execute_invocation(
             raise PilotError(f"Cursor a rendu une erreur : {payload.get('result', 'aucun détail')}")
         cursor_result = payload.get("result")
         if isinstance(cursor_result, str):
+            candidate = cursor_result.strip()
+            if candidate.startswith("```json\n") and candidate.endswith("\n```"):
+                candidate = candidate[len("```json\n") : -len("\n```")].strip()
             try:
-                payload = json.loads(cursor_result)
+                payload = json.loads(candidate)
             except json.JSONDecodeError as exc:
                 raise PilotError("Cursor a réussi sans rendre le JSON métier attendu.") from exc
         else:

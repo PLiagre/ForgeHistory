@@ -402,6 +402,24 @@ class StreamTests(unittest.TestCase):
             )
             self.assertEqual(expected, result)
 
+    def test_stream_unwraps_single_fenced_cursor_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            expected = valid_plan()
+            fenced = "```json\n" + json.dumps(expected) + "\n```"
+            code = (
+                "import json; "
+                f"text={fenced!r}; "
+                "print(json.dumps({'type':'result','subtype':'success','is_error':False,"
+                "'result':text,'session_id':'session-fenced'}), flush=True)"
+            )
+            invocation = Invocation(
+                "planner", (sys.executable, "-c", code), tmp, {}, backend="cursor"
+            )
+            result = execute_invocation(
+                invocation, load_settings(), timeout_seconds=10, stream=True
+            )
+            self.assertEqual(expected, result)
+
 
 class ScopeAndReviewTests(unittest.TestCase, GitRepoMixin):
     def test_scope_rejects_one_unexpected_path(self):
