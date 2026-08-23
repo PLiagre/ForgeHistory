@@ -44,6 +44,21 @@ Aucune suppression de brief, verdict, preuve, artefact geo, test ou ADR.
 - Supprimé du working set de boot : inbox d'audits, briefs 001–025,
   demandes closes, historique de sessions au-delà de trois.
 
+## Compteurs reconstruits
+
+| compteur | valeur |
+|---|---|
+| `fichiers_lus_au_boot_hermes` | 4 (`hermes/DASHBOARD.md`, `hermes/propositions/`, `ROADMAP.md`, `HANDOFF.md`) |
+| `demandes_hermes_open` | 0 |
+| `propositions_open` | 0 |
+| `handoff_sessions` | 3 |
+| `roadmap_mentions_pr_perimees` | 0 |
+| `dashboard_audits_actionnables` | 0 |
+
+Suites : `harness/tests` 407 passed / 16 skipped (Unity Linux) ;
+`control-plane/tests` 81 OK ; `git diff --check` propre ;
+`.venv/bin/python -m sim --ticks 0 --json` : 596 cellules, `sans_unity`.
+
 ## Prochain pas produit (un seul)
 
 Exécuter le brief 026 — gisements 1400.
