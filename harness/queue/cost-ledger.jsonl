@@ -54,3 +54,4 @@
 {"timestamp": "2026-08-23T08:27:20.034779", "backend": "cursor", "brief": "harness/queue/briefs/027-sim-snapshot-cellulaire-v0a", "event": "generator-run"}
 {"timestamp": "2026-08-23T08:27:20.144024", "backend": "cursor", "brief": "harness/queue/briefs/028-visualiseur-web-mince-v0b", "event": "generator-run"}
 {"timestamp": "2026-08-23T08:27:20.251248", "backend": "cursor", "brief": "harness/queue/briefs/029-workflow-acceleration", "event": "generator-run"}
+{"timestamp": "2026-08-23T14:55:25.278251", "backend": "cursor", "brief": "harness/queue/briefs/026-geo-gisements-1400-r1", "event": "generator-run"}

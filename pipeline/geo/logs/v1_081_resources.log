@@ -1,0 +1,14 @@
+R1 proof v1_081 | elapsed_s=2.71
+determinism_match=True pairs=5
+cells_on!=off=True
+all_green=True all_red=True exit=0
+pipeline r1 | projection=EPSG:3035 | apply_declarations=True | gisements_rattaches=27 | cellules_dotees=25 | par_nature={'sel': 6, 'fer': 5, 'cuivre': 1, 'argent': 6, 'etain': 2, 'plomb': 2, 'charbon': 2, 'mercure': 1, 'alun': 1, 'or': 1}
+pipeline r1 | projection=EPSG:3035 | apply_declarations=False | gisements_rattaches=0 | cellules_dotees=0 | par_nature={'sel': 0, 'fer': 0, 'cuivre': 0, 'argent': 0, 'etain': 0, 'plomb': 0, 'charbon': 0, 'mercure': 0, 'alun': 0, 'or': 0}
+  Q10: green=True red=True | match_on=5_files
+  R1-A: green=True red=True | ok
+  R1-B: green=True red=True | ok
+  R1-C: green=True red=True | declares=27 somme=27 hors_f=0 hors_t=0
+  R1-D: green=True red=True | ok
+  R1-E: green=True red=True | ok
+  R1-F: green=True red=True | ok
+  R1-G: green=True red=True | ok

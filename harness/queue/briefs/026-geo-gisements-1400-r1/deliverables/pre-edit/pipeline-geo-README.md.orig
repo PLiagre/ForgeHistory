@@ -546,48 +546,6 @@ l'insolation et un cœur continental (rouge foncé) nettement séparé des côte
 Le jalon E1 reste ouvert : après ce lot, la ligne « climat » exige encore une
 source climatique choisie par le propriétaire.
 
-## Livré (brief 026) — R1 gisements extractifs déclarés de 1400
-
-Ce lot livre les **gisements extractifs déclarés** — présence, nature de ressource
-et classe qualitative de richesse (`mineure`, `notable`, `majeure`) — et rien d'autre.
-
-**Ce lot ne livre pas** : quantité, réserve, tonnage, rendement, intensité, ressource
-agricole ou forestière (climat et sol non disponibles), climat proprement dit (C1 ne
-livre que les déterminants physiques), villes (G7), possession (G8), LOD (G9), textures
-d'identifiants (G10), apparence (A12), G5-bis/G5-ter, QA de chaîne complète (G11/G12).
-Le relief (G6) n'est pas décrit ici.
-
-La classe de richesse est un **nom** pris dans un vocabulaire fermé de trois valeurs,
-jamais un nombre ni un barème — ni en donnée, ni sur la capture (forme de marqueur ou
-libellé, jamais taille ni intensité).
-
-### Commandes
-
-Depuis `pipeline/geo/` :
-
-```bash
-../../.venv/bin/python tests/run_proof_r1.py
-../../.venv/bin/python pipeline.py --source resources_1400
-../../.venv/bin/python pipeline.py --source resources_1400 --no-corrections
-```
-
-La passe `--no-corrections` écrit dans un répertoire temporaire et **ne publie pas**
-dans `artifacts/`.
-
-### Artefacts et preuves
-
-- `data/resources_1400.json` — déclarations (amorce provisoire, remplaçable sans code)
-- `artifacts/resources_1400_r1.json`, `cells_resources_r1.json`, `stats_r1.json`,
-  `MANIFEST_r1.json`
-- `registry/resource_registry.json`
-- `logs/v1_081_qa.json` (8 contrôles : Q10 + R1-A..G), journaux et sorties on/off
-- `capture/v1_081_resources_window.png`
-- `steps/r1_resources_1400.py`, `qa/checks_r1.py`, `tests/run_proof_r1.py`,
-  `tests/test_qa_red_r1.py`
-
-`constants.py` a reçu un bloc R1 en fin de fichier ; `pipeline.py` expose
-`--source resources_1400`. `qa/checks.py` n'a pas été modifié.
-
 ADR-0003 (`docs/adr/0003-single-spatial-primary-key.md`) unblocked writing
 here; brief 002 landed the shared infra + G2 littoral-1400 cluster; brief
 007 lot 007a lands the G3 cell-mesh code and its evidence (proof currently
