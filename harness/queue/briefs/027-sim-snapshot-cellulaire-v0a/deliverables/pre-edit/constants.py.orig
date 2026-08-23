@@ -348,11 +348,3 @@ N_BOUND_MORT = math.ceil(1.0 / MAX_DEATH_RATE_PER_TICK)
 CALENDAR_DAYS_PER_YEAR = 365
 DEFAULT_CLI_TICKS = CALENDAR_DAYS_PER_YEAR * TICK_DURATION_DAYS
 DEFAULT_CLI_SEED = 0
-
-# --- Snapshot cellulaire V0-A (brief 027) ---
-# Première photographie cellulaire du jalon V0-A ; le suffixe -1 permet une
-# révision du contrat sans réutiliser le même nom.
-SNAPSHOT_SCHEMA_VERSION = "v0a-1"
-# Même pas que pipeline/geo/io_util.py : plus fin serait du bruit, plus gros
-# écraserait des centroïdes voisins.
-SNAPSHOT_FLOAT_DECIMALS = 6

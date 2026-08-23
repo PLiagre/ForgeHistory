@@ -6,12 +6,7 @@ Il tourne **sans Unity** :
 ```
 .venv/bin/python -m sim
 .venv/bin/python -m sim --ticks 0 --json
-.venv/bin/python -m sim --ticks 0 --seed 0 --snapshot-json /tmp/world.json
 ```
-
-`--snapshot-json` écrit une photographie cellulaire déterministe (schéma
-`v0a-1`) : géométrie G3, état simulé, province dérivée, déterminants C1.
-Ce n'est pas une seconde simulation. Le relief G6 n'y est pas consommé.
 
 Ce répertoire était un stub vide jusqu'au brief 011
 (`harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md`), qui constitue
@@ -39,7 +34,6 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 | `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
 | `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
 | `sim/__main__.py` | `python -m sim` — lance le monde, sans Unity |
-| `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`) |
 | `sim/SEEDING.md` | Documentation de l'amorçage paramétrique |
 
 ---
