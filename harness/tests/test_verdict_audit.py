@@ -424,3 +424,104 @@ def test_gate_and_hook_share_one_matcher():
         assert "bare_python" in src, f"{name} no longer uses the shared matcher"
         assert r"re.compile(r'(?<![\w./])python" not in src, \
             f"{name} grew its own bare-python regex again"
+
+
+# --- must_differ_from_git ------------------------------------------------
+# A brief used to prove "this shared file was appended to, not rewritten" by
+# committing a `.orig` copy of it next to the manifest. Twenty-four such
+# copies, 7 209 lines, all duplicating content git already stored. The pair
+# below references the pre-state through git instead. Same guarantee, no
+# duplicate — and rule 4 applies: red first.
+
+
+def _repo_with_pre_state(bd: Path, before: str, after: str) -> None:
+    """Commit `before` as the file's pre-state, then write `after` over it."""
+    _init_repo(bd)
+    (bd / "deliverables" / "shared.py").write_text(before, encoding="utf-8")
+    _git(bd, "add", "-A")
+    _git(bd, "commit", "-qm", "pre-state")
+    (bd / "deliverables" / "shared.py").write_text(after, encoding="utf-8")
+    _git(bd, "add", "-A")
+    _git(bd, "commit", "-qm", "post-state")
+
+
+def test_git_ref_identical_to_published_file_is_rejected(tmp_path):
+    """RED: the file was declared as changed and git says it never changed."""
+    bd = build_honest_brief(tmp_path)
+    _repo_with_pre_state(bd, "SAME = 1\n", "SAME = 1\n")
+    manifest = load_manifest(bd)
+    manifest["files"].append({
+        "path": "deliverables/shared.py",
+        "must_differ_from_git": "HEAD~1:deliverables/shared.py",
+    })
+    save_manifest(bd, manifest)
+    result = run_audit(bd)
+    assert "[FAIL] captures_differ_when_should" in result.stdout, result.stdout
+    assert "shared.py" in result.stdout
+    assert result.returncode == 1
+
+
+def test_git_ref_differing_from_published_file_passes(tmp_path):
+    """GREEN, and only once the red above is proven."""
+    bd = build_honest_brief(tmp_path)
+    _repo_with_pre_state(bd, "BEFORE = 1\n", "BEFORE = 1\nAFTER = 2\n")
+    manifest = load_manifest(bd)
+    manifest["files"].append({
+        "path": "deliverables/shared.py",
+        "must_differ_from_git": "HEAD~1:deliverables/shared.py",
+    })
+    save_manifest(bd, manifest)
+    result = run_audit(bd)
+    assert "[PASS] captures_differ_when_should" in result.stdout, result.stdout
+    assert result.returncode == 0
+
+
+def test_unresolvable_git_ref_is_rejected_not_skipped(tmp_path):
+    """A reference nobody can read checked nothing. Silence here would be the
+    same defect as the gitignored-proof one: a claim that looks verified."""
+    bd = build_honest_brief(tmp_path)
+    _repo_with_pre_state(bd, "BEFORE = 1\n", "BEFORE = 1\nAFTER = 2\n")
+    manifest = load_manifest(bd)
+    manifest["files"].append({
+        "path": "deliverables/shared.py",
+        "must_differ_from_git": "no-such-rev:deliverables/shared.py",
+    })
+    save_manifest(bd, manifest)
+    result = run_audit(bd)
+    assert "[FAIL] captures_differ_when_should" in result.stdout, result.stdout
+    assert "unresolvable" in result.stdout
+    assert result.returncode == 1
+
+
+def test_git_ref_outside_a_repo_is_rejected_not_passed(tmp_path):
+    """Same reasoning, the other way a reference becomes unreadable."""
+    bd = build_honest_brief(tmp_path)  # no git init
+    (bd / "deliverables" / "shared.py").write_text("AFTER = 2\n", encoding="utf-8")
+    manifest = load_manifest(bd)
+    manifest["files"].append({
+        "path": "deliverables/shared.py",
+        "must_differ_from_git": "HEAD~1:deliverables/shared.py",
+    })
+    save_manifest(bd, manifest)
+    result = run_audit(bd)
+    assert "[FAIL] captures_differ_when_should" in result.stdout, result.stdout
+    assert result.returncode == 1
+
+
+def test_pair_the_gate_cannot_find_is_not_a_silent_pass(tmp_path):
+    """RED: the defect brief 026 shipped. Its manifest declared three
+    `must_differ_from` pairs by repo-root path; the gate resolves paths from
+    the brief dir, found neither side, and reported PASS -- "all declared
+    pairs differ" -- while comparing nothing. Rule 7: presence is not
+    function. A pair that was not compared must say so."""
+    bd = build_honest_brief(tmp_path)
+    manifest = load_manifest(bd)
+    manifest["files"].append({
+        "path": "deliverables/absent.txt",
+        "must_differ_from": "deliverables/also-absent.txt",
+    })
+    save_manifest(bd, manifest)
+    result = run_audit(bd)
+    assert "[FAIL] captures_differ_when_should" in result.stdout, result.stdout
+    assert "not compared" in result.stdout
+    assert result.returncode == 1

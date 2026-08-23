@@ -200,17 +200,72 @@ def check_mtime_after_brief(bd: Path, m: dict) -> CheckResult:
                         f"predate brief.md: {stale}" if stale else "all deliverables postdate the brief")
 
 
+def _git_blob(bd: Path, ref: str) -> tuple[bytes | None, str]:
+    """Read one blob out of git history: ref is git's own `<rev>:<path>`.
+
+    Returns (bytes, "") on success, or (None, reason) — never a silent empty
+    blob, which would hash to something and compare "different" by accident.
+    """
+    try:
+        proc = subprocess.run(["git", "show", ref], cwd=bd, capture_output=True)
+    except OSError as exc:
+        return None, f"git unavailable ({exc})"
+    if proc.returncode != 0:
+        return None, proc.stderr.decode("utf-8", "replace").strip()[:160] or "git show failed"
+    return proc.stdout, ""
+
+
 def check_captures_differ(bd: Path, m: dict) -> CheckResult:
+    """Two artifacts a brief says must differ, actually differ.
+
+    Two forms of reference, same guarantee:
+
+    - `must_differ_from`: a second path inside the brief dir. The pre-state
+      has to be committed as its own copy for this to work.
+    - `must_differ_from_git`: git's own `<rev>:<path>` (e.g.
+      `origin/master:pipeline/geo/constants.py`). Git already stores every
+      pre-edit state; committing a `.orig` duplicate of a tracked file next
+      to it buys nothing the repository did not already hold. Prefer this
+      form for any file git tracks.
+
+    An unresolvable git reference FAILS rather than being skipped. The brief
+    made a claim; if the reference cannot be read, nothing checked it, and a
+    PASS would assert that something did.
+    """
     bad = []
     for f in m.get("files", []):
+        p1 = bd / f["path"]
+
         other = f.get("must_differ_from")
-        if not other:
-            continue
-        p1, p2 = bd / f["path"], bd / other
-        if p1.exists() and p2.exists() and sha256_of(p1) == sha256_of(p2):
-            bad.append(f'{f["path"]} == {other}')
+        if other:
+            p2 = bd / other
+            missing = [str(q) for q, exists in ((f["path"], p1.exists()), (other, p2.exists()))
+                       if not exists]
+            if missing:
+                # Was: `if p1.exists() and p2.exists() and ...` -- a pair whose
+                # files the gate cannot find resolved to a silent PASS, and the
+                # evidence line still read "all declared pairs differ". Brief
+                # 026 shipped three such pairs (its manifest declares paths from
+                # the repo root, the gate resolves them from the brief dir): the
+                # three committed `.orig` copies proved nothing at all.
+                bad.append(f'{f["path"]} vs {other}: not compared, missing {missing}')
+            elif sha256_of(p1) == sha256_of(p2):
+                bad.append(f'{f["path"]} == {other}')
+
+        ref = f.get("must_differ_from_git")
+        if ref:
+            if not p1.exists():
+                bad.append(f'{f["path"]} vs {ref}: not compared, published file missing')
+                continue
+            blob, reason = _git_blob(bd, ref)
+            if blob is None:
+                bad.append(f'{f["path"]} vs {ref}: unresolvable ({reason})')
+            elif hashlib.sha256(blob).hexdigest() == sha256_of(p1):
+                bad.append(f'{f["path"]} == {ref}')
+
     return CheckResult("captures_differ_when_should", not bad,
-                        f"identical when they should differ: {bad}" if bad else "all declared pairs differ")
+                        f"pairs not established as differing: {bad}" if bad
+                        else "all declared pairs compared, and they differ")
 
 
 def check_waivers(m: dict) -> CheckResult:
