@@ -99,6 +99,22 @@ RULES = (
         ),
         "geo-c1",
     ),
+    RouteRule(
+        "r1",
+        (
+            "pipeline/geo/steps/r1_*.py",
+            "pipeline/geo/qa/*r1*.py",
+            "pipeline/geo/tests/*r1*.py",
+            "pipeline/geo/artifacts/*r1*.json",
+            "pipeline/geo/registry/resource_registry.json",
+            "pipeline/geo/capture/v1_081*",
+            "pipeline/geo/logs/v1_081*",
+            "pipeline/geo/data/resources_1400.json",
+            "pipeline/geo/constants.py",
+            "pipeline/geo/pipeline.py",
+        ),
+        "geo-r1",
+    ),
     RouteRule("geo-doc", ("pipeline/geo/*.md",), "governance"),
     RouteRule(
         "workflows",
@@ -286,6 +302,14 @@ def _commands_for_target(target: str, profile: str) -> list[dict[str, object]]:
                 "c1-proof",
                 [python, "pipeline/geo/tests/run_proof_c1.py"],
                 proof="preuve déterministe climat C1",
+            )
+        ]
+    if target == "geo-r1":
+        return [
+            _command(
+                "r1-proof",
+                [python, "pipeline/geo/tests/run_proof_r1.py"],
+                proof="preuve déterministe des gisements R1",
             )
         ]
     if target == "geo-g6":
