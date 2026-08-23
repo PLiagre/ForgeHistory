@@ -438,6 +438,29 @@ class StreamTests(unittest.TestCase):
             )
             self.assertEqual(expected, result)
 
+    def test_stream_unwraps_cursor_json_before_terminal_redacted_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            expected = {
+                "summary": "done",
+                "files_modified": [],
+                "checks": [{"check": "proof", "status": "PASS"}],
+                "blockages": [],
+            }
+            text = json.dumps(expected) + "\n\n[REDACTED]"
+            code = (
+                "import json; "
+                f"text={text!r}; "
+                "print(json.dumps({'type':'result','subtype':'success','is_error':False,"
+                "'result':text,'session_id':'session-redacted'}), flush=True)"
+            )
+            invocation = Invocation(
+                "executor", (sys.executable, "-c", code), tmp, {}, backend="cursor"
+            )
+            result = execute_invocation(
+                invocation, load_settings(), timeout_seconds=10, stream=True
+            )
+            self.assertEqual(expected | {"session_id": "session-redacted"}, result)
+
 
 class ScopeAndReviewTests(unittest.TestCase, GitRepoMixin):
     def test_scope_rejects_one_unexpected_path(self):

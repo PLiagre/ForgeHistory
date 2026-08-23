@@ -538,6 +538,8 @@ def execute_invocation(
         cursor_result = payload.get("result")
         if isinstance(cursor_result, str):
             candidate = cursor_result.strip()
+            if candidate.endswith("\n\n[REDACTED]"):
+                candidate = candidate[: -len("\n\n[REDACTED]")].rstrip()
             fence = "```json\n"
             if candidate.endswith("\n```") and candidate.count(fence) == 1:
                 fence_index = candidate.index(fence)
