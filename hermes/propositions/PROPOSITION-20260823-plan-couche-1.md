@@ -3,9 +3,16 @@ author: forge-planificateur
 kind: proposition
 created_at: 2026-08-23T10:00:00Z
 concerns: couche 1, jalon E1
-status: OPEN
+status: CLOSED
 ---
-# Plan de relance de la couche 1 — gisements d'abord, blocages déclarés
+# Plan de relance de la couche 1 — gisements d'abord, blocages actualisés
+
+> **Mise à jour Hermes, 2026-08-23.** La partie D2 est désormais caduque : le
+> cache Copernicus complet est présent sur le VPS (`1110/1110`) et la preuve
+> Europe G6 a été rejouée avec succès après #130, deux passes identiques. Le
+> relief reste toutefois `not_consumed` par `sim/` et aucun lot de consommation
+> G6 ne doit partir avant 026. Le prochain pas unique est reflété dans
+> `ROADMAP.md` ; cette proposition est donc fermée, sans devenir un brief.
 
 Cette proposition vient d'une session Planificateur (Fable) du 2026-08-23.
 Elle n'est **pas** un brief : elle ne porte aucune condition de succès
@@ -31,7 +38,7 @@ G5, G6, C1 présents ; R1 absent ; cache DEM absent
 |---|---|---|---|---|
 | carte (cellules, adjacence) | `cells_g3.json`, `adjacency_g3.json` — consommés par `sim/world.py` | **oui** (le commerce parcourt les arêtes G3) | aucun | rien — clos |
 | carte (mer, fleuves) | `sea_zones_g4.json`, `rivers_g5.json`, `adjacency_g5.json` — livrés | non (le commerce ignore le type des arêtes) | l'échange ne distingue pas terre, mer, fleuve | plus tard — après R1, et après décision sur ce que le tick lit (question D3) |
-| terrain (relief, barrière, col) | `cells_relief_g6.json` — livré, snapshot `not_consumed` | non | 473 cellules à zéros non mesurés ; preuve Europe impossible sans cache Copernicus (DEM_CACHE absent, mesuré) | **BLOCAGE** — question D2 |
+| terrain (relief, barrière, col) | `cells_relief_g6.json` — livré, snapshot `not_consumed` | non | relief calculé et preuve Europe verte sur le VPS ; `sim/` ne le lit pas encore | après 026 seulement — D2 n'est plus un blocage cache |
 | climat | `cells_climate_drivers_c1.json` — joint au snapshot (`present`) | non (le tick n'en lit rien) | déterminants livrés, mais ni température, ni précipitations, ni saisons : aucune source dans le dépôt | **BLOCAGE** pour l'observé — question D1 |
 | ressources (ce que la terre donne) | **rien** — `cells_resources_r1.json` absent ; brief 026 prêt, arbitrage rendu | non | la couche n'existe pas | **lots 026 → 030 → 031** (la file B) |
 | population | `sim/world.py` — amorçage proxy déclaré (`sim/SEEDING.md`) | **oui** (consommation, faim, mortalité) | l'amorçage est un proxy paramétrique, pas une donnée historique — c'est déclaré, pas caché | pas de lot — question D4 |
@@ -76,7 +83,7 @@ le rendre visible. Rien des couches 2 à 5.
 | 2 | 030 | sim-lit-gisements-r1 | le monde lit ce que sa terre donne et refuse d'inventer si la donnée manque | 026 fusionné | sim | `harness/queue/briefs/030-sim-lit-gisements-r1/brief.md` (écrit ce jour) | aucune (lecture pure — l'usage par le tick reste la question D3) | `.venv/bin/python -m sim --ticks 0 --seed 0 --snapshot-json /tmp/v0a2.json` puis lecture du statut de couche | 90 (SIZE_OK mesuré) | R1 |
 | 3 | 031 | viewer-couche-gisements-r1 | le regard montre les gisements photographiés — trois états distincts, jamais une grandeur | 030 fusionné (et question D5 si le propriétaire l'antépose) | viewer | `harness/queue/briefs/031-viewer-couche-gisements-r1/brief.md` (écrit ce jour) | aucune | `.venv/bin/python -m viewer --snapshot /tmp/v0a2.json --proof-svg /tmp/carte.svg` (code 0) | 80 (SIZE_OK mesuré) | R1 |
 | — | L4 | climat-observe | **BLOCAGE** : aucune source de température/précipitations licenciée dans le dépôt. Aucun brief n'est écrit — en écrire un présupposerait la réponse | décision D1 | pipeline/geo | à écrire après D1 | **D1** | — | — |
-| — | L5 | sim-consomme-g6 | **BLOCAGE** : cache Copernicus absent de cette machine (mesuré), preuve Europe impossible. Déblocage : poser le cache complet là où les lots tournent, rejouer la preuve G6 Europe en vrai, puis seulement un lot « sim lit G6 » | décision D2 (opérationnelle) | pipeline/geo puis sim | à écrire après D2 | **D2** | — | — |
+| — | L5 | sim-consomme-g6 | **APRÈS 026 SEULEMENT** : cache complet et preuve Europe désormais verts sur le VPS ; `sim/` reste `not_consumed`. Aucun lot n'est lancé ici. | 026 terminé | pipeline/geo puis sim | à écrire après 026 | aucune décision cache restante | — | — |
 | — | L6 | population-familles | **non** : aucun trou de couche 1 ne l'exige aujourd'hui ; l'amorçage proxy est déclaré et le moteur compte juste avec lui | — | — | — | D4 (source seulement) | — | — | — |
 | — | L7 | villes-etats-armees-batailles-unity | **non** : couches 2 à 5, et Unity en veille (ADR-0016) | — | — | — | aucune à poser | — | — | — |
 
@@ -108,7 +115,7 @@ réponse courte débloque.
 | id | question (oui / non / reformulation) | pourquoi ce n'est pas déductible | ce qui reste bloqué tant que ce n'est pas tranché | brief impacté |
 |---|---|---|---|---|
 | D1 | Quelle source, et quelle licence, pour la température et les précipitations autour de 1400 — ou quel proxy déclaré (par exemple un climat moderne assumé comme proxy, dit tel quel) ? | Aucune source climatique n'est déclarée dans `pipeline/geo/sources.lock` ; en inventer une serait la donnée fabriquée en silence (règle n° 10). Le choix d'une source et de sa licence est un choix produit | tout brief « climat observé », et par ricochet les ressources agricoles/forestières (026 les exclut explicitement faute de climat et de sol) | L4 (à écrire) |
-| D2 | Qui pose le cache DEM Copernicus complet, où (VPS, machine locale), et quand ? | La décision produit existe déjà (`hermes/requests/DEMANDE-20260821-couverture-dem-complete-g6.md`, CLOSED : couverture complète, pas de repli) ; ce qui manque est opérationnel — le cache n'est sur aucune machine mesurée (`DEM_CACHE=non` ce jour) | la preuve Europe G6, donc tout lot « sim lit G6 » ; le relief reste `not_consumed` et le terrain n'est pas jouable | L5 (à écrire) |
+| D2 | **RÉSOLU le 2026-08-23** : cache Copernicus complet sur le VPS, `1110/1110`, preuve Europe G6 verte après #130 et deux passes identiques. | Le blocage opérationnel a été levé par mesure. | Aucun blocage cache ; `sim/` reste `not_consumed` et le terrain n'est pas encore jouable. Attendre la fin de 026. | L5, seulement après 026 |
 | D3 | Un gisement lu par `sim/` porte-t-il seulement présence + nature + classe (état après le lot 030), ou le tick a-t-il le droit d'en dériver un flux extractif **qualitatif** (jamais un tonnage — A3 de 026 tient) ? | L'amendement 001 du brief 026 (§5, point 1) laisse explicitement ouvert « comment sim/ lira la classe ». Décider comment une classe pèse sur le monde est une décision de jeu, pas d'ingénierie | le premier lot où le tick **se sert** des gisements (production locale, spécialisation, commerce de biens non alimentaires) ; le lot 030 (lecture pure) n'est **pas** bloqué | le lot d'après 030/031, non écrit |
 | D4 | L'amorçage de la population reste-t-il un proxy paramétrique (déclaré dans `sim/SEEDING.md`) jusqu'à ce qu'une source historique soit choisie — ou le propriétaire a-t-il une source en tête que le dépôt ignore ? | `sim/SEEDING.md` déclare le proxy et prévoit une calibration « par un brief ultérieur disposant de données historiques réelles » ; choisir cette source est un choix produit | rien d'immédiat — le monde compte juste avec le proxy ; seule la crédibilité historique de t=0 attend | aucun brief tant que la réponse est « proxy » |
 | D5 | Faut-il rendre les verdicts des lots 027 et 028 (`PENDING`, évaluateur jamais passé) avant de lancer le prochain lot visuel (031), ou la première tranche V0 livrée suffit-elle ? | La dette de revue est un fait (`ROADMAP.md`, jalon V0) ; arbitrer entre payer la dette et avancer est une décision de cadence qui appartient au propriétaire | rien mécaniquement — mais si la réponse est « d'abord les verdicts », le lot 031 recule d'un cran derrière ce pas de revue | 031 (ordre seulement) |

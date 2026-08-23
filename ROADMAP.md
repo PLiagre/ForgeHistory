@@ -28,7 +28,7 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 **Couche 1 — état vrai**
 
 - Carte : littoral, cellules G3, mer G4, fleuves G5.
-- Relief G6 : **livré dans #126**. `sim/` **ne le consomme pas** (couche snapshot `not_consumed` : zéros DEM historiques acceptés, pas un terrain jouable). Preuve Europe G6 **bloquée** sans cache Copernicus. Les sentinelles synthétiques passent ; ce n'est pas un PASS Europe.
+- Relief G6 : **livré dans #126**, puis import `dem_batch` et correction Q10 fusionnés dans #130. La preuve Europe G6 a été rejouée sur le VPS avec le cache Copernicus complet (`1110/1110`) : contrôles verts et deux passes identiques. `sim/` **ne consomme toujours pas** ce relief (couche snapshot `not_consumed`) : le relief est calculé, mais ce n'est pas encore un terrain jouable.
 - Climat : déterminants physiques C1 livrés et consommables. Température et précipitations observées encore ouvertes.
 - Ressources : brief 026 écrit, arbitrage rendu, **non exécuté**.
 - `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot `v0a-1` (`--snapshot-json`).
@@ -81,8 +81,8 @@ Audit Cursor et contre-audit Claude : à la **clôture** d'une grande étape
 
 1. **Produit (unique) :** exécuter le brief 026 — gisements 1400. C'est le
    trou restant de la couche 1 qui peut avancer sans mentir sur G6.
-   Rendre G6 consommable attend le cache Copernicus (preuve Europe) : ce
-   n'est pas ce lot, et les deux ne se lancent pas en parallèle.
+   La preuve Europe G6 est faite ; rendre G6 consommable reste un lot distinct,
+   à traiter seulement après 026. Les deux ne se lancent pas en parallèle.
 2. **Hermes :** cron VPS ; propositions seulement s'il y a un constat
    nouveau ; zéro proposition OPEN aujourd'hui = rien n'attend.
 3. `forgepilot doctor`. Refuser tout lot Unity. Ne pas réactiver
@@ -111,3 +111,4 @@ Audit Cursor et contre-audit Claude : à la **clôture** d'une grande étape
 | 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-visualiseur-web-v0.md`) | jalon transversal V0 inséré après le correctif 024 et avant le lot 026 : export cellulaire déterministe puis visualiseur web mince interactif ; Unity reste en veille |
 | 2026-08-23 | cursor-cloud (correction factuelle après fusion #126) | #126 fusionné : G6 A1/A2 livré non consommé, snapshot `v0a-1`, viewer mince, ForgePilot accéléré. V0 première tranche livrée. Prochain pas unique : brief 026. Plus de « G6 encore en PR ». |
 | 2026-08-23 | cursor-cloud (décision propriétaire — ADR-0017) | Grok 4.6 planifie et juge la PR finale ; Composer 2.5 code ; Claude Opus 5 témoin rare ; `forgepilot merge` si PASS + checks verts. Hermes principal : `openai/gpt-5.4`. |
+| 2026-08-23 | hermes (correction factuelle après #130 et preuve VPS) | cache Copernicus complet vérifié `1110/1110` ; preuve Europe G6 verte et déterministe. Le relief est calculé mais reste `not_consumed` par `sim/`. Le prochain pas unique reste le brief 026. |

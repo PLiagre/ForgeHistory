@@ -6,7 +6,7 @@
 > `hermes-dashboard.yml`. Une vue périmée reste périmée
 > tant que personne ne la régénère.
 >
-> Générée le 2026-08-23 08:51 UTC.
+> Générée le 2026-08-23 13:05 UTC.
 
 ## En bref
 
