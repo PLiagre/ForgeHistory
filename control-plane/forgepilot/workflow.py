@@ -234,9 +234,19 @@ def plan_invocation(
     if backend == "none":
         raise PilotError("Aucun planificateur n'est configuré pour ce risque.")
     task_body = _task_text(task)
-    prompt = _read_prompt("planner.md").replace("{{TASK}}", task_body)
     resolved = resolve_role(settings, "planner", model=model, effort=effort, risk=risk)
     if backend == "cursor":
+        try:
+            task_reference = task.resolve().relative_to(repo.resolve()).as_posix()
+        except ValueError as exc:
+            raise PilotError(
+                "Le brief Cursor doit vivre dans le dépôt pour être lu par chemin."
+            ) from exc
+        authoritative_task = (
+            f"Lis intégralement `{task_reference}` dans le dépôt. Ce fichier est "
+            "l'unique tâche autoritaire : ne le résume pas avant de construire le plan."
+        )
+        prompt = _read_prompt("planner.md").replace("{{TASK}}", authoritative_task)
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
         argv = _cursor_read_argv(
             settings, repo, prompt, mode="plan", model=cursor_model
@@ -251,6 +261,7 @@ def plan_invocation(
             effort=resolved.effort or None,
             backend="cursor",
         )
+    prompt = _read_prompt("planner.md").replace("{{TASK}}", task_body)
     argv = _claude_argv(settings, "planner", model=model, effort=effort, risk=risk)
     return Invocation(
         "planner",
@@ -504,8 +515,8 @@ def execute_invocation(
             name for name in os.environ if CONTROLLER_SECRET_ENV.search(name)
         ),
     }
+    captured_session: list[str] = []
     if stream:
-        captured_session: list[str] = []
 
         def observe(event: object) -> None:
             session = extract_session_id(event)
@@ -517,7 +528,27 @@ def execute_invocation(
         kwargs["on_event"] = observe
     result = runner(_stream_argv(invocation) if stream else invocation.argv, **kwargs)
     payload = result.json()
-    if stream and captured_session and extract_session_id(payload) is None:
+    if (
+        invocation.backend == "cursor"
+        and isinstance(payload, dict)
+        and payload.get("type") == "result"
+    ):
+        if payload.get("is_error"):
+            raise PilotError(f"Cursor a rendu une erreur : {payload.get('result', 'aucun détail')}")
+        cursor_result = payload.get("result")
+        if isinstance(cursor_result, str):
+            try:
+                payload = json.loads(cursor_result)
+            except json.JSONDecodeError as exc:
+                raise PilotError("Cursor a réussi sans rendre le JSON métier attendu.") from exc
+        else:
+            payload = cursor_result
+    if (
+        stream
+        and invocation.role == "executor"
+        and captured_session
+        and extract_session_id(payload) is None
+    ):
         if isinstance(payload, dict):
             payload = dict(payload)
             payload["session_id"] = captured_session[-1]

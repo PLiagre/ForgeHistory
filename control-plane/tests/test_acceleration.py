@@ -385,6 +385,23 @@ class StreamTests(unittest.TestCase):
             self.assertEqual("done", result["summary"])
             self.assertEqual("session-early", result["session_id"])
 
+    def test_stream_unwraps_cursor_result_event_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            expected = valid_plan()
+            code = (
+                "import json; "
+                f"payload={expected!r}; "
+                "print(json.dumps({'type':'result','subtype':'success','is_error':False,"
+                "'result':json.dumps(payload),'session_id':'session-result'}), flush=True)"
+            )
+            invocation = Invocation(
+                "planner", (sys.executable, "-c", code), tmp, {}, backend="cursor"
+            )
+            result = execute_invocation(
+                invocation, load_settings(), timeout_seconds=10, stream=True
+            )
+            self.assertEqual(expected, result)
+
 
 class ScopeAndReviewTests(unittest.TestCase, GitRepoMixin):
     def test_scope_rejects_one_unexpected_path(self):

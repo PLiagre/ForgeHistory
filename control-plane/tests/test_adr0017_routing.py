@@ -51,6 +51,22 @@ class PolicyRoutingTests(unittest.TestCase):
             review_inv.argv[review_inv.argv.index("--model") + 1],
         )
 
+    def test_large_cursor_planning_brief_is_referenced_by_repo_path(self):
+        settings = load_settings()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            task = root / "harness" / "queue" / "briefs" / "026-large" / "brief.md"
+            task.parent.mkdir(parents=True)
+            marker = "AUTORITE_LONGUE_026"
+            task.write_text(marker + "\n" + ("x" * 80_000), encoding="utf-8")
+
+            invocation = plan_invocation(settings, root, task, risk="R1")
+
+        prompt = invocation.argv[invocation.argv.index("-p") + 1]
+        self.assertIn("harness/queue/briefs/026-large/brief.md", prompt)
+        self.assertIn("Lis intégralement", prompt)
+        self.assertNotIn(marker, prompt)
+
     def test_witness_stays_claude_opus_5_high(self):
         settings = load_settings()
         with tempfile.TemporaryDirectory() as tmp:
