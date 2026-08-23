@@ -16,6 +16,7 @@ from forgepilot.workflow import (
     READ_ONLY_CLAUDE_TOOLS,
     create_worktree,
     executor_invocation,
+    existing_worktree,
     format_invocation,
     plan_invocation,
     publish_preview,
@@ -169,6 +170,24 @@ class WorkflowTests(unittest.TestCase):
                 )
             self.assertEqual(2, code)
             self.assertIn("execute", err.getvalue())
+
+    def test_iterate_accepts_corrective_branch_in_canonical_worktree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+            (repo / "tracked.txt").write_text("initial\n", encoding="utf-8")
+            subprocess.run(["git", "add", "tracked.txt"], cwd=repo, check=True)
+            subprocess.run(["git", "commit", "-m", "initial"], cwd=repo, check=True, capture_output=True)
+            worktree, _ = create_worktree(repo, "corrective", "main")
+            subprocess.run(["git", "branch", "-m", "agent/corrective-fix-2"], cwd=worktree, check=True)
+
+            found, branch, status = existing_worktree(repo, "corrective")
+
+            self.assertEqual(worktree, found)
+            self.assertEqual("agent/corrective-fix-2", branch)
+            self.assertEqual("", status)
 
     def test_iterate_reuses_existing_worktree(self):
         """SC3 : iterate ne crée aucun répertoire sous .forgepilot/worktrees/."""

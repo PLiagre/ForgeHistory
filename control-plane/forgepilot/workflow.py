@@ -484,12 +484,14 @@ def existing_worktree(repo: Path, task_name: str) -> tuple[Path, str, str]:
             "Employer `execute` pour créer la branche et le worktree."
         )
     current = git(worktree, "branch", "--show-current")
-    if current != expected_branch:
+    corrective_branch = re.fullmatch(rf"{re.escape(expected_branch)}-fix-[1-9][0-9]*", current)
+    if current != expected_branch and corrective_branch is None:
         raise PilotError(
-            f"Branche du worktree {current!r} ; attendu {expected_branch!r}."
+            f"Branche du worktree {current!r} ; attendu {expected_branch!r} "
+            "ou une branche corrective suffixée -fix-N."
         )
     status = git(worktree, "status", "--porcelain")
-    return worktree, expected_branch, status
+    return worktree, current, status
 
 
 def _stream_argv(invocation: Invocation) -> tuple[str, ...]:
