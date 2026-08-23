@@ -133,6 +133,18 @@ class PublicationFailClosedTests(unittest.TestCase, GitRepoMixin):
             stage_explicit_paths(repo, ["allowed/[x].txt"])
             self.assertEqual(["allowed/[x].txt"], staged_paths(repo))
 
+    def test_staging_force_adds_an_explicit_ignored_proof(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.init_repo(repo)
+            (repo / ".gitignore").write_text("artifacts/\n", encoding="utf-8")
+            (repo / "artifacts").mkdir()
+            (repo / "artifacts" / "proof.json").write_text("{}\n", encoding="utf-8")
+
+            stage_explicit_paths(repo, ["artifacts/proof.json"])
+
+            self.assertEqual(["artifacts/proof.json"], staged_paths(repo))
+
     def test_staging_revalidates_preexisting_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

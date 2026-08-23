@@ -80,6 +80,7 @@ def stage_explicit_paths(repo: Path, paths: Iterable[str]) -> list[str]:
             repo,
             "--literal-pathspecs",
             "add",
+            "-f",
             "--",
             *selected[start : start + 100],
         )
