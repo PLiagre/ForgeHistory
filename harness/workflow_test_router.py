@@ -71,6 +71,7 @@ RULES = (
     RouteRule("forgepilot", ("control-plane/**",), "forgepilot"),
     RouteRule("harness", ("harness/**",), "harness"),
     RouteRule("simulation", ("sim/**",), "sim"),
+    RouteRule("viewer", ("viewer/**",), "viewer"),
     RouteRule(
         "g6",
         (
@@ -79,6 +80,8 @@ RULES = (
             "pipeline/geo/tests/*g6*.py",
             "pipeline/geo/artifacts/*g6*.json",
             "pipeline/geo/registry/*relief*.json",
+            "pipeline/geo/capture/v1_052*",
+            "pipeline/geo/logs/v1_052*",
             "pipeline/geo/sources.lock",
             "pipeline/geo/sources/*dem*",
             "pipeline/geo/tools/*dem*.py",
@@ -138,6 +141,7 @@ SENSITIVE_PREFIXES = (
     "hermes/",
     "pipeline/geo/",
     "sim/",
+    "viewer/",
 )
 SENSITIVE_ROOTS = frozenset(
     {
@@ -250,6 +254,14 @@ def _commands_for_target(target: str, profile: str) -> list[dict[str, object]]:
                 "sim-tests",
                 [python, "-m", "pytest", "sim/tests/", "-q"],
                 proof="non-régression du moteur vivant",
+            )
+        ]
+    if target == "viewer":
+        return [
+            _command(
+                "viewer-tests",
+                [python, "-m", "pytest", "viewer/tests/", "-q"],
+                proof="regard mince : refus, classification, SVG déterministe",
             )
         ]
     if target == "workflow":

@@ -102,6 +102,24 @@ def test_unknown_sensitive_geo_path_fails_closed():
         )
 
 
+def test_viewer_routes_to_its_own_suite():
+    plan = router.build_plan(REPO_ROOT, ["viewer/__main__.py"], "fast")
+    assert _ids(plan) == ["git-diff-check", "viewer-tests"]
+    assert plan["assignments"]["viewer/__main__.py"] == ["viewer"]
+
+
+def test_g6_captures_and_logs_route_to_the_sentinel():
+    plan = router.build_plan(
+        REPO_ROOT,
+        [
+            "pipeline/geo/capture/v1_052_elevation_window.png",
+            "pipeline/geo/logs/v1_052_relief.log",
+        ],
+        "fast",
+    )
+    assert _ids(plan) == ["git-diff-check", "g6-sentinel"]
+
+
 @pytest.mark.parametrize(
     "path",
     ["SECURITY.md", ".claude/agents/forge.md", "hermes/reports/bilan.md"],
