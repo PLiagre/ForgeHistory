@@ -27,15 +27,20 @@ def measurement_table_key(
     adjacency: Path,
     sampling_code: Path,
     sample_step: float,
+    extra_files: Optional[Mapping[str, Path]] = None,
+    domain_rule: str = "D19-v1",
 ) -> Tuple[str, Dict[str, str]]:
-    """Clé honnête : sources, maille, adjacence, code et pas d'échantillon."""
+    """Clé honnête : sources, maille, adjacence, code, pas et règles de domaine."""
     inputs = {
         "sources.lock": _sha256_file(Path(sources_lock)),
         "cells_g3.json": _sha256_file(Path(cells)),
         "adjacency_g5.json": _sha256_file(Path(adjacency)),
         "sampling_code": _sha256_file(Path(sampling_code)),
         "sample_step": format(float(sample_step), ".17g"),
+        "domain_rule": str(domain_rule),
     }
+    for name, path in sorted((extra_files or {}).items()):
+        inputs[str(name)] = _sha256_file(Path(path))
     payload = json.dumps(
         inputs, ensure_ascii=True, sort_keys=True, separators=(",", ":")
     ).encode("ascii")
@@ -192,7 +197,17 @@ class MeasurementTable:
             for value, is_valid in zip(values, valid)
         ]
 
-    def put(self, batch_id: str, values: Sequence[Optional[float]]) -> None:
+    def extra(self, batch_id: str) -> Dict[str, Any]:
+        metadata = self._entries.get(batch_id) or {}
+        extra = metadata.get("extra")
+        return dict(extra) if isinstance(extra, dict) else {}
+
+    def put(
+        self,
+        batch_id: str,
+        values: Sequence[Optional[float]],
+        extra: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         entry = self._entry_name(batch_id)
         numeric = np.array(
             [0.0 if value is None else float(value) for value in values],
@@ -200,7 +215,10 @@ class MeasurementTable:
         )
         valid = np.array([value is not None for value in values], dtype=np.bool_)
         self._pending[entry] = (numeric, valid)
-        self._entries[batch_id] = {"entry": entry, "count": len(values)}
+        payload: Dict[str, Any] = {"entry": entry, "count": len(values)}
+        if extra:
+            payload["extra"] = dict(extra)
+        self._entries[batch_id] = payload
 
     def save(self) -> None:
         if not self._pending:

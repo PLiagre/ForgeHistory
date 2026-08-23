@@ -260,11 +260,15 @@ def test_sentinelle_reliefs_cote_plaine_degre_nodata_zero(
     ]
     values = dem.read_many(points, measurement_id="sentinel:reliefs")
     assert values[:4] == [3000.0, 1500.0, 50.0, 0.0]
-    assert values[4:] == [-9999.0, -9999.0]
+    assert values[4] is None
+    assert values[5] is None
     assert dem.last_batch_metrics["point_count"] == len(points)
     assert dem.last_batch_metrics["tile_count"] == 2
     assert dem.last_batch_metrics["raster_reads"] == 2
     assert dem.last_batch_metrics["raster_reads"] < len(points)
+    assert dem.counters.echantillons_valeur_zero_exact == 1
+    assert dem.counters.echantillons_nodata_raster == 2
+    cold_counters = dem.counters.public_ints()
     table.save()
     dem.close()
 
@@ -283,6 +287,7 @@ def test_sentinelle_reliefs_cote_plaine_degre_nodata_zero(
     assert replay.read_many(points, measurement_id="sentinel:reliefs") == values
     assert replay.last_batch_metrics["raster_reads"] == 0
     assert replay.sampling_metrics["measurement_cache_hits"] == len(points)
+    assert replay.counters.public_ints() == cold_counters
     replay.close()
     replay_table.close()
 
@@ -298,7 +303,7 @@ def test_compteurs_domaine_zero_nodata_et_bornes(relief) -> None:
             return x, y
 
     class SentinelDem:
-        def read_many(self, points, *, measurement_id=None):
+        def read_many(self, points, *, measurement_id=None, **_kwargs):
             grid_count = len(points) - 1
             assert measurement_id == "cell:7:grid_and_centroid"
             assert grid_count >= 5
@@ -398,13 +403,29 @@ def test_cle_table_mesures_invalidee_par_chaque_entree(
     }
     base_key, base_inputs = batch_io.measurement_table_key(**kwargs)
     assert len(base_key) == 64
-    assert set(base_inputs) == {
+    assert set(base_inputs) >= {
         "sources.lock",
         "cells_g3.json",
         "adjacency_g5.json",
         "sampling_code",
         "sample_step",
+        "domain_rule",
     }
+    extra = tmp_path / "constants.py"
+    extra.write_text("G6=1", encoding="utf-8")
+    with_extra, _ = batch_io.measurement_table_key(
+        **kwargs, extra_files={"constants.py": extra}
+    )
+    assert with_extra != base_key
+    extra.write_text("G6=2", encoding="utf-8")
+    changed_extra, _ = batch_io.measurement_table_key(
+        **kwargs, extra_files={"constants.py": extra}
+    )
+    assert changed_extra != with_extra
+    other_rule, _ = batch_io.measurement_table_key(
+        **kwargs, domain_rule="D19-v2"
+    )
+    assert other_rule != base_key
 
     for field, path in paths.items():
         original = path.read_text(encoding="utf-8")
@@ -446,6 +467,117 @@ def test_table_mesures_persistante_rejoue_none_et_vrai_zero(
         handle.write(b"corruption-volontaire")
     corrupted = batch_io.MeasurementTable(tmp_path, "a" * 64, inputs)
     assert corrupted.get("sentinel", 3) is None
+
+
+def test_bornes_ouest_sud_et_latitudes_entieres(relief) -> None:
+    west = "Copernicus_DSM_COG_30_N42_00_W001_00_DEM.tif"
+    south = "Copernicus_DSM_COG_30_S042_00_E000_00_DEM.tif"
+    assert relief._tile_bounds_from_name(west) == (-1.0, 42.0, 0.0, 43.0)
+    assert relief._tile_bounds_from_name(south) == (0.0, -42.0, 1.0, -41.0)
+    assert relief.lonlat_to_tile_name(12.0, 33.0).endswith("N32_00_E012_00_DEM.tif")
+    assert relief.lonlat_to_tile_name_nominal(12.0, 33.0).endswith(
+        "N33_00_E012_00_DEM.tif"
+    )
+
+
+def test_registrement_pixel_surface_et_pixel_point(tmp_path: Path, relief) -> None:
+    surface = tmp_path / "surface.tif"
+    point = tmp_path / "point.tif"
+    values = np.arange(16, dtype="float32").reshape(4, 4)
+    _write_raster(surface, 0.0, values)
+    point.parent.mkdir(parents=True, exist_ok=True)
+    with rasterio.open(
+        point,
+        "w",
+        driver="GTiff",
+        width=4,
+        height=4,
+        count=1,
+        dtype="float32",
+        crs="EPSG:4326",
+        transform=from_origin(-0.125, 43.125, 0.25, 0.25),
+        nodata=-9999.0,
+    ) as dataset:
+        dataset.write(values.astype("float32"), 1)
+    name_s, *_ = relief.measure_tile_registration(surface)
+    name_p, *_ = relief.measure_tile_registration(point)
+    assert name_s == "pixel_surface"
+    assert name_p == "pixel_point"
+
+
+def test_hors_domaine_leve_sans_clamp(tmp_path: Path, relief) -> None:
+    tile_name = "Copernicus_DSM_COG_30_N42_00_E000_00_DEM.tif"
+    cache_dir = tmp_path / "cache"
+    lock_path = tmp_path / "sources.lock"
+    _write_raster(_tile_path(cache_dir, tile_name), 0.0, np.ones((4, 4)))
+    _write_lock(lock_path, {tile_name: _tile_path(cache_dir, tile_name).read_bytes()})
+    dem = relief.DemSampler(cache_dir, lock_path=lock_path)
+    try:
+        dem.read_elev(200.0, 50.0)
+        raise AssertionError("hors domaine doit lever")
+    except RuntimeError as exc:
+        assert "hors couverture" in str(exc)
+        assert "200.0" in str(exc)
+    finally:
+        dem.close()
+
+
+def test_lot_multi_tuile_et_eviction_lru(tmp_path: Path, relief) -> None:
+    cache_dir = tmp_path / "cache"
+    lock_path = tmp_path / "sources.lock"
+    tiles: dict[str, bytes] = {}
+    points = []
+    for index in range(49):
+        lon = float(index)
+        name = f"Copernicus_DSM_COG_30_N42_00_E{index:03d}_00_DEM.tif"
+        path = _tile_path(cache_dir, name)
+        values = np.full((4, 4), float(index + 1), dtype="float32")
+        _write_raster(path, lon, values)
+        tiles[name] = path.read_bytes()
+        points.append((lon + 0.125, 42.875))
+    _write_lock(lock_path, tiles)
+    dem = relief.DemSampler(cache_dir, lock_path=lock_path)
+    try:
+        values = dem.read_many(points[:2], measurement_id="multi:2")
+        assert values == [1.0, 2.0]
+        assert dem.last_batch_metrics["tile_count"] == 2
+        assert dem.last_batch_metrics["raster_reads"] == 2
+        for lon, lat in points:
+            dem.read_elev(lon, lat)
+        assert len(dem._datasets) <= relief.DATASET_CACHE_MAX
+        assert len(dem._datasets) == relief.DATASET_CACHE_MAX
+    finally:
+        dem.close()
+
+
+def test_dix_mille_points_dem_sampler_deux_ouvertures(
+    tmp_path: Path, relief
+) -> None:
+    west_name = "Copernicus_DSM_COG_30_N42_00_E000_00_DEM.tif"
+    east_name = "Copernicus_DSM_COG_30_N42_00_E001_00_DEM.tif"
+    cache_dir = tmp_path / "cache"
+    lock_path = tmp_path / "sources.lock"
+    _write_raster(_tile_path(cache_dir, west_name), 0.0, np.full((4, 4), 10.0))
+    _write_raster(_tile_path(cache_dir, east_name), 1.0, np.full((4, 4), 20.0))
+    _write_lock(
+        lock_path,
+        {
+            west_name: _tile_path(cache_dir, west_name).read_bytes(),
+            east_name: _tile_path(cache_dir, east_name).read_bytes(),
+        },
+    )
+    points = [(0.125, 42.875)] * 5000 + [(1.125, 42.875)] * 5000
+    dem = relief.DemSampler(cache_dir, lock_path=lock_path)
+    try:
+        values = dem.read_many(points, measurement_id="lot:10000")
+        assert len(values) == 10_000
+        assert values[0] == 10.0
+        assert values[-1] == 20.0
+        assert dem.last_batch_metrics["tile_count"] == 2
+        assert dem.last_batch_metrics["raster_reads"] == 2
+        assert dem.last_batch_metrics["raster_reads"] < len(points)
+    finally:
+        dem.close()
 
 
 def test_aucun_raster_de_sentinelle_n_est_ecrit_dans_le_depot() -> None:
