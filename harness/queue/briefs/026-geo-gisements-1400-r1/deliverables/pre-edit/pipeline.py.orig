@@ -963,17 +963,6 @@ def _load_climate_drivers_module():
     return mod
 
 
-def _load_resources_module():
-    """Charge steps/r1_resources_1400.py."""
-    path = ROOT / "steps" / "r1_resources_1400.py"
-    spec = importlib.util.spec_from_file_location("resources_r1", path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"impossible de charger {path}")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
 def run_natural_earth_coastline(clean_build: bool = True) -> Dict[str, Any]:
     """G2 : littoral réel — délègue à steps/02_coastline.py sans dupliquer le tuyau."""
     coastline = _load_coastline_module()
@@ -1037,21 +1026,12 @@ def run_climate_drivers_c1() -> Dict[str, Any]:
     return climate.run_climate_drivers()
 
 
-def run_resources_r1(apply_declarations: bool = True, output_dir: Optional[Path] = None) -> Dict[str, Any]:
-    """R1 : gisements extractifs déclarés — délègue à r1_resources_1400.py."""
-    resources = _load_resources_module()
-    return resources.run_resources(
-        apply_declarations=apply_declarations,
-        output_dir=output_dir,
-    )
-
-
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Pipeline cartographique (fixture G1, littoral G2, "
             "corrections G2-bis, cellules G3, adjacence G4, fleuves G5, "
-            "relief G6, déterminants climat C1, gisements R1)"
+            "relief G6, déterminants climat C1)"
         )
     )
     parser.add_argument(
@@ -1066,7 +1046,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "navigability",
             "relief",
             "climate_drivers",
-            "resources_1400",
         ],
         default="fixture",
         help=(
@@ -1077,8 +1056,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "rivers = G5 fleuves + enrichissement arêtes ; "
             "navigability = G5-bis surcharges de navigabilité ; "
             "relief = G6 altitude / pente / cols ; "
-            "climate_drivers = C1 insolation astronomique et continentalité ; "
-            "resources_1400 = R1 gisements extractifs déclarés de 1400"
+            "climate_drivers = C1 insolation astronomique et continentalité"
         ),
     )
     parser.add_argument(
@@ -1208,30 +1186,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         for path, digest in sorted(result["shas"].items()):
             print(f"  {path}  {digest}")
         return 0
-
-    if args.source == "resources_1400":
-        import tempfile
-
-        apply = not args.no_corrections
-        if apply:
-            result = run_resources_r1(apply_declarations=True)
-            resources = _load_resources_module()
-            print(resources.format_summary_line(result["derived"], apply_declarations=True))
-            if result.get("capture"):
-                print(f"capture: {result['capture']}")
-            for path, digest in sorted(result["shas"].items()):
-                print(f"  {path}  {digest}")
-            return 0
-        with tempfile.TemporaryDirectory(prefix="r1_off_") as tmp:
-            tmp_art = Path(tmp) / "artifacts"
-            tmp_art.mkdir(parents=True)
-            result = run_resources_r1(apply_declarations=False, output_dir=tmp_art)
-            resources = _load_resources_module()
-            print(
-                resources.format_summary_line(result["derived"], apply_declarations=False)
-                + f" | output_dir={tmp_art} (ne publie pas dans artifacts/)"
-            )
-            return 0
 
     if args.source == "natural_earth":
         result = run_natural_earth_coastline()
