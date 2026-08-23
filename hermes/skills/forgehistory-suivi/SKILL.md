@@ -2,7 +2,8 @@
 name: forgehistory-suivi
 description: >
   Piloter ForgeHistory. Point d'entrée : faire le point, proposer des
-  améliorations, cadencer le travail, lancer ForgePilot, rendre compte.
+  améliorations, cadencer le travail, lancer ForgePilot, déléguer des
+  lectures en parallèle (sous-agents Hermes, ADR-0015), rendre compte.
   Le produit vivant est sim/ sans Unity.
 ---
 
@@ -129,7 +130,128 @@ Si la veille montre un échec ou un constat nouveau, tu ouvres une
 `PROPOSITION-*.md` en session. Tu ne laisses pas un échec quotidien
 sans le dire au propriétaire.
 
-## 7. Frontières
+## 7. Délégation multi-agents (Hermes)
+
+Autorité : [ADR-0015](../../../docs/adr/0015-capacites-hermes-sous-agents-crons-issues.md).
+Référence produit (hors dépôt) :
+[délégation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation),
+[motifs](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns),
+[kanban](https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban).
+
+Tu peux découper une mission en sous-tâches indépendantes, lancer jusqu’à
+trois sous-agents en parallèle (défaut Hermes), puis **synthétiser**. Tu
+gardes la décision finale dans le périmètre Hermes. Ce n’est **pas**
+ForgePilot : Cursor et Claude restent hors de `delegate_task`.
+
+### Quand déléguer
+
+Utile pour : comparer plusieurs lectures ; mener plusieurs recherches
+indépendantes ; reconstruire des mesures en parallèle ; analyser plusieurs
+fichiers ou sources sans saturer ton contexte.
+
+Ne pas déléguer pour : une seule commande ; une petite modification ; une
+chaîne où chaque étape dépend de la précédente ; un lot produit (→ §4
+ForgePilot) ; un travail qui doit survivre à un redémarrage (→ cron
+§6, `forgepilot start`, ou kanban Hermes).
+
+### Interdit aux sous-agents (ForgeHistory)
+
+Un sous-agent que tu lances **reste toi**. Il lit et mesure. Il ne juge
+pas la recevabilité d’un lot. Il n’écrit pas dans le dépôt. Il ne publie
+pas, n’envoie pas, ne supprime pas, ne modifie pas un service externe.
+
+La « relecture à regard neuf » d’un **lot** (accept / reject) appartient
+à Claude via ForgePilot, jamais à un sous-agent Hermes. Une mission dont
+le livrable est une appréciation de lot se refuse à l’énoncé.
+
+Deux sous-agents ne ciblent jamais le même fichier à modifier — de toute
+façon ils n’écrivent pas ici : seuls des chemins de **lecture** figurent
+dans leurs briefs.
+
+### Découpe par résultat, pas par rôle vague
+
+Mauvais : « un agent marketing, un agent technique, un agent expert ».
+
+Bon :
+
+1. vérifier la documentation et les contraintes écrites ;
+2. analyser les données ou le dépôt (chemins nommés) ;
+3. chercher les risques et contre-exemples mesurables ;
+4. toi : comparer, signaler les désaccords, décider dans ton périmètre.
+
+Chaque sous-agent doit pouvoir terminer sans attendre un autre.
+
+### Contexte obligatoire dans chaque brief
+
+Les sous-agents ne connaissent pas ta conversation. Chaque brief porte
+chemins absolus ou relatifs depuis la racine, sources, contraintes,
+interdits, format de sortie, critères de réussite factuels.
+
+Modèle de prompt (à adapter, puis lancer) :
+
+```text
+Travaille sur cette mission avec trois sous-agents en parallèle :
+
+Mission : [MISSION]
+
+Sous-agent 1 : [RÉSULTAT INDÉPENDANT À PRODUIRE]
+Sous-agent 2 : [RÉSULTAT INDÉPENDANT À PRODUIRE]
+Sous-agent 3 : [RÉSULTAT INDÉPENDANT À PRODUIRE]
+
+Contexte commun :
+- sources ou chemins : [SOURCES]
+- contraintes : [CONTRAINTES]
+- éléments interdits : lecture seule ; pas de jugement de lot ;
+  pas d’écriture dépôt ; pas d’action distante
+- format attendu : [FORMAT]
+- critères de réussite : [CRITÈRES]
+
+Aucun sous-agent ne doit publier, envoyer, supprimer ou modifier un
+service externe, ni écrire dans le dépôt.
+Après leur retour, compare les conclusions, signale les désaccords et
+produis une synthèse vérifiable (faits communs, contradictions, preuves,
+limites, recommandation Hermes, points pour le propriétaire).
+```
+
+### Vérifier le plan avant le lancement
+
+Pour une mission sensible : affiche d’abord les trois briefs **sans**
+lancer. Contrôle : pas de recouvrement inutile, pas de dépendance cachée,
+pas d’autorisation excessive. Une tâche qui a besoin d’une clarification
+en direct ne se délègue pas (un sous-agent ne peut pas poser de question
+pendant l’exécution).
+
+### Suivre l’exécution
+
+Dans la conversation Hermes : `/agents` — agents et tâches actifs. Seul
+le résultat final de chaque sous-agent revient dans ta session. N’augmente
+pas la concurrence au-delà du défaut (3) sans raison : chaque agent
+consomme des ressources.
+
+### Synthèse exigée (pas une concaténation)
+
+Après retour :
+
+1. faits communs ;
+2. contradictions ;
+3. sources ou preuves (commandes, chemins, SHA) ;
+4. limites ;
+5. recommandation finale dans ton périmètre ;
+6. points qui exigent encore la décision du propriétaire.
+
+Une affirmation d’un sous-agent (« j’ai créé un fichier », « j’ai poussé »)
+est un **rapport à vérifier**, pas un fait.
+
+### Checklist avant de clore
+
+- Chaque sous-agent a un résultat distinct.
+- Chaque brief contient tout le contexte nécessaire.
+- Aucun sous-agent n’écrit ni ne juge un lot.
+- Les désaccords apparaissent dans la synthèse.
+- Tu as vérifié les effets externes prétendus.
+- Aucune action sensible sans validation du propriétaire.
+
+## 8. Frontières
 
 - Au boot, n'ouvre pas `architecture/` (inbox, archive, decisions).
   Ce dossier ne s'ouvre que sur demande explicite du propriétaire.
@@ -141,13 +263,13 @@ sans le dire au propriétaire.
 - Jamais `mode: full_auto` sans décision écrite nouvelle.
 - Jamais un brief, un verdict, du code sous `sim/`, `unity/`, `harness/`,
   `.github/`.
-- Un sous-agent que tu lances reste toi : il lit et mesure, il ne juge pas.
-  Un seul agent écrit les fichiers Hermes.
+- Délégation : §7 et ADR-0015. Un seul agent (toi) écrit les fichiers
+  Hermes.
 - Une issue GitHub pointe vers un brief ; elle ne le récrit pas (ADR-0015).
 - Tu peux (et tu dois) mettre à jour **cette skill** quand une leçon est
   payée ou qu’un ADR change tes droits.
 
-## 8. Ce qui n’est plus un blocage
+## 9. Ce qui n’est plus un blocage
 
 - Verdicts des lots `022` et `023` : ACCEPT depuis le `2026-08-19`.
 - ADR-0014 : accepté. ADR-0015 : accepté (amendement crons). ADR-0016 :

@@ -38,6 +38,10 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 - **Piloter un lot.** Enregistrer puis lancer un run durable avec
   `forgepilot start <brief.md>` ; suivre et reprendre avec `status` et
   `resume`. Le runbook est `docs/operations/workflow-acceleration.md`.
+- **Déléguer en parallèle.** Découper une mission de lecture / mesure en
+  sous-tâches indépendantes (sous-agents Hermes), synthétiser sans juger
+  un lot — contrat dans `hermes/skills/forgehistory-suivi/SKILL.md` §7
+  et ADR-0015. Ce n’est pas ForgePilot.
 - **Mesurer.** Relancer `python -m sim`, les tests `sim/`, le tableau de
   bord. Dire ce qui manque au lieu de l’inventer.
 - **S’améliorer.** Mettre à jour sa skill quand une règle du dépôt change
