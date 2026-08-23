@@ -823,6 +823,55 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                 with self.assertRaisesRegex(PilotError, "candidate reached"):
                     _iterate(load_settings(), repo, state_path, state, plan)
 
+    def test_first_publication_after_pre_pr_iteration_creates_draft_pr(self):
+        from forgepilot.durable import _iterate
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            state_path, state = register_run(
+                load_settings(), repo, task, "first-pr-after-iteration", base_ref="main", base_branch="main"
+            )
+            worktree, branch = create_worktree(repo, "first-pr-after-iteration", str(state["base_sha"]))
+            plan = valid_plan()
+            plan_path = state_path.parent / "plan.json"
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            candidate = {
+                "base_sha": str(state["base_sha"]),
+                "head_sha": str(state["base_sha"]),
+                "tree_sha": subprocess.run(["git", "rev-parse", "HEAD^{tree}"], cwd=worktree, check=True, capture_output=True, text=True).stdout.strip(),
+                "paths": [],
+                "iteration": 1,
+            }
+            state.update({
+                "artifacts": {"plan": "plan.json"},
+                "worktree": str(worktree),
+                "branch": branch,
+                "head_sha": candidate["head_sha"],
+                "candidate": candidate,
+                "step": "ITERATION_PR_TESTED",
+                "proofs": [
+                    {"kind": "test-profile", "profile": profile, "head_sha": candidate["head_sha"], "tree_sha": candidate["tree_sha"], "result": {"code": 0}}
+                    for profile in ("fast", "pr")
+                ],
+                "pull_request": None,
+                "iteration": {"count": 1, "plateau_count": 0, "last_findings": [], "last_finding_count": None},
+            })
+            save_state(state_path, state)
+            seen: list[bool] = []
+
+            def fake_publish(worktree, state, candidate, *, update_only):
+                seen.append(update_only)
+                raise PilotError("publish reached")
+
+            with patch("forgepilot.durable._push_candidate_and_pr", side_effect=fake_publish):
+                with self.assertRaisesRegex(PilotError, "publish reached"):
+                    _iterate(load_settings(), repo, state_path, state, plan)
+            self.assertEqual([False], seen)
+
     def test_complete_run_persists_sha_pr_models_and_durations(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

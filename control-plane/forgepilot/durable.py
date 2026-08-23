@@ -1158,7 +1158,7 @@ def _iterate(
             worktree,
             state,
             candidate,
-            update_only=True,
+            update_only=bool(state.get("pull_request")),
         )
         full_review = state.get("iteration_approach_changed") is True
         old_head = str(state.get("iteration_base_sha") or candidate["base_sha"])
