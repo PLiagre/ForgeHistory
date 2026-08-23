@@ -59,6 +59,11 @@ Suites : `harness/tests` 407 passed / 16 skipped (Unity Linux) ;
 `control-plane/tests` 81 OK ; `git diff --check` propre ;
 `.venv/bin/python -m sim --ticks 0 --json` : 596 cellules, `sans_unity`.
 
+CI initiale rouge pour deux raisons mécaniques, pas un défaut du ménage :
+`risk-gate` exigeait `Forge-Risk: R2` (chemins Hermes / VISION / ROADMAP) ;
+`cursor-scope` prenait toute branche `cursor/` pour un dépôt d'audit.
+La garde ne s'applique plus qu'aux PRs qui touchent `architecture/inbox/`.
+
 ## Prochain pas produit (un seul)
 
 Exécuter le brief 026 — gisements 1400.
