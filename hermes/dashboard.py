@@ -4,57 +4,40 @@
 Rôle (ADR-0010) : Hermes est le chef de projet ; ce script produit son
 tableau de bord. C'est une VUE générée depuis les sources de vérité du
 dépôt — jamais une base parallèle (principe n°1 du projet) et jamais un
-fichier édité à la main :
+fichier édité à la main.
 
-  - architecture/audit-ledger.jsonl  → où en est chaque audit de la boucle
-  - harness/pipeline/config.yaml     → mode du pipeline et réglages
+Depuis le ménage de pilotage (2026-08-23), la vue ne liste plus la
+boucle d'audit Cursor : cette file est historique (ADR-0012). Hermes au
+boot ne lit que ce qui est OPEN et actionnable, plus ROADMAP / HANDOFF.
+
+Sources :
+
+  - harness/pipeline/config.yaml     → mode du pipeline
   - harness/pipeline/ci-budget-ledger.jsonl → dépense CI du mois
   - harness/queue/cost-ledger.jsonl  → utilisation des backends Générateur
-  - harness/queue/briefs/*/          → état apparent de chaque brief
+  - hermes/propositions/PROPOSITION-* → seulement status OPEN
+  - hermes/requests/DEMANDE-*         → seulement status OPEN
 
 Trois fichiers JSON optionnels, produits par le workflow
 .github/workflows/hermes-dashboard.yml avec des données GitHub/Cursor
-vivantes (runs récents, PR ouvertes, agents lancés), enrichissent la vue ;
-leur absence ne fait jamais échouer la génération — le tableau dit alors
-« non disponible » au lieu d'inventer.
+vivantes, enrichissent la vue ; leur absence ne fait jamais échouer la
+génération — le tableau dit alors « non disponible » au lieu d'inventer.
 
 Usage :
-  py hermes/dashboard.py                        # vue locale
-  py hermes/dashboard.py --runs-json runs.json --prs-json prs.json \
-      --agents-json agents.json                 # vue enrichie (CI)
+  .venv/bin/python hermes/dashboard.py
+  .venv/bin/python hermes/dashboard.py --runs-json runs.json --prs-json prs.json \
+      --agents-json agents.json
 """
 from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "harness" / "pipeline"))
-
-# Libellés humains des états de la machine à états des audits
-# (harness/audit_ledger.py TRANSITIONS) : le propriétaire lit une phrase,
-# pas un code.
-ETATS_HUMAINS = {
-    "AUDIT_PROPOSED": "déposé — attend le contre-audit de Claude",
-    "AUDIT_CHALLENGED": "contre-audit rendu — attend la décision",
-    "AUDIT_APPROVED": "retenu — à convertir en brief",
-    "AUDIT_REJECTED": "rejeté — à archiver",
-    "AUDIT_CONVERTED": "converti en brief — travail à produire",
-    "AUDIT_IMPLEMENTED": "travail livré — attend vérification",
-    "AUDIT_VERIFIED": "vérifié — à archiver",
-    "AUDIT_STALE": "obsolète — à archiver",
-    "AUDIT_ARCHIVED": "boucle close",
-}
-
-ETATS_EN_ATTENTE = {
-    "AUDIT_PROPOSED", "AUDIT_CHALLENGED", "AUDIT_APPROVED",
-    "AUDIT_CONVERTED", "AUDIT_IMPLEMENTED", "AUDIT_VERIFIED", "AUDIT_STALE",
-    "AUDIT_REJECTED",
-}
 
 
 def _read_jsonl(path: Path) -> list[dict]:
@@ -68,7 +51,7 @@ def _read_jsonl(path: Path) -> list[dict]:
         try:
             entry = json.loads(raw)
         except json.JSONDecodeError:
-            continue  # une ligne corrompue n'invalide pas la vue, elle est ignorée
+            continue
         if isinstance(entry, dict):
             entries.append(entry)
     return entries
@@ -83,33 +66,38 @@ def _read_optional_json(path: Path | None) -> object | None:
         return None
 
 
-def etat_des_audits(ledger_path: Path, inbox_dir: Path | None = None) -> list[dict]:
-    """Dernier événement par audit_id, ordre d'apparition conservé.
+def _frontmatter(path: Path) -> dict[str, str]:
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    if not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end < 0:
+        return {}
+    fields: dict[str, str] = {}
+    for line in text[3:end].splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        fields[key.strip()] = value.strip()
+    return fields
 
-    Un audit présent dans l'inbox mais absent du ledger est un
-    ``AUDIT_PROPOSED`` implicite (convention du dépôt : l'événement
-    PROPOSED au ledger est optionnel, la présence du fichier fait foi) —
-    il est listé, jamais passé sous silence.
-    """
-    dernier: dict[str, dict] = {}
-    for entry in _read_jsonl(ledger_path):
-        audit_id = str(entry.get("audit_id", "")).strip()
-        if audit_id:
-            dernier[audit_id] = entry
-    if inbox_dir is not None and inbox_dir.exists():
-        for audit_file in sorted(inbox_dir.glob("*.md")):
-            audit_id = audit_file.stem
-            if audit_id not in dernier:
-                dernier[audit_id] = {"event": "AUDIT_PROPOSED", "timestamp": "— (fichier inbox, pas encore au ledger)"}
-    return [
-        {
-            "audit_id": audit_id,
-            "event": entry.get("event", "?"),
-            "humain": ETATS_HUMAINS.get(entry.get("event", ""), entry.get("event", "?")),
-            "timestamp": entry.get("timestamp", "?"),
-        }
-        for audit_id, entry in dernier.items()
-    ]
+
+def _titre(path: Path) -> str:
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if line.startswith("# "):
+            return line[2:].strip()
+    return path.stem
+
+
+def items_hermes_open(directory: Path, prefix: str) -> list[dict]:
+    """Fichiers Hermes encore OPEN. Tout autre statut est hors vue de boot."""
+    if not directory.exists():
+        return []
+    ouverts = []
+    for path in sorted(directory.glob(f"{prefix}*.md")):
+        if _frontmatter(path).get("status") == "OPEN":
+            ouverts.append({"path": path.name, "titre": _titre(path)})
+    return ouverts
 
 
 def budget_du_mois(ledger_path: Path, now: datetime | None = None) -> dict:
@@ -141,28 +129,6 @@ def usage_backends(cost_ledger_path: Path) -> list[dict]:
     return sorted(compte.values(), key=lambda i: -i["runs"])
 
 
-def etat_des_briefs(briefs_dir: Path) -> list[dict]:
-    """État apparent : dernier `VERDICT: ACCEPT|REJECT` tracé dans verdict.md.
-
-    C'est une lecture, pas un jugement — le fichier verdict.md de
-    l'Évaluateur reste la seule autorité ; « aucun tracé » signifie
-    simplement que ce motif n'apparaît pas, pas que le brief est en échec.
-    """
-    verdict_re = re.compile(r"VERDICT:\s*(ACCEPT|REJECT)")
-    briefs = []
-    if not briefs_dir.exists():
-        return briefs
-    for brief in sorted(p for p in briefs_dir.iterdir() if p.is_dir()):
-        verdict_path = brief / "verdict.md"
-        if not verdict_path.exists():
-            statut = "pas encore de verdict"
-        else:
-            matches = verdict_re.findall(verdict_path.read_text(encoding="utf-8", errors="ignore"))
-            statut = f"dernier verdict tracé : {matches[-1]}" if matches else "verdict rendu (voir le fichier)"
-        briefs.append({"brief": brief.name, "statut": statut})
-    return briefs
-
-
 def _table(rows: list[list[str]], headers: list[str]) -> str:
     lines = ["| " + " | ".join(headers) + " |", "|" + "---|" * len(headers)]
     lines += ["| " + " | ".join(str(c) for c in row) + " |" for row in rows]
@@ -182,67 +148,65 @@ def generer(
     import policy_loader  # noqa: E402 (dépôt sans PyYAML, chargeur maison)
 
     config = policy_loader.load_flat_yaml(repo_root / "harness" / "pipeline" / "config.yaml")
-    audits = etat_des_audits(
-        repo_root / "architecture" / "audit-ledger.jsonl",
-        inbox_dir=repo_root / "architecture" / "inbox",
-    )
     budget = budget_du_mois(repo_root / "harness" / "pipeline" / "ci-budget-ledger.jsonl", now=now)
     backends = usage_backends(repo_root / "harness" / "queue" / "cost-ledger.jsonl")
-    briefs = etat_des_briefs(repo_root / "harness" / "queue" / "briefs")
+    propositions = items_hermes_open(repo_root / "hermes" / "propositions", "PROPOSITION-")
+    demandes = items_hermes_open(repo_root / "hermes" / "requests", "DEMANDE-")
 
     runs = _read_optional_json(runs_json)
     prs = _read_optional_json(prs_json)
     agents = _read_optional_json(agents_json)
 
-    audits_en_cours = [a for a in audits if a["event"] != "AUDIT_ARCHIVED"]
     mode = config.get("mode", "?")
 
     out: list[str] = []
     out.append("# Tableau de bord — ForgeHistory")
     out.append("")
     out.append("> Vue générée par `hermes/dashboard.py` (rôle Hermes, ADR-0010) —")
-    out.append("> **ne jamais l'éditer à la main**. Depuis ADR-0013, elle n'est")
-    out.append("> réécrite à la demande (`py hermes/dashboard.py` ou le")
-    out.append("> workflow `hermes-dashboard.yml`). Le cron quotidien Hermes")
-    out.append("> (ADR-0016) mesure et écrit une veille ; il ne pousse pas")
-    out.append("> `master` tout seul. Une vue périmée reste périmée tant")
-    out.append("> que personne ne la régénère.")
+    out.append("> **ne jamais l'éditer à la main**. Régénérer avec")
+    out.append("> `.venv/bin/python hermes/dashboard.py` ou le workflow")
+    out.append("> `hermes-dashboard.yml`. Une vue périmée reste périmée")
+    out.append("> tant que personne ne la régénère.")
     out.append(">")
     out.append(f"> Générée le {now.strftime('%Y-%m-%d %H:%M UTC')}.")
     out.append("")
 
-    # -- En bref -----------------------------------------------------------
     out.append("## En bref")
     out.append("")
+    out.append("- **Produit** : `sim/` + `viewer/` mince. Unity en veille.")
+    out.append("- **Prochain pas produit** : un seul, dans [ROADMAP.md](../ROADMAP.md).")
     out.append(f"- **Mode du pipeline** : `{mode}`"
                + (" — la boucle tourne sans intervention humaine (hors fusion finale)." if mode == "full_auto" else
-                  " — voir `docs/rules/full-auto-pipeline.md`."))
+                  " — `docs/rules/full-auto-pipeline.md`."))
+    out.append(f"- **Pilotage ouvert** : {len(demandes)} demande(s), "
+               f"{len(propositions)} proposition(s).")
     out.append(f"- **Dépense CI ce mois-ci** : {budget['total_usd']} USD mesurés sur "
                f"{budget['invocations']} invocation(s), plafond {monthly_cap_usd:.0f} USD. "
                "En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.")
-    out.append(f"- **Audits en cours** : {len(audits_en_cours)} — boucles closes : "
-               f"{len(audits) - len(audits_en_cours)}.")
+    out.append("- **Boucle d'audit** : historique (jalons seulement, ADR-0012). "
+               "Hermes ne la parcourt plus au boot. "
+               "Voir [architecture/README.md](../architecture/README.md).")
     out.append("")
 
-    # -- Ce qui attend le propriétaire --------------------------------------
     out.append("## Ce qui attend le propriétaire")
     out.append("")
     attentes: list[str] = []
     if isinstance(prs, list):
         for pr in prs:
             numero = pr.get("number", "?")
-            attentes.append(f"- Fusionner (ou refuser) la PR #{numero} — « {pr.get('title', '?')} » "
-                            f"(branche `{pr.get('headRefName', '?')}`). L'auto-fusion GitHub est "
-                            "indisponible sur ce plan : le clic final est humain.")
-    for audit in audits_en_cours:
-        if audit["event"] in ("AUDIT_APPROVED",):
-            attentes.append(f"- Convertir l'audit retenu `{audit['audit_id']}` en brief (`/forge-audit-convert`).")
+            attentes.append(
+                f"- Fusionner (ou refuser) la PR #{numero} — « {pr.get('title', '?')} » "
+                f"(branche `{pr.get('headRefName', '?')}`)."
+            )
+    for item in propositions:
+        attentes.append(f"- Trancher la proposition `{item['path']}` — {item['titre']}.")
+    for item in demandes:
+        attentes.append(f"- Trancher la demande `{item['path']}` — {item['titre']}.")
     if not attentes:
-        attentes.append("- Rien : aucune PR ouverte connue, aucun audit en attente de décision.")
+        attentes.append("- Rien n'attend.")
     out.extend(attentes)
     out.append("")
 
-    # -- Activité GitHub récente --------------------------------------------
     out.append("## Activité GitHub récente")
     out.append("")
     if isinstance(runs, list) and runs:
@@ -257,7 +221,6 @@ def generer(
         out.append("Non disponible dans cette génération (données GitHub non fournies au script).")
     out.append("")
 
-    # -- Agents lancés récemment ---------------------------------------------
     out.append("## Agents lancés récemment (Cursor Cloud)")
     out.append("")
     liste_agents = agents.get("agents") if isinstance(agents, dict) else agents
@@ -277,41 +240,6 @@ def generer(
         out.append("Non disponible dans cette génération (API Cursor non interrogée).")
     out.append("")
 
-    # -- La boucle d'audit ----------------------------------------------------
-    out.append("## La boucle d'audit, audit par audit")
-    out.append("")
-    if audits:
-        rows = [
-            [a["audit_id"], a["humain"],
-             str(a["timestamp"]) if str(a["timestamp"]).startswith("—")
-             else str(a["timestamp"])[:16].replace("T", " ")]
-            for a in audits_en_cours
-        ]
-        if rows:
-            out.append(_table(rows, ["audit", "où il en est", "dernier événement (UTC)"]))
-        else:
-            out.append("Toutes les boucles d'audit sont closes.")
-        out.append("")
-        out.append(f"({len(audits) - len(audits_en_cours)} boucle(s) close(s) non listée(s) — "
-                   "détail : `architecture/audit-ledger.jsonl`.)")
-    else:
-        out.append("Aucun audit enregistré au ledger.")
-    out.append("")
-
-    # -- Briefs ---------------------------------------------------------------
-    out.append("## Briefs (les commandes de travail)")
-    out.append("")
-    if briefs:
-        out.append(_table([[b["brief"], b["statut"]] for b in briefs], ["brief", "état apparent"]))
-        out.append("")
-        out.append("« État apparent » = dernière mention `VERDICT:` tracée dans le "
-                   "`verdict.md` du brief ; l'autorité reste le fichier lui-même et "
-                   "`HANDOFF.md` pour le contexte.")
-    else:
-        out.append("Aucun brief dans la file.")
-    out.append("")
-
-    # -- Utilisation ------------------------------------------------------------
     out.append("## Utilisation des backends Générateur")
     out.append("")
     if backends:
@@ -321,20 +249,12 @@ def generer(
         out.append("Aucun run de Générateur enregistré.")
     out.append("")
 
-    # -- Légende -----------------------------------------------------------------
     out.append("## Comment lire ce tableau")
     out.append("")
-    out.append("La chaîne nominale (ADR-0010) : une **demande** entre par Hermes")
-    out.append("(`hermes/requests/`) → le propriétaire tranche → `ROADMAP.md` est mise")
-    out.append("à jour → Claude (CTO) écrit un **brief** → Codex produit → le gate")
-    out.append("mécanique juge → Claude ouvre la **PR** → Cursor la **critique**")
-    out.append("(audit) → Claude **contre-audite** l'audit → décision → la boucle se")
-    out.append("clôt (`AUDIT_ARCHIVED`).")
-    out.append("")
-    out.append("- Direction et étapes suivantes : [ROADMAP.md](../ROADMAP.md)")
-    out.append("- Dernier état de session détaillé : [HANDOFF.md](../HANDOFF.md)")
-    out.append("- Marche/arrêt de la boucle : `docs/rules/full-auto-pipeline.md`")
-    out.append("  (arrêt d'urgence : label `pipeline/pause`, ou `mode: manual`).")
+    out.append("Boot Hermes : cette vue, les propositions OPEN,")
+    out.append("[ROADMAP.md](../ROADMAP.md), [HANDOFF.md](../HANDOFF.md),")
+    out.append("`forgepilot doctor`, puis `.venv/bin/python -m sim --ticks 0 --json`.")
+    out.append("Les briefs 001–029 et `architecture/` ne se lisent pas au démarrage.")
     out.append("")
     return "\n".join(out)
 

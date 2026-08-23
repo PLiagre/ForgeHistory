@@ -1,32 +1,25 @@
 # Tableau de bord — ForgeHistory
 
 > Vue générée par `hermes/dashboard.py` (rôle Hermes, ADR-0010) —
-> **ne jamais l'éditer à la main**. Depuis ADR-0013, elle n'est
-> réécrite à la demande (`py hermes/dashboard.py` ou le
-> workflow `hermes-dashboard.yml`). Le cron quotidien Hermes
-> (ADR-0016) mesure et écrit une veille ; il ne pousse pas
-> `master` tout seul. Une vue périmée reste périmée tant
-> que personne ne la régénère.
+> **ne jamais l'éditer à la main**. Régénérer avec
+> `.venv/bin/python hermes/dashboard.py` ou le workflow
+> `hermes-dashboard.yml`. Une vue périmée reste périmée
+> tant que personne ne la régénère.
 >
-> Générée le 2026-08-21 13:36 UTC.
+> Générée le 2026-08-23 08:51 UTC.
 
 ## En bref
 
-- **Mode du pipeline** : `manual` — voir `docs/rules/full-auto-pipeline.md`.
+- **Produit** : `sim/` + `viewer/` mince. Unity en veille.
+- **Prochain pas produit** : un seul, dans [ROADMAP.md](../ROADMAP.md).
+- **Mode du pipeline** : `manual` — `docs/rules/full-auto-pipeline.md`.
+- **Pilotage ouvert** : 0 demande(s), 0 proposition(s).
 - **Dépense CI ce mois-ci** : 0.0 USD mesurés sur 0 invocation(s), plafond 200 USD. En authentification par abonnement, ce chiffre est un équivalent estimé, pas une facture.
-- **Audits en cours** : 40 — boucles closes : 9.
+- **Boucle d'audit** : historique (jalons seulement, ADR-0012). Hermes ne la parcourt plus au boot. Voir [architecture/README.md](../architecture/README.md).
 
 ## Ce qui attend le propriétaire
 
-- Convertir l'audit retenu `CURSOR-cdc683f-hermes-workflow-quatre-acteurs` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-e849633-hermes-demande-pilotage` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-0269d8e-hermes-console-droit-executer` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-16ff5ac-contre-audit-perdu-a-la-publication` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-4c45718-pr65-ledger-recupere-a-la-main` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-9e35764-pr63-contre-audit-jamais-enregistre` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-827d54e-contre-audit-paye-jamais-publie` en brief (`/forge-audit-convert`).
-- Convertir l'audit retenu `CURSOR-f978cc7-pr77-cloture-affirmee-hors-registre` en brief (`/forge-audit-convert`).
+- Rien n'attend.
 
 ## Activité GitHub récente
 
@@ -36,105 +29,17 @@ Non disponible dans cette génération (données GitHub non fournies au script).
 
 Non disponible dans cette génération (API Cursor non interrogée).
 
-## La boucle d'audit, audit par audit
-
-| audit | où il en est | dernier événement (UTC) |
-|---|---|---|
-| CURSOR-cdc683f-hermes-workflow-quatre-acteurs | retenu — à convertir en brief | 2026-08-12 11:41 |
-| CURSOR-65c3ac1-dashboard-hermes-modele-auditeur | contre-audit rendu — attend la décision | 2026-08-12 12:01 |
-| CURSOR-73022bd-hermes-dashboard-modele-auditeur | contre-audit rendu — attend la décision | 2026-08-12 11:55 |
-| CURSOR-779d97c-revue-verdicts-illisibles | contre-audit rendu — attend la décision | 2026-08-12 12:30 |
-| CURSOR-e849633-hermes-demande-pilotage | retenu — à convertir en brief | 2026-08-12 15:32 |
-| CURSOR-0269d8e-hermes-console-droit-executer | retenu — à convertir en brief | 2026-08-12 15:49 |
-| CURSOR-a600532-fusion-sans-contre-audit | converti en brief — travail à produire | 2026-08-13 08:40 |
-| CURSOR-16ff5ac-contre-audit-perdu-a-la-publication | retenu — à convertir en brief | 2026-08-13 11:00 |
-| CURSOR-4c45718-pr65-ledger-recupere-a-la-main | retenu — à convertir en brief | 2026-08-13 11:01 |
-| CURSOR-9e35764-pr63-contre-audit-jamais-enregistre | retenu — à convertir en brief | 2026-08-13 11:03 |
-| CURSOR-ab0e7f0-pr62-verdicts-perimes-a-la-fusion | retenu — à convertir en brief | 2026-08-13 11:04 |
-| CURSOR-29913c0-pr69-seuil-survie-non-borne | converti en brief — travail à produire | 2026-08-13 12:59 |
-| CURSOR-827d54e-contre-audit-paye-jamais-publie | retenu — à convertir en brief | 2026-08-13 12:51 |
-| CURSOR-0e98199-pr69-seuil-survie-ignore-mortalite | converti en brief — travail à produire | 2026-08-13 12:59 |
-| CURSOR-f978cc7-pr77-cloture-affirmee-hors-registre | retenu — à convertir en brief | 2026-08-13 12:55 |
-| CURSOR-063d7eb-pr35-challenge-perte-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-1da49ea-pr43-challenge-verdicts-sans-preuve | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-2a4f808-decision-auto-ledger | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-3ce7947-pr36-hermes-skill-versionnee | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-4822662-pr31-verdicts-non-analysables | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-48a5659-push-master-pat-contournement | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-4b6dcff-pr73-contre-audit-recompte-a-tort | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-546a9d4-etape-declenchee-sans-jalon | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-587ee82-pr84-contre-audit-sans-pouvoir-de-refus | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-70380c6-pr83-etat-refus-sans-lecteur | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-70380c6-pr83-porte-desarmee-par-la-derive-de-sha | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-786ec32-pr74-verdicts-fantomes-au-registre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-7e5244b-ledger-post-fusion-poussee-master | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-8894f15-pr71-arbitrage-proprietaire-efface | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-949ecf1-pr42-revue-non-consommable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-9626e9b-pr85-p0-perdu-a-la-decision | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-a7d1c57-pr76-approbation-sans-conversion | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-bb8fe11-hermes-console-adr-0011 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-bd34ded-pr83-porte-verte-quand-elle-devrait-mordre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-c296c47-pr86-revue-sans-preuve-citable | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-c348018-pr89-justification-hors-registre | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-cd1dcd2-forge-bot-pat-boucle-jetons | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-dcbe815-pr87-registre-refute-un-point-fantome | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-e2896e7-pr44-challenge-bb8fe11 | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-| CURSOR-ff9b53b-pr92-etat-de-la-boucle-recopie | déposé — attend le contre-audit de Claude | — (fichier inbox, pas encore au ledger) |
-
-(9 boucle(s) close(s) non listée(s) — détail : `architecture/audit-ledger.jsonl`.)
-
-## Briefs (les commandes de travail)
-
-| brief | état apparent |
-|---|---|
-| 001-spatial-primary-key-adr | dernier verdict tracé : REJECT |
-| 002-geo-pipeline-coastline-1400 | dernier verdict tracé : REJECT |
-| 003-port-unity-game | dernier verdict tracé : ACCEPT |
-| 004-polish-visuel | dernier verdict tracé : ACCEPT |
-| 005-refonte-visuelle-carte | dernier verdict tracé : REJECT |
-| 006-full-auto-agent-pipeline | dernier verdict tracé : ACCEPT |
-| 007-geo-pipeline-cells-adjacency | dernier verdict tracé : REJECT |
-| 008-contexte-opus5-right-sizing | pas encore de verdict |
-| 008-full-auto-automation-gaps | dernier verdict tracé : ACCEPT |
-| 009-full-auto-agent-invocation | dernier verdict tracé : ACCEPT |
-| 010-repartition-roles-full-auto | dernier verdict tracé : ACCEPT |
-| 011-sim-monde-vivant-amorcage | dernier verdict tracé : ACCEPT |
-| 012-monde-vivant-commerce-inter-cellules | dernier verdict tracé : ACCEPT |
-| 013-sim-tick-nourrit-une-fois | dernier verdict tracé : ACCEPT |
-| 014-pipeline-contre-audit-porte | dernier verdict tracé : ACCEPT |
-| 015-pr69-seuil-survie-ignore-mortalite | pas encore de verdict |
-| 016-pr69-seuil-survie-non-borne | pas encore de verdict |
-| 017-sim-seuil-survie-honnete | dernier verdict tracé : ACCEPT |
-| 018-sim-province-derivee | dernier verdict tracé : ACCEPT |
-| 019-geo-adjacence-g4 | dernier verdict tracé : ACCEPT |
-| 020-geo-provenance-littoral-g3 | dernier verdict tracé : ACCEPT |
-| 021-geo-fleuves-g5 | verdict rendu (voir le fichier) |
-| 022-forgepilot-review-stdin-et-iteration | dernier verdict tracé : REJECT |
-| 023-forgepilot-modele-et-effort-par-role | dernier verdict tracé : REJECT |
-| 024-geo-relief-g6 | pas encore de verdict |
-| 025-geo-determinants-climat-c1 | pas encore de verdict |
-| 026-geo-gisements-1400-r1 | pas encore de verdict |
-
-« État apparent » = dernière mention `VERDICT:` tracée dans le `verdict.md` du brief ; l'autorité reste le fichier lui-même et `HANDOFF.md` pour le contexte.
-
 ## Utilisation des backends Générateur
 
 | backend | runs cumulés | dernier run (UTC) |
 |---|---|---|
 | claude | 29 | 2026-08-13 12:32 |
-| cursor | 21 | 2026-08-21 07:12 |
+| cursor | 25 | 2026-08-23 08:27 |
 | codex | 2 | 2026-08-11 23:16 |
 
 ## Comment lire ce tableau
 
-La chaîne nominale (ADR-0010) : une **demande** entre par Hermes
-(`hermes/requests/`) → le propriétaire tranche → `ROADMAP.md` est mise
-à jour → Claude (CTO) écrit un **brief** → Codex produit → le gate
-mécanique juge → Claude ouvre la **PR** → Cursor la **critique**
-(audit) → Claude **contre-audite** l'audit → décision → la boucle se
-clôt (`AUDIT_ARCHIVED`).
-
-- Direction et étapes suivantes : [ROADMAP.md](../ROADMAP.md)
-- Dernier état de session détaillé : [HANDOFF.md](../HANDOFF.md)
-- Marche/arrêt de la boucle : `docs/rules/full-auto-pipeline.md`
-  (arrêt d'urgence : label `pipeline/pause`, ou `mode: manual`).
+Boot Hermes : cette vue, les propositions OPEN,
+[ROADMAP.md](../ROADMAP.md), [HANDOFF.md](../HANDOFF.md),
+`forgepilot doctor`, puis `.venv/bin/python -m sim --ticks 0 --json`.
+Les briefs 001–029 et `architecture/` ne se lisent pas au démarrage.
