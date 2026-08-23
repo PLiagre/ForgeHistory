@@ -615,6 +615,44 @@ class ScopeAndReviewTests(unittest.TestCase, GitRepoMixin):
             self.assertIn("b" * 40, markdown.read_text(encoding="utf-8"))
 
 
+class ControllerRouterTests(unittest.TestCase):
+    def test_test_profile_uses_controller_router_but_runs_in_worktree(self):
+        from forgepilot.durable import run_test_profile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            worktree = Path(tmp)
+            subprocess.run(["git", "init", "-b", "main"], cwd=worktree, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=worktree, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=worktree, check=True)
+            (worktree / "harness").mkdir()
+            (worktree / "harness" / "workflow_test_router.py").write_text(
+                "def build_plan(*args, **kwargs): raise RuntimeError('routeur périmé chargé')\n",
+                encoding="utf-8",
+            )
+            (worktree / "control-plane").mkdir()
+            source_policy = Path(__file__).resolve().parents[1] / "workflow-policy.toml"
+            (worktree / "control-plane" / "workflow-policy.toml").write_bytes(
+                source_policy.read_bytes()
+            )
+            proof = worktree / "pipeline" / "geo" / "tests" / "run_proof_r1.py"
+            proof.parent.mkdir(parents=True)
+            proof.write_text("print('R1 OK')\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=worktree, check=True)
+            subprocess.run(["git", "commit", "-m", "fixture"], cwd=worktree, check=True, capture_output=True)
+
+            result = run_test_profile(
+                worktree,
+                paths=["pipeline/geo/tests/run_proof_r1.py"],
+                profile="fast",
+                output_path=worktree / "result.json",
+            )
+
+            self.assertEqual(0, result["code"])
+            results = result["results"]
+            self.assertIsInstance(results, list)
+            self.assertEqual(["git-diff-check", "r1-proof"], [item["id"] for item in results])
+
+
 class DurableFlowTests(unittest.TestCase, GitRepoMixin):
     def _fake_publish(
         self,

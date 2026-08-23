@@ -517,9 +517,11 @@ def run_test_profile(
     head_sha: str | None = None,
     allow_heavy: bool = False,
 ) -> dict[str, object]:
-    router = worktree / "harness" / "workflow_test_router.py"
+    # Le routeur appartient au contrôleur ForgePilot courant, pas au candidat.
+    # Les commandes qu'il produit s'exécutent toutefois dans le worktree.
+    router = Path(__file__).resolve().parents[2] / "harness" / "workflow_test_router.py"
     if not router.is_file():
-        raise PilotError(f"Routeur de tests ciblés introuvable : {router}")
+        raise PilotError(f"Routeur de tests ciblés du contrôleur introuvable : {router}")
     spec = importlib.util.spec_from_file_location("forgepilot_workflow_test_router", router)
     if spec is None or spec.loader is None:
         raise PilotError(f"Routeur de tests impossible à charger : {router}")
