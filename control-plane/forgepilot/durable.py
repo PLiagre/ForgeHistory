@@ -337,6 +337,53 @@ def recover_executor_result(
     )
 
 
+def recover_iteration_result(
+    repo: Path,
+    run_id: str,
+    result_path: Path,
+) -> dict[str, object]:
+    """Archive une correction Cursor retrouvée après invalidation du candidat testé."""
+
+    state_path = run_state_path(repo, run_id)
+    state = load_state(state_path)
+    if (
+        state.get("step") != "ERROR"
+        or state.get("resume_from") != "PR_TESTING"
+        or not str(state.get("error", "")).startswith("Preuve périmée : le candidat Git a changé")
+    ):
+        raise PilotError(
+            "Récupération itération refusée : le run n'est pas en erreur de candidat périmé."
+        )
+    worktree = _state_worktree(repo, state)
+    if not _executor_effect_is_ambiguous(worktree, state.get("head_sha")):
+        raise PilotError("Récupération itération refusée : aucune correction Cursor à préserver.")
+    iteration = deepcopy(state.get("iteration", {}))
+    if not isinstance(iteration, dict):
+        iteration = {}
+    next_iteration = int(iteration.get("count", 0)) + 1
+    output_path = state_path.parent / f"executor-iteration-{next_iteration}.json"
+    if output_path.exists():
+        raise PilotError("Récupération itération refusée : résultat d'itération déjà archivé.")
+    try:
+        raw_result = json.loads(result_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        raise PilotError("Résultat d'itération de récupération illisible.") from exc
+    result = validate_executor(raw_result, iteration=True)
+    write_normalized_json(output_path, result)
+    iteration["count"] = next_iteration
+    state["iteration"] = iteration
+    state["iteration_approach_changed"] = result["approach_changed"]
+    state["executor_session"] = extract_session_id(result) or state.get("executor_session")
+    state = _set_artifact(state_path, state, "executor", output_path)
+    return transition(
+        state_path,
+        state,
+        "ITERATED",
+        role=None,
+        updates={"resume_from": None},
+    )
+
+
 def _query_existing_pr(worktree: Path) -> str | None:
     branch = git(worktree, "branch", "--show-current")
     try:

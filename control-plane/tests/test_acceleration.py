@@ -757,6 +757,40 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual("recovered-session", final["executor_session"])
             self.assertTrue((state_path.parent / "executor.json").is_file())
 
+    def test_recover_iteration_archives_valid_result_and_reopens_stale_candidate(self):
+        from forgepilot.durable import recover_iteration_result
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            state_path, state = register_run(
+                load_settings(), repo, task, "recover-iteration", base_ref="main", base_branch="main"
+            )
+            worktree, branch = create_worktree(repo, "recover-iteration", str(state["base_sha"]))
+            base = str(state["base_sha"])
+            state.update({
+                "worktree": str(worktree),
+                "branch": branch,
+                "head_sha": base,
+                "candidate": {"base_sha": base, "head_sha": base, "tree_sha": subprocess.run(["git", "rev-parse", "HEAD^{tree}"], cwd=worktree, check=True, capture_output=True, text=True).stdout.strip(), "paths": [], "iteration": 0},
+                "step": "ERROR",
+                "resume_from": "PR_TESTING",
+                "error": "Preuve périmée : le candidat Git a changé depuis son identité archivée (feature.txt).",
+            })
+            save_state(state_path, state)
+            (worktree / "feature.txt").write_text("fix\n", encoding="utf-8")
+            recovered = repo / "iteration.json"
+            recovered.write_text(json.dumps(valid_executor(approach_changed=False)), encoding="utf-8")
+
+            final = recover_iteration_result(repo, str(state["run_id"]), recovered)
+
+            self.assertEqual("ITERATED", final["step"])
+            self.assertEqual(1, final["iteration"]["count"])
+            self.assertTrue((state_path.parent / "executor-iteration-1.json").is_file())
+
     def test_complete_run_persists_sha_pr_models_and_durations(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
