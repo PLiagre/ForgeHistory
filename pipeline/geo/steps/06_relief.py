@@ -27,6 +27,9 @@ from shapely.ops import linemerge, unary_union
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+TOOLS = ROOT / "tools"
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
 
 from constants import (  # noqa: E402
     A12_RELIEF_MUST_BE_HIGH,

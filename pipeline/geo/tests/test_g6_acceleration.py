@@ -105,6 +105,14 @@ def _write_raster(path: Path, west: float, values: np.ndarray) -> None:
         dataset.write(values.astype("float32"), 1)
 
 
+def test_relief_importe_dem_batch_depuis_tools() -> None:
+    """06_relief.py charge tools/dem_batch.py sans PYTHONPATH extra."""
+    module = _load("steps/06_relief.py", "relief_g6_import_dem_batch")
+    assert module.MeasurementTable is not None
+    assert callable(module.measurement_table_key)
+    assert callable(module.read_grouped_windows)
+
+
 def test_cache_historique_partage_et_invalidation(tmp_path: Path, cache_policy) -> None:
     lock_path = tmp_path / "sources.lock"
     _write_lock(lock_path, {"tile-a.tif": b"a"})
