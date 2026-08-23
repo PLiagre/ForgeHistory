@@ -113,6 +113,12 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual("hermes", policy.controller.backend)
         self.assertEqual("nous_portal", policy.controller.provider)
         self.assertFalse(policy.controller.can_review)
+        self.assertEqual("openai/gpt-5.4", policy.controller.model)
+        self.assertEqual("claude-opus-5", policy.witness.model)
+        self.assertEqual("high", policy.witness.effort)
+        self.assertEqual("cursor", policy.risks["R1"].roles["planner"].backend)
+        self.assertEqual("cursor-grok-4.6", policy.risks["R1"].roles["planner"].model)
+        self.assertEqual("xhigh", policy.risks["R1"].roles["reviewer"].effort)
         self.assertEqual({"R0", "R1", "R2"}, set(policy.risks))
         for profile in policy.risks.values():
             self.assertEqual({"planner", "executor", "reviewer"}, set(profile.roles))
@@ -122,8 +128,8 @@ class PolicyTests(unittest.TestCase):
     def test_invalid_backend_is_refused_before_agents(self):
         source = Path(__file__).parents[1] / "workflow-policy.toml"
         body = source.read_text(encoding="utf-8").replace(
-            'backend = "claude"\nmodel = "claude-opus-5"',
-            'backend = "cursor"\nmodel = "claude-opus-5"',
+            '[risks.R1.roles.executor]\nbackend = "cursor"',
+            '[risks.R1.roles.executor]\nbackend = "claude"',
             1,
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -756,7 +762,7 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual(("planner", "R1"), observed[0])
             self.assertIn(("executor", "R2"), observed)
             self.assertIn(("reviewer", "R2"), observed)
-            self.assertEqual("high", final["effective_models"]["reviewer"]["effort"])
+            self.assertEqual("xhigh", final["effective_models"]["reviewer"]["effort"])
 
     def test_two_iterations_without_improvement_stop(self):
         with tempfile.TemporaryDirectory() as tmp:

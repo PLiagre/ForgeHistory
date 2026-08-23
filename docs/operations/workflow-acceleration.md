@@ -27,8 +27,10 @@ sont ni une autorité versionnée ni une permission de fusion.
 
 Hermes relaie à Discord uniquement les changements d'étape retournés par
 `status` : identifiant du run, étape, SHA, résultat mécanique ou blocage. Il ne
-transforme jamais une sortie Cursor en verdict. La revue et le verdict restent
-une invocation Claude distincte ; le propriétaire garde la fusion.
+transforme jamais une sortie Cursor en verdict. La revue quotidienne est Grok 4.6 `xhigh` (contexte neuf). Claude
+Opus 5 n'est qu'un témoin rare (`forgepilot witness`). Si le juge
+rend `PASS` et que les checks sont verts sur ce SHA,
+`forgepilot merge --run` fusionne ; un label `do-not-merge` bloque.
 
 ## Vérifier le risque et préparer les tests
 
@@ -113,5 +115,12 @@ Après la revue indépendante :
 .venv/bin/forgepilot verdict latest --repo . --output /tmp/verdict.md
 ```
 
-`--comment-pr` rend le matériau visible sur la PR mais ne fusionne rien. Avant
-toute décision, comparer le SHA du verdict, celui de la PR et celui du run.
+`--comment-pr` rend le matériau visible sur la PR. La fusion quotidienne :
+
+```bash
+.venv/bin/forgepilot merge latest --repo .
+.venv/bin/forgepilot merge latest --repo . --run
+```
+
+Comparer le SHA du juge, celui de la PR et celui du run. Témoin Claude
+(haute valeur seulement) : `forgepilot witness <plan.json> --repo .`.

@@ -16,11 +16,13 @@ ROLE_NAMES = ("planner", "executor", "reviewer")
 TIMEOUT_NAMES = ("planner", "executor", "reviewer", "proof")
 TEST_PROFILES = ("fast", "pr", "certify")
 BACKENDS = {
-    "planner": {"claude", "none"},
+    "planner": {"claude", "cursor", "none"},
     "executor": {"cursor", "none"},
-    "reviewer": {"claude", "none"},
+    "reviewer": {"claude", "cursor", "none"},
+    "witness": {"claude", "none"},
 }
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
+GROK_EFFORTS = ("low", "medium", "high", "xhigh")
 
 
 def _strip_relative_prefix(value: str) -> str:
@@ -79,6 +81,7 @@ class WorkflowPolicy:
     r2_paths: tuple[str, ...]
     generated_artifacts: tuple[str, ...]
     risks: dict[str, RiskProfile]
+    witness: PolicyRole
 
     def profile(self, risk: str) -> RiskProfile:
         try:
@@ -95,6 +98,7 @@ class WorkflowPolicy:
             "sha256": self.sha256,
             "review_bundle_max_bytes": self.review_bundle_max_bytes,
             "controller": asdict(self.controller),
+            "witness": asdict(self.witness),
             "risks": {
                 name: {
                     "test_profile": profile.test_profile,
@@ -239,6 +243,12 @@ def load_policy(path: Path | str | None = None) -> WorkflowPolicy:
         )
         profiles[risk] = RiskProfile(risk, test_profile, roles, timeouts)
 
+    witness_raw = raw.get("witness")
+    if witness_raw is None:
+        witness = PolicyRole(backend="claude", model="claude-opus-5", effort="high")
+    else:
+        witness = _load_role("witness", "witness", witness_raw)
+
     return WorkflowPolicy(
         path=policy_path.resolve(),
         version=version,
@@ -253,6 +263,7 @@ def load_policy(path: Path | str | None = None) -> WorkflowPolicy:
             allow_empty=True,
         ),
         risks=profiles,
+        witness=witness,
     )
 
 

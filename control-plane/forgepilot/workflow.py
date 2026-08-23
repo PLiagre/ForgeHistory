@@ -15,7 +15,7 @@ from .config import (
     Settings,
     assert_valid_effort,
 )
-from .policy import effective_risk
+from .policy import GROK_EFFORTS, effective_risk
 from .process import PilotError, git, resolve_binary, run_command, run_command_stream
 from .protocol import extract_session_id, validate_plan, write_normalized_json
 from .publication import enforce_allowed_paths, stage_explicit_paths, working_tree_paths
@@ -122,19 +122,72 @@ def resolve_role(
     return RoleSettings(model=resolved_model or "", effort=resolved_effort or "")
 
 
+def _role_backend(settings: Settings, risk: str | None, role: str) -> str:
+    if risk is None or settings.policy is None:
+        return "cursor" if role == "executor" else "claude"
+    return settings.policy.profile(risk).roles[role].backend
+
+
 def _assert_policy_backend(
     settings: Settings,
     risk: str | None,
     role: str,
     expected: str,
 ) -> None:
+    backend = _role_backend(settings, risk, role)
     if risk is None or settings.policy is None:
         return
-    backend = settings.policy.profile(risk).roles[role].backend
     if backend != expected:
         raise PilotError(
             f"Le profil {risk} affecte {role} au backend {backend!r}, pas {expected!r}."
         )
+
+
+def grok_model_for_effort(model: str, effort: str) -> str:
+    """Grok 4.6 n'a pas --effort : l'effort est le suffixe du slug."""
+    resolved = effort
+    if resolved == "max":
+        resolved = "xhigh"
+    if not model:
+        return model
+    if any(model.endswith(f"-{level}") for level in GROK_EFFORTS):
+        return model
+    if resolved and resolved in GROK_EFFORTS and "grok-4.6" in model:
+        return f"{model}-{resolved}"
+    return model
+
+
+def _cursor_read_argv(
+    settings: Settings,
+    repo: Path,
+    prompt: str,
+    *,
+    mode: str,
+    model: str,
+) -> list[str]:
+    argv = [
+        settings.cursor_binary,
+        "-p",
+        prompt,
+        "--mode",
+        mode,
+        "--trust",
+        "--workspace",
+        str(repo),
+        "--output-format",
+        "json",
+    ]
+    if model:
+        argv.extend(["--model", model])
+    command_line = subprocess.list2cmdline(argv)
+    command_units = len(command_line.encode("utf-16-le")) // 2 + 1
+    if command_units > PORTABLE_CURSOR_COMMAND_UNITS:
+        raise PilotError(
+            "Prompt Cursor trop grand pour une invocation portable "
+            f"({command_units} unités UTF-16 > {PORTABLE_CURSOR_COMMAND_UNITS}) ; "
+            "scinder le plan ou le bundle."
+        )
+    return argv
 
 
 def _claude_argv(
@@ -177,10 +230,27 @@ def plan_invocation(
     effort: str | None = None,
     risk: str | None = None,
 ) -> Invocation:
-    _assert_policy_backend(settings, risk, "planner", "claude")
+    backend = _role_backend(settings, risk, "planner")
+    if backend == "none":
+        raise PilotError("Aucun planificateur n'est configuré pour ce risque.")
     task_body = _task_text(task)
     prompt = _read_prompt("planner.md").replace("{{TASK}}", task_body)
     resolved = resolve_role(settings, "planner", model=model, effort=effort, risk=risk)
+    if backend == "cursor":
+        cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
+        argv = _cursor_read_argv(
+            settings, repo, prompt, mode="plan", model=cursor_model
+        )
+        return Invocation(
+            "planner",
+            tuple(argv),
+            str(repo),
+            {},
+            prompt,
+            model=cursor_model or None,
+            effort=resolved.effort or None,
+            backend="cursor",
+        )
     argv = _claude_argv(settings, "planner", model=model, effort=effort, risk=risk)
     return Invocation(
         "planner",
@@ -205,7 +275,9 @@ def review_invocation(
     risk: str | None = None,
     bundle_path: Path | None = None,
 ) -> Invocation:
-    _assert_policy_backend(settings, risk, "reviewer", "claude")
+    backend = _role_backend(settings, risk, "reviewer")
+    if backend == "none":
+        raise PilotError("Aucun relecteur n'est configuré pour ce risque.")
     if bundle_path is not None:
         bundle_body = _task_text(bundle_path)
     else:
@@ -226,6 +298,21 @@ def review_invocation(
         )
     prompt = _read_prompt("reviewer.md").replace("{{REVIEW_BUNDLE}}", bundle_body)
     resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
+    if backend == "cursor":
+        cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
+        argv = _cursor_read_argv(
+            settings, repo, prompt, mode="ask", model=cursor_model
+        )
+        return Invocation(
+            "reviewer",
+            tuple(argv),
+            str(repo),
+            {},
+            prompt,
+            model=cursor_model or None,
+            effort=resolved.effort or None,
+            backend="cursor",
+        )
     argv = _claude_argv(settings, "reviewer", model=model, effort=effort, risk=risk)
     return Invocation(
         "reviewer",
@@ -235,6 +322,42 @@ def review_invocation(
         prompt,
         model=resolved.model or None,
         effort=resolved.effort or None,
+        backend="claude",
+    )
+
+
+def witness_invocation(
+    settings: Settings,
+    repo: Path,
+    plan: Path,
+    base: str,
+    *,
+    bundle_path: Path | None = None,
+) -> Invocation:
+    """Témoin Claude hors chemin quotidien (ADR-0017)."""
+    if settings.policy is None:
+        raise PilotError("Politique absente ; le témoin Claude n'est pas configurable.")
+    witness = settings.policy.witness
+    if witness.backend != "claude":
+        raise PilotError("Le témoin doit rester Claude (ADR-0017).")
+    review = review_invocation(
+        settings,
+        repo,
+        plan,
+        base,
+        model=witness.model,
+        effort=witness.effort,
+        bundle_path=bundle_path,
+        risk=None,
+    )
+    return Invocation(
+        "witness",
+        review.argv,
+        review.cwd,
+        review.environment,
+        review.prompt,
+        model=witness.model or None,
+        effort=witness.effort or None,
         backend="claude",
     )
 
@@ -348,7 +471,11 @@ def _stream_argv(invocation: Invocation) -> tuple[str, ...]:
         index = argv.index("--output-format") + 1
         if index < len(argv):
             argv[index] = "stream-json"
-    if invocation.role in {"planner", "reviewer"} and "--verbose" not in argv:
+    if (
+        invocation.backend == "claude"
+        and invocation.role in {"planner", "reviewer", "witness"}
+        and "--verbose" not in argv
+    ):
         argv.append("--verbose")
     return tuple(argv)
 
@@ -371,7 +498,7 @@ def execute_invocation(
         "stdin": (
             stdin
             if stdin is not None
-            else (None if invocation.role == "executor" else invocation.prompt)
+            else (None if invocation.backend == "cursor" else invocation.prompt)
         ),
         "remove_env": tuple(
             name for name in os.environ if CONTROLLER_SECRET_ENV.search(name)
@@ -457,7 +584,8 @@ def publish_preview(
     if not git(repo, "status", "--porcelain"):
         raise PilotError("Aucun changement à publier.")
     body = (
-        "Produit par Cursor dans ForgePilot. Fusion humaine obligatoire.\n\n"
+        "Produit par Cursor dans ForgePilot. "
+        "Fusion mécanique si juge PASS et checks verts (ADR-0017).\n\n"
         f"Forge-Risk: {risk}\n"
         f"Forge-Brief: {brief or title}"
     )
@@ -562,7 +690,7 @@ def chain_preview(
             "after": "worktree",
             "title": slug,
             "draft": True,
-            "note": "Produit par Cursor dans ForgePilot. Fusion humaine obligatoire.",
+            "note": "Produit par Cursor dans ForgePilot. Fusion mécanique si juge PASS et checks verts (ADR-0017).",
         },
         "review": {
             "role": "reviewer",

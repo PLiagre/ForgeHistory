@@ -421,7 +421,8 @@ def _push_candidate_and_pr(
             branch = git(worktree, "branch", "--show-current")
             effective_risk = _state_risk(state)
             body = (
-                "Produit par Cursor dans ForgePilot. Fusion humaine obligatoire.\n\n"
+                "Produit par Cursor dans ForgePilot. "
+                "Fusion mécanique si juge PASS et checks verts (ADR-0017).\n\n"
                 f"Forge-Risk: {effective_risk}\n"
                 f"Forge-Brief: {state['task_name']}"
             )

@@ -38,6 +38,10 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 - **Piloter un lot.** Enregistrer puis lancer un run durable avec
   `forgepilot start <brief.md>` ; suivre et reprendre avec `status` et
   `resume`. Le runbook est `docs/operations/workflow-acceleration.md`.
+- **Déléguer en parallèle.** Découper une mission de lecture / mesure en
+  sous-tâches indépendantes (sous-agents Hermes), synthétiser sans juger
+  un lot — contrat dans `hermes/skills/forgehistory-suivi/SKILL.md` §7
+  et ADR-0015. Ce n’est pas ForgePilot.
 - **Mesurer.** Relancer `python -m sim`, les tests `sim/`, le tableau de
   bord. Dire ce qui manque au lieu de l’inventer.
 - **S’améliorer.** Mettre à jour sa skill quand une règle du dépôt change
@@ -45,8 +49,10 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 - **Cadencer.** Une veille quotidienne script-only et silencieuse sur le
   chemin vert (`hermes/crons/README.md`). Aucun cron ne fusionne.
 
-Hermes ne juge pas un lot. Claude Code planifie, relit et rend les
-verdicts. Cursor écrit le code. Le propriétaire fusionne.
+Hermes ne juge pas un lot. Grok 4.6 planifie et juge la PR finale ;
+Composer écrit le code ; Claude Opus 5 n’intervient qu’en témoin rare
+(ADR-0017). La fusion est mécanique (`forgepilot merge`) si juge et
+checks sont verts.
 
 ## Tableau de bord
 
@@ -86,9 +92,9 @@ le propriétaire tranche (garder / amender / rejeter)
 si besoin d’un lot : session Claude pour écrire le brief
   ▼
 Hermes lance ForgePilot : `forgepilot start <brief.md> --run`
-  (plan, execute, draft PR, review — pas de fusion)
+  (plan Grok, execute Composer, draft PR, juge Grok)
   ▼
-le propriétaire fusionne
+`forgepilot merge --run` si PASS + checks verts (ADR-0017)
   ▼
 Hermes rend compte (rapport + ROADMAP)
 ```
