@@ -51,6 +51,29 @@ class PolicyRoutingTests(unittest.TestCase):
             review_inv.argv[review_inv.argv.index("--model") + 1],
         )
 
+    def test_large_cursor_review_bundle_is_referenced_by_path(self):
+        settings = load_settings()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan = root / "plan.json"
+            plan.write_text('{"task":"x"}', encoding="utf-8")
+            bundle_dir = root / ".forgepilot" / "runs" / "run-1"
+            bundle_dir.mkdir(parents=True)
+            marker = "BUNDLE_LONG_SECRET_MARKER"
+            bundle = bundle_dir / "bundle.json"
+            bundle.write_text(marker + ("x" * 250_000), encoding="utf-8")
+
+            invocation = review_invocation(
+                settings, root, plan, "HEAD", risk="R1", bundle_path=bundle
+            )
+
+        prompt = invocation.argv[invocation.argv.index("-p") + 1]
+        self.assertIn(str(bundle), prompt)
+        self.assertIn("Lis intégralement", prompt)
+        self.assertNotIn(marker, prompt)
+        self.assertIn("--add-dir", invocation.argv)
+        self.assertEqual(str(bundle_dir), invocation.argv[invocation.argv.index("--add-dir") + 1])
+
     def test_large_cursor_planning_brief_is_referenced_by_repo_path(self):
         settings = load_settings()
         with tempfile.TemporaryDirectory() as tmp:

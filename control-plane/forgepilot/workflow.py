@@ -289,31 +289,47 @@ def review_invocation(
     backend = _role_backend(settings, risk, "reviewer")
     if backend == "none":
         raise PilotError("Aucun relecteur n'est configuré pour ce risque.")
-    if bundle_path is not None:
-        bundle_body = _task_text(bundle_path)
-    else:
-        plan_body = _task_text(plan)
-        diff = git(repo, "diff", "--no-ext-diff", f"{base}...HEAD")
-        if not diff:
-            raise PilotError(f"Aucun diff à relire contre {base}.")
-        bundle_body = json.dumps(
-            {
-                "base": base,
-                "plan": plan_body,
-                "manual_diffs": {"legacy-diff": diff},
-                "generated_artifacts": [],
-                "mechanical_results": [],
-                "producer_conclusions_included": False,
-            },
-            ensure_ascii=False,
-        )
-    prompt = _read_prompt("reviewer.md").replace("{{REVIEW_BUNDLE}}", bundle_body)
     resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
-    if backend == "cursor":
+    argv: list[str]
+    if backend == "cursor" and bundle_path is not None:
+        if not bundle_path.is_file():
+            raise PilotError(f"Bundle de revue introuvable : {bundle_path}")
+        bundle_reference = (
+            f"Lis intégralement le bundle de revue `{bundle_path.resolve()}`. "
+            "Ce fichier est l'unique bundle autoritaire ; rends ensuite le JSON de revue fermé."
+        )
+        prompt = _read_prompt("reviewer.md").replace("{{REVIEW_BUNDLE}}", bundle_reference)
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
         argv = _cursor_read_argv(
             settings, repo, prompt, mode="ask", model=cursor_model
         )
+        argv.extend(["--add-dir", str(bundle_path.resolve().parent)])
+    else:
+        if bundle_path is not None:
+            bundle_body = _task_text(bundle_path)
+        else:
+            plan_body = _task_text(plan)
+            diff = git(repo, "diff", "--no-ext-diff", f"{base}...HEAD")
+            if not diff:
+                raise PilotError(f"Aucun diff à relire contre {base}.")
+            bundle_body = json.dumps(
+                {
+                    "base": base,
+                    "plan": plan_body,
+                    "manual_diffs": {"legacy-diff": diff},
+                    "generated_artifacts": [],
+                    "mechanical_results": [],
+                    "producer_conclusions_included": False,
+                },
+                ensure_ascii=False,
+            )
+        prompt = _read_prompt("reviewer.md").replace("{{REVIEW_BUNDLE}}", bundle_body)
+    if backend == "cursor":
+        cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
+        if bundle_path is None:
+            argv = _cursor_read_argv(
+                settings, repo, prompt, mode="ask", model=cursor_model
+            )
         return Invocation(
             "reviewer",
             tuple(argv),
