@@ -249,7 +249,7 @@ def plan_invocation(
         prompt = _read_prompt("planner.md").replace("{{TASK}}", authoritative_task)
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
         argv = _cursor_read_argv(
-            settings, repo, prompt, mode="plan", model=cursor_model
+            settings, repo, prompt, mode="ask", model=cursor_model
         )
         return Invocation(
             "planner",
