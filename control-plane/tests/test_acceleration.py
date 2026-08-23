@@ -791,6 +791,38 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual(1, final["iteration"]["count"])
             self.assertTrue((state_path.parent / "executor-iteration-1.json").is_file())
 
+    def test_iterated_recovery_does_not_require_feedback_again(self):
+        from forgepilot.durable import _iterate
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            state_path, state = register_run(
+                load_settings(), repo, task, "iterated-no-feedback", base_ref="main", base_branch="main"
+            )
+            worktree, branch = create_worktree(repo, "iterated-no-feedback", str(state["base_sha"]))
+            plan = valid_plan()
+            plan_path = state_path.parent / "plan.json"
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            (worktree / "feature.txt").write_text("fix\n", encoding="utf-8")
+            state.update({
+                "artifacts": {"plan": "plan.json", "executor": "executor-iteration-1.json"},
+                "worktree": str(worktree),
+                "branch": branch,
+                "head_sha": str(state["base_sha"]),
+                "step": "ITERATED",
+                "iteration": {"count": 1, "plateau_count": 0, "last_findings": [], "last_finding_count": None},
+                "iteration_approach_changed": False,
+            })
+            save_state(state_path, state)
+
+            with patch("forgepilot.durable._prepare_candidate", side_effect=PilotError("candidate reached")):
+                with self.assertRaisesRegex(PilotError, "candidate reached"):
+                    _iterate(load_settings(), repo, state_path, state, plan)
+
     def test_complete_run_persists_sha_pr_models_and_durations(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

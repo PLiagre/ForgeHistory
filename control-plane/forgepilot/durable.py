@@ -995,17 +995,19 @@ def _iterate(
 ) -> dict[str, object]:
     risk = _state_risk(state)
     worktree = _state_worktree(repo, state)
-    feedback = _artifact_path(state_path, state, "feedback")
-    if feedback is None or not feedback.is_file():
-        raise PilotError("Feedback structuré absent ; itération refusée.")
-    payload = json.loads(feedback.read_text(encoding="utf-8"))
-    feedback_target = (
-        state.get("iteration_base_sha")
-        if state.get("iteration_active")
-        else state.get("head_sha")
-    )
-    if payload.get("head_sha_reviewed") != feedback_target:
-        raise PilotError("Feedback périmé : il ne vise pas le head SHA courant.")
+    feedback: Path | None = None
+    if state["step"] in {"NEEDS_FIX", "ITERATING"}:
+        feedback = _artifact_path(state_path, state, "feedback")
+        if feedback is None or not feedback.is_file():
+            raise PilotError("Feedback structuré absent ; itération refusée.")
+        payload = json.loads(feedback.read_text(encoding="utf-8"))
+        feedback_target = (
+            state.get("iteration_base_sha")
+            if state.get("iteration_active")
+            else state.get("head_sha")
+        )
+        if payload.get("head_sha_reviewed") != feedback_target:
+            raise PilotError("Feedback périmé : il ne vise pas le head SHA courant.")
     plan_path = _artifact_path(state_path, state, "plan")
     if plan_path is None or not plan_path.is_file():
         raise PilotError("Plan durable absent ; itération refusée.")
