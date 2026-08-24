@@ -20,3 +20,4 @@
 | [0016](0016-sim-sans-unity-hermes-pilote-et-propose.md) | `sim/` sans Unity est le produit vivant ; Hermes pilote et propose | accepted | 2026-08-20 |
 | [0017](0017-grok-juge-claude-temoin-fusion-mecanique.md) | Grok juge la PR, Claude Opus 5 témoin rare, fusion mécanique | accepted | 2026-08-23 |
 | [0018](0018-hermes-sol-briefs-cursor-parallele.md) | Hermes (Sol 5.6) prépare les grandes étapes ; Cursor découpe et exécute en parallèle ; harnais optionnel ; sim simple | accepted | 2026-08-24 |
+| [0019](0019-geler-g6-reculer-le-scope.md) | Geler G6, reculer le scope, produit = sim mince | accepted | 2026-08-24 |

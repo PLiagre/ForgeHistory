@@ -123,7 +123,8 @@ parallèle, un jeu plus simple.
 
 ## Ce que cet ADR ne décide pas
 
-1. Le contenu du brief 026 ni d'un brief futur (la source unique reste
-   le brief lui-même).
+1. Le contenu d'un brief futur (la source unique reste le brief
+   lui-même). ADR-0019 tranche ensuite : G6 gelé, pas de consommation
+   R1, geo hors chemin quotidien.
 2. Le réveil d'Unity.
 3. La réactivation de `mode: full_auto`.

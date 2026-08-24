@@ -42,4 +42,5 @@ not require census-grade historical inputs at t0, nor a closed-form
 prediction that the running engine must match to a tight tolerance.
 Order-of-magnitude proxies documented in `sim/SEEDING.md` are enough
 for the living engine. The three-role harness remains available ; it
-is no longer the default path of an ordinary product lot.
+is no longer the default path of an ordinary product lot. ADR-0019 :
+G6 is frozen ; `pipeline/geo/` is off the daily path.
