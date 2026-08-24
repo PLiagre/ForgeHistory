@@ -8,6 +8,9 @@ ADR-0018 : ces proxys **suffisent** au moteur vivant. On ne bloque pas
 prédictif au millième. Un brief futur peut affiner les constantes ;
 aucun lot ne doit inventer un cadastre de 1400 pour avancer.
 
+ADR-0019 : G6 est gelé. On n'attend plus le relief, les gisements ni un
+climat observé pour faire tourner ce moteur.
+
 ---
 
 ## Déclaration explicite

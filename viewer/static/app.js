@@ -238,12 +238,6 @@
       select.appendChild(option);
     });
     var notes = [];
-    if (state.snapshot.layers.relief_g6.status !== "present") {
-      notes.push("relief non disponible");
-    }
-    if (state.snapshot.layers.resources_r1.status !== "present") {
-      notes.push("gisements non disponibles");
-    }
     if (unavailable.length) {
       notes.push(unavailable.join(", ") + " indisponible");
     }

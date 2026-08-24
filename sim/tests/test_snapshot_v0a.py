@@ -52,10 +52,10 @@ def test_schema_ferme_et_couches():
     assert set(doc) == _ROOT_KEYS
     assert doc["schema_version"] == SNAPSHOT_SCHEMA_VERSION
     assert doc["cell_count"] == len(world.cells) == len(doc["cells"])
-    assert set(doc["layers"]) == {"relief_g6", "climate_drivers_c1", "resources_r1"}
-    assert doc["layers"]["relief_g6"]["status"] == "not_consumed"
+    assert set(doc["layers"]) == {"climate_drivers_c1"}
     assert doc["layers"]["climate_drivers_c1"]["status"] == "present"
-    assert doc["layers"]["resources_r1"]["status"] == "not_consumed"
+    assert "relief_g6" not in doc["layers"]
+    assert "resources_r1" not in doc["layers"]
     first = doc["cells"][0]
     assert set(first) == _CELL_KEYS
     assert "province_id" not in first
@@ -135,21 +135,15 @@ def test_rouge_sentinelle_et_cle_spatiale():
     assert "owner" not in cell
 
 
-def test_g6_non_consomme():
+def test_archive_geo_n_est_pas_dans_les_cellules():
+    """G6/R1 sont une archive (ADR-0019) : le snapshot n'en parle plus."""
     world = World.from_g3(0)
     doc = build_snapshot_document(world, 0, 0)
-    assert doc["layers"]["relief_g6"]["status"] == "not_consumed"
+    assert "relief_g6" not in doc["layers"]
+    assert "resources_r1" not in doc["layers"]
     for cell in doc["cells"]:
         assert "elev_mean_m" not in cell
         assert "centroid_elev_m" not in cell
-
-
-def test_r1_non_consomme():
-    """Les gisements 026 existent ; sim/ ne les consomme pas (ADR-0018)."""
-    world = World.from_g3(0)
-    doc = build_snapshot_document(world, 0, 0)
-    assert doc["layers"]["resources_r1"]["status"] == "not_consumed"
-    for cell in doc["cells"]:
         assert "resource" not in cell
         assert "deposit" not in cell
 

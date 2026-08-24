@@ -1,7 +1,8 @@
 """Photographie déterministe du monde déjà simulé (brief 027, schéma v0a-1).
 
 Ce module ne recalcule aucune mécanique. Il joint la géométrie G3, la
-province dérivée et les déterminants C1 déjà publiés.
+province dérivée et les déterminants C1 déjà publiés. ADR-0019 : plus
+de couches G6/R1 « pour plus tard ».
 """
 
 from __future__ import annotations
@@ -23,12 +24,8 @@ from sim.world import World
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _G3_RELATIVE = "pipeline/geo/artifacts/cells_g3.json"
 _C1_RELATIVE = "pipeline/geo/artifacts/cells_climate_drivers_c1.json"
-_G6_RELATIVE = "pipeline/geo/artifacts/cells_relief_g6.json"
-_R1_RELATIVE = "pipeline/geo/artifacts/cells_resources_r1.json"
 _G3_PATH = _REPO_ROOT / _G3_RELATIVE
 _C1_PATH = _REPO_ROOT / _C1_RELATIVE
-_G6_PATH = _REPO_ROOT / _G6_RELATIVE
-_R1_PATH = _REPO_ROOT / _R1_RELATIVE
 
 _CLIMATE_KEYS = (
     "insolation_annual_mj_m2",
@@ -164,12 +161,6 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
         },
         "layers": {
             "climate_drivers_c1": c1_layer,
-            "relief_g6": _layer_status(_G6_PATH, _G6_RELATIVE, consumed=False)
-            if _G6_PATH.is_file()
-            else {"status": "absent"},
-            "resources_r1": _layer_status(_R1_PATH, _R1_RELATIVE, consumed=False)
-            if _R1_PATH.is_file()
-            else {"status": "absent"},
         },
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
         "seed": int(seed),

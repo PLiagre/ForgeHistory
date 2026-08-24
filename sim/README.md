@@ -10,14 +10,14 @@ Il tourne **sans Unity** :
 ```
 
 `--snapshot-json` écrit une photographie cellulaire déterministe (schéma
-`v0a-1`) : géométrie G3, état simulé, province dérivée, déterminants C1.
-Ce n'est pas une seconde simulation. Le relief G6 et les gisements R1
-n'y sont pas consommés.
+`v0a-1`) : géométrie G3, état simulé, province dérivée, déterminants C1
+déjà joints. Ce n'est pas une seconde simulation. ADR-0019 : le snapshot
+ne porte plus G6 ni R1. `pipeline/geo/` est une archive, pas le produit.
 
 L'amorçage est un **proxy d'ordre de grandeur** (`sim/SEEDING.md`).
-ADR-0018 : le moteur n'exige pas des données historiques absolument
-valides ni une prédiction fermée calée sur la mesure. On garde
-l'économie physique, le déterminisme et `cell_id` unique.
+Le moteur n'exige pas des données historiques absolument valides ni une
+prédiction fermée. On garde l'économie physique, le déterminisme et
+`cell_id` unique.
 
 Ce répertoire était un stub vide jusqu'au brief 011
 (`harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md`), qui constitue
@@ -71,9 +71,10 @@ Ces centres sont un proxy hérité, pas des frontières historiques : leur
 provenance et les limites de ce qu'ils prouvent sont décrites dans
 `sim/SEEDING.md`, section « brief 018 ».
 
-Le nombre exact de cellules et d'arêtes est disponible dans `stats_g3.json`
-(`cell_count`) et se recalcule à chaque rejeu du pipeline géographique — il
-n'est pas recopié ici pour éviter la stale data.
+Le nombre exact de cellules et d'arêtes est dans `stats_g3.json`
+(`cell_count`). `pipeline/geo/` est une archive (ADR-0019) : on ne
+rejoue pas G6 ni le pipeline comme travail courant. Le chiffre n'est
+pas recopié ici.
 
 Ces fichiers sont suivis par git et lisibles depuis un clone frais.
 
