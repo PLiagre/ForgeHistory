@@ -1,12 +1,14 @@
 # Harness Roles — Three Separate Roles, Never One Agent
 
-> Ce document régit le harnais historique sous `harness/`, conservé en mode
-> manuel. Le pilote vivant est Hermes (ADR-0016) : il propose et lance
-> ForgePilot. Claude Code planifie et relit en lecture seule ; Cursor
-> exécute. Contrat : `hermes/README.md` et `control-plane/`.
+> Chemin par défaut (ADR-0018) : Hermes prépare les grandes étapes ;
+> Cursor découpe un brief large et exécute en parallèle. Ce fichier
+> régit le **harnais optionnel** sous `harness/` : archive de preuves
+> avec porte mécanique. On l'invoque quand on veut cette archive, pas
+> à chaque lot produit. Si on l'invoque, la porte dit encore la vérité.
 
 Core principle: "Celui qui produit ne prononce pas la recevabilité"
-(whoever produces does not pronounce acceptability).
+(whoever produces does not pronounce acceptability). The producer still
+does not merge their own work, even when the three-role loop is skipped.
 
 | Role | Agent file | Writes | Never |
 |---|---|---|---|
@@ -60,10 +62,16 @@ the mechanical enforcement.
 
 ## Loop / Stop Discipline
 
+The three-role loop is **optional** (ADR-0018). Default product work
+goes Hermes (large steps) → Cursor (split + parallel execute) → PR.
+When the loop *is* run:
+
 - Plateau: two iterations without improvement -> STOP, don't replay.
 - Feedback passed as a readable FILE (`harness/queue/briefs/*/feedback/`),
   never a log to dig through.
 - Three failed retries -> escalate to a human.
+- A mechanical REJECT from `verdict_audit.py` stops the lot. Nobody
+  talks the gate out of a finding.
 
 ## Single Source of Instruction
 

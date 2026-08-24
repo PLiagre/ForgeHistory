@@ -6,7 +6,8 @@
 (rédaction, rôle exécutant)
 
 Amende ADR-0013, ADR-0014 et ADR-0015. Ne remplace pas la séparation
-« celui qui produit ne prononce pas la recevabilité ».
+« celui qui produit ne prononce pas la recevabilité ». Le partage
+quotidien Hermes / Cursor est précisé par ADR-0018.
 
 ## Context
 

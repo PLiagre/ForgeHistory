@@ -34,3 +34,12 @@ Nothing teleports. Everything has origin, transport, storage, destination.
 F1 implements #1's ADR. F0 makes #7 real and #2/#3/#5/#6 mechanically
 checkable in principle (`harness/verdict_audit.py`) even before sim code
 exists.
+
+## Operational fidelity (ADR-0018)
+
+The three principles and the seven failure modes still hold. They do
+not require census-grade historical inputs at t0, nor a closed-form
+prediction that the running engine must match to a tight tolerance.
+Order-of-magnitude proxies documented in `sim/SEEDING.md` are enough
+for the living engine. The three-role harness remains available ; it
+is no longer the default path of an ordinary product lot.

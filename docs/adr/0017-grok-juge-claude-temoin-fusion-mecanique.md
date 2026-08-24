@@ -6,7 +6,8 @@
 
 Amende ADR-0014 (qui juge, qui fusionne) et complète ADR-0015 (Hermes
 ne fusionne toujours pas). Ne remplace pas la source unique d’instruction
-(le brief) ni l’interdiction pour Hermes de juger un lot.
+(le brief) ni l’interdiction pour Hermes de juger un lot. Le modèle
+Hermes et le chemin quotidien sont amendés par ADR-0018.
 
 ## Context
 
@@ -36,7 +37,8 @@ devenir juge.
    risque passé, pas de label d’arrêt. Hermes a toujours
    `can_merge = false`. Un nouveau commit annule le juge.
 6. **Hermes principal** : `openai/gpt-5.4` via Nous Portal ;
-   sous-agents `openai/gpt-5.4-mini`.
+   sous-agents `openai/gpt-5.4-mini`. **Amendé par ADR-0018** :
+   Hermes quotidien = `openai/gpt-5.6-sol-high`.
 
 ## Alternatives Considered
 
