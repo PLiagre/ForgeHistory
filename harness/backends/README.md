@@ -11,7 +11,9 @@ for the alternative backends.
 `brief.md` and `eval-rubric.md`), must produce:
 
 - `deliverables/manifest.json` — same schema `verdict_audit.py` reads:
-  `files[]` (`path`, optional `must_differ_from`), `counters[]` (`name`,
+  `files[]` (`path`, optional `must_differ_from` *or* `must_differ_from_git`,
+  the latter a `<rev>:<path>` git reference and the form to use whenever git
+  already tracks the pre-state), `counters[]` (`name`,
   `value`, `sample_size`, `command`), `waivers[]` (`claim`, `command`,
   `error`).
 - `deliverables/generator-log.md` — with

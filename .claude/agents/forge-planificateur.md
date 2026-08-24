@@ -46,8 +46,17 @@ the fact.
   pre-agreed acceptable form: a command to run and the exact error it must
   produce (hard-won rule 9) — a bare prose claim is not evidence.
 - Any two artifacts the brief expects to differ (e.g. before/after captures)
-  must be named explicitly as a `must_differ_from` pair — the gate cannot
-  infer this on its own.
+  must be named explicitly as a pair — the gate cannot infer this on its own.
+  Two forms, and the choice is not free:
+  - `must_differ_from_git`: git's own `<rev>:<path>`, e.g.
+    `origin/master:pipeline/geo/constants.py`. **Required for any file git
+    already tracks.** Git stores every pre-edit state; a committed `.orig`
+    duplicate of a tracked file adds nothing and costs the brief its size
+    (twenty-four such copies, 7 209 lines, before this was written down).
+  - `must_differ_from`: a second path inside the brief dir. Reserved for a
+    pre-state git does **not** hold — a capture taken before the run, say.
+  Declare the pair with paths the gate can resolve: it reads every manifest
+  path **relative to the brief directory**, not to the repo root.
 
 ## Output: Brief + Rubric
 

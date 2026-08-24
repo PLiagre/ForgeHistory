@@ -113,7 +113,9 @@ your context must be written into the checkpoint, or it is lost.
 ## Deliverables Contract
 
 Write to `harness/queue/briefs/NNN-<slug>/deliverables/`:
-- `manifest.json` — `files[]` (path, optional `must_differ_from`),
+- `manifest.json` — `files[]` (path, optional `must_differ_from` or
+  `must_differ_from_git`; prefer the git form and commit no `.orig` copy of a
+  tracked file — see the Planificateur's contract),
   `counters[]` (name, value, sample_size — never 0 or -1 for a claim you're
   actually making), `waivers[]` (claim, command, error — both required if
   present).
