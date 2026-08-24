@@ -7,3 +7,7 @@ brief+rubric -> Générateur builds -> mechanical gate -> Évaluateur judges).
 `queue.md` in this directory tracks the current queue state (which briefs
 are pending/in-progress/done, and which backend ran each Générateur pass).
 Empty until the first real brief is queued.
+
+Briefs trop loin (G6, consommation R1, etc.) : voir `ABANDONED.md`.
+Ne plus les exécuter. Chaque brief reste sa propre source s'il était
+relancé.

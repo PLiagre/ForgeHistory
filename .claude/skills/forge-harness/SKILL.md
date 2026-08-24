@@ -13,6 +13,7 @@ When someone **explicitly** wants the three-role archive (brief + rubric +
 mechanical gate + verdict). ADR-0018 : the default product path is Hermes
 (grandes étapes) then Cursor (brief large, parallel sub-tasks, one PR).
 Do not start this loop for an ordinary product change.
+Do not run briefs listed in `harness/queue/ABANDONED.md` (ADR-0019).
 
 ## Core Concepts
 

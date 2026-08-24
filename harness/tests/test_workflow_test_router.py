@@ -20,7 +20,7 @@ def _ids(plan):
     return [command["id"] for command in plan["commands"]]
 
 
-def test_plan_is_pure_and_g6_fast_uses_only_the_sentinel(monkeypatch):
+def test_plan_is_pure_and_g6_fast_plans_no_geo_proof(monkeypatch):
     monkeypatch.setattr(
         router.subprocess,
         "run",
@@ -31,7 +31,7 @@ def test_plan_is_pure_and_g6_fast_uses_only_the_sentinel(monkeypatch):
         ["pipeline/geo/steps/06_relief.py"],
         "fast",
     )
-    assert _ids(plan) == ["git-diff-check", "g6-sentinel"]
+    assert _ids(plan) == ["git-diff-check"]
     assert plan["heavy_commands"] == []
     assert plan["serial"] is True
 
@@ -67,7 +67,7 @@ def test_certify_requires_base_as_well_as_final_sha():
         )
 
 
-def test_g6_certify_plans_one_explicit_heavy_command():
+def test_g6_certify_no_longer_plans_europe_proof():
     plan = router.build_plan(
         REPO_ROOT,
         ["pipeline/geo/steps/06_relief.py"],
@@ -75,21 +75,18 @@ def test_g6_certify_plans_one_explicit_heavy_command():
         base_sha="b" * 40,
         head_sha="a" * 40,
     )
-    assert _ids(plan) == [
-        "git-diff-check",
-        "g6-sentinel",
-        "g6-europe-certification",
-    ]
-    assert plan["heavy_commands"] == ["g6-europe-certification"]
+    assert _ids(plan) == ["git-diff-check"]
+    assert plan["heavy_commands"] == []
+    assert "g6-europe-certification" not in _ids(plan)
 
 
-def test_g6_sources_lock_routes_to_the_sentinel_instead_of_refusing():
+def test_g6_sources_lock_routes_without_launching_a_proof():
     plan = router.build_plan(
         REPO_ROOT,
         ["pipeline/geo/sources.lock"],
         "fast",
     )
-    assert _ids(plan) == ["git-diff-check", "g6-sentinel"]
+    assert _ids(plan) == ["git-diff-check"]
     assert plan["assignments"]["pipeline/geo/sources.lock"] == ["geo-g6"]
 
 
@@ -107,9 +104,10 @@ def test_r1_paths_route_to_the_dedicated_proof_without_g6():
         base_sha="b" * 40,
         head_sha="a" * 40,
     )
-    assert _ids(plan) == ["git-diff-check", "r1-proof"]
+    assert _ids(plan) == ["git-diff-check"]
     assert plan["heavy_commands"] == []
     assert "g6-europe-certification" not in _ids(plan)
+    assert "r1-proof" not in _ids(plan)
 
 
 def test_unknown_sensitive_geo_path_fails_closed():
@@ -127,7 +125,7 @@ def test_viewer_routes_to_its_own_suite():
     assert plan["assignments"]["viewer/__main__.py"] == ["viewer"]
 
 
-def test_g6_captures_and_logs_route_to_the_sentinel():
+def test_g6_captures_and_logs_do_not_launch_a_proof():
     plan = router.build_plan(
         REPO_ROOT,
         [
@@ -136,7 +134,7 @@ def test_g6_captures_and_logs_route_to_the_sentinel():
         ],
         "fast",
     )
-    assert _ids(plan) == ["git-diff-check", "g6-sentinel"]
+    assert _ids(plan) == ["git-diff-check"]
 
 
 @pytest.mark.parametrize(

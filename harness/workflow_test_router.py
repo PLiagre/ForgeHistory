@@ -3,8 +3,10 @@
 
 Le plan est un JSON reproductible. La sous-commande ``run`` est la seule qui
 exécute des processus ; elle les lance sans shell, en série, et exige
-``--allow-heavy`` pour une preuve lourde. Un chemin sensible sans règle est un
-refus, jamais un plan vide présenté comme vert.
+``--allow-heavy`` pour une preuve lourde. ADR-0019 : les cibles geo
+(G6 / C1 / R1) ne planifient plus de preuve quotidienne ; ``--allow-heavy``
+ne relance pas G6. Un chemin sensible sans règle est un refus, jamais un
+plan vide présenté comme vert.
 """
 
 from __future__ import annotations
@@ -297,39 +299,14 @@ def _commands_for_target(target: str, profile: str) -> list[dict[str, object]]:
             )
         ]
     if target == "geo-c1":
-        return [
-            _command(
-                "c1-proof",
-                [python, "pipeline/geo/tests/run_proof_c1.py"],
-                proof="preuve déterministe climat C1",
-            )
-        ]
+        # Archive (ADR-0019) : plus de preuve climat sur le chemin quotidien.
+        return []
     if target == "geo-r1":
-        return [
-            _command(
-                "r1-proof",
-                [python, "pipeline/geo/tests/run_proof_r1.py"],
-                proof="preuve déterministe des gisements R1",
-            )
-        ]
+        # Archive (ADR-0019) : plus de preuve gisements sur le chemin quotidien.
+        return []
     if target == "geo-g6":
-        commands = [
-            _command(
-                "g6-sentinel",
-                [python, "-m", "pytest", "pipeline/geo/tests/test_g6_acceleration.py", "-q"],
-                proof="sentinelle G6 sans téléchargement DEM Europe",
-            )
-        ]
-        if profile == "certify":
-            commands.append(
-                _command(
-                    "g6-europe-certification",
-                    [python, "pipeline/geo/tests/run_proof_g6.py"],
-                    proof="preuve G6 Europe sur le SHA final et cache DEM vérifié",
-                    heavy=True,
-                )
-            )
-        return commands
+        # G6 gelé (ADR-0019) : plus de sentinelle ni de preuve Europe.
+        return []
     if target == "documentation":
         return []
     raise TestRouterError(f"cible de tests inconnue : {target}")
