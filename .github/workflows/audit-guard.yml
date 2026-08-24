@@ -1,13 +1,9 @@
 name: audit-guard
 
-# Migration step 8: mechanically enforce the audit contract on every PR.
-# Two guards, both deterministic:
-#   * schema  -- every audit's frontmatter is valid (flags false, full SHA,
-#                id matches filename). Logic lives in harness/audit_schema.py.
-#   * scope   -- a Cursor *audit deposit* (files under architecture/inbox/)
-#                may touch only that directory. A cursor/* branch that does
-#                not deposit an audit is an executor/Cloud PR and is exempt
-#                (ADR-0013 / ADR-0016 : Cursor exécute, plus seulement audite).
+# Migration step 8: schema d'audit (toujours utile, bon marché).
+# cursor-scope : seulement un dépôt d'audit sous architecture/inbox/.
+# audit-check : HORS CHEMIN PR (ADR-0018) — succès explicite, plus de
+# garde d'audits historiques sur une PR produit.
 
 on:
   push:
@@ -60,16 +56,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-        with:
-          python-version: "3.13"
-      - name: Vérifier les audits non adjugés ciblant cette PR
-        env:
-          PR_HEAD_BRANCH: ${{ github.head_ref }}
-          PR_HEAD_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - name: Garde d'audits historiques hors chemin PR (ADR-0018)
         run: |
-          set -euo pipefail
-          python harness/pipeline/pr_audit_guard.py check \
-            --head-branch "$PR_HEAD_BRANCH" \
-            --head-commit "$PR_HEAD_COMMIT"
+          echo "ADR-0018 : audit-check n'est plus un check de PR produit."
+          echo "La boucle architecture/inbox est historique (ADR-0012 : jalons)."
+          echo "Ce job reste nommé pour une protection de branche déjà déclarée ;"
+          echo "il ne relit plus les audits non adjugés d'une PR cursor/*."

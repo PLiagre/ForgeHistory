@@ -67,16 +67,16 @@ def test_forgepilot_required_check_is_not_skipped_by_path_filters():
     assert "paths:" not in triggers
 
 
-def test_risk_gate_is_wired_to_pr_body_and_exact_git_shas():
+def test_risk_gate_is_explicitly_out_of_the_pr_path():
     workflow = _read("harness-ci.yml")
-    assert "PR_BODY: ${{ github.event.pull_request.body }}" in workflow
-    assert "BASE_SHA: ${{ github.event.pull_request.base.sha }}" in workflow
-    assert "HEAD_SHA: ${{ github.event.pull_request.head.sha }}" in workflow
-    assert "--pr-body-env PR_BODY" in workflow
-    assert "harness/workflow_risk_gate.py" in workflow
-    assert "harness/workflow_test_router.py plan" in workflow
-    assert "--base-sha \"$BASE_SHA\"" in workflow
-    assert "--head-sha \"$HEAD_SHA\"" in workflow
+    assert "Porte de risque hors chemin PR (ADR-0018)" in workflow
+    assert "harness/workflow_risk_gate.py" not in workflow
+
+
+def test_audit_check_is_explicitly_out_of_the_pr_path():
+    workflow = _read("audit-guard.yml")
+    assert "Garde d'audits historiques hors chemin PR (ADR-0018)" in workflow
+    assert "pr_audit_guard.py check" not in workflow
 
 
 def test_public_pr_workflows_never_use_a_self_hosted_runner():

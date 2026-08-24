@@ -1,0 +1,8 @@
+# Faux positifs connus. Les vrais secrets restent scannés (ADR-0018).
+title = "ForgeHistory"
+
+[allowlist]
+description = "Scripts de preuve de briefs : constantes et identifiants, pas des clés"
+paths = [
+  '''harness/queue/briefs/.*/deliverables/''',
+]
