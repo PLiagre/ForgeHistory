@@ -61,7 +61,7 @@ def _walk_forbidden_keys(
                 )
             )
     elif isinstance(obj, list):
-        for i, item in enumerate(obj[:200]):
+        for i, item in enumerate(obj):
             bad.extend(
                 _walk_forbidden_keys(
                     item,
@@ -242,7 +242,7 @@ def r1f_cell_mesh_unchanged(
                     spatial_bad.append(here)
                 walk(v, here)
         elif isinstance(obj, list):
-            for i, item in enumerate(obj[:200]):
+            for i, item in enumerate(obj):
                 walk(item, f"{path}[{i}]")
 
     for doc in artifact_docs:
@@ -308,7 +308,7 @@ def r1g_richness_class_is_name(
                             problems.append(f"par_classe_non_int_{ck}={cv!r}")
                 walk_numeric_class_keys(v, here)
         elif isinstance(obj, list):
-            for i, item in enumerate(obj[:200]):
+            for i, item in enumerate(obj):
                 walk_numeric_class_keys(item, f"{path}[{i}]")
 
     for doc in artifact_docs:
