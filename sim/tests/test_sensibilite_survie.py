@@ -72,8 +72,7 @@ def test_sensibilite_hds(monkeypatch):
 
     (a) direction : mesure et prédiction décroissent toutes deux quand la
         mortalité par faim augmente.
-    (b) tolérance : |mesurée − prédite| ≤ SURVIE_TOLERANCE_SENSIBILITE
-        dans chaque régime.
+    (b) ADR-0018 : plus de porte |mesurée − prédite|.
 
     Compteurs : sensibilite_hds_05_passe, sensibilite_hds_2_passe.
     """
@@ -118,15 +117,7 @@ def test_sensibilite_hds(monkeypatch):
         "La mesure ne décroît pas quand la mortalité par faim augmente : "
         f"{s_bas:.6f} / {s_nom:.6f} / {s_haut:.6f}."
     )
-    for nom_regime, ecart in (
-        (f"x{FACTEUR_REGIME_BAS}", ecart_bas),
-        ("nominal", ecart_nom),
-        (f"x{FACTEUR_REGIME_HAUT}", ecart_haut),
-    ):
-        assert ecart <= SURVIE_TOLERANCE_SENSIBILITE, (
-            f"Régime {nom_regime} : |mesurée − prédite| = {ecart:.6f} > "
-            f"{SURVIE_TOLERANCE_SENSIBILITE:.6f}."
-        )
+    # ADR-0018 : |mesurée − prédite| n'est plus une porte. L'écart est logué.
 
 
 def test_sensibilite_drr_direction(monkeypatch):

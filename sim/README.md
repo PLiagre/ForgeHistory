@@ -11,7 +11,13 @@ Il tourne **sans Unity** :
 
 `--snapshot-json` écrit une photographie cellulaire déterministe (schéma
 `v0a-1`) : géométrie G3, état simulé, province dérivée, déterminants C1.
-Ce n'est pas une seconde simulation. Le relief G6 n'y est pas consommé.
+Ce n'est pas une seconde simulation. Le relief G6 et les gisements R1
+n'y sont pas consommés.
+
+L'amorçage est un **proxy d'ordre de grandeur** (`sim/SEEDING.md`).
+ADR-0018 : le moteur n'exige pas des données historiques absolument
+valides ni une prédiction fermée calée sur la mesure. On garde
+l'économie physique, le déterminisme et `cell_id` unique.
 
 Ce répertoire était un stub vide jusqu'au brief 011
 (`harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md`), qui constitue

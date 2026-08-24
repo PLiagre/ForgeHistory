@@ -55,7 +55,7 @@ def test_schema_ferme_et_couches():
     assert set(doc["layers"]) == {"relief_g6", "climate_drivers_c1", "resources_r1"}
     assert doc["layers"]["relief_g6"]["status"] == "not_consumed"
     assert doc["layers"]["climate_drivers_c1"]["status"] == "present"
-    assert doc["layers"]["resources_r1"]["status"] == "absent"
+    assert doc["layers"]["resources_r1"]["status"] == "not_consumed"
     first = doc["cells"][0]
     assert set(first) == _CELL_KEYS
     assert "province_id" not in first
@@ -142,6 +142,16 @@ def test_g6_non_consomme():
     for cell in doc["cells"]:
         assert "elev_mean_m" not in cell
         assert "centroid_elev_m" not in cell
+
+
+def test_r1_non_consomme():
+    """Les gisements 026 existent ; sim/ ne les consomme pas (ADR-0018)."""
+    world = World.from_g3(0)
+    doc = build_snapshot_document(world, 0, 0)
+    assert doc["layers"]["resources_r1"]["status"] == "not_consumed"
+    for cell in doc["cells"]:
+        assert "resource" not in cell
+        assert "deposit" not in cell
 
 
 def test_sentinelle_moins_un_n_est_pas_zero():

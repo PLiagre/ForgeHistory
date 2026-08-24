@@ -3,6 +3,11 @@
 **Brief** : 011 (amorçage) + 012 (base de temps, déficit, commerce)
 **Statut** : paramétrique (proxy documenté, non inventé)
 
+ADR-0018 : ces proxys **suffisent** au moteur vivant. On ne bloque pas
+`sim/` sur une reconstruction historique exhaustive ni sur un calage
+prédictif au millième. Un brief futur peut affiner les constantes ;
+aucun lot ne doit inventer un cadastre de 1400 pour avancer.
+
 ---
 
 ## Déclaration explicite
