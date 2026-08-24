@@ -1,5 +1,10 @@
 # pipeline/geo/
 
+> **Archive (ADR-0019).** Ce répertoire n'est plus le produit quotidien.
+> G6 est gelé (échec accepté). Plus de suite climat observé / consommation
+> R1. `sim/` lit encore les cellules G3 déjà là. Ne pas relancer une
+> preuve Europe ni un lot de sauvetage.
+
 Ports VictoriaProject's `sandbox/geo/` map pipeline into ForgeHistory.
 Licenses in `sources.lock` (Natural Earth public domain, GeoNames CC BY 4.0,
 Copernicus DEM attribution-required) are carried over unchanged — do not redo

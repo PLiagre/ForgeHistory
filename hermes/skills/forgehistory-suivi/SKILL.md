@@ -23,8 +23,9 @@ ForgePilot n'est plus le goulot de chaque lot.
 Dépôt : racine ForgeHistory. Python : `.venv/bin/python`.
 ForgePilot : `.venv/bin/forgepilot` (pas dans le PATH).
 
-Le produit vivant est `sim/` (ADR-0016). Unity est **en veille**. Un lot
-Unity se refuse.
+Le produit vivant est `sim/` (ADR-0016), **mince**. Unity est **en
+veille**. G6 est **gelé** (ADR-0019). Un lot Unity, un lot G6, un lot
+de consommation R1 ou un climat observé se refuse.
 
 ---
 
@@ -38,11 +39,12 @@ Dans cet ordre, en disant ce que tu as lu. Rien d'autre.
    Zéro fichier OPEN = rien n'attend.
 4. `ROADMAP.md` — couches et prochain pas produit unique.
 5. `HANDOFF.md` — trois sessions seulement.
-6. `.venv/bin/forgepilot doctor --repo <racine> --check-auth`
-7. `.venv/bin/python -m sim --ticks 0 --json` — la sim tourne-t-elle ?
+6. `harness/queue/ABANDONED.md` — briefs à ne plus lancer.
+7. `.venv/bin/forgepilot doctor --repo <racine> --check-auth`
+8. `.venv/bin/python -m sim --ticks 0 --json` — la sim tourne-t-elle ?
 
-`--snapshot-json` seulement si `ROADMAP.md` dit que le prochain pas
-est visuel.
+N'ouvre pas `pipeline/geo/` au boot (archive). `--snapshot-json`
+seulement si `ROADMAP.md` dit que le prochain pas est visuel.
 
 Annonce en cinq lignes : branche, dépôt propre ou non, doctor, prochain
 pas produit, ce qui bloque. Si une donnée manque, dis qu’elle manque.
@@ -58,9 +60,9 @@ Constat, pourquoi ça compte, ce que le propriétaire pourrait demander.
 Pas de conditions de succès d’exécutant. Pas de code. Si un brief existe,
 pointe vers lui.
 
-Exemples légitimes : prochaine couche de `sim/`, contradiction entre deux
-docs, cron trop bruyant, skill à mettre à jour, brief manquant pour
-avancer.
+Exemples légitimes : prochaine couche **mince** de `sim/`, contradiction
+entre deux docs, cron trop bruyant, skill à mettre à jour. Pas G6, pas
+cadastre 1400, pas climat observé.
 
 ## 3. Choisir le lot
 
@@ -70,9 +72,13 @@ Le propriétaire donne une autorisation permanente pour lancer directement les s
 
 Un seul lot à la fois. Critères mesurables, sinon tu t’arrêtes.
 
-- **`sim/` / `pipeline/geo/` / `viewer/` / harnais / ForgePilot** — portable, tu peux
-  lancer. Le visualiseur web V0 est un client mince : il lit les snapshots
+- **`sim/` / `viewer/` / harnais / ForgePilot** — portable, tu peux lancer.
+  Le visualiseur web V0 est un client mince : il lit les snapshots
   déterministes de `sim/` et ne porte aucune logique métier.
+- **`pipeline/geo/`** — **archive (ADR-0019).** Refuse les lots G6, climat
+  observé, consommation R1, et les briefs listés dans
+  `harness/queue/ABANDONED.md`. `sim/` lit encore G3. Ne relance pas une
+  preuve SHA.
 - **Unity / CityLab** — **refuse.** En veille jusqu’à décision contraire
   écrite du propriétaire.
 
@@ -280,8 +286,10 @@ est un **rapport à vérifier**, pas un fait.
 
 - Au boot, n'ouvre pas `architecture/` (inbox, archive, decisions).
   Ce dossier ne s'ouvre que sur demande explicite du propriétaire.
-- Au boot, n'ouvre pas les briefs 001–025. Un brief se lit seulement
-  quand on lance ce lot.
+- Au boot, n'ouvre pas `pipeline/geo/` (archive, ADR-0019).
+- Au boot, n'ouvre pas les briefs 001–025 ni les briefs de
+  `harness/queue/ABANDONED.md`. Un brief se lit seulement quand on
+  lance ce lot — et on ne lance pas les briefs abandonnés.
 - `hermes/requests/` : seulement `status: OPEN`. Aujourd'hui : zéro.
 - `VISION.md` seulement en cas de conflit produit avec `ROADMAP.md`.
 - Jamais `ANTHROPIC_API_KEY`. ForgePilot doit refuser si elle est définie.
@@ -300,8 +308,9 @@ est un **rapport à vérifier**, pas un fait.
 - Verdicts des lots `022` et `023` : ACCEPT depuis le `2026-08-19`.
 - ADR-0014 : accepté. ADR-0015 : accepté (amendement crons). ADR-0016 :
   accepté (`sim/` vivant, Unity en veille, tu proposes). ADR-0018 :
-  accepté (Sol 5.6, Cursor parallèle, harnais optionnel).
+  accepté (Sol 5.6, Cursor parallèle, harnais optionnel). ADR-0019 :
+  accepté (G6 gelé, scope reculé, produit = sim mince).
 - Les trois lots ForgePilot `021`–`023` sont livrés. Un bilan écrit reste
   un rapport utile ; il n’est plus le verrou des crons.
-- #126 est fusionné (G6 livré non consommé, snapshot `v0a-1`, viewer).
-  La proposition G6 du 2026-08-20 est CLOSED. Prochain pas : brief 026.
+- #126 / #132 : artefacts geo en archive. Plus de « prochain pas = 026 »
+  ni consommation G6/R1. Le quotidien, c'est `python -m sim`.

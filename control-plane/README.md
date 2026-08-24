@@ -103,10 +103,9 @@ Le même dossier contient le plan normalisé, les sorties filtrées, le feedback
 le bundle et le matériau de revue liés au SHA. Les prompts et secrets n'y sont
 jamais archivés. `verdict --comment-pr` rend le matériau visible sur la PR ; il
 ne fusionne rien. Le corps de PR porte `Forge-Risk: Rn` pour le contrôle CI.
-Une certification lourde reste interdite par défaut. Lorsque le cache requis
-est réellement disponible, `resume <RUN_ID> --allow-heavy` l'autorise et
-persiste cette décision explicite ; elle n'est jamais déduite d'un succès
-partiel.
+Une certification lourde reste interdite par défaut. ADR-0019 : les
+preuves geo (G6 Europe, R1, climat) ne font plus partie du chemin
+quotidien. `resume --allow-heavy` n'est pas un moyen de relancer G6.
 
 `enchaine` reste disponible comme façade compatible et aperçu. `start` est le
 chemin recommandé dès qu'une reprise ou une itération est possible.

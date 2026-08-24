@@ -15,11 +15,11 @@
 ## Le jeu — cinq couches, dans l'ordre
 
 Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
-2026-08-23, après fusion de #126 :
+2026-08-24, ADR-0019 :
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
-| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **commencé** | `pipeline/geo/`, `sim/`, `viewer/` |
+| 1 | **Monde vivant** — carte, population, économie locale, commerce | **commencé, mince** | `sim/` (G3 déjà lu). `viewer/` regard. `pipeline/geo/` archive. |
 | 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | non commencé | `sim/` |
 | 3 | **États** — fiscalité, lois, diplomatie, technologies, culture, religion | non commencé | `sim/` |
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
@@ -27,13 +27,15 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 
 **Couche 1 — état vrai**
 
-- Carte : littoral, cellules G3, mer G4, fleuves G5.
-- Relief G6 : **livré dans #126**, puis import `dem_batch` et correction Q10 fusionnés dans #130. La preuve Europe G6 a été rejouée sur le VPS avec le cache Copernicus complet (`1110/1110`) : contrôles verts et deux passes identiques. `sim/` **ne consomme toujours pas** ce relief (couche snapshot `not_consumed`) : le relief est calculé, mais ce n'est pas encore un terrain jouable.
-- Climat : déterminants physiques C1 livrés et consommables. Température et précipitations observées encore ouvertes.
-- Ressources : brief 026 **livré** (#132). Artefacts R1 présents ;
-  `sim/` ne les consomme pas (`not_consumed`).
-- `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot `v0a-1` (`--snapshot-json`).
-- `viewer/` : regard mince, preuve SVG. Pas une seconde simulation.
+- Carte : cellules G3 lues par `sim/` (littoral, mer, fleuves déjà là).
+- Relief G6 : **gelé** (échec accepté, ADR-0019). Archive sous
+  `pipeline/geo/`. Pas un terrain jouable. Plus de lot de sauvetage.
+- Climat : déterminants C1 déjà joints au snapshot (présent). Climat
+  observé : **plus un prochain pas**.
+- Ressources R1 : **archive**. Plus un objectif à consommer.
+- `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot
+  `v0a-1` (`--snapshot-json`). C'est le produit quotidien.
+- `viewer/` : regard mince. Pas une seconde simulation.
 - Unity : **en veille** (ADR-0016).
 
 ## Le projet — phases F
@@ -41,8 +43,8 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | Phase | Contenu | Statut |
 |---|---|---|
 | **F0** — Harnais | Trois rôles, porte mécanique, briefs d'outillage | **terminé** |
-| **F1** — Fondations monde | Geo : G3, G4, G5, C1, G6 livré non consommé, R1 livré non consommé. Restent climat observé, consommation honnête de G6/R1 | **en cours** |
-| **F2** — Moteur `sim/` couche 1 | Amorçage, tick, survie, province, snapshot `v0a-1` | **en cours** — jalon E2 clos |
+| **F1** — Fondations monde | Geo utile à `sim/` (G3, C1 déjà joint). G6/R1/climat observé **gelés** (ADR-0019) | **gelé** — plus le quotidien |
+| **F2** — Moteur `sim/` couche 1 | Amorçage, tick, survie, province, snapshot `v0a-1` | **en cours** — jalon E2 clos ; **c'est le produit** |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles | à venir |
 
 ## Le workflow — Hermes prépare, Cursor exécute (ADR-0018)
@@ -67,7 +69,7 @@ Audit Cursor et contre-audit Claude : à la **clôture** d'une grande étape
 | jalon | ce qu'il faut pour clore | statut |
 |---|---|---|
 | **V0 — Monde visible** | snapshot `v0a-1` + viewer mince | **première tranche livrée dans #126**. Verdicts 027/028 encore PENDING (évaluateur absent). |
-| **E1 — Fondations monde** | relief, climat, ressources, artefacts consommés par `sim/` | **en cours** — G6 et R1 livrés non consommés ; climat observé ouvert |
+| **E1 — Fondations monde** | relief, climat, ressources consommés par `sim/` | **reculé** (ADR-0019) — plus un objectif quotidien |
 | **E2 — Le monde vivant compte juste** | survie honnête + province dérivée | **clos** |
 | **E3 — Villes** | couche 2 | à venir |
 | **E4 — États** | couche 3 | à venir |
@@ -76,13 +78,12 @@ Audit Cursor et contre-audit Claude : à la **clôture** d'une grande étape
 
 ## Prochaines étapes (dans l'ordre)
 
-1. **Produit :** `sim/` ne consomme toujours ni G6 ni R1. Un lot de
-   consommation honnête (relief ou gisements) peut suivre, sans mentir
-   sur une couche absente. Climat observé reste ouvert.
-2. **Hermes :** Sol 5.6 ; propositions seulement s'il y a un constat
-   nouveau ; zéro proposition OPEN = rien n'attend.
-3. Refuser tout lot Unity. Ne pas réactiver `mode: full_auto` sans
-   décision écrite nouvelle.
+1. **Produit :** `python -m sim`. Tick, économie physique de base,
+   déterminisme, snapshot mince. Pas G6, pas R1, pas climat observé.
+2. **Hermes :** Sol 5.6 ; grandes étapes **courtes** collées au jeu
+   réel ; zéro proposition OPEN = rien n'attend.
+3. Refuser Unity, lots G6 / 030 / 031 / 032, preuves geo lourdes.
+   Ne pas réactiver `mode: full_auto` sans décision écrite nouvelle.
 
 ## Historique des révisions
 
@@ -109,3 +110,4 @@ Audit Cursor et contre-audit Claude : à la **clôture** d'une grande étape
 | 2026-08-23 | cursor-cloud (décision propriétaire — ADR-0017) | Grok 4.6 planifie et juge la PR finale ; Composer 2.5 code ; Claude Opus 5 témoin rare ; `forgepilot merge` si PASS + checks verts. Hermes principal : `openai/gpt-5.4`. |
 | 2026-08-23 | hermes (correction factuelle après #130 et preuve VPS) | cache Copernicus complet vérifié `1110/1110` ; preuve Europe G6 verte et déterministe. Le relief est calculé mais reste `not_consumed` par `sim/`. Le prochain pas unique reste le brief 026. |
 | 2026-08-24 | cursor-cloud (décision propriétaire — ADR-0018) | Hermes Sol 5.6 prépare les grandes étapes ; Cursor découpe et exécute en parallèle ; harnais optionnel ; checks PR allégés ; sim sans calage prédictif. Correction factuelle : brief 026 livré dans #132, R1 `not_consumed`. |
+| 2026-08-24 | cursor-cloud (décision propriétaire — ADR-0019) | G6 gelé (échec accepté). `pipeline/geo/` archive. Scope reculé jusqu'à `python -m sim`. F1/E1 ne sont plus le quotidien. Briefs trop loin abandonnés (`harness/queue/ABANDONED.md`). |

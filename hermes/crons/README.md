@@ -20,8 +20,9 @@ Mesure explicite sans tests produit :
 
 La sortie inclut l'espace disque, les worktrees et l'âge du cache DEM. Si
 `FORGEHISTORY_DEM_CACHE_ROOT` est défini, le chemin mesuré reprend la clé issue
-de `pipeline/geo/sources.lock`; sinon le repli historique est observé. Le
-script ne nettoie rien.
+de `pipeline/geo/sources.lock`; sinon le repli historique est observé. L'âge
+du cache est **informatif** (ADR-0019) : il ne relance jamais une preuve
+G6. Le script ne nettoie rien.
 
 ## Installation VPS
 

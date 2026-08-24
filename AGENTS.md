@@ -24,17 +24,13 @@ for anything that needs third-party packages** (including `pytest`); do not
   harness/verdict_audit.py <brief_dir>` (or plain `python3` for those) both
   work. The 13 `test_run_unity.py` cases SKIP on Linux (they need
   Unity/PowerShell) — this is expected, not a failure.
-- **Geo pipeline (Python, scientific stack)** — installed into a repo-root
-  `.venv` (git-ignored). Run its proofs with that interpreter, from
-  `pipeline/geo/`:
-  `../../.venv/bin/python tests/run_proof_g2.py` and `.../run_proof_g2b.py`.
-  They regenerate coastline artifacts + PNG captures under
-  `pipeline/geo/{artifacts,build,capture,logs}/` (all git-ignored). Output is
-  deterministic (SHA256-pinned), so a clean re-run produces byte-identical
-  files and no git diff — that is the intended "green" state, not a no-op bug.
-  Note: `pipeline/geo/tests/test_qa_red_g2*.py` are NOT pytest-discoverable
-  (they expose `run_all_red_g2*` helpers the proof scripts import), so
-  `pytest` collects 0 items there — run the `run_proof_*` scripts instead.
+- **Geo pipeline (Python, scientific stack)** — **archive (ADR-0019), not
+ daily work.** G6 is frozen (failure accepted). Do not re-run G6 Europe
+ proofs, SHA recertification, climate-observed, or R1 consumption lots.
+ `sim/` still reads G3 cells already in git. The geo stack remains in
+ `.venv` so the archive can be inspected; that is not a prompt to resume
+ geo as a parallel product. Historical G2 proof scripts still exist under
+ `pipeline/geo/tests/` if someone explicitly reconstructs the archive.
 - **Unity game (`unity/game_unity/`)** — **en veille (ADR-0016).** Le
   produit vivant est `sim/` (`python -m sim`). Unity 6000.0.43f1 n'est
   pas requis sur cette VM. Les captures committées restent une référence

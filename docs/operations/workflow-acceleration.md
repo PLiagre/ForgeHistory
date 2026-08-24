@@ -3,9 +3,11 @@
 Ce document est un runbook, pas une seconde politique. Les décisions vivent
 dans [la politique versionnée](../../control-plane/workflow-policy.toml),
 [ADR-0018](../adr/0018-hermes-sol-briefs-cursor-parallele.md) pour le
-chemin quotidien, et [la règle du harnais](../rules/harness-roles.md)
+chemin quotidien, [ADR-0019](../adr/0019-geler-g6-reculer-le-scope.md)
+(G6 gelé, geo hors chemin), et [la règle du harnais](../rules/harness-roles.md)
 pour l'archive optionnelle. Un brief sous `harness/queue/briefs/` reste
-l'unique instruction d'un lot nommé.
+l'unique instruction d'un lot nommé. Les briefs listés dans
+`harness/queue/ABANDONED.md` ne se relancent pas.
 
 Le chemin par défaut n'est plus ForgePilot : un agent Cursor Cloud
 découpe et exécute. Les commandes ci-dessous servent quand on veut
@@ -63,9 +65,9 @@ Le routeur construit un plan JSON sans lancer de suite :
 ```
 
 `run` exécute ensuite les commandes en série et rend un résumé avec code,
-durée et preuve ciblée. Une certification lourde exige le SHA final et le
-drapeau explicite `--allow-heavy`; son absence ne peut donc pas déclencher la
-preuve Europe par accident.
+durée et preuve ciblée. Une certification lourde exigerait le SHA final et
+`--allow-heavy`. ADR-0019 : le routeur ne planifie plus de preuve G6 /
+Europe / R1. `--allow-heavy` ne sert pas à relancer G6.
 
 ## Exploitation sur 8 Gio / 100 Gio
 
@@ -73,8 +75,8 @@ preuve Europe par accident.
   Git common dir, partagé par tous les worktrees. Si plusieurs clones vivent
   sur le VPS, définir `FORGEPILOT_HEAVY_LOCK` vers un même chemin absolu hors
   des clones avant `run --allow-heavy`.
-- Monter le cache partagé via `FORGEHISTORY_DEM_CACHE_ROOT`. Le code du cache
-  choisit ensuite le sous-répertoire lié à `sources.lock`.
+- Le cache DEM (`FORGEHISTORY_DEM_CACHE_ROOT`) peut encore être mesuré par
+  la veille. Ce n'est pas une invitation à rejouer G6.
 - Exécuter Cursor et les preuves sous un utilisateur sans jeton GitHub ou
   Discord. Le contrôleur Hermes conserve seul les identifiants nécessaires à
   la notification et à la publication.

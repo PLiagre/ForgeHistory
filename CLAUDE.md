@@ -64,8 +64,8 @@ producer never merges their own work. The living product is `sim/`
   Cloud peut livrer une PR directement (ADR-0018).
 - **sim/** — **produit vivant** : moteur Python, sans Unity. Lancer
   `python -m sim`. Couche 1 commencée (011–018, snapshot `v0a-1`).
-- **pipeline/geo/** — G3, G4, G5, C1, G6 livré non consommé par `sim/`.
-  Suite : ressources (026), climat observé.
+- **pipeline/geo/** — **archive** (ADR-0019). G6 gelé. `sim/` lit encore
+  G3. Pas de suite climat observé / R1 / G6.
 - **viewer/** — regard mince sur un snapshot. Pas une seconde simulation.
 - **harness/** — file de briefs, gate `verdict_audit.py`, backends
   Générateur, démo faux brief.
@@ -129,9 +129,9 @@ See [HANDOFF.md](HANDOFF.md) — rewritten at the end of every session.
 | any `docs/adr/NNNN-*.md` | conventions in `docs/adr/template.md` |
 | `sim/**` | `sim/README.md` — produit vivant, sans Unity |
 | `viewer/**` | `viewer/README.md` — regard mince |
-| `pipeline/geo/**` | `pipeline/geo/README.md` |
+| `pipeline/geo/**` | archive (ADR-0019) — `pipeline/geo/README.md` |
 | `unity/**` | en veille, ADR-0016 |
 | `harness/backends/**` | `harness/backends/README.md` (pluggable-Générateur contract) |
 | `architecture/**` | sur demande explicite seulement — `architecture/README.md` |
 | `harness/pipeline/**` | `docs/rules/full-auto-pipeline.md` + ADR-0006 (archive, `mode: manual`) |
-| `ROADMAP.md`, `hermes/**` | `hermes/README.md` + ADR-0016 + ADR-0018 |
+| `ROADMAP.md`, `hermes/**` | `hermes/README.md` + ADR-0016 + ADR-0018 + ADR-0019 |

@@ -1,11 +1,13 @@
 # hermes/ — le chef de projet
 
-Hermes est le **pilote** de ForgeHistory (ADR-0010, ADR-0016, ADR-0018).
-Point d'entrée du propriétaire, mémoire du projet, force de proposition.
-Il écrit les **grandes étapes**, pas le code.
+Hermes est le **pilote** de ForgeHistory (ADR-0010, ADR-0016, ADR-0018,
+ADR-0019). Point d'entrée du propriétaire, mémoire du projet, force de
+proposition. Il écrit les **grandes étapes courtes**, collées au jeu
+qui tourne (`python -m sim`), pas le code.
 
-Le produit vivant est le moteur Python `sim/`. Unity est en veille
-(ADR-0016). Modèle : GPT Sol 5.6 (`openai/gpt-5.6-sol-high` ; repli
+Le produit vivant est le moteur Python `sim/`, mince. Unity est en
+veille (ADR-0016). G6 est gelé ; `pipeline/geo/` est une archive
+(ADR-0019). Modèle : GPT Sol 5.6 (`openai/gpt-5.6-sol-high` ; repli
 `openai/gpt-5.6-sol-xhigh`).
 
 ## Ce qu’Hermes écrit
@@ -28,8 +30,9 @@ le contour de l'étape (ADR-0018) ; Cursor découpe et code.
 
 Au boot, Hermes ne lit que les `PROPOSITION-*` et `DEMANDE-*` en
 `status: OPEN`. Zéro OPEN = rien n'attend. Les autres statuts restent
-dans git ; ils ne se parcourent pas au démarrage. `architecture/` non
-plus, sauf demande explicite.
+dans git ; ils ne se parcourent pas au démarrage. `architecture/` et
+l'archive `pipeline/geo/` non plus, sauf demande explicite. Les briefs
+de `harness/queue/ABANDONED.md` ne se lancent pas.
 
 Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 
