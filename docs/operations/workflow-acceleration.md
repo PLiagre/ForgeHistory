@@ -1,9 +1,15 @@
 # Exploiter le workflow durable sur le VPS
 
 Ce document est un runbook, pas une seconde politique. Les décisions vivent
-dans [la politique versionnée](../../control-plane/workflow-policy.toml), la
-séparation des rôles dans [la règle du harnais](../rules/harness-roles.md) et
-les conditions du lot dans [le brief 029](../../harness/queue/briefs/029-workflow-acceleration/brief.md).
+dans [la politique versionnée](../../control-plane/workflow-policy.toml),
+[ADR-0018](../adr/0018-hermes-sol-briefs-cursor-parallele.md) pour le
+chemin quotidien, et [la règle du harnais](../rules/harness-roles.md)
+pour l'archive optionnelle. Un brief sous `harness/queue/briefs/` reste
+l'unique instruction d'un lot nommé.
+
+Le chemin par défaut n'est plus ForgePilot : un agent Cursor Cloud
+découpe et exécute. Les commandes ci-dessous servent quand on veut
+quand même une reprise durable.
 
 ## Démarrer et reprendre un lot
 
@@ -87,11 +93,15 @@ alerte non vide est transmise telle quelle, sans appeler de modèle.
 
 ## Après fusion : checks protégés
 
-Une fois les nouveaux workflows présents sur `master`, remplacer les anciens
-contextes de protection par : `harness-tests`, `sim-tests`,
-`forgepilot-tests`, `audit-schema`, `audit-check`, `actionlint`, `gitleaks` et
-`risk-gate`. Tous sont émis sur chaque PR ; `forgepilot-tests` n'est donc pas
-conditionné par un filtre de chemins.
+Une fois les nouveaux workflows présents sur `master`, les checks
+**vitaux** d'une PR sont : `harness-tests`, `sim-tests`,
+`forgepilot-tests`, `actionlint`, `gitleaks`. `f0-demo` reste un
+contrôle réel et bon marché. `risk-gate` et `audit-check` existent
+encore sous le même nom (protection de branche déjà déclarée) mais
+réussissent sans prétendre protéger le lot (ADR-0018).
+
+`audit-schema` tourne encore : il valide le frontmatter s'il y a des
+audits, sans bloquer une PR produit.
 
 Vérifier d'abord l'état courant, puis appliquer le changement avec un compte
 administrateur :
@@ -102,9 +112,8 @@ gh api --method PATCH \
   repos/PLiagre/ForgeHistory/branches/master/protection/required_status_checks \
   -F strict=true \
   -f 'contexts[]=harness-tests' -f 'contexts[]=sim-tests' \
-  -f 'contexts[]=forgepilot-tests' -f 'contexts[]=audit-schema' \
-  -f 'contexts[]=audit-check' -f 'contexts[]=actionlint' \
-  -f 'contexts[]=gitleaks' -f 'contexts[]=risk-gate'
+  -f 'contexts[]=forgepilot-tests' -f 'contexts[]=actionlint' \
+  -f 'contexts[]=gitleaks'
 ```
 
 ## Matériau de verdict

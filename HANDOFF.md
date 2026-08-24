@@ -3,34 +3,46 @@
 > **Borné à trois sessions** par ADR-0014 amendement 001. Les sessions plus
 > anciennes sont dans git ; le récit du projet va dans `hermes/reports/`.
 
-## Session la plus récente — 2026-08-23 : preuve Europe G6 verte après #130
+## Session la plus récente — 2026-08-24 : ADR-0018, workflow et sim simplifiés
 
-**Contexte** : #130 est dans `origin/master` (`6c2edcd`). Sur le VPS, le cache
-Copernicus complet est vérifié `1110/1110` et la preuve Europe G6 est verte,
-avec deux passes identiques. Le relief est calculé mais `sim/` ne le lit pas.
+**Contexte** : le propriétaire a demandé moins d'itérations revue/test et
+un jeu plus simple. Branche `cursor/simplifier-workflow-sim-5161`.
 
 ### Ce qui a été fait
 
-1. #130 a corrigé l'import `dem_batch` et Q10.
-2. La preuve Europe G6 n'est plus bloquée par le cache.
-3. Le snapshot reste honnête : `relief_g6 = not_consumed` ; Unity reste en veille.
+1. ADR-0018 : Hermes (GPT Sol 5.6) prépare les grandes étapes ; Cursor
+   prend un brief large, le découpe et exécute en parallèle. Le harnais
+   trois rôles devient optionnel ; la porte mécanique dit encore la
+   vérité si on l'appelle.
+2. Checks PR allégés : `risk-gate` et `audit-check` hors chemin (succès
+   explicite, sans mentir). `gitleaks` ignore les scripts de preuve des
+   briefs (faux positif 026). Tests `sim/` corrigés pour R1
+   `not_consumed` (régression #132).
+3. Simulation : plus de porte |mesure − formule fermée|. On garde tick,
+   commerce physique, déterminisme, ADR-0003. Unity reste en veille.
 
 ### Prochain pas
 
-Un seul : exécuter le brief 026 (gisements). Aucun lot de consommation G6 en
-parallèle ; il vient seulement après 026. La proposition du 23 août a été
-actualisée pour retirer D2 des blocages.
+Revue humaine de cette PR. Ne pas fusionner tant que `sim-tests` et
+`gitleaks` ne sont pas verts. Le brief 026 est livré (artefacts R1
+présents, non consommés par `sim/`).
 
 ---
 
-## Session précédente — 2026-08-23 : #126 fusionné, base saine
+## Session précédente — 2026-08-23 : preuve Europe G6 verte après #130
 
-G6 livré non consommé, V0 première tranche et viewer mince. Les documents de
-pilotage ont été resserrés ; `architecture/` et briefs 001–025 restent hors boot.
+**Contexte** : #130 est dans `origin/master`. Sur le VPS, le cache
+Copernicus complet est vérifié `1110/1110` et la preuve Europe G6 est
+verte. Le relief est calculé mais `sim/` ne le lit pas. #132 a ensuite
+livré les gisements 026 (non consommés).
+
+### Prochain pas (alors)
+
+Exécuter le brief 026 — **fait dans #132**.
 
 ---
 
-## Session encore avant — 2026-08-20 : forgepilot enchaine
+## Session encore avant — 2026-08-23 : #126 fusionné, base saine
 
-`forgepilot enchaine <brief.md>` : aperçu, puis plan → execute → draft PR
-→ review. Refuse une proposition Hermes. Jamais de fusion manuelle.
+G6 livré non consommé, V0 première tranche et viewer mince. Unity en
+veille.

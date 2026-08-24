@@ -1,19 +1,17 @@
 # ForgePilot — pilote durable Hermes / Cursor / Claude
 
-ForgePilot est le pilote réversible du workflow. Il ne stocke aucune
-simulation. Hermes, configuré sur Nous Portal, contrôle la cadence ; Grok
-4.6 planifie et juge la PR ; Composer exécute ; Claude Opus 5 n'est qu'un
-témoin rare (ADR-0017). Le contrat détaillé du chantier durable est le
-brief 029. Ce fichier documente uniquement les commandes et les formats
-opératoires.
+ForgePilot — pilote durable optionnel (ADR-0018). Hermes (GPT Sol 5.6)
+prépare les grandes étapes ; Cursor découpe un brief large et exécute
+en parallèle. Ce fichier documente les commandes ForgePilot, pas un
+second produit.
 
 ## Frontières
 
 | composant | responsabilité | accès en écriture |
 |---|---|---|
-| Hermes / Nous Portal | dialogue, lancement, suivi (`openai/gpt-5.4`) | aucun code, aucun jugement, aucune fusion |
+| Hermes / Nous Portal | dialogue, grandes étapes, suivi (`openai/gpt-5.6-sol-high`) | aucun code, aucun jugement, aucune fusion |
 | Cursor Grok 4.6 | plan, puis juge de PR (`xhigh`, invocation neuve) | aucun (plan / ask) |
-| Cursor Composer 2.5 | implémentation dans un worktree `agent/*` | worktree du lot |
+| Cursor Cloud / Composer | brief large → sous-tâches parallèles, une PR | worktree du lot |
 | Claude Opus 5 | témoin rare (`forgepilot witness`) | aucun |
 | ForgePilot | commit, push, draft PR, `merge` mécanique | branche `agent/*` |
 | CI portable | tests ForgeHistory et contrôles sans Unity | artefacts de CI seulement |
@@ -146,9 +144,25 @@ l'élever. Après le plan Claude, ForgePilot reclasse aussi
 invalide ou incompatible bloque `doctor`, `start` et `resume`.
 
 Cursor n'a pas de drapeau d'effort séparé : l'effort est cuit dans le nom du
-modèle (`gpt-5.3-codex-high`, etc.), donc `--effort` sur `execute` /
+modèle (`gpt-5.6-sol-high`, etc.), donc `--effort` sur `execute` /
 `iterate`, ou une clé `effort` sous `[roles.executor]`, est refusé avec
 explication.
+
+## Chemin Cursor Cloud (ADR-0018)
+
+Pour un lot ordinaire, un agent Cursor Cloud suffit :
+
+1. Hermes (ou le propriétaire) pointe vers un brief large déjà écrit,
+   ou vers une grande étape. Le brief, s'il existe, reste la seule
+   instruction.
+2. Cursor découpe en sous-tâches indépendantes (fichiers disjoints).
+3. Les sous-tâches tournent en parallèle dans le même worktree.
+4. Une seule PR. Tests vitaux. Pas de boucle harnais, pas de juge
+   ForgePilot obligatoire.
+
+ForgePilot (`start` / `resume` / `merge`) reste le chemin durable
+quand on a besoin d'une reprise VPS. Le harnais trois rôles se lance
+seulement si quelqu'un demande explicitement l'archive de preuves.
 
 L'aperçu sans `--run` affiche le modèle et l'effort retenus ; le prompt reste
 masqué à `<prompt>`.

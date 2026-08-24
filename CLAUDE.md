@@ -41,19 +41,16 @@ was paid for by a real defect in VictoriaProject. Read it before writing any
 check, counter, or gate. Do not restate it here — this pointer is
 intentional (see "Single Source of Instruction" below).
 
-## The Harness: Three Roles, Never One Agent
+## The Harness: Optional Three Roles
 
 Planificateur / Générateur / Évaluateur — never the same agent in the same
-pass. See [docs/rules/harness-roles.md](docs/rules/harness-roles.md) and
-`.claude/agents/forge-*.md`. The Générateur role is backend-pluggable
-(Claude Code by default, or Cursor CLI via `harness/backends/`) — see
-[harness/backends/README.md](harness/backends/README.md).
-
-Depuis ADR-0016, **Hermes pilote** (propositions, cadence, ForgePilot) ;
-Claude Code planifie et relit en lecture seule ; Cursor exécute. Le harnais
-trois rôles reste la porte mécanique et l'archive de preuves. Le producteur
-ne fusionne jamais son propre travail. Le produit vivant est `sim/`
-(`python -m sim`) ; Unity est en veille.
+pass **when the harness runs**. See
+[docs/rules/harness-roles.md](docs/rules/harness-roles.md). Since ADR-0018
+the default product path is Hermes (Sol 5.6, grandes étapes) then Cursor
+(brief large, sous-tâches en parallèle). The harness remains an optional
+proof archive ; `verdict_audit.py` still tells the truth when invoked. The
+producer never merges their own work. The living product is `sim/`
+(`python -m sim`) ; Unity is asleep.
 
 ## Architecture
 
@@ -63,8 +60,8 @@ ne fusionne jamais son propre travail. Le produit vivant est `sim/`
 - **hermes/** — chef de projet : propositions, rapports, demandes, crons
   de lecture, skill. Jamais le code produit, un brief ou un verdict. Voir
   `hermes/README.md` et ADR-0016.
-- **control-plane/** — ForgePilot : Claude Code en lecture, Cursor dans un
-  worktree `agent/*`. État local `.forgepilot/` hors git.
+- **control-plane/** — ForgePilot : chemin durable optionnel. Cursor
+  Cloud peut livrer une PR directement (ADR-0018).
 - **sim/** — **produit vivant** : moteur Python, sans Unity. Lancer
   `python -m sim`. Couche 1 commencée (011–018, snapshot `v0a-1`).
 - **pipeline/geo/** — G3, G4, G5, C1, G6 livré non consommé par `sim/`.
@@ -137,4 +134,4 @@ See [HANDOFF.md](HANDOFF.md) — rewritten at the end of every session.
 | `harness/backends/**` | `harness/backends/README.md` (pluggable-Générateur contract) |
 | `architecture/**` | sur demande explicite seulement — `architecture/README.md` |
 | `harness/pipeline/**` | `docs/rules/full-auto-pipeline.md` + ADR-0006 (archive, `mode: manual`) |
-| `ROADMAP.md`, `hermes/**` | `hermes/README.md` + ADR-0016 |
+| `ROADMAP.md`, `hermes/**` | `hermes/README.md` + ADR-0016 + ADR-0018 |

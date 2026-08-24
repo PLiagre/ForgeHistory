@@ -4,6 +4,11 @@ Lis `CLAUDE.md`, `VISION.md`, `ROADMAP.md`, les règles pointées par `CLAUDE.md
 et seulement les fichiers nécessaires à la tâche ci-dessous. Vérifie l'état
 Git réel. Produis un plan court et falsifiable pour un unique lot Cursor.
 
+Si le brief est large, le plan nomme des **sous-tâches indépendantes**
+que Cursor pourra lancer en parallèle (fichiers disjoints, un seul
+worktree, une seule PR). Ne découpe pas un lot en plusieurs revues
+successives. N'écris pas le code.
+
 La réponse finale est un objet JSON avec les clés : `task`, `scope`,
 `acceptance_criteria`, `files_to_read`, `files_allowed_to_change`, `checks`,
 `risks`, `blocked`. `acceptance_criteria` et `checks` sont des listes. Si une

@@ -5,7 +5,9 @@ review_bundle_max_bytes = 262144
 [controller]
 backend = "hermes"
 provider = "nous_portal"
-model = "openai/gpt-5.4"
+# ADR-0018 : Sol 5.6 pour le suivi et les grandes étapes.
+# xhigh est le repli nommé, pas le quotidien.
+model = "openai/gpt-5.6-sol-high"
 can_plan = false
 can_review = false
 can_merge = false

@@ -9,10 +9,10 @@ metadata:
 
 ## When to Activate
 
-Any time a piece of work (a feature, a fix, a measurement) needs to go
-through ForgeHistory's brief pipeline instead of being done ad hoc in
-conversation. If the work will produce a claim ("this works," "this measures
-N") that someone else needs to trust later, it belongs in the harness.
+When someone **explicitly** wants the three-role archive (brief + rubric +
+mechanical gate + verdict). ADR-0018 : the default product path is Hermes
+(grandes étapes) then Cursor (brief large, parallel sub-tasks, one PR).
+Do not start this loop for an ordinary product change.
 
 ## Core Concepts
 
@@ -27,7 +27,9 @@ contract is identical (`deliverables/manifest.json` +
 `deliverables/generator-log.md`), so the gate and the Évaluateur don't need
 to know or care which backend ran.
 
-## How the Loop Runs
+## How the Loop Runs (optional path)
+
+If the harness is **not** requested, stop here and follow ADR-0018.
 
 ```
 1. forge-planificateur writes harness/queue/briefs/NNN-<slug>/{brief.md,eval-rubric.md}

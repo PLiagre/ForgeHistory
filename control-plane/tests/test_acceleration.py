@@ -113,7 +113,7 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual("hermes", policy.controller.backend)
         self.assertEqual("nous_portal", policy.controller.provider)
         self.assertFalse(policy.controller.can_review)
-        self.assertEqual("openai/gpt-5.4", policy.controller.model)
+        self.assertEqual("openai/gpt-5.6-sol-high", policy.controller.model)
         self.assertEqual("claude-opus-5", policy.witness.model)
         self.assertEqual("high", policy.witness.effort)
         self.assertEqual("cursor", policy.risks["R1"].roles["planner"].backend)

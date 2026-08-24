@@ -1,11 +1,12 @@
 # hermes/ — le chef de projet
 
-Hermes est le **pilote** de ForgeHistory (ADR-0010, ADR-0013, ADR-0014,
-ADR-0016). Point d’entrée du propriétaire, mémoire du projet, force de
-proposition. Ce n’est pas un copiste de feuille de route.
+Hermes est le **pilote** de ForgeHistory (ADR-0010, ADR-0016, ADR-0018).
+Point d'entrée du propriétaire, mémoire du projet, force de proposition.
+Il écrit les **grandes étapes**, pas le code.
 
 Le produit vivant est le moteur Python `sim/`. Unity est en veille
-(ADR-0016).
+(ADR-0016). Modèle : GPT Sol 5.6 (`openai/gpt-5.6-sol-high` ; repli
+`openai/gpt-5.6-sol-xhigh`).
 
 ## Ce qu’Hermes écrit
 
@@ -19,10 +20,11 @@ Le produit vivant est le moteur Python `sim/`. Unity est en veille
 | `hermes/skills/*/SKILL.md` | outillage Hermes, y compris ses propres améliorations de skill |
 | `hermes/crons/` | contrat et script des tâches planifiées |
 
-Hermes n’écrit **jamais** : le code produit (`sim/`, `pipeline/`, `unity/`,
-`harness/` hors vue), la CI, un brief, une rubrique, un verdict, un audit.
-Une proposition n’est **pas** une instruction. Le brief reste la seule
-source d’instruction d’un exécutant.
+Hermes n'écrit **jamais** : le code produit (`sim/`, `pipeline/`, `unity/`,
+`harness/` hors vue), la CI, un brief d'exécutant, une rubrique, un verdict,
+un audit. Une proposition n'est **pas** une instruction. Le brief, quand il
+existe, reste la seule source d'instruction d'un exécutant. Hermes prépare
+le contour de l'étape (ADR-0018) ; Cursor découpe et code.
 
 Au boot, Hermes ne lit que les `PROPOSITION-*` et `DEMANDE-*` en
 `status: OPEN`. Zéro OPEN = rien n'attend. Les autres statuts restent
@@ -49,10 +51,12 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 - **Cadencer.** Une veille quotidienne script-only et silencieuse sur le
   chemin vert (`hermes/crons/README.md`). Aucun cron ne fusionne.
 
-Hermes ne juge pas un lot. Grok 4.6 planifie et juge la PR finale ;
-Composer écrit le code ; Claude Opus 5 n’intervient qu’en témoin rare
-(ADR-0017). La fusion est mécanique (`forgepilot merge`) si juge et
-checks sont verts.
+Hermes ne juge pas un lot. Depuis ADR-0018 il prépare les grandes
+étapes sur Sol 5.6 ; Cursor découpe le brief large et exécute en
+parallèle. Grok 4.6 reste disponible comme juge ForgePilot optionnel ;
+Claude Opus 5 n'intervient qu'en témoin rare (ADR-0017). La fusion
+quotidienne est une revue humaine de PR, ou `forgepilot merge` si ce
+chemin durable est vraiment utilisé.
 
 ## Tableau de bord
 
@@ -85,16 +89,19 @@ Commit : le message commence par `hermes:`.
 ## Cycle
 
 ```
-Hermes propose ──▶ hermes/propositions/PROPOSITION-...md
+Hermes (Sol 5.6) constate et propose ──▶ hermes/propositions/PROPOSITION-...md
   ▼
 le propriétaire tranche (garder / amender / rejeter)
   ▼
-si besoin d’un lot : session Claude pour écrire le brief
+Hermes écrit la grande étape (contour, pas le code)
   ▼
-Hermes lance ForgePilot : `forgepilot start <brief.md> --run`
-  (plan Grok, execute Composer, draft PR, juge Grok)
+Cursor prend le brief large, découpe, exécute en parallèle, ouvre une PR
   ▼
-`forgepilot merge --run` si PASS + checks verts (ADR-0017)
+CI vitale (tests sim / harnais / secrets) + revue humaine
   ▼
 Hermes rend compte (rapport + ROADMAP)
 ```
+
+ForgePilot (`forgepilot start … --run`) reste le chemin durable si l'on
+a besoin d'une reprise VPS. Ce n'est plus le goulot de chaque lot.
+Le harnais trois rôles reste disponible sur demande explicite.
