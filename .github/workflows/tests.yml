@@ -1,0 +1,68 @@
+name: tests
+
+# ADR-0018 : un seul workflow de tests, plus le scan de sécurité.
+# Les douze workflows précédents orchestraient des rôles supprimés
+# (full-auto, machine d'audit, bot de fusion, aiguillage de risque).
+#
+# Quatre travaux :
+#   * sim-tests      -- le jeu : invariants physiques, règles visibles, déterminisme
+#   * harness-tests  -- la porte mécanique et ses gardes
+#   * control-plane  -- ForgePilot, l'outil qui lance les lots
+#   * f0-demo        -- un faux compte-rendu doit être refusé par la porte
+#
+# Pourquoi le brief honnête n'est pas rejoué ici : son ACCEPT dépend des
+# dates de fichiers (la rubrique doit précéder les livrables), qu'un
+# checkout git écrase. Le chemin ACCEPT est couvert par les fixtures de
+# test_verdict_audit.py.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  sim-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --upgrade pip pytest
+      - name: Les tests du jeu
+        run: python -m pytest sim/tests/ -v
+
+  harness-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --upgrade pip pytest
+      - name: La porte mécanique et ses gardes
+        run: python -m pytest harness/tests/ -v
+
+  control-plane-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - name: ForgePilot
+        working-directory: control-plane
+        run: python -m unittest discover -s tests -v
+
+  f0-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - name: Un faux compte-rendu doit être refusé
+        run: python harness/demo/fake_brief_001/run_demo.py

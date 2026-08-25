@@ -615,8 +615,9 @@ class ScopeAndReviewTests(unittest.TestCase, GitRepoMixin):
             self.assertIn("b" * 40, markdown.read_text(encoding="utf-8"))
 
 
-class ControllerRouterTests(unittest.TestCase):
-    def test_test_profile_uses_controller_router_but_runs_in_worktree(self):
+class TestRunnerTests(unittest.TestCase):
+    def test_runner_runs_the_candidate_suites_in_the_worktree(self):
+        """ADR-0018 : plus de routeur par profil de risque — on lance ce qui existe."""
         from forgepilot.durable import run_test_profile
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -624,33 +625,47 @@ class ControllerRouterTests(unittest.TestCase):
             subprocess.run(["git", "init", "-b", "main"], cwd=worktree, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=worktree, check=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=worktree, check=True)
-            (worktree / "harness").mkdir()
-            (worktree / "harness" / "workflow_test_router.py").write_text(
-                "def build_plan(*args, **kwargs): raise RuntimeError('routeur périmé chargé')\n",
-                encoding="utf-8",
-            )
-            (worktree / "control-plane").mkdir()
-            source_policy = Path(__file__).resolve().parents[1] / "workflow-policy.toml"
-            (worktree / "control-plane" / "workflow-policy.toml").write_bytes(
-                source_policy.read_bytes()
-            )
-            proof = worktree / "pipeline" / "geo" / "tests" / "run_proof_r1.py"
-            proof.parent.mkdir(parents=True)
-            proof.write_text("print('R1 OK')\n", encoding="utf-8")
+            tests_dir = worktree / "sim" / "tests"
+            tests_dir.mkdir(parents=True)
+            (tests_dir / "test_vert.py").write_text("def test_vert():\n    assert True\n", encoding="utf-8")
             subprocess.run(["git", "add", "."], cwd=worktree, check=True)
             subprocess.run(["git", "commit", "-m", "fixture"], cwd=worktree, check=True, capture_output=True)
 
             result = run_test_profile(
                 worktree,
-                paths=["pipeline/geo/tests/run_proof_r1.py"],
+                paths=["sim/tests/test_vert.py"],
                 profile="fast",
                 output_path=worktree / "result.json",
             )
 
             self.assertEqual(0, result["code"])
-            results = result["results"]
-            self.assertIsInstance(results, list)
-            self.assertEqual(["git-diff-check", "r1-proof"], [item["id"] for item in results])
+            self.assertEqual(
+                ["git-diff-check", "sim-tests"],
+                [item["id"] for item in result["results"]],
+            )
+
+    def test_a_red_suite_stops_the_run_and_is_refused(self):
+        from forgepilot.durable import run_test_profile
+        from forgepilot.process import PilotError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            worktree = Path(tmp)
+            subprocess.run(["git", "init", "-b", "main"], cwd=worktree, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=worktree, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=worktree, check=True)
+            tests_dir = worktree / "sim" / "tests"
+            tests_dir.mkdir(parents=True)
+            (tests_dir / "test_rouge.py").write_text("def test_rouge():\n    assert False\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=worktree, check=True)
+            subprocess.run(["git", "commit", "-m", "fixture"], cwd=worktree, check=True, capture_output=True)
+
+            with self.assertRaises(PilotError):
+                run_test_profile(
+                    worktree,
+                    paths=["sim/tests/test_rouge.py"],
+                    profile="fast",
+                    output_path=worktree / "result.json",
+                )
 
 
 class DurableFlowTests(unittest.TestCase, GitRepoMixin):
