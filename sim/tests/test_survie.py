@@ -129,7 +129,7 @@ def _fraction_survie_apres(n_ticks: int) -> tuple[float, int, int, int]:
     (fraction_survie, population_initiale, population_finale, nombre_cellules).
     L'échantillon est toujours le monde chargé — jamais un monde à la main.
     """
-    world = World.from_g3(rng_seed=RNG_SEED)
+    world = World.charger(rng_seed=RNG_SEED)
     rng = random.Random(RNG_SEED)
 
     pop_init = sum(c.population for c in world.cells.values())
@@ -148,7 +148,7 @@ FACTEUR_REGIME_BAS = 0.5
 FACTEUR_REGIME_HAUT = 2.0
 def _mesure_fraction_survie() -> float:
     """Monde réel G3, N_TICKS_SENSIBILITE ticks, constantes courantes."""
-    world = World.from_g3(rng_seed=RNG_SEED)
+    world = World.charger(rng_seed=RNG_SEED)
     rng = random.Random(RNG_SEED)
     pop_init = sum(c.population for c in world.cells.values())
     for _ in range(N_TICKS_SENSIBILITE):

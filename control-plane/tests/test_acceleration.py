@@ -166,7 +166,7 @@ class PolicyTests(unittest.TestCase):
     def test_broad_glob_that_can_touch_governance_is_r2(self):
         policy = load_policy()
         self.assertEqual("R2", derive_risk(policy, ["docs/**"]))
-        self.assertEqual("R2", derive_risk(policy, ["pipeline/geo/**"]))
+        self.assertEqual("R2", derive_risk(policy, ["tools/map/**"]))
 
     def test_doctor_prints_effective_policy_without_secret(self):
         out = io.StringIO()

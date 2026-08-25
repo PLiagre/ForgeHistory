@@ -17,8 +17,7 @@ import pathlib
 import pytest
 from sim.world import World
 _REPO_ROOT = pathlib.Path(__file__).parent.parent.parent
-_STATS_PATH = _REPO_ROOT / "pipeline" / "geo" / "artifacts" / "stats_g3.json"
-_ADJACENCY_PATH = _REPO_ROOT / "pipeline" / "geo" / "artifacts" / "adjacency_g3.json"
+_CARTE_PATH = _REPO_ROOT / "data" / "world-1400.json"
 import subprocess
 import sys
 from pathlib import Path
@@ -38,8 +37,8 @@ _ROOT_KEYS = {
     "tick",
     "cell_count",
     "crs",
-    "geometry_source",
-    "layers",
+    "carte",
+    "couches",
     "cells",
 }
 _CELL_KEYS = {
@@ -53,62 +52,51 @@ _CELL_KEYS = {
     "hunger_ticks",
     "mortality_remainder",
     "province",
-    "climate_drivers",
+    "climat",
+    "gisements",
+    "relief",
 }
 def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
 # --- test_world.py ---
-def test_cells_count_matches_stats():
+def test_le_monde_charge_exactement_la_carte():
     """
-    SC2 : le nombre de cellules chargées correspond à cell_count dans stats_g3.json.
-    Les deux valeurs sont affichées côte à côte.
-    Compteur : cells_chargees.
+    Le monde chargé contient exactement ce que porte la carte figée :
+    ni cellule inventée, ni arête perdue. Aucun nombre codé en dur.
     """
-    world = World.from_g3()
+    world = World.charger()
+    carte = json.loads(_CARTE_PATH.read_text(encoding="utf-8"))
 
-    stats = json.loads(_STATS_PATH.read_text(encoding="utf-8"))
-    expected = stats["cell_count"]
-    actual = len(world.cells)
+    print(f"cellules chargées = {len(world.cells)} / carte = {len(carte['cellules'])}")
+    print(f"arêtes chargées = {len(world.adjacency)} / carte = {len(carte['adjacence'])}")
 
-    print(f"cells_chargees (chargées) = {actual}")
-    print(f"cell_count (stats_g3.json) = {expected}")
-    print(f"cells_chargees == cell_count : {actual == expected}")
+    assert len(world.cells) == len(carte["cellules"])
+    assert len(world.adjacency) == len(carte["adjacence"])
+    assert set(world.cells) == {c["cell_id"] for c in carte["cellules"]}
 
-    assert actual == expected, (
-        f"Nombre de cellules chargées ({actual}) "
-        f"ne correspond pas à cell_count ({expected}) dans stats_g3.json."
+
+def test_la_carte_versionnee_est_celle_que_l_outil_produit():
+    """
+    ADR-0018, risque nommé : une carte figée peut devenir périmée si
+    `tools/map/` évolue sans la regénérer. Ce test le refuse.
+    """
+    outil = _REPO_ROOT / "tools" / "map" / "build_world.py"
+    resultat = subprocess.run(
+        [sys.executable, str(outil), "--verifier"],
+        capture_output=True, text=True, cwd=_REPO_ROOT,
+    )
+    print(resultat.stdout)
+    assert resultat.returncode == 0, (
+        "La carte versionnée ne correspond plus à ce que produit "
+        f"tools/map/build_world.py :\n{resultat.stdout}\n{resultat.stderr}"
     )
 
 
-# --- test_world.py ---
-def test_adjacency_count_matches_file():
-    """
-    SC2 : le nombre d'arêtes chargées correspond à la longueur totale
-    du tableau adjacency dans adjacency_g3.json.
-    Compteur : aretes_adjacence_chargees.
-    """
-    world = World.from_g3()
-
-    adj_doc = json.loads(_ADJACENCY_PATH.read_text(encoding="utf-8"))
-    expected = len(adj_doc["adjacency"])
-    actual = len(world.adjacency)
-
-    print(f"aretes_adjacence_chargees (chargées) = {actual}")
-    print(f"longueur adjacency_g3.json = {expected}")
-    print(f"aretes_adjacence_chargees == len(adjacency) : {actual == expected}")
-
-    assert actual == expected, (
-        f"Nombre d'arêtes chargées ({actual}) "
-        f"ne correspond pas à la longueur du fichier ({expected})."
-    )
-
-
-# --- test_world.py ---
 def test_cells_have_required_fields():
     """Chaque cellule chargée possède les champs attendus avec des valeurs valides."""
-    world = World.from_g3()
+    world = World.charger()
     for cid, cell in world.cells.items():
         assert cell.cell_id == cid
         assert cell.area_km2 > 0
@@ -151,25 +139,26 @@ def test_module_cli_json():
 
 # --- test_snapshot_v0a.py ---
 def test_schema_ferme_et_couches():
-    world = World.from_g3(0)
+    world = World.charger(0)
     doc = build_snapshot_document(world, 0, 0)
     assert set(doc) == _ROOT_KEYS
     assert doc["schema_version"] == SNAPSHOT_SCHEMA_VERSION
     assert doc["cell_count"] == len(world.cells) == len(doc["cells"])
-    assert set(doc["layers"]) == {"relief_g6", "climate_drivers_c1", "resources_r1"}
-    assert doc["layers"]["relief_g6"]["status"] == "not_consumed"
-    assert doc["layers"]["climate_drivers_c1"]["status"] == "present"
-    assert doc["layers"]["resources_r1"]["status"] == "absent"
+    assert set(doc["couches"]) == {"relief", "climat", "gisements"}
+    for couche in doc["couches"].values():
+        assert couche["dans_la_carte"] is True
+        # Aucune n'est encore jouée par le tick : le snapshot le dit.
+        assert couche["utilisee_par_le_moteur"] is False
     first = doc["cells"][0]
     assert set(first) == _CELL_KEYS
     assert "province_id" not in first
     assert "elev_mean_m" not in first
-    assert first["climate_drivers"] is not None
+    assert first["climat"] is not None
 
 
 # --- test_snapshot_v0a.py ---
 def test_province_recalculee_pas_stockee():
-    world = World.from_g3(0)
+    world = World.charger(0)
     doc = build_snapshot_document(world, 0, 0)
     regroupements = agregat_depuis_monde(world)
     for cell in doc["cells"]:
@@ -179,9 +168,9 @@ def test_province_recalculee_pas_stockee():
 
 # --- test_snapshot_v0a.py ---
 def test_deux_passes_identiques_et_graines_differentes():
-    world_a = World.from_g3(0)
-    world_b = World.from_g3(0)
-    world_c = World.from_g3(1)
+    world_a = World.charger(0)
+    world_b = World.charger(0)
+    world_c = World.charger(1)
     a = serialize_snapshot(build_snapshot_document(world_a, 0, 0))
     b = serialize_snapshot(build_snapshot_document(world_b, 0, 0))
     c = serialize_snapshot(build_snapshot_document(world_c, 1, 0))
@@ -227,7 +216,7 @@ def test_cli_snapshot_et_refus_schema(tmp_path: Path):
 
 # --- test_snapshot_v0a.py ---
 def test_rouge_sentinelle_et_cle_spatiale():
-    world = World.from_g3(0)
+    world = World.charger(0)
     doc = build_snapshot_document(world, 0, 0)
     raw = serialize_snapshot(doc)
     altered = bytearray(raw)
@@ -244,18 +233,22 @@ def test_rouge_sentinelle_et_cle_spatiale():
 
 
 # --- test_snapshot_v0a.py ---
-def test_g6_non_consomme():
-    world = World.from_g3(0)
+def test_le_relief_est_une_classe_pas_une_altitude():
+    """
+    ADR-0018 : le jeu voit cinq classes de relief, jamais des mètres.
+    """
+    world = World.charger(0)
     doc = build_snapshot_document(world, 0, 0)
-    assert doc["layers"]["relief_g6"]["status"] == "not_consumed"
+    classes = {"marais", "plaine", "colline", "montagne", "haute_montagne"}
     for cell in doc["cells"]:
+        assert cell["relief"] in classes
         assert "elev_mean_m" not in cell
         assert "centroid_elev_m" not in cell
 
 
 # --- test_snapshot_v0a.py ---
 def test_sentinelle_moins_un_n_est_pas_zero():
-    world = World.from_g3(0)
+    world = World.charger(0)
     cell = next(iter(world.cells.values()))
     original = cell.hunger_ticks
     cell.hunger_ticks = -1
@@ -271,7 +264,7 @@ def test_sentinelle_moins_un_n_est_pas_zero():
 
 # --- test_snapshot_v0a.py ---
 def test_zero_mesure_n_est_pas_sentinelle():
-    world = World.from_g3(0)
+    world = World.charger(0)
     doc = build_snapshot_document(world, 0, 0)
     cell = doc["cells"][0]
     assert cell["hunger_ticks"] == 0

@@ -1,0 +1,9 @@
+G4-B — atteignabilite des bassins enfermes, liens topologiques declares ACTIFS
+pipeline_version: 1.5.0-g4-v1_050
+liens_declares_appliques: 2 / 2 declarations lues
+  lien corr_lauwerszee_topology_1400 : Lauwerszee (zone 5027) <-> Mer du Nord (zone 5028) | date=1969 certitude=attested
+  lien corr_zuiderzee_afsluitdijk_topology_1400 : IJsselmeer (zone 5025) <-> Mer du Nord (zone 5028) | date=1932 certitude=attested
+bassins_enfermes: [5025, 5027]
+bassins_injoignables: []
+all_enclosed_reachable: True
+constat: chaque bassin enferme rejoint la mer exterieure par un chemin d'eau.

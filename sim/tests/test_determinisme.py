@@ -20,7 +20,7 @@ from sim.world import World
 N_TICKS_DETERMINISME = 200
 def _run_n_ticks_digest(world_seed: int, rng_seed: int) -> str:
     """Lance N_TICKS_DETERMINISME ticks et retourne le condensé SHA256 de l'état final."""
-    world = World.from_g3(rng_seed=world_seed)
+    world = World.charger(rng_seed=world_seed)
     rng = random.Random(rng_seed)
     for _ in range(N_TICKS_DETERMINISME):
         engine.tick(world, rng)
@@ -40,9 +40,9 @@ from sim.aggregation import (
 RNG_SEED = 42
 _RACINE_DEPOT = pathlib.Path(__file__).parent.parent.parent
 _CHEMIN_CENTRES = (
-    _RACINE_DEPOT / "pipeline" / "geo" / "legacy_game_data" / "province_coordinates.json"
+    _RACINE_DEPOT / "data" / "province-centres-1400.json"
 )
-_CHEMIN_CELLULES = _RACINE_DEPOT / "pipeline" / "geo" / "artifacts" / "cells_g3.json"
+_CHEMIN_CELLULES = _RACINE_DEPOT / "data" / "world-1400.json"
 _IDENTIFIANT_PETIT = 3
 _IDENTIFIANT_GRAND = 7
 _CELLULE_FABRIQUEE = 900001
@@ -55,7 +55,7 @@ def test_rng_etat_change_apres_tick():
     rng.getstate() avant ≠ rng.getstate() après 10 ticks.
     Compteur : rng_etat_change_apres_tick (True si état différent).
     """
-    world = World.from_g3(rng_seed=42)
+    world = World.charger(rng_seed=42)
     rng = random.Random(42)
 
     etat_avant = rng.getstate()
@@ -131,8 +131,8 @@ def test_seeding_determinisme():
     SC4 : deux runs avec la même graine rng_seed = 42 donnent
     des populations identiques sur toutes les cellules.
     """
-    w1 = World.from_g3(rng_seed=42)
-    w2 = World.from_g3(rng_seed=42)
+    w1 = World.charger(rng_seed=42)
+    w2 = World.charger(rng_seed=42)
 
     assert set(w1.cells.keys()) == set(w2.cells.keys())
 
@@ -160,7 +160,7 @@ def test_determinisme_agregation_deux_passes():
 
     Compteur : determinisme_agregation_deux_passes.
     """
-    monde = World.from_g3(rng_seed=RNG_SEED)
+    monde = World.charger(rng_seed=RNG_SEED)
     positions = positions_du_monde(monde, charger_positions())
     centres = charger_centres()
     latitude_moyenne = charger_latitude_moyenne()
@@ -252,7 +252,7 @@ def test_purete_agregation_ne_mute_pas_les_entrees():
     aucun fichier. Comparaison avant / après sur des copies profondes, et
     comparaison des octets des deux fichiers lus par le module.
     """
-    monde = World.from_g3(rng_seed=RNG_SEED)
+    monde = World.charger(rng_seed=RNG_SEED)
     positions = positions_du_monde(monde, charger_positions())
     centres = charger_centres()
     latitude_moyenne = charger_latitude_moyenne()

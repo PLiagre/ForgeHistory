@@ -11,12 +11,11 @@ d'elle, et de personne d'autre. Quand un centre se déplace, aucune cellule
 n'est réécrite : la réponse à « de qui cette terre relève-t-elle ? » est
 simplement recalculée.
 
-Entrées lues, jamais écrites :
-- `pipeline/geo/artifacts/cells_g3.json` — position géographique de chaque
-  cellule (`centroid.lat`, `centroid.lon`, repère WGS84) ;
-- `pipeline/geo/legacy_game_data/province_coordinates.json` — les centres
-  administratifs hérités du jeu (`coordinates`) et le paramètre de projection
-  (`projection.mid_latitude`).
+Entrées lues, jamais écrites (ADR-0018 : elles vivent toutes dans `data/`) :
+- `data/world-1400.json` — position géographique de chaque cellule
+  (`centroid.lat`, `centroid.lon`, repère WGS84) ;
+- `data/province-centres-1400.json` — les centres administratifs
+  (`coordinates`) et le paramètre de projection (`projection.mid_latitude`).
 
 Voir `sim/SEEDING.md`, section « brief 018 », pour la provenance des données,
 la projection employée, la règle de départage des égalités et la politique de
@@ -33,14 +32,12 @@ from sim.model import _NoBadSpatialField
 # Racine du dépôt : un niveau au-dessus du paquet sim/
 _RACINE_DEPOT = pathlib.Path(__file__).parent.parent
 
-_CHEMIN_CELLULES = _RACINE_DEPOT / "pipeline" / "geo" / "artifacts" / "cells_g3.json"
-_CHEMIN_CENTRES = (
-    _RACINE_DEPOT / "pipeline" / "geo" / "legacy_game_data" / "province_coordinates.json"
-)
+_CHEMIN_CELLULES = _RACINE_DEPOT / "data" / "world-1400.json"
+_CHEMIN_CENTRES = _RACINE_DEPOT / "data" / "province-centres-1400.json"
 
 # Clés des documents lus. Nommées ici, jamais recopiées dans les corps de
 # fonctions : un chemin de lecture dérive, il ne se répète pas.
-_CLE_CELLULES = "cells"
+_CLE_CELLULES = "cellules"
 _CLE_CENTROIDE = "centroid"
 _CLE_IDENTIFIANT_CELLULE = "cell_id"
 _CLE_LATITUDE = "lat"

@@ -26,5 +26,5 @@ Comparaison de deux photographies :
 Hôte par défaut `127.0.0.1`, port `8765`. Si le port est pris, la commande
 refuse (code 2) au lieu d'en choisir un autre en silence.
 
-Le viewer ne recalcule rien, ne lit pas `pipeline/geo/`, et ne charge
+Le viewer ne recalcule rien, ne lit pas `tools/map/`, et ne charge
 aucune ressource réseau.

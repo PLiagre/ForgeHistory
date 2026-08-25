@@ -58,7 +58,7 @@ où `variation = rng.uniform(SEED_POPULATION_VARIATION_LOW, SEED_POPULATION_VARI
 
 ### Déterminisme
 
-Deux appels à `World.from_g3(rng_seed=K)` avec la même graine `K` produisent
+Deux appels à `World.charger(rng_seed=K)` avec la même graine `K` produisent
 des populations initiales byte-identiques, car `rng = random.Random(rng_seed)`
 initialise un générateur pseudo-aléatoire isolé (jamais de source globale).
 
@@ -605,7 +605,7 @@ serait une calibration déguisée.
 ### Provenance : des données héritées du jeu, pas des frontières de 1400
 
 Les centres administratifs sont lus dans
-`pipeline/geo/legacy_game_data/province_coordinates.json`. Ce sont des
+`data/province-centres-1400.json`. Ce sont des
 **données héritées du jeu**, reprises telles quelles et en lecture seule.
 
 Ce ne sont **pas** des frontières historiques de 1400. Rien ici ne prétend au
@@ -618,8 +618,8 @@ projet en aura une. Leur nombre n'est pas recopié ici : il est celui du
 tableau `coordinates` du fichier, lu à chaque exécution.
 
 De même, le nombre de cellules du monde n'est écrit nulle part dans le code :
-il est lu de `pipeline/geo/artifacts/stats_g3.json` (`cell_count`) et dérivé
-du chargement par `World.from_g3()`.
+il est lu de `data/world-1400.json` et dérivé
+du chargement par `World.charger()`.
 
 ### Projection : celle que le fichier documente lui-même
 
@@ -652,7 +652,7 @@ cas d'égalité exacte et l'essaie dans les deux ordres.
 
 ### Refus de deviner (D5)
 
-Si une cellule chargée par `World.from_g3()` n'a pas de position dans les
+Si une cellule chargée par `World.charger()` n'a pas de position dans les
 artefacts géographiques, le code lève `PositionCelluleInconnue` en **nommant
 la cellule**. Il n'attribue pas de province par défaut et n'écarte pas la
 cellule en silence : une couverture obtenue en jetant les cellules gênantes

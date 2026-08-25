@@ -1,8 +1,9 @@
 """
 Chargement et représentation du monde simulé.
 
-World.from_g3() charge les artefacts géographiques G3 et amorce
-la population de chaque cellule avec un rng_seed déterministe.
+World.charger() lit la carte figée `data/world-1400.json` — un seul
+fichier, produit une fois par `tools/map/build_world.py` (ADR-0018) — et
+amorce la population de chaque cellule avec un rng_seed déterministe.
 """
 
 import json
@@ -21,8 +22,9 @@ from sim.model import Cell
 # Racine du dépôt : deux niveaux au-dessus du paquet sim/
 _REPO_ROOT = pathlib.Path(__file__).parent.parent
 
-_CELLS_PATH = _REPO_ROOT / "pipeline" / "geo" / "artifacts" / "cells_g3.json"
-_ADJACENCY_PATH = _REPO_ROOT / "pipeline" / "geo" / "artifacts" / "adjacency_g3.json"
+# La carte figée est la seule entrée géographique du jeu (ADR-0018).
+CARTE_RELATIVE = "data/world-1400.json"
+CARTE_PATH = _REPO_ROOT / "data" / "world-1400.json"
 
 
 def _seed_population(area_km2: float, rng: random.Random) -> int:
@@ -43,28 +45,44 @@ class World:
     Représentation complète du monde simulé à un instant donné.
 
     Attributs :
-        cells      : dict cell_id → Cell
-        adjacency  : liste des arêtes d'adjacence G3
+        cells      : dict cell_id → Cell (l'état que le moteur fait évoluer)
+        adjacency  : liste des arêtes d'adjacence entre cellules
+        carte      : dict cell_id → enregistrement de la carte figée
+                     (géométrie, centroïde, relief, climat, gisements).
+                     Donnée de terrain, en lecture seule : le moteur ne la
+                     modifie jamais.
+        carte_meta : l'en-tête de la carte (version, projection, versions
+                     du pipeline qui l'a produite).
     """
 
-    def __init__(self, cells: dict, adjacency: list):
+    def __init__(self, cells: dict, adjacency: list,
+                 carte: dict | None = None, carte_meta: dict | None = None):
         self.cells = cells
         self.adjacency = adjacency
+        self.carte = carte or {}
+        self.carte_meta = carte_meta or {}
 
     @classmethod
-    def from_g3(cls, rng_seed: int = 0) -> "World":
+    def charger(cls, rng_seed: int = 0) -> "World":
         """
-        Charge les artefacts G3 et amorce le monde.
+        Lit la carte figée et amorce le monde.
 
         Le nombre de cellules est dérivé du fichier — jamais codé en dur.
         """
         rng = random.Random(rng_seed)
 
-        raw_cells_doc = json.loads(_CELLS_PATH.read_text(encoding="utf-8"))
-        raw_adjacency_doc = json.loads(_ADJACENCY_PATH.read_text(encoding="utf-8"))
+        if not CARTE_PATH.is_file():
+            raise FileNotFoundError(
+                f"Carte du monde introuvable : {CARTE_PATH}. "
+                "La reconstruire avec `python tools/map/build_world.py`."
+            )
+        carte_doc = json.loads(CARTE_PATH.read_text(encoding="utf-8"))
 
-        raw_cells = raw_cells_doc["cells"]
-        raw_adjacency = raw_adjacency_doc["adjacency"]
+        raw_cells = carte_doc["cellules"]
+        raw_adjacency = carte_doc["adjacence"]
+        carte = {int(raw["cell_id"]): raw for raw in raw_cells}
+        carte_meta = {cle: valeur for cle, valeur in carte_doc.items()
+                      if cle not in ("cellules", "adjacence")}
 
         cells: dict = {}
         for raw in raw_cells:
@@ -85,7 +103,8 @@ class World:
             )
             cells[cid] = cell
 
-        return cls(cells=cells, adjacency=raw_adjacency)
+        return cls(cells=cells, adjacency=raw_adjacency,
+                   carte=carte, carte_meta=carte_meta)
 
     def to_dict(self) -> dict:
         """

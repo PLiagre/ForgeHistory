@@ -39,9 +39,9 @@ from sim.model import _NoBadSpatialField
 from sim.world import World
 RNG_SEED = 42
 _RACINE_DEPOT = pathlib.Path(__file__).parent.parent.parent
-_CHEMIN_STATS = _RACINE_DEPOT / "pipeline" / "geo" / "artifacts" / "stats_g3.json"
+_CHEMIN_STATS = _RACINE_DEPOT / "data" / "world-1400.json"
 _CHEMIN_CENTRES = (
-    _RACINE_DEPOT / "pipeline" / "geo" / "legacy_game_data" / "province_coordinates.json"
+    _RACINE_DEPOT / "data" / "province-centres-1400.json"
 )
 _FICHIERS_PRODUCTION = [
     pathlib.Path(agregation.__file__),
@@ -113,11 +113,13 @@ def test_province_couverture_totale_monde_reel():
     Compteurs : cellules_chargees_g3, centroides_lus, cellules_avec_province,
     cellules_sans_province, cellules_position_absente, provinces_non_vides.
     """
-    monde = World.from_g3(rng_seed=RNG_SEED)
+    monde = World.charger(rng_seed=RNG_SEED)
     positions = charger_positions()
     centres = charger_centres()
 
-    cell_count_fichier = json.loads(_CHEMIN_STATS.read_text(encoding="utf-8"))["cell_count"]
+    cell_count_fichier = len(
+        json.loads(_CHEMIN_STATS.read_text(encoding="utf-8"))["cellules"]
+    )
     centroides_fichier = len(
         json.loads(_CHEMIN_CENTRES.read_text(encoding="utf-8"))["coordinates"]
     )
@@ -174,7 +176,7 @@ def test_province_consultation_rend_le_centre_le_plus_proche():
     SC1 — la consultation de production rend bien le centre le plus proche,
     re-dérivé indépendamment pour un échantillon de cellules.
     """
-    monde = World.from_g3(rng_seed=RNG_SEED)
+    monde = World.charger(rng_seed=RNG_SEED)
     positions = charger_positions()
     centres = charger_centres()
     latitude_moyenne = charger_latitude_moyenne()
@@ -212,7 +214,7 @@ def test_province_refus_position_absente():
 
     Compteur : refus_position_absente_leve.
     """
-    monde = World.from_g3(rng_seed=RNG_SEED)
+    monde = World.charger(rng_seed=RNG_SEED)
     positions = charger_positions()
 
     cellule_retiree = sorted(monde.cells)[0]
@@ -352,7 +354,7 @@ def test_province_egalites_de_distance_monde_reel():
 
     Compteur : egalites_de_distance_monde_reel.
     """
-    monde = World.from_g3(rng_seed=RNG_SEED)
+    monde = World.charger(rng_seed=RNG_SEED)
     positions = charger_positions()
     centres = charger_centres()
     facteur = facteur_de_projection(charger_latitude_moyenne())
@@ -383,7 +385,7 @@ def test_province_agregation_ne_reference_aucune_cellule_modifiable():
     `Cell` modifiable. Un agrégat qui référencerait des cellules rouvrirait la
     porte à leur réécriture.
     """
-    monde = World.from_g3(rng_seed=RNG_SEED)
+    monde = World.charger(rng_seed=RNG_SEED)
     regroupements = agregat_depuis_monde(monde)
 
     types_transportes = set()
@@ -405,7 +407,7 @@ def test_redessin_change_agregat_sans_reecrire_les_cellules():
     SC3 — les deux faits sont vérifiés ensemble : l'agrégat bouge ET les
     cellules ne bougent pas. Vérifier l'un sans l'autre ne prouverait rien.
     """
-    monde = World.from_g3(rng_seed=RNG_SEED)
+    monde = World.charger(rng_seed=RNG_SEED)
     positions = charger_positions()
     centres = charger_centres()
 

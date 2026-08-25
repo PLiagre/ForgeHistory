@@ -1,7 +1,15 @@
-"""Photographie déterministe du monde déjà simulé (brief 027, schéma v0a-1).
+"""Photographie déterministe du monde déjà simulé (schéma v0a-2).
 
-Ce module ne recalcule aucune mécanique. Il joint la géométrie G3, la
-province dérivée et les déterminants C1 déjà publiés.
+Ce module ne recalcule aucune mécanique. Il joint ce que porte la carte
+figée (géométrie, relief, climat, gisements) à la province dérivée et à
+l'état que le moteur fait évoluer.
+
+ADR-0018 : une seule entrée géographique, `data/world-1400.json`, déjà
+chargée par le monde. Ce module ne lit plus aucun artefact de pipeline.
+
+Honnêteté des couches : `dans_la_carte` dit que la donnée est là ;
+`utilisee_par_le_moteur` dit si le tick s'en sert. Aujourd'hui le tick ne
+se sert d'aucune des trois — elles sont exportées, pas encore jouées.
 """
 
 from __future__ import annotations
@@ -18,27 +26,19 @@ from sim.aggregation import (
     nom_de_province_de_cellule,
 )
 from sim.constants import SNAPSHOT_FLOAT_DECIMALS, SNAPSHOT_SCHEMA_VERSION
-from sim.world import World
+from sim.world import CARTE_PATH, CARTE_RELATIVE, World
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-_G3_RELATIVE = "pipeline/geo/artifacts/cells_g3.json"
-_C1_RELATIVE = "pipeline/geo/artifacts/cells_climate_drivers_c1.json"
-_G6_RELATIVE = "pipeline/geo/artifacts/cells_relief_g6.json"
-_R1_RELATIVE = "pipeline/geo/artifacts/cells_resources_r1.json"
-_G3_PATH = _REPO_ROOT / _G3_RELATIVE
-_C1_PATH = _REPO_ROOT / _C1_RELATIVE
-_G6_PATH = _REPO_ROOT / _G6_RELATIVE
-_R1_PATH = _REPO_ROOT / _R1_RELATIVE
-
-_CLIMATE_KEYS = (
-    "insolation_annual_mj_m2",
-    "daylight_h_summer_solstice",
-    "daylight_h_winter_solstice",
-    "dist_sea_centroid_m",
-    "hops_to_sea",
-    "coastal",
-)
 _HASH_CHUNK_BYTES = 1024 * 1024
+
+# Les trois couches que la carte apporte au-delà de la géométrie. Aucune
+# n'est encore utilisée par le tick : le moteur les expose, il ne les joue
+# pas. Le jour où le tick en consomme une, on passe son drapeau à True —
+# et un test le vérifie.
+_COUCHES = {
+    "relief": False,
+    "climat": False,
+    "gisements": False,
+}
 
 
 class SnapshotExportError(RuntimeError):
@@ -71,42 +71,23 @@ def _round_tree(value: Any) -> Any:
     return _round_float(value)
 
 
-def _layer_status(path: Path, relative: str, *, consumed: bool) -> dict:
-    if not path.is_file():
-        return {"status": "absent"}
-    if not consumed:
-        return {"status": "not_consumed", "path": relative}
+def _couches(carte_meta: dict) -> dict:
+    """L'état honnête de chaque couche portée par la carte."""
     return {
-        "status": "present",
-        "path": relative,
-        "sha256": _sha256_file(path),
+        nom: {
+            "dans_la_carte": True,
+            "utilisee_par_le_moteur": utilisee,
+        }
+        for nom, utilisee in _COUCHES.items()
     }
 
 
-def _load_g3_index() -> dict[int, dict]:
-    if not _G3_PATH.is_file():
-        raise SnapshotExportError("cells_g3.json introuvable")
-    doc = json.loads(_G3_PATH.read_text(encoding="utf-8"))
-    index = {}
-    for raw in doc["cells"]:
-        index[int(raw["cell_id"])] = raw
-    return index
-
-
-def _load_c1_index(g3_ids: set[int]) -> tuple[dict, Optional[dict[int, dict]]]:
-    if not _C1_PATH.is_file():
-        return {"status": "absent"}, None
-    doc = json.loads(_C1_PATH.read_text(encoding="utf-8"))
-    by_id = {int(raw["cell_id"]): raw for raw in doc["cells"]}
-    if set(by_id) != g3_ids:
-        return {"status": "not_consumed", "path": _C1_RELATIVE}, None
-    return _layer_status(_C1_PATH, _C1_RELATIVE, consumed=True), by_id
-
-
 def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
-    g3_index = _load_g3_index()
-    g3_ids = set(g3_index)
-    c1_layer, c1_index = _load_c1_index(g3_ids)
+    if not world.carte:
+        raise SnapshotExportError(
+            "Le monde n'a pas été chargé depuis la carte figée ; "
+            "aucune géométrie à photographier."
+        )
     try:
         regroupements = agregat_depuis_monde(world)
     except PositionCelluleInconnue as exc:
@@ -115,9 +96,9 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
     cells_out = []
     for cell_id, cell in sorted(world.cells.items(), key=lambda item: int(item[0])):
         cid = int(cell_id)
-        raw = g3_index.get(cid)
+        raw = world.carte.get(cid)
         if raw is None or "geometry" not in raw or "centroid" not in raw:
-            raise SnapshotExportError(f"geometrie G3 absente pour cell_id={cid}")
+            raise SnapshotExportError(f"geometrie absente de la carte pour cell_id={cid}")
         centroid_src = raw["centroid"]
         try:
             centroid = {
@@ -134,23 +115,21 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
         province_name = nom_de_province_de_cellule(cid, regroupements)
         if province_id is None or province_name is None:
             raise SnapshotExportError(f"province absente pour cell_id={cid}")
-        climate = None
-        if c1_index is not None and cid in c1_index:
-            src = c1_index[cid]
-            climate = {key: src[key] for key in _CLIMATE_KEYS}
         cells_out.append(
             {
                 "area_km2": cell.area_km2,
                 "cell_id": cid,
                 "centroid": centroid,
-                "climate_drivers": climate,
+                "climat": raw.get("climat"),
                 "food_deficit_kg": cell.food_deficit_kg,
                 "food_stock_kg": cell.food_stock_kg,
                 "geometry": raw["geometry"],
+                "gisements": raw.get("gisements", []),
                 "hunger_ticks": cell.hunger_ticks,
                 "mortality_remainder": cell.mortality_remainder,
                 "population": cell.population,
                 "province": {"id": int(province_id), "name": province_name},
+                "relief": raw.get("relief"),
             }
         )
 
@@ -158,19 +137,12 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
         "cell_count": len(cells_out),
         "cells": cells_out,
         "crs": "EPSG:3035",
-        "geometry_source": {
-            "path": _G3_RELATIVE,
-            "sha256": _sha256_file(_G3_PATH),
+        "carte": {
+            "path": CARTE_RELATIVE,
+            "sha256": _sha256_file(CARTE_PATH),
+            "version": world.carte_meta.get("version"),
         },
-        "layers": {
-            "climate_drivers_c1": c1_layer,
-            "relief_g6": _layer_status(_G6_PATH, _G6_RELATIVE, consumed=False)
-            if _G6_PATH.is_file()
-            else {"status": "absent"},
-            "resources_r1": _layer_status(_R1_PATH, _R1_RELATIVE, consumed=False)
-            if _R1_PATH.is_file()
-            else {"status": "absent"},
-        },
+        "couches": _couches(world.carte_meta),
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
         "seed": int(seed),
         "tick": int(tick),

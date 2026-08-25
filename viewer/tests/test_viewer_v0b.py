@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from sim.snapshot_export import export_snapshot
+from sim.snapshot_export import build_snapshot_document, export_snapshot
 from sim.world import World
 from viewer.classify import (
     ABSENT,
@@ -56,7 +56,7 @@ def test_schema_inconnu(tmp_path: Path):
 
 
 def test_svg_deterministe_et_legend(tmp_path: Path):
-    world = World.from_g3(0)
+    world = World.charger(0)
     snap = tmp_path / "a.json"
     export_snapshot(world, 0, 0, snap)
     document = load_snapshot(snap)
@@ -98,11 +98,11 @@ def test_svg_deterministe_et_legend(tmp_path: Path):
 
 
 def test_comparaison_incomparable_pas_numerisee(tmp_path: Path):
-    world = World.from_g3(0)
+    world = World.charger(0)
     snap_a = tmp_path / "a.json"
     snap_b = tmp_path / "b.json"
     export_snapshot(world, 0, 0, snap_a)
-    world_b = World.from_g3(0)
+    world_b = World.charger(0)
     from sim.engine import tick
     import random
     rng = random.Random(0)
@@ -144,7 +144,7 @@ def test_sources_sans_pipeline_ni_url():
         if path.suffix in {".html", ".js", ".css"}:
             if "http://" in text or "https://" in text:
                 hits.append(str(path))
-        if path.suffix in {".py", ".js"} and "pipeline/geo" in text:
+        if path.suffix in {".py", ".js"} and "tools/map" in text:
             hits.append(str(path))
     assert hits == []
 
@@ -154,3 +154,24 @@ def test_null_reste_absent():
     forged_zero = 0
     assert classify(forged_zero) == ZERO
     assert classify(None) != classify(forged_zero)
+
+
+def test_les_couches_climat_rendent_des_nombres():
+    """
+    Le viewer lisait autrefois la couche climat avec un repli silencieux :
+    quand la clé changeait, la carte devenait vide sans qu'aucun test ne
+    rougisse. Ici, une couche climat qui ne rend plus de nombres est un échec.
+    """
+    from viewer.svg_proof import cell_value
+
+    world = World.charger(0)
+    document = build_snapshot_document(world, 0, 0)
+
+    for couche in ("insolation", "dist_sea"):
+        valeurs = [cell_value(cell, couche) for cell in document["cells"]]
+        nombres = [v for v in valeurs if isinstance(v, (int, float))]
+        print(f"{couche} : {len(nombres)} valeurs numériques sur {len(valeurs)} cellules")
+        assert len(nombres) == len(valeurs), (
+            f"La couche « {couche} » ne rend plus de nombres : "
+            "le snapshot et le viewer ne parlent plus la même langue."
+        )
