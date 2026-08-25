@@ -19,6 +19,13 @@ from .process import PilotError
 STATE_SCHEMA_VERSION = 1
 TERMINAL_STEPS = {"COMPLETE", "BLOCKED", "ERROR", "CANCELLED"}
 LOCK_HEARTBEAT_SECONDS = 5.0
+# Longueur minimale d'une valeur d'environnement pour qu'on la traite comme
+# un secret à masquer. En dessous, masquer fait plus de mal que de bien : une
+# variable nommée ...TOKEN_FILE_DESCRIPTOR vaut « 4 », et masquer « 4 » corrompt
+# tout texte qui en contient un — un SHA de commit, par exemple. Le seuil
+# existait déjà dans _assert_secret_free ; il manquait aux deux redactions.
+SECRET_MIN_LENGTH = 8
+
 _FORBIDDEN_STATE_KEYS = re.compile(
     r"(?:prompt|authorization|api[_-]?key|access[_-]?token|secret|password)",
     re.IGNORECASE,
@@ -39,7 +46,10 @@ def _parse_time(value: str) -> datetime:
 def sanitize_error(value: object) -> str:
     text = str(value)
     for name, secret_value in os.environ.items():
-        if secret_value and re.search(r"(?:key|token|secret|password|authorization)", name, re.I):
+        if (
+            len(secret_value) >= SECRET_MIN_LENGTH
+            and re.search(r"(?:key|token|secret|password|authorization)", name, re.I)
+        ):
             text = text.replace(secret_value, "<secret>")
     return text[:4000]
 
@@ -56,7 +66,7 @@ def _assert_secret_free(value: Any, path: str = "state") -> None:
     elif isinstance(value, str):
         for name, secret_value in os.environ.items():
             if (
-                len(secret_value) >= 8
+                len(secret_value) >= SECRET_MIN_LENGTH
                 and re.search(r"(?:key|token|secret|password|authorization)", name, re.I)
                 and secret_value in value
             ):

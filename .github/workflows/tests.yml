@@ -53,6 +53,9 @@ jobs:
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.13"
+      # pytest est requis : ForgePilot lance les suites du candidat avec
+      # `python -m pytest`, et un test l'exerce pour de vrai.
+      - run: python -m pip install --upgrade pip pytest
       - name: ForgePilot
         working-directory: control-plane
         run: python -m unittest discover -s tests -v

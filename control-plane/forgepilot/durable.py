@@ -650,18 +650,21 @@ def run_test_profile(
     results: list[dict[str, object]] = []
     code = 0
     for suite_id, command, cwd in suites:
-        completed = run_command(command, cwd=cwd, timeout_seconds=_TEST_TIMEOUT_SECONDS)
-        results.append(
-            {
-                "id": suite_id,
-                "command": command,
-                "returncode": completed.returncode,
+        # run_command lève dès qu'une commande sort non nulle. On rattrape ici
+        # pour que la preuve soit écrite AUSSI quand une suite est rouge : une
+        # preuve qui n'existe qu'en cas de succès ne prouve rien.
+        try:
+            completed = run_command(command, cwd=cwd, timeout_seconds=_TEST_TIMEOUT_SECONDS)
+            entree = {
+                "returncode": 0,
                 "stdout_tail": (completed.stdout or "")[-_TEST_OUTPUT_TAIL:],
                 "stderr_tail": (completed.stderr or "")[-_TEST_OUTPUT_TAIL:],
             }
-        )
-        if completed.returncode != 0:
-            code = completed.returncode
+        except PilotError as exc:
+            entree = {"returncode": 1, "stdout_tail": "", "stderr_tail": str(exc)[-_TEST_OUTPUT_TAIL:]}
+        results.append({"id": suite_id, "command": command, **entree})
+        if entree["returncode"] != 0:
+            code = int(entree["returncode"])
             break
 
     summary: dict[str, object] = {

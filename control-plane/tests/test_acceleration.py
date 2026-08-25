@@ -659,13 +659,21 @@ class TestRunnerTests(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=worktree, check=True)
             subprocess.run(["git", "commit", "-m", "fixture"], cwd=worktree, check=True, capture_output=True)
 
+            preuve = worktree / "result.json"
             with self.assertRaises(PilotError):
                 run_test_profile(
                     worktree,
                     paths=["sim/tests/test_rouge.py"],
                     profile="fast",
-                    output_path=worktree / "result.json",
+                    output_path=preuve,
                 )
+
+            # La preuve doit exister ET nommer la suite rouge : une preuve
+            # écrite seulement en cas de succès ne prouve rien.
+            self.assertTrue(preuve.is_file(), "aucune preuve écrite pour une suite rouge")
+            resume = json.loads(preuve.read_text(encoding="utf-8"))
+            self.assertNotEqual(0, resume["code"])
+            self.assertEqual("sim-tests", resume["results"][-1]["id"])
 
 
 class DurableFlowTests(unittest.TestCase, GitRepoMixin):
