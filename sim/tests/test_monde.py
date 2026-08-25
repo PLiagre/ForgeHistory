@@ -147,13 +147,92 @@ def test_schema_ferme_et_couches():
     assert set(doc["couches"]) == {"relief", "climat", "gisements"}
     for couche in doc["couches"].values():
         assert couche["dans_la_carte"] is True
-        # Aucune n'est encore jouée par le tick : le snapshot le dit.
-        assert couche["utilisee_par_le_moteur"] is False
+        assert isinstance(couche["utilisee_par_le_moteur"], bool)
     first = doc["cells"][0]
     assert set(first) == _CELL_KEYS
     assert "province_id" not in first
     assert "elev_mean_m" not in first
     assert first["climat"] is not None
+
+
+def test_la_consommation_des_couches_est_mesuree_pas_declaree():
+    """
+    `utilisee_par_le_moteur` doit être une MESURE, pas un booléen écrit à la
+    main.
+
+    Il l'était : un triplet `{"relief": False, ...}` dans
+    `sim/snapshot_export.py`, et ce test se contentait de figer la valeur
+    courante — `assert couche["utilisee_par_le_moteur"] is False`. Il ne
+    vérifiait donc rien : un moteur qui aurait commencé à lire le relief, ou
+    cessé de lire une couche, aurait continué de déclarer le contraire sans
+    qu'aucun contrôle ne rougisse. Mode de défaillance n° 5 du dépôt : un
+    compteur dérive des données, ou il n'existe pas.
+
+    Ce test vérifie que la sonde est FALSIFIABLE dans les deux sens, sur les
+    deux façons dont un moteur peut consommer une couche :
+
+      * lue à chaque tick — le moteur interroge `world.carte` ;
+      * lue au chargement — la valeur est capturée sur la cellule.
+
+    La seconde était l'angle mort de la première version de la sonde, qui
+    altérait la carte APRÈS l'amorçage.
+    """
+    from sim import engine
+    from sim.snapshot_export import _couche_consommee
+
+    # 1. Aujourd'hui, le tick ne joue aucune des trois. C'est un constat,
+    #    pas une exigence : le jour où le relief entre, il passera à True
+    #    tout seul et ce test restera vert.
+    mesure = {nom: _couche_consommee(nom) for nom in ("relief", "climat", "gisements")}
+    print(f"couches_consommees_par_le_tick = {sum(mesure.values())} / 3 {mesure}")
+
+    # 2. Falsifiabilité : un moteur qui lit le climat à chaque tick doit
+    #    faire passer `climat` à True — et lui seul.
+    vraie_production = engine.production_kg
+
+    def production_qui_lit_le_climat(cell, yield_factor):
+        base = vraie_production(cell, yield_factor)
+        return base + getattr(cell, "_sonde_climat", 0.0)
+
+    monde_test = World.charger(0)
+    assert monde_test.carte, "la carte doit être chargée pour cette sonde"
+
+    engine.production_kg = production_qui_lit_le_climat
+    try:
+        # Sans lecture réelle de la couche, rien ne doit bouger.
+        assert _couche_consommee("climat") is False, (
+            "La sonde rend True alors que le moteur ne lit pas la couche : "
+            "elle mesure autre chose que la consommation."
+        )
+    finally:
+        engine.production_kg = vraie_production
+
+    # 3. Falsifiabilité, l'autre sens : une couche réellement lue est vue.
+    #    On l'obtient en faisant lire `world.carte` par le maillon production.
+    def production_qui_lit_le_relief(cell, yield_factor):
+        facteurs = {"haute_montagne": 0.1}
+        relief = getattr(cell, "_relief_sonde", None)
+        return vraie_production(cell, yield_factor) * facteurs.get(relief, 1.0)
+
+    vrai_charger = World.charger
+
+    def charger_en_capturant_le_relief(rng_seed=0, carte_doc=None):
+        monde = vrai_charger(rng_seed=rng_seed, carte_doc=carte_doc)
+        for cid, cellule in monde.cells.items():
+            cellule._relief_sonde = (monde.carte.get(cid) or {}).get("relief")
+        return monde
+
+    engine.production_kg = production_qui_lit_le_relief
+    World.charger = staticmethod(charger_en_capturant_le_relief)
+    try:
+        assert _couche_consommee("relief") is True, (
+            "Un moteur qui module la production selon le relief n'est pas "
+            "détecté : la sonde a un angle mort et le drapeau du snapshot "
+            "ne veut rien dire."
+        )
+    finally:
+        engine.production_kg = vraie_production
+        World.charger = vrai_charger
 
 
 # --- test_snapshot_v0a.py ---

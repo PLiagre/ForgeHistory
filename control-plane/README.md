@@ -1,24 +1,28 @@
 # ForgePilot — pilote durable Hermes / Cursor / Claude
 
 ForgePilot est le pilote réversible du workflow. Il ne stocke aucune
-simulation. Hermes, configuré sur Nous Portal, contrôle la cadence ; Grok
-4.6 planifie et juge la PR ; Composer exécute ; Claude Opus 5 n'est qu'un
-témoin rare (ADR-0017). Le contrat détaillé du chantier durable est le
-brief 029. Ce fichier documente uniquement les commandes et les formats
-opératoires.
+simulation.
+
+**Qui fait quoi est décidé par AGENTS.md, pas ici.** Ce fichier documente les
+commandes et les formats opératoires de l'outil, rien d'autre : deux fichiers
+de règles qui se recopient finissent toujours par se contredire (ADR-0018).
+Le tableau ci-dessous dit seulement quel accès en écriture ForgePilot accorde
+à chaque composant.
 
 ## Frontières
 
 | composant | responsabilité | accès en écriture |
 |---|---|---|
-| Hermes / Nous Portal | dialogue, lancement, suivi (`openai/gpt-5.4`) | aucun code, aucun jugement, aucune fusion |
-| Cursor Grok 4.6 | plan, puis juge de PR (`xhigh`, invocation neuve) | aucun (plan / ask) |
-| Cursor Composer 2.5 | implémentation dans un worktree `agent/*` | worktree du lot |
-| Claude Opus 5 | témoin rare (`forgepilot witness`) | aucun |
+| Hermes | dialogue, lancement, suivi | aucun code, aucun jugement, aucune fusion |
+| Cursor, plan | plan, puis relecture de PR en invocation neuve | aucun (plan / ask) |
+| Cursor, code | implémentation dans un worktree `agent/*` | worktree du lot |
+| Claude | regard de dernier recours (`forgepilot witness`) | aucun |
 | ForgePilot | commit, push, draft PR, `merge` mécanique | branche `agent/*` |
-| CI portable | tests ForgeHistory et contrôles sans Unity | artefacts de CI seulement |
-| worker Unity Windows | import, compilation et tests du commit CityLab exact | résultats et artefacts Unity seulement |
-| propriétaire | label d'arrêt, témoin, veto | `do-not-merge` |
+| CI | tests ForgeHistory | artefacts de CI seulement |
+| propriétaire | label d'arrêt, veto, fusion | `do-not-merge` |
+
+Les modèles employés par chaque rôle ne sont pas recopiés ici : ils vivent
+dans `control-plane/workflow-policy.toml`, qui fait foi (règle 12).
 
 ACP n'est pas utilisé pour le pilote. Hermes sait servir ACP, mais ne sait pas
 encore piloter un agent externe comme client ACP générique. Hermes lance donc
@@ -61,19 +65,13 @@ Claude Code doit être authentifié avec le compte Claude.ai Pro. Ne pas utilise
 chemins basculent vers la facturation API. ForgePilot utilise `claude -p` sans
 mode `--bare`, car le mode bare ignore l'authentification d'abonnement.
 
-## Gate Unity Windows
+## Unity
 
-Cette PR n'installe rien dans VictoriaCityLab. Avant le premier lot qui touche
-ce dépôt, une PR dédiée doit implémenter le contrat
-[`docs/operations/unity-windows-worker.md`](../docs/operations/unity-windows-worker.md).
-Le worker récupère le commit exact et Git LFS, exécute Unity 6000.0.43f1 en
-batchmode, puis publie ses preuves. Tant que le worker est absent, hors ligne
-ou en échec, une modification CityLab reste bloquée.
-
-VictoriaCityLab étant public, le runner personnel ne répond jamais directement
-à `pull_request` et n'exécute jamais le code d'un fork. Pendant le pilote, seule
-une validation `workflow_dispatch` d'une branche contrôlée par le propriétaire
-est autorisée. La vérification visuelle des scènes reste humaine.
+Unity est archivé (ADR-0018) : `unity/` est sorti de l'arbre de travail, au
+commit `da1596d`. ForgePilot ne pilote rien du côté Unity, et le contrat de
+worker Windows qui était décrit ici a été supprimé avec le reste. Rouvrir ce
+sujet demande une décision, donc un ADR — pas la relecture d'un document
+disparu.
 
 ## Chemin durable recommandé
 

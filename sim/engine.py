@@ -28,20 +28,41 @@ import random
 from collections import defaultdict
 
 from sim import constants as _constantes
-from sim.constants import (
-    DEFICIT_ZERO_EPSILON,
-    FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
-    FOOD_PRODUCTION_KG_PER_KM2_PER_TICK,
-    RNG_YIELD_HIGH,
-    RNG_YIELD_LOW,
-    TRADE_CAPACITY_KG_PER_EDGE_PER_TICK,
-)
 from sim.model import Cell
 
-# Les constantes qui gouvernent la mortalité et le remboursement du déficit
-# sont lues via le module `_constantes` (et non importées par valeur) : un test
-# de sensibilité qui remplace HUNGER_DEATH_SCALE en mémoire doit changer le
-# comportement du moteur, pas seulement celui de la prédiction (SC2 brief 017).
+# Le moteur lit TOUTES ses constantes réglables par le module `_constantes`,
+# jamais par `from sim.constants import ...`. Un nom importé par valeur est
+# figé au chargement : le remplacer en mémoire ne change alors rien au moteur,
+# et un test de régime mesure un moteur inchangé en croyant mesurer le régime.
+# La règle est uniforme et vérifiée par sim/tests/test_write_coverage.py.
+
+
+def production_kg(cell: Cell, yield_factor: float) -> float:
+    """
+    Ce qu'une cellule produit en un tick pour un rendement donné.
+
+    UNE seule formule de production dans le moteur, deux lecteurs : le tick,
+    qui lui passe un rendement tiré au sort, et `production_moyenne_kg_par_tick`,
+    qui lui passe le rendement moyen. Le plafond physique de survie s'en déduit,
+    donc il ne peut pas diverger de ce que le moteur produit vraiment.
+
+    C'est ici qu'entrera le relief : une cellule de montagne ne produit pas
+    comme une plaine. La modification se fait à cet endroit et à cet endroit
+    seul ; le plafond suit tout seul.
+    """
+    return cell.area_km2 * _constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * yield_factor
+
+
+def production_moyenne_kg_par_tick(world) -> float:
+    """
+    Nourriture que le monde produit en un tick au rendement moyen.
+
+    Sert de référence DÉRIVÉE au plafond physique de survie : une population
+    ne peut pas manger durablement plus que ce que son monde produit
+    (`sim/tests/test_survie.py`). Elle n'est jamais lue par le tick.
+    """
+    rendement_moyen = _constantes.rendement_moyen_courant()
+    return sum(production_kg(cell, rendement_moyen) for cell in world.cells.values())
 
 
 def _apply_production(cell: Cell, rng: random.Random) -> None:
@@ -51,8 +72,8 @@ def _apply_production(cell: Cell, rng: random.Random) -> None:
     tiré du rng (fluctuations climatiques/agronomiques) et l'ajoute au stock.
     Traite la sentinelle -1 comme un stock initial nul.
     """
-    yield_factor = rng.uniform(RNG_YIELD_LOW, RNG_YIELD_HIGH)
-    food_produced = cell.area_km2 * FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * yield_factor
+    yield_factor = rng.uniform(_constantes.RNG_YIELD_LOW, _constantes.RNG_YIELD_HIGH)
+    food_produced = production_kg(cell, yield_factor)
     current = cell.food_stock_kg if cell.food_stock_kg >= 0 else 0.0
     cell.food_stock_kg = current + food_produced
 
@@ -89,7 +110,7 @@ def _apply_commerce(world, total_transported: list) -> None:
     snapshot_pop = {cid: cell.population for cid, cell in world.cells.items()}
 
     def _tick_consumption(cid: int) -> float:
-        return snapshot_pop[cid] * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+        return snapshot_pop[cid] * _constantes.FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
 
     def _surplus(cid: int) -> float:
         return max(0.0, snapshot_stock[cid] - _tick_consumption(cid))
@@ -114,12 +135,12 @@ def _apply_commerce(world, total_transported: list) -> None:
 
         # Direction a→b : a a du surplus, b a un besoin
         if surplus_a > 0 and need_b > 0:
-            demand = min(need_b, TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)
+            demand = min(need_b, _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)
             by_source[a_id].append((b_id, demand))
 
         # Direction b→a : b a du surplus, a a un besoin
         elif surplus_b > 0 and need_a > 0:
-            demand = min(need_a, TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)
+            demand = min(need_a, _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)
             by_source[b_id].append((a_id, demand))
 
     # Passe 1c : allocation proportionnelle par source (tri stable par receiver cell_id)
@@ -189,12 +210,14 @@ def _apply_consumption(cell: Cell) -> float:
           d'entretien) : rien ne se téléporte (principe 3)
         - un surplus d'un nanogramme ne peut donc effacer qu'un nanogramme de
           dette, jamais 10 % d'une dette de 10 000 kg
+        - aucun seuil de coupure : la soustraction atteint 0.0 exactement
+          quand le surplus couvre, et tout résidu est une dette réelle
 
     Si stock < consommation (manque) :
         - stock = 0, le manque est ajouté à food_deficit_kg, et la pénurie
           du tick est retournée.
     """
-    tick_need = cell.population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    tick_need = cell.population * _constantes.FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
     remaining = cell.food_stock_kg - tick_need
     prev_deficit = cell.food_deficit_kg if cell.food_deficit_kg > 0 else 0.0
 
@@ -204,12 +227,12 @@ def _apply_consumption(cell: Cell) -> float:
         # quelle que soit la valeur donnée à la constante.
         ratio = min(1.0, _constantes.DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG)
         remboursement = min(prev_deficit, max(0.0, remaining) * ratio)
-        new_deficit = prev_deficit - remboursement
-        # Coupure epsilon : un déficit résiduel infime (< DEFICIT_ZERO_EPSILON)
-        # est ramené à zéro pour éviter l'accumulation de valeurs non physiques.
-        if new_deficit < DEFICIT_ZERO_EPSILON:
-            new_deficit = 0.0
-        cell.food_deficit_kg = new_deficit
+        # Le remboursement est SOUSTRAIT : quand le surplus couvre la dette,
+        # `min` rend la dette elle-même et la soustraction donne exactement
+        # 0.0. Tout résidu est donc une dette réelle, jamais un artefact de
+        # calcul flottant — et l'effacer serait faire disparaître des
+        # kilogrammes sans contrepartie (principe 3).
+        cell.food_deficit_kg = prev_deficit - remboursement
         cell.food_stock_kg = remaining - remboursement
         return 0.0
 

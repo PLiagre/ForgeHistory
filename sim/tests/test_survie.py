@@ -1,12 +1,16 @@
 """
 Survie, faim, dette alimentaire et mortalité.
 
-Ce que ce fichier protège (ADR-0018) :
-  - invariant physique : la dette alimentaire ne se rembourse jamais plus
-    vite que le surplus du tick ;
-  - règle de jeu visible : une cellule qui manque de nourriture a faim,
-    puis meurt ; une cellule ravitaillée n'a pas faim ;
-  - direction du modèle : plus de nourriture = plus de survivants.
+Ce que ce fichier protège (règle d'admission d'AGENTS.md) :
+
+  - **invariant physique** : la dette alimentaire ne se rembourse jamais plus
+    vite que le surplus du tick ; le monde ne nourrit pas durablement plus
+    d'habitants qu'il ne produit de nourriture ;
+  - **règle de jeu visible** : une cellule qui manque de nourriture a faim,
+    puis meurt ; le monde ne s'éteint pas ; plus la faim tue, moins il reste
+    de monde.
+
+Le déterminisme est protégé par `test_determinisme.py`.
 
 Fusion des anciens fichiers mortalite_accumulateur, mortalite_continue,
 survie_stationnaire, survie_derivee, sensibilite_survie, hunger_criterion,
@@ -14,22 +18,29 @@ deficit_physique et causal_chain.
 """
 
 import random
+
 import pytest
+
+import sim.constants as constantes
 from sim.constants import (
+    DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG,
     FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
     FOOD_PRODUCTION_KG_PER_KM2_PER_TICK,
+    HUNGER_DEATH_SCALE,
+    MAX_DEATH_RATE_PER_TICK,
+    N_BOUND_MORT,
 )
 from sim.engine import (
     _apply_consumption,
     _apply_mortality,
     _apply_production,
     _update_hunger,
+    production_moyenne_kg_par_tick,
     tick,
 )
 from sim.model import Cell
 from sim.world import World
-from sim.constants import FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-from sim.engine import _apply_consumption, _update_hunger, tick
+
 POPULATION_SCENARIO = 50
 def _build_monde_temoin_receveuse() -> tuple[World, int, int]:
     """
@@ -58,11 +69,6 @@ def _build_monde_temoin_receveuse() -> tuple[World, int, int]:
     adjacency = [{"a": 101, "b": 102, "kind": "land", "shared_length_m": 5000.0}]
     world = World(cells={100: temoin, 101: source, 102: receveuse}, adjacency=adjacency)
     return world, 100, 102
-from sim.constants import (
-    DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG,
-    FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
-)
-from sim.engine import _apply_consumption
 DETTE_INITIALE_KG = 10_000.0
 POPULATION_TEST = 10
 SURPLUS_INFINITESIMAL_KG = 1e-9
@@ -79,93 +85,36 @@ def _cellule_endettee(surplus_kg: float) -> Cell:
         food_deficit_kg=DETTE_INITIALE_KG,
         mortality_remainder=0.0,
     )
-from sim.constants import (
-    HUNGER_DEATH_SCALE,
-    MAX_DEATH_RATE_PER_TICK,
-    N_BOUND_MORT,
-    N_STAT_SURVIE,
-)
-from sim.engine import _apply_mortality
 POPULATION_PETITE_CELLULE = 5
 POPULATIONS_MICRO_MONDE = [50, 137, 500]
 DEFICIT_PAR_TETE_MICRO_MONDE_KG = 0.5
-from sim.constants import (
-    DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG,
-    MAX_DEATH_RATE_PER_TICK,
-)
-from sim.engine import _apply_consumption, _apply_mortality
 POPULATIONS_TEST = [1, 5, 9, 20, 100, 1000]
 DEFICIT_MINUSCULE_KG = 1e-9
-from sim.constants import (
-    FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
-    FOOD_PRODUCTION_KG_PER_KM2_PER_TICK,
-    INITIAL_POPULATION_PER_KM2,
-    RNG_YIELD_HIGH,
-    RNG_YIELD_LOW,
-    SURVIE_FRACTION_PREDITE_STATIONNAIRE,
-    cap_hab_km2_courant,
-    densite_stationnaire_courante,
-)
-def _fraction_predite_from_constants() -> float:
-    """Capacité de charge malthusienne rapportée à la densité initiale."""
-    rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2
-    cap = (
-        FOOD_PRODUCTION_KG_PER_KM2_PER_TICK
-        * rendement_moyen
-        / FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-    )
-    return cap / INITIAL_POPULATION_PER_KM2
-from sim.constants import (
-    N_STAT_SURVIE,
-    SURVIE_CONVERGENCE_DELTA,
-    SURVIE_FRACTION_PREDITE_STATIONNAIRE,
-    SURVIE_TOLERANCE_STATIONNAIRE,
-)
-from sim.engine import tick
 RNG_SEED = 42
-def _fraction_survie_apres(n_ticks: int) -> tuple[float, int, int, int]:
+def _observer_le_monde(n_ticks: int = None) -> tuple[float, World, int]:
     """
-    Exécute n_ticks sur le monde réel G3 et retourne
-    (fraction_survie, population_initiale, population_finale, nombre_cellules).
+    Joue le monde réel (la carte figée) et retourne
+    (fraction de survivants, monde final, population initiale).
+
     L'échantillon est toujours le monde chargé — jamais un monde à la main.
     """
+    n_ticks = N_TICKS_OBSERVES if n_ticks is None else n_ticks
     world = World.charger(rng_seed=RNG_SEED)
     rng = random.Random(RNG_SEED)
-
     pop_init = sum(c.population for c in world.cells.values())
     for _ in range(n_ticks):
         tick(world, rng)
     pop_fin = sum(c.population for c in world.cells.values())
+    return pop_fin / pop_init, world, pop_init
+# Fenêtre d'observation du monde réel. Ce n'est pas une grandeur physique :
+# c'est un budget de test — assez long pour que le transitoire de départ soit
+# passé, assez court pour que trois exécutions tiennent en deux secondes.
+# Vérifié en mesurant la direction de la réponse à 60, 100, 150, 200, 400 et
+# 1 000 ticks, avec et sans relief : elle tient à tous ces horizons.
+N_TICKS_OBSERVES = 200
 
-    return pop_fin / pop_init, pop_init, pop_fin, len(world.cells)
-import sim.constants as constantes
-from sim.constants import (
-    SURVIE_TOLERANCE_SENSIBILITE,
-    compute_survie_fraction_predite_stationnaire,
-)
-N_TICKS_SENSIBILITE = 200
 FACTEUR_REGIME_BAS = 0.5
 FACTEUR_REGIME_HAUT = 2.0
-def _mesure_fraction_survie() -> float:
-    """Monde réel G3, N_TICKS_SENSIBILITE ticks, constantes courantes."""
-    world = World.charger(rng_seed=RNG_SEED)
-    rng = random.Random(RNG_SEED)
-    pop_init = sum(c.population for c in world.cells.values())
-    for _ in range(N_TICKS_SENSIBILITE):
-        tick(world, rng)
-    pop_fin = sum(c.population for c in world.cells.values())
-    return pop_fin / pop_init
-def _regime_hds(monkeypatch, facteur: float) -> tuple[float, float]:
-    """
-    Remplace HUNGER_DEATH_SCALE en mémoire par `nominal × facteur`, puis
-    retourne (fraction mesurée, fraction prédite) dans ce régime.
-    """
-    nominal = constantes.HUNGER_DEATH_SCALE
-    monkeypatch.setattr(constantes, "HUNGER_DEATH_SCALE", nominal * facteur)
-    mesure = _mesure_fraction_survie()
-    predite = compute_survie_fraction_predite_stationnaire()
-    monkeypatch.setattr(constantes, "HUNGER_DEATH_SCALE", nominal)
-    return mesure, predite
 
 
 # --- test_causal_chain.py ---
@@ -438,7 +387,7 @@ def test_famine_tue_en_borne_de_ticks():
 # --- test_mortalite_accumulateur.py ---
 def test_precision_mortalite_sur_n_ticks():
     """
-    SC3 — Sur N_STAT_SURVIE ticks d'un micro-monde déterministe à trois
+    SC3 — Sur N_TICKS_OBSERVES ticks d'un micro-monde déterministe à trois
     cellules (populations ≥ 50, déficit par tête constant non nul), l'écart
     entre les morts réellement appliqués et la somme exacte
     `population × death_rate` accumulée tick par tick est ≤ 1 par cellule.
@@ -465,7 +414,7 @@ def test_precision_mortalite_sur_n_ticks():
         somme_exacte = 0.0
         morts_appliques = 0
 
-        for _ in range(N_STAT_SURVIE):
+        for _ in range(N_TICKS_OBSERVES):
             if cell.population <= 0:
                 break
             # Taux du tick, recalculé comme le fait le moteur.
@@ -489,7 +438,7 @@ def test_precision_mortalite_sur_n_ticks():
         )
 
     mortalite_precision_n_ticks = max(ecarts)
-    print(f"cellules = {len(POPULATIONS_MICRO_MONDE)}, ticks = {N_STAT_SURVIE}")
+    print(f"cellules = {len(POPULATIONS_MICRO_MONDE)}, ticks = {N_TICKS_OBSERVES}")
     print(f"mortalite_precision_n_ticks = {mortalite_precision_n_ticks:.6f}")
 
     assert mortalite_precision_n_ticks <= 1.0, (
@@ -602,221 +551,144 @@ def test_deficit_non_efface_en_1_tick():
     )
 
 
-# --- test_survie_derivee.py ---
-def test_fraction_predite_analytique():
+# --- Ce que le monde entier doit respecter, mesuré sur le moteur ---
+#
+# Ces trois tests remplacent un modèle analytique de survie (262 lignes de
+# `sim/constants.py`, cinq tests, 6 s) qui prédisait la valeur ABSOLUE de la
+# fraction de survivants et la comparait à la mesure. Le modèle supposait UNE
+# capacité de charge globale ; il cesse d'exister dès que la production varie
+# d'une cellule à l'autre — ce que fait le prochain pas du modèle, le relief.
+#
+# La garde payée par un vrai défaut est conservée telle quelle : le critère de
+# survie ne doit pas être aveugle aux constantes qui gouvernent la mort. Elle
+# est tenue ici par la DIRECTION de la réponse, mesurée sur le moteur, qui
+# survit à tout changement du modèle de production.
+
+
+def test_le_monde_ne_meurt_pas_et_ne_nourrit_pas_plus_qu_il_ne_produit():
     """
-    SC3 brief 013 — La fraction prédite par la seule capacité de charge est
-    dans (0, 1), et `cap_hab_km2_courant()` la reproduit exactement.
+    Invariant physique — conservation de la masse, vue du monde entier.
 
-    Compteur : fraction_predite_analytique.
+    Le plafond est DÉRIVÉ du moteur lui-même : `production_moyenne_kg_par_tick`
+    appelle `production_kg`, la même et unique formule que le tick emploie.
+    Il ne peut donc pas diverger de ce que le monde produit réellement, et il
+    suivra tout seul le jour où le relief modulera le rendement.
+
+    Ce que le dépassement du plafond signifierait : la population survivante
+    mange plus que le monde ne produit — donc des kilogrammes apparaissent
+    ailleurs que dans la production. Le commerce qui duplique, la consommation
+    qui ne prélève pas, une dette effacée sans surplus pour la payer : toutes
+    ces fautes-là se voient ici, et aucune ne peut se cacher derrière un
+    ajustement de tolérance.
+
+    Le plancher dit l'autre moitié, qui est une règle de jeu visible : le monde
+    ne s'éteint pas.
     """
-    fraction_predite_analytique = _fraction_predite_from_constants()
-    cap_module = cap_hab_km2_courant() / INITIAL_POPULATION_PER_KM2
+    fraction, monde, pop_initiale = _observer_le_monde()
 
-    print(f"fraction_predite_analytique = {fraction_predite_analytique}")
-    print(f"cap_hab_km2_courant / d0    = {cap_module}")
+    production_moyenne = production_moyenne_kg_par_tick(monde)
+    ration_du_monde = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * pop_initiale
+    plafond = production_moyenne / ration_du_monde
 
-    assert 0.0 < fraction_predite_analytique < 1.0
-    assert abs(fraction_predite_analytique - cap_module) < 1e-12, (
-        "La capacité de charge du module ne reproduit plus la formule "
-        "analytique du brief 013."
+    print(f"cellules = {len(monde.cells)}, population initiale = {pop_initiale}")
+    print(f"production moyenne = {production_moyenne:.0f} kg/tick")
+    print(f"ration du monde de depart = {ration_du_monde:.0f} kg/tick")
+    print(f"plafond derive = {plafond:.6f}")
+    print(f"fraction_survie apres {N_TICKS_OBSERVES} ticks = {fraction:.6f}")
+
+    assert fraction > 0.0, (
+        f"Le monde s'est éteint en {N_TICKS_OBSERVES} ticks : il ne reste "
+        "personne. Ce n'est plus une simulation vivante."
+    )
+    assert fraction <= plafond, (
+        f"{fraction:.6f} survivants pour un plafond de {plafond:.6f} : la "
+        "population qui reste mange plus que le monde ne produit. Des "
+        "kilogrammes apparaissent ailleurs que dans la production."
     )
 
 
-# --- test_survie_derivee.py ---
-def test_stationnaire_est_sous_la_capacite_de_charge():
+def test_la_survie_repond_a_la_mortalite(monkeypatch):
     """
-    Brief 017 — La densité stationnaire est strictement inférieure à la
-    capacité de charge : la dette accumulée pendant la descente continue de
-    tuer après le passage sous `cap`. C'est ce dépassement par le bas que
-    l'ancienne fenêtre du brief 013 ne modélisait pas.
+    Règle de jeu visible, et la garde payée par un vrai défaut.
 
-    Ce test rougit si la densité stationnaire redevenait la simple capacité de
-    charge (retour au modèle aveugle au transitoire).
-    """
-    cap = cap_hab_km2_courant()
-    stationnaire = densite_stationnaire_courante()
+    Le critère de survie du brief 013 était aveugle aux constantes qui
+    gouvernent la mort : une famine deux fois plus meurtrière passait le même
+    contrôle. Le brief 017 l'a corrigé en construisant un modèle analytique
+    qui, lui, dépendait de `HUNGER_DEATH_SCALE`.
 
-    print(f"cap_hab_km2 = {cap}")
-    print(f"densite_stationnaire = {stationnaire}")
-    print(f"SURVIE_FRACTION_PREDITE_STATIONNAIRE = {SURVIE_FRACTION_PREDITE_STATIONNAIRE}")
+    La même garde, dite plus simplement et mesurée sur le moteur : quand la
+    faim tue deux fois plus, il reste moins de monde. Aucune prédiction, donc
+    aucune tolérance à élargir le jour où la production changera.
 
-    assert INITIAL_POPULATION_PER_KM2 > cap, (
-        "Le monde démarre désormais sous la capacité de charge : le modèle de "
-        "dépassement du brief 017 doit être revu."
-    )
-    assert stationnaire < cap
-    assert SURVIE_FRACTION_PREDITE_STATIONNAIRE < _fraction_predite_from_constants(), (
-        "La prédiction stationnaire doit être plus basse que la simple "
-        "capacité de charge : sinon le dépassement et l'érosion ont disparu."
-    )
-
-
-# --- test_survie_stationnaire.py ---
-def test_fraction_survie_dans_tolerance_stationnaire():
-    """
-    SC1 — Convergence puis conformité au modèle prédit.
-    Compteur : fraction_survie_dans_tolerance_stationnaire.
-    """
-    s_stat, pop_init, pop_fin, nb_cellules = _fraction_survie_apres(N_STAT_SURVIE)
-    s_demi, _, _, _ = _fraction_survie_apres(N_STAT_SURVIE // 2)
-
-    derive = abs(s_stat - s_demi)
-    ecart = abs(s_stat - SURVIE_FRACTION_PREDITE_STATIONNAIRE)
-    converge = derive <= SURVIE_CONVERGENCE_DELTA
-    dans_tolerance = ecart <= SURVIE_TOLERANCE_STATIONNAIRE
-
-    print(f"cellules = {nb_cellules}")
-    print(f"pop_init = {pop_init}, pop_fin = {pop_fin}")
-    print(f"s(N={N_STAT_SURVIE}) = {s_stat:.6f}")
-    print(f"s(N/2={N_STAT_SURVIE // 2}) = {s_demi:.6f}")
-    print(f"derive = {derive:.6f} (delta = {SURVIE_CONVERGENCE_DELTA:.6f})")
-    print(f"predite = {SURVIE_FRACTION_PREDITE_STATIONNAIRE:.6f}")
-    print(f"ecart = {ecart:.6f} (tolerance = {SURVIE_TOLERANCE_STATIONNAIRE:.6f})")
-    print(f"converge = {converge}")
-    print(f"dans_tolerance = {dans_tolerance}")
-    print(
-        "fraction_survie_dans_tolerance_stationnaire = "
-        f"{1 if (converge and dans_tolerance) else 0}"
-    )
-
-    assert converge, (
-        f"Pas de convergence : |s({N_STAT_SURVIE}) - s({N_STAT_SURVIE // 2})| = "
-        f"{derive:.6f} > {SURVIE_CONVERGENCE_DELTA:.6f}. "
-        "La fraction de survie dépend encore de l'horizon de test."
-    )
-    assert dans_tolerance, (
-        f"Écart au modèle : |{s_stat:.6f} - "
-        f"{SURVIE_FRACTION_PREDITE_STATIONNAIRE:.6f}| = {ecart:.6f} > "
-        f"{SURVIE_TOLERANCE_STATIONNAIRE:.6f}."
-    )
-
-
-# --- test_sensibilite_survie.py ---
-def test_sensibilite_hds(monkeypatch):
-    """
-    SC2 — Trois régimes de HUNGER_DEATH_SCALE (×0.5, nominal, ×2) sur le monde
-    réel, N = 200 ticks.
-
-    (a) direction : mesure et prédiction décroissent toutes deux quand la
-        mortalité par faim augmente.
-    (b) tolérance : |mesurée − prédite| ≤ SURVIE_TOLERANCE_SENSIBILITE
-        dans chaque régime.
-
-    Compteurs : sensibilite_hds_05_passe, sensibilite_hds_2_passe.
+    Rouge prouvé : avec un `_apply_mortality` qui ignore HUNGER_DEATH_SCALE,
+    les trois régimes rendent la même fraction (0.883422) et le test échoue.
     """
     nominal = constantes.HUNGER_DEATH_SCALE
 
-    s_bas, p_bas = _regime_hds(monkeypatch, FACTEUR_REGIME_BAS)
-    s_nom, p_nom = _regime_hds(monkeypatch, 1.0)
-    s_haut, p_haut = _regime_hds(monkeypatch, FACTEUR_REGIME_HAUT)
+    def _regime(facteur: float) -> float:
+        monkeypatch.setattr(constantes, "HUNGER_DEATH_SCALE", nominal * facteur)
+        try:
+            fraction, _, _ = _observer_le_monde()
+        finally:
+            monkeypatch.setattr(constantes, "HUNGER_DEATH_SCALE", nominal)
+        return fraction
+
+    s_bas = _regime(FACTEUR_REGIME_BAS)
+    s_nominal = _regime(1.0)
+    s_haut = _regime(FACTEUR_REGIME_HAUT)
+
+    print(f"HUNGER_DEATH_SCALE nominal = {nominal}")
+    print(f"x{FACTEUR_REGIME_BAS} : {s_bas:.6f}")
+    print(f"nominal : {s_nominal:.6f}")
+    print(f"x{FACTEUR_REGIME_HAUT} : {s_haut:.6f}")
+    print(f"survie_repond_a_la_mortalite = {int(s_bas > s_nominal > s_haut)}")
 
     assert constantes.HUNGER_DEATH_SCALE == nominal, (
-        "Le régime nominal n'a pas été restauré après le test."
+        "Le régime nominal n'a pas été restauré."
+    )
+    assert s_bas > s_nominal > s_haut, (
+        f"La survie ne décroît pas quand la faim tue davantage : "
+        f"{s_bas:.6f} / {s_nominal:.6f} / {s_haut:.6f}. Le critère de survie "
+        "est aveugle aux constantes de mortalité — c'est exactement le défaut "
+        "que le brief 017 avait corrigé."
     )
 
-    print(f"HDS nominal = {nominal}")
-    print(f"regime x{FACTEUR_REGIME_BAS} : mesure={s_bas:.6f} predite={p_bas:.6f}")
-    print(f"regime nominal  : mesure={s_nom:.6f} predite={p_nom:.6f}")
-    print(f"regime x{FACTEUR_REGIME_HAUT} : mesure={s_haut:.6f} predite={p_haut:.6f}")
 
-    direction_mesure = s_bas > s_nom > s_haut
-    direction_predite = p_bas > p_nom > p_haut
-    ecart_bas = abs(s_bas - p_bas)
-    ecart_nom = abs(s_nom - p_nom)
-    ecart_haut = abs(s_haut - p_haut)
-
-    sensibilite_hds_05_passe = int(
-        s_bas > s_nom and p_bas > p_nom and ecart_bas <= SURVIE_TOLERANCE_SENSIBILITE
-    )
-    sensibilite_hds_2_passe = int(
-        s_nom > s_haut and p_nom > p_haut and ecart_haut <= SURVIE_TOLERANCE_SENSIBILITE
-    )
-    print(f"ecarts = {ecart_bas:.6f}, {ecart_nom:.6f}, {ecart_haut:.6f} "
-          f"(tolerance = {SURVIE_TOLERANCE_SENSIBILITE:.6f})")
-    print(f"sensibilite_hds_05_passe = {sensibilite_hds_05_passe}")
-    print(f"sensibilite_hds_2_passe = {sensibilite_hds_2_passe}")
-
-    assert direction_predite, (
-        "La prédiction ne répond pas à HUNGER_DEATH_SCALE : "
-        f"{p_bas:.6f} / {p_nom:.6f} / {p_haut:.6f}. "
-        "Le critère de survie est aveugle à la mortalité."
-    )
-    assert direction_mesure, (
-        "La mesure ne décroît pas quand la mortalité par faim augmente : "
-        f"{s_bas:.6f} / {s_nom:.6f} / {s_haut:.6f}."
-    )
-    for nom_regime, ecart in (
-        (f"x{FACTEUR_REGIME_BAS}", ecart_bas),
-        ("nominal", ecart_nom),
-        (f"x{FACTEUR_REGIME_HAUT}", ecart_haut),
-    ):
-        assert ecart <= SURVIE_TOLERANCE_SENSIBILITE, (
-            f"Régime {nom_regime} : |mesurée − prédite| = {ecart:.6f} > "
-            f"{SURVIE_TOLERANCE_SENSIBILITE:.6f}."
-        )
-
-
-# --- test_sensibilite_survie.py ---
-def test_sensibilite_drr_direction(monkeypatch):
+def test_la_survie_repond_a_la_nourriture(monkeypatch):
     """
-    SC2 — Le successeur nommé de DEFICIT_RECOVERY_RATE_PER_TICK
-    (DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG) entre dans la prédiction avec le
-    bon signe : rembourser la dette plus vite ne peut pas faire baisser la
-    survie prédite.
+    Règle de jeu visible : plus le monde produit, plus il reste de monde.
 
-    Compteur : sensibilite_drr_direction_passe.
-    """
-    nominal = constantes.DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG
-    predite_nominale = compute_survie_fraction_predite_stationnaire()
-
-    monkeypatch.setattr(
-        constantes,
-        "DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG",
-        nominal * FACTEUR_REGIME_HAUT,
-    )
-    predite_doublee = compute_survie_fraction_predite_stationnaire()
-    monkeypatch.setattr(
-        constantes, "DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG", nominal
-    )
-
-    sensibilite_drr_direction_passe = int(predite_doublee >= predite_nominale)
-    print(f"DRR nominal = {nominal}, predite = {predite_nominale:.6f}")
-    print(f"DRR x{FACTEUR_REGIME_HAUT} = {nominal * FACTEUR_REGIME_HAUT}, "
-          f"predite = {predite_doublee:.6f}")
-    print(f"sensibilite_drr_direction_passe = {sensibilite_drr_direction_passe}")
-
-    assert constantes.DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG == nominal
-    assert predite_doublee >= predite_nominale, (
-        f"Signe inversé : prédiction {predite_doublee:.6f} < {predite_nominale:.6f} "
-        "alors que la dette est remboursée deux fois plus vite."
-    )
-
-
-# --- test_sensibilite_survie.py ---
-def test_prediction_reagit_bien_a_la_production(monkeypatch):
-    """
-    SC1 — Troisième propriété de signe : doubler la production alimentaire
-    augmente la survie prédite. Vérifiée sur la prédiction uniquement (le
-    brief n'exige pas de mesure pour ce régime).
+    Mesuré sur le moteur, et non sur une formule. La distinction n'est pas
+    théorique : le test qu'il remplace ne vérifiait que la prédiction, et
+    disait lui-même « le brief n'exige pas de mesure pour ce régime ». Il
+    passait alors que le moteur ne relisait même pas la constante de
+    production (elle était liée par valeur) — la formule répondait, le monde
+    non, et rien ne le disait.
     """
     nominal = constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK
-    predite_nominale = compute_survie_fraction_predite_stationnaire()
 
-    monkeypatch.setattr(
-        constantes,
-        "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK",
-        nominal * FACTEUR_REGIME_HAUT,
-    )
-    predite_doublee = compute_survie_fraction_predite_stationnaire()
-    monkeypatch.setattr(
-        constantes, "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK", nominal
-    )
+    def _regime(facteur: float) -> float:
+        monkeypatch.setattr(
+            constantes, "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK", nominal * facteur
+        )
+        try:
+            fraction, _, _ = _observer_le_monde()
+        finally:
+            monkeypatch.setattr(
+                constantes, "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK", nominal
+            )
+        return fraction
 
-    print(f"production nominale = {nominal}, predite = {predite_nominale:.6f}")
-    print(f"production x{FACTEUR_REGIME_HAUT}, predite = {predite_doublee:.6f}")
+    s_maigre = _regime(FACTEUR_REGIME_BAS)
+    s_nominal = _regime(1.0)
 
-    assert predite_doublee > predite_nominale, (
-        f"Doubler la production ne relève pas la survie prédite : "
-        f"{predite_doublee:.6f} ≤ {predite_nominale:.6f}."
+    print(f"production x{FACTEUR_REGIME_BAS} : {s_maigre:.6f}")
+    print(f"production nominale : {s_nominal:.6f}")
+    print(f"survie_repond_a_la_nourriture = {int(s_nominal > s_maigre)}")
+
+    assert constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK == nominal
+    assert s_nominal > s_maigre, (
+        f"Diviser la production par deux ne fait pas baisser la survie "
+        f"({s_nominal:.6f} contre {s_maigre:.6f}). Soit le moteur ne relit "
+        "pas la constante, soit la nourriture ne décide plus de rien."
     )

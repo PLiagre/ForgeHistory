@@ -5,6 +5,17 @@ Le script ne supprime, ne committe et ne pousse rien. Il mesure l'état local,
 écrit le rapport git-ignoré ``DERNIERE-VEILLE.md`` de façon atomique, puis ne
 produit aucune sortie si les contrôles sont verts. Une alerte sort sur stderr
 avec un code non nul afin que le contrôleur puisse la transmettre à Discord.
+
+Ce que la veille regarde, et rien d'autre : l'état git, les worktrees, la
+place disque, l'âge du tableau de bord, et deux contrôles du jeu (la fumée et
+les tests de ``sim/``). Chacun de ces cinq points peut produire une alerte.
+
+Ce qu'elle ne regarde plus : le cache de tuiles d'altitude de ``tools/map/``.
+Cette section mesurait un répertoire de téléchargement, ne produisait AUCUNE
+alerte quel que soit son état, et faisait tomber la veille du jeu quand
+``tools/map/sources.lock`` manquait. ``tools/map/`` est hors du chemin
+quotidien depuis ADR-0018 : sa surveillance quotidienne protégeait un
+processus, pas le jeu.
 """
 
 from __future__ import annotations
@@ -23,10 +34,13 @@ from pathlib import Path
 from typing import Callable, Iterable, Mapping, Sequence
 
 
-CACHE_ENV = "FORGEHISTORY_DEM_CACHE_ROOT"
 DEFAULT_REPORT = Path("hermes/propositions/DERNIERE-VEILLE.md")
-HISTORICAL_CACHE = Path("tools/map/sources/dem_cache")
-SOURCE_LOCK = Path("tools/map/sources.lock")
+# Mémoire d'un jour à l'autre : la ligne du jeu et le HEAD qui l'a produite.
+# Git-ignoré comme le rapport ; ce n'est pas un artefact du dépôt.
+ETAT_PRECEDENT = Path("hermes/propositions/.veille-etat.json")
+# Assez de ticks pour que les cinq maillons aient joué ; assez peu pour que
+# le contrôle coûte une fraction de seconde.
+TICKS_DETERMINISME = 20
 MIN_FREE_BYTES = 5 * 1024**3
 _DASHBOARD_TIMESTAMP_RE = re.compile(
     r"Générée le (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC"
@@ -109,81 +123,82 @@ def parse_worktrees(porcelain: str) -> list[dict[str, object]]:
     return records
 
 
-def _measure_tree(path: Path, *, now: float | None = None) -> dict[str, object]:
-    """Mesure taille et fraîcheur sans suivre de lien ni modifier le cache."""
-
-    if not path.exists():
-        return {
-            "exists": False,
-            "files": 0,
-            "bytes": 0,
-            "age_seconds": None,
-        }
-    clock = time.time() if now is None else now
-    files = 0
-    total = 0
-    root_mtime = path.stat(follow_symlinks=False).st_mtime
-    newest_file: float | None = None
-    stack = [path]
-    while stack:
-        directory = stack.pop()
-        try:
-            entries = list(os.scandir(directory))
-        except OSError as exc:
-            raise WatchError(f"cache illisible {directory} : {exc}") from exc
-        for entry in entries:
-            try:
-                if entry.is_symlink():
-                    continue
-                stat = entry.stat(follow_symlinks=False)
-                if entry.is_dir(follow_symlinks=False):
-                    stack.append(Path(entry.path))
-                elif entry.is_file(follow_symlinks=False):
-                    files += 1
-                    total += stat.st_size
-                    newest_file = (
-                        stat.st_mtime
-                        if newest_file is None
-                        else max(newest_file, stat.st_mtime)
-                    )
-            except OSError as exc:
-                raise WatchError(f"entrée de cache illisible {entry.path} : {exc}") from exc
-    return {
-        "exists": True,
-        "files": files,
-        "bytes": total,
-        "age_seconds": max(0, int(clock - (newest_file or root_mtime))),
-    }
-
-
-def cache_metric(
+def determinisme_metric(
     repo: Path,
-    environ: Mapping[str, str] | None = None,
+    *,
+    head: str,
+    runner: Callable[..., dict[str, object]],
 ) -> dict[str, object]:
-    environ = os.environ if environ is None else environ
-    lock_path = repo / SOURCE_LOCK
-    try:
-        lock_digest = hashlib.sha256(lock_path.read_bytes()).hexdigest()
-    except OSError as exc:
-        raise WatchError(f"sources.lock illisible : {exc}") from exc
+    """
+    Le jeu rend-il toujours la même ligne pour la même graine ?
 
-    configured = environ.get(CACHE_ENV, "").strip()
-    if configured:
-        root = Path(configured).expanduser()
-        if not root.is_absolute():
-            raise WatchError(f"{CACHE_ENV} doit être un chemin absolu")
-        path = root / lock_digest
-        source = "shared"
+    La référence est DÉRIVÉE : c'est la ligne mesurée hier, pas un nombre
+    écrit à la main (règle 2). Trois cas, et un seul est une alerte :
+
+      * ligne identique                      -> rien à dire ;
+      * ligne différente, HEAD différent     -> normal, du code a été fusionné ;
+      * ligne différente, HEAD INCHANGÉ      -> le déterminisme est cassé, ou
+                                                la carte a bougé sans commit.
+
+    Le déterminisme est l'un des trois invariants que le dépôt protège, et
+    rien ne le surveillait entre deux lots.
+    """
+    resultat = runner(
+        [sys.executable, "-m", "sim", "--ticks", str(TICKS_DETERMINISME), "--json"],
+        cwd=repo,
+        timeout=180,
+    )
+    if int(resultat.get("code", 1)) != 0:
+        return {"etat": "injouable", "ligne": None, "head": head,
+                "code": resultat.get("code")}
+
+    ligne = str(resultat.get("stdout") or "").strip()
+    precedent = _lire_etat_precedent(repo)
+    ancienne = precedent.get("ligne")
+    ancien_head = precedent.get("head")
+
+    if ancienne is None:
+        etat = "premiere_mesure"
+    elif ligne == ancienne:
+        etat = "stable"
+    elif ancien_head != head:
+        etat = "change_avec_le_code"
     else:
-        path = repo / HISTORICAL_CACHE
-        source = "historical"
-    metric = _measure_tree(path)
+        etat = "ROMPU"
+
     return {
-        "source": source,
-        "path": str(path.resolve()),
-        "source_lock_sha256": lock_digest,
-        **metric,
+        "etat": etat,
+        "ligne": ligne,
+        "head": head,
+        "ligne_precedente": ancienne,
+        "head_precedent": ancien_head,
+        "ticks": TICKS_DETERMINISME,
     }
+
+
+def _lire_etat_precedent(repo: Path) -> dict[str, object]:
+    chemin = repo / ETAT_PRECEDENT
+    try:
+        return json.loads(chemin.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _ecrire_etat(repo: Path, determinisme: Mapping[str, object]) -> None:
+    """Mémorise la ligne du jour, de façon atomique, sans jamais committer."""
+    if determinisme.get("ligne") is None:
+        return
+    chemin = (repo / ETAT_PRECEDENT).resolve()
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    temporaire = chemin.with_name(f".{chemin.name}.{os.getpid()}.tmp")
+    temporaire.write_text(
+        json.dumps(
+            {"ligne": determinisme["ligne"], "head": determinisme["head"]},
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    os.replace(temporaire, chemin)
 
 
 def disk_metric(repo: Path) -> dict[str, object]:
@@ -229,7 +244,6 @@ def collect_report(
     repo: Path | str,
     *,
     run_checks: bool = True,
-    environ: Mapping[str, str] | None = None,
     runner: Callable[..., dict[str, object]] = _run,
 ) -> dict[str, object]:
     repo_path = Path(repo).resolve()
@@ -249,8 +263,10 @@ def collect_report(
         "worktrees": worktrees,
     }
     disk = disk_metric(repo_path)
-    cache = cache_metric(repo_path, environ)
     dashboard = dashboard_metric(repo_path)
+    determinisme = determinisme_metric(
+        repo_path, head=str(git["head"]), runner=runner
+    ) if run_checks else {"etat": "non_mesure", "ligne": None, "head": git["head"]}
 
     checks: list[dict[str, object]] = []
     if run_checks:
@@ -283,11 +299,22 @@ def collect_report(
         )
     if any(bool(worktree.get("prunable")) for worktree in worktrees):
         alerts.append("au moins un worktree est déclaré prunable par Git")
+    if determinisme.get("etat") == "ROMPU":
+        alerts.append(
+            "DÉTERMINISME ROMPU : même graine, même HEAD "
+            f"({str(determinisme.get('head'))[:12]}), ligne différente d'hier. "
+            f"hier : {determinisme.get('ligne_precedente')} — "
+            f"aujourd'hui : {determinisme.get('ligne')}"
+        )
+    elif determinisme.get("etat") == "injouable":
+        alerts.append(
+            f"le jeu ne se joue plus (code {determinisme.get('code')})"
+        )
     for check in checks:
         if check["code"] != 0:
             alerts.append(f"contrôle {check['name']} en échec (code {check['code']})")
 
-    return {
+    rapport = {
         "schema_version": 1,
         "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "ok" if not alerts else "alert",
@@ -295,10 +322,12 @@ def collect_report(
         "git": git,
         "disk": disk,
         "dashboard": dashboard,
-        "dem_cache": cache,
+        "determinisme": determinisme,
         "checks": checks,
         "destructive_actions": 0,
     }
+    _ecrire_etat(repo_path, determinisme)
+    return rapport
 
 
 def _gib(value: object) -> str:
@@ -319,12 +348,10 @@ def _age(value: object) -> str:
 def render_markdown(report: Mapping[str, object]) -> str:
     git = report["git"]
     disk = report["disk"]
-    cache = report["dem_cache"]
     dashboard = report["dashboard"]
     assert (
         isinstance(git, dict)
         and isinstance(disk, dict)
-        and isinstance(cache, dict)
         and isinstance(dashboard, dict)
     )
     lines = [
@@ -345,14 +372,8 @@ def render_markdown(report: Mapping[str, object]) -> str:
         f"- worktrees : `{git['worktree_count']}`",
         f"- disque libre : `{_gib(disk['free_bytes'])}` (`{disk['free_percent']} %`)",
         f"- âge du tableau de bord : `{_age(dashboard['age_seconds'])}`",
-        "",
-        "## Cache DEM",
-        "",
-        f"- mode : `{cache['source']}`",
-        f"- chemin effectif : `{cache['path']}`",
-        f"- empreinte de sources : `{cache['source_lock_sha256']}`",
-        f"- présent / fichiers / taille : `{cache['exists']}` / `{cache['files']}` / `{_gib(cache['bytes'])}`",
-        f"- âge du fichier le plus récent : `{_age(cache['age_seconds'])}`",
+        f"- déterminisme du jeu : `{report['determinisme']['etat']}`"
+        f" (`--ticks {report['determinisme'].get('ticks', '?')}`)",
         "",
         "## Worktrees",
         "",

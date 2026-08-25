@@ -14,6 +14,7 @@ se sert d'aucune des trois — elles sont exportées, pas encore jouées.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -30,15 +31,29 @@ from sim.world import CARTE_PATH, CARTE_RELATIVE, World
 
 _HASH_CHUNK_BYTES = 1024 * 1024
 
-# Les trois couches que la carte apporte au-delà de la géométrie. Aucune
-# n'est encore utilisée par le tick : le moteur les expose, il ne les joue
-# pas. Le jour où le tick en consomme une, on passe son drapeau à True —
-# et un test le vérifie.
-_COUCHES = {
-    "relief": False,
-    "climat": False,
-    "gisements": False,
-}
+# Les trois couches que la carte apporte au-delà de la géométrie.
+#
+# Leur consommation par le tick n'est PAS déclarée ici : elle est MESURÉE
+# (voir `_couche_consommee`). Ce dictionnaire n'était auparavant qu'un
+# triplet de booléens écrits à la main, et le test se contentait de figer
+# leur valeur courante — il ne vérifiait rien. Un moteur qui aurait cessé de
+# lire une couche, ou qui aurait commencé à en lire une, l'aurait dit faux
+# sans que rien ne rougisse. C'est le mode de défaillance n° 5 du dépôt :
+# un compteur dérive des données, ou il n'existe pas.
+_COUCHES = ("relief", "climat", "gisements")
+
+# Assez de ticks pour que production, commerce, consommation et mortalité
+# aient tous joué au moins une fois : une couche qui n'agirait qu'au
+# deuxième tick serait sinon déclarée inerte à tort.
+_TICKS_SONDE_COUCHE = 3
+
+# Valeurs de substitution, choisies pour être franchement différentes de
+# tout ce que la carte porte. Elles ne prétendent à aucune vraisemblance :
+# une sonde n'est pas une simulation, elle demande « le moteur regarde-t-il
+# cette clé ? ».
+_SONDE_RELIEF = "haute_montagne"
+_SONDE_CLIMAT_FACTEUR = 7.0
+_SONDE_GISEMENT = [{"nature": "sonde", "classe": "sonde"}]
 
 
 class SnapshotExportError(RuntimeError):
@@ -71,14 +86,73 @@ def _round_tree(value: Any) -> Any:
     return _round_float(value)
 
 
+def _empreinte_apres_ticks(world: World) -> str:
+    """État du monde après quelques ticks, sous forme comparable."""
+    import random
+
+    from sim.engine import tick as _tick
+
+    rng = random.Random(0)
+    for _ in range(_TICKS_SONDE_COUCHE):
+        _tick(world, rng)
+    return json.dumps(world.to_dict(), sort_keys=True)
+
+
+def _alterer(carte_doc: dict, couche: str) -> None:
+    """
+    Remplace franchement une couche dans une carte EN MÉMOIRE, avant que le
+    monde ne soit amorcé. Altérer après le chargement ne prouverait rien
+    d'un moteur qui lit la couche au chargement plutôt qu'à chaque tick.
+    """
+    for enregistrement in carte_doc["cellules"]:
+        if couche == "relief":
+            enregistrement["relief"] = _SONDE_RELIEF
+        elif couche == "climat":
+            climat = enregistrement.get("climat")
+            if isinstance(climat, dict):
+                enregistrement["climat"] = {
+                    cle: (valeur * _SONDE_CLIMAT_FACTEUR
+                          if isinstance(valeur, (int, float)) and not isinstance(valeur, bool)
+                          else valeur)
+                    for cle, valeur in climat.items()
+                }
+        elif couche == "gisements":
+            enregistrement["gisements"] = list(_SONDE_GISEMENT)
+
+
+def _couche_consommee(couche: str) -> bool:
+    """
+    Le tick joue-t-il cette couche ? Mesuré, jamais déclaré.
+
+    On charge deux mondes identiques, on altère franchement la couche dans
+    l'un, on joue le même nombre de ticks avec la même graine, et on compare
+    l'état obtenu. S'il diffère, le moteur a lu la couche ; s'il est
+    identique au bit près, il ne l'a pas lue.
+
+    C'est la même technique que `sim/tests/test_write_coverage.py` emploie
+    pour les constantes : la présence n'est pas la fonction (règle 7). Et
+    c'est une référence DÉRIVÉE — la mesure se compare à une autre mesure,
+    jamais à un nombre écrit à la main (règle 2).
+
+    Conséquence voulue : le jour où le tick consommera le relief, ce drapeau
+    passera à `true` tout seul. Personne n'aura de constante à retourner, et
+    personne ne pourra le retourner sans que le moteur ait changé.
+    """
+    carte = World.lire_carte()
+    temoin = World.charger(rng_seed=0, carte_doc=copy.deepcopy(carte))
+    _alterer(carte, couche)
+    altere = World.charger(rng_seed=0, carte_doc=carte)
+    return _empreinte_apres_ticks(temoin) != _empreinte_apres_ticks(altere)
+
+
 def _couches(carte_meta: dict) -> dict:
     """L'état honnête de chaque couche portée par la carte."""
     return {
         nom: {
             "dans_la_carte": True,
-            "utilisee_par_le_moteur": utilisee,
+            "utilisee_par_le_moteur": _couche_consommee(nom),
         }
-        for nom, utilisee in _COUCHES.items()
+        for nom in _COUCHES
     }
 
 

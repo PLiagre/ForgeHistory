@@ -38,6 +38,7 @@ from .workflow import (
     publish,
     publish_preview,
     review_invocation,
+    brief_review_invocation,
     witness_invocation,
 )
 
@@ -178,6 +179,17 @@ def parser() -> argparse.ArgumentParser:
     verdict.add_argument("--repo", type=_path, default=Path.cwd())
     verdict.add_argument("--output", type=_path)
     verdict.add_argument("--comment-pr", action="store_true")
+
+    brief_review = commands.add_parser(
+        "brief-review",
+        help="faire relire un brief AVANT de lancer un exécutant",
+    )
+    brief_review.add_argument("brief", type=_path)
+    brief_review.add_argument("--repo", type=_path, default=Path.cwd())
+    brief_review.add_argument("--model")
+    brief_review.add_argument("--effort")
+    brief_review.add_argument("--risk", choices=("R0", "R1", "R2"))
+    brief_review.add_argument("--run", action="store_true")
 
     witness = commands.add_parser(
         "witness",
@@ -461,6 +473,17 @@ def main(argv: list[str] | None = None) -> int:
                 comment_review_on_pr(worktree, pull_request, output)
             print(output)
             return 0
+
+        if args.command == "brief-review":
+            invocation = brief_review_invocation(
+                settings,
+                args.repo,
+                args.brief,
+                model=args.model,
+                effort=args.effort,
+                risk=args.risk,
+            )
+            return _run_or_print(invocation, settings, args.repo, args.run)
 
         if args.command == "witness":
             base = args.base or settings.default_base_ref

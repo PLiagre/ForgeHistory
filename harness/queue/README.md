@@ -10,12 +10,13 @@ La file est vide : les 33 briefs terminés (001 à 032) ont été archivés avec
 le dégraissage. Pour en relire un :
 
 ```bash
-git show archive/2026-08:harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md
-git checkout archive/2026-08 -- harness/queue/briefs/   # les récupérer tous
+git show da1596d:harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md
+git checkout da1596d -- harness/queue/briefs/   # les récupérer tous
+git ls-tree --name-only da1596d:harness/queue/briefs   # voir les 33 noms
 ```
 
-Si `archive/2026-08` est introuvable, c'est que le tag n'a pas encore été
-poussé : voir « Les archives » dans `AGENTS.md`.
+`da1596d` est le commit du lot D. Le tag `archive/2026-08` n'existe pas sur
+`origin` — voir « Les archives » dans `AGENTS.md`.
 
 Les deux briefs de démonstration restent en place, dans `harness/demo/` :
 un faux compte-rendu que la porte refuse, un honnête qu'elle accepte.

@@ -15,6 +15,7 @@ repository fails the ordinary test run rather than waiting for someone to
 notice a missing file.
 """
 import json
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -107,4 +108,89 @@ def test_hook_commands_resolve_from_any_working_directory():
     assert not broken, (
         "hook command(s) use a working-directory-relative script path and will "
         f"break as soon as any tool runs from a subdirectory: {broken}"
+    )
+
+
+# --- Une garde dont l'interpréteur n'existe pas ne garde rien ---
+
+# Codes que le protocole de garde définit : 0 laisse passer, 2 bloque.
+# Tout autre code vient du shell et signifie que le script n'a PAS tourné —
+# 127 « command not found » en tête.
+CODES_DU_PROTOCOLE = (0, 2)
+
+# Charge neutre : aucune des trois gardes ne doit s'en émouvoir. Elle sert à
+# répondre à une seule question — le script a-t-il été atteint ? — sans
+# dépendre de ce que chaque garde cherche.
+CHARGE_NEUTRE = json.dumps(
+    {"tool_input": {"command": "ls -la", "file_path": "README.md"}}
+)
+
+
+def _jouer(command: str, payload: str) -> subprocess.CompletedProcess:
+    """Joue la commande EXACTE de settings.json, comme le fait le harnais."""
+    return subprocess.run(
+        command.replace("$CLAUDE_PROJECT_DIR", str(REPO_ROOT)),
+        shell=True, input=payload, capture_output=True, text=True, timeout=60,
+    )
+
+
+def test_every_hook_command_actually_reaches_its_script():
+    """
+    La présence n'est pas la fonction (règle 7), appliquée au câblage.
+
+    Les trois gardes étaient invoquées avec `py`, exigé sur la machine
+    Windows du propriétaire — c'est la règle 1, payée par un vrai défaut,
+    `python` y étant un faux alias du Microsoft Store. Mais `py` n'existe pas
+    sous Linux, et le VPS, WSL2 et Cursor Cloud sont Linux. Sur ces trois-là,
+    les gardes rendaient 127 « command not found » : elles ne bloquaient
+    rien, et ne protestaient pas non plus. Elles étaient simplement absentes.
+
+    Le contrôle ne regarde pas COMMENT la commande est écrite : il la joue et
+    vérifie que le code de sortie appartient au protocole de garde. Un
+    interpréteur manquant, un chemin faux, un script illisible : tous
+    donnent un code hors protocole, quelle que soit la plateforme. La
+    référence est dérivée du protocole, pas d'une forme d'écriture.
+    """
+    commands = hook_commands()
+    assert commands, "settings.json ne déclare aucune garde"
+
+    hors_protocole = []
+    for command in commands:
+        resultat = _jouer(command, CHARGE_NEUTRE)
+        print(f"code {resultat.returncode} <- {command}")
+        if resultat.returncode not in CODES_DU_PROTOCOLE:
+            hors_protocole.append(
+                (command, resultat.returncode, (resultat.stderr or "").strip()[:120])
+            )
+
+    assert not hors_protocole, (
+        "garde(s) dont la commande n'atteint pas le script : le code de "
+        "sortie n'appartient pas au protocole (0 laisser passer, 2 bloquer). "
+        f"{hors_protocole}"
+    )
+
+
+def test_the_bare_python_guard_actually_blocks_here():
+    """
+    Bout en bout, sur cette machine-ci : la commande de `settings.json` doit
+    rendre 2 (bloquer) sur `python foo.py`, et 0 sur `py foo.py`.
+
+    C'est la seule vérification qui prouve que la garde MARCHE, plutôt que
+    d'être correctement écrite.
+    """
+    command = next(c for c in hook_commands() if "no_bare_python.py" in c)
+
+    bloque = _jouer(command, json.dumps({"tool_input": {"command": "python foo.py"}}))
+    laisse = _jouer(command, json.dumps({"tool_input": {"command": "py foo.py"}}))
+
+    print(f"`python foo.py` -> code {bloque.returncode} (2 attendu)")
+    print(f"`py foo.py`     -> code {laisse.returncode} (0 attendu)")
+
+    assert bloque.returncode == 2, (
+        "La garde n'a pas bloqué `python foo.py` sur cette machine. "
+        f"Code {bloque.returncode}. Sortie : {bloque.stdout}{bloque.stderr}"
+    )
+    assert laisse.returncode == 0, (
+        "La garde a bloqué `py foo.py`, qui est la forme exigée par la "
+        f"règle 1. Code {laisse.returncode}. Sortie : {laisse.stderr}"
     )

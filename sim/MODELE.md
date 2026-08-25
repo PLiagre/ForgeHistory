@@ -32,12 +32,27 @@ comme « le centre administratif le plus proche » (ADR-0003).
 
 La carte porte trois couches que le tick **ne joue pas** : le relief en cinq
 classes, les déterminants du climat, les 27 gisements. Le snapshot le dit
-lui-même, couche par couche (`utilisee_par_le_moteur: false`).
+lui-même, couche par couche.
+
+Ce n'est pas une déclaration, c'est une **mesure**. Pour chaque couche, le
+snapshot charge deux mondes identiques, en altère franchement la couche dans
+l'un **avant l'amorçage**, joue trois ticks avec la même graine et compare
+l'état obtenu. Différent : le moteur lit la couche. Identique au bit près :
+il ne la lit pas.
+
+Conséquence voulue : le jour où le tick consommera le relief,
+`utilisee_par_le_moteur` passera à `true` tout seul. Personne n'a de
+constante à retourner, et personne ne peut la retourner sans que le moteur
+ait changé. C'était auparavant un triplet de booléens écrits à la main, et
+le test se contentait de figer leur valeur courante.
 
 Le prochain pas du modèle est de faire compter le relief dans le rendement :
-une cellule de montagne ne produit pas comme une plaine. Attention, ce
-changement déplace l'équilibre de survie et donc le modèle analytique que
-`sim/tests/test_survie.py` compare — les deux se changent ensemble.
+une cellule de montagne ne produit pas comme une plaine. Il se fait **à un
+seul endroit**, `production_kg()` dans `sim/engine.py`. Le plafond physique de
+survie appelle la même fonction : il suit tout seul, et les tests de survie
+n'ont pas à changer. Ce n'était pas vrai avant ce lot — un modèle analytique
+prédisait la valeur absolue de la survie et devait être re-dérivé à chaque
+changement de la production.
 
 ## Déclaration explicite
 
@@ -143,28 +158,17 @@ food_produced = area_km2 × FOOD_PRODUCTION_KG_PER_KM2_PER_TICK × yield_factor
 | `RNG_YIELD_LOW` | 0.5 | — | Facteur multiplicatif minimum : mauvaise saison (sécheresse, gel) à 50 % du rendement nominal |
 | `RNG_YIELD_HIGH` | 1.5 | — | Facteur multiplicatif maximum : bonne saison à 150 % du rendement nominal |
 
-### Justification du dénominateur de `constantes_temporelles_coherentes` (N1 — itération 2)
+### L'équilibre que ces valeurs produisent
 
-Le brief 012 cite trois constantes temporelles attendues : production, consommation et **constante de réserve initiale**. Le manifeste déclare un dénominateur de **3 constantes** couvrant production, consommation et capacité de transport (`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`), au lieu d'inclure `INITIAL_FOOD_RESERVE_TICKS`.
+À 10 hab/km², la production moyenne est de 18 kg/km²/tick et la consommation
+de 20. Le monde démarre donc **au-dessus de ce qu'il nourrit** : la population
+descend jusqu'à un régime où elle tient, et la variabilité `[0.5, 1.5]` crée
+des ticks de surplus qui alimentent le commerce et des ticks de manque qui
+créent de la dette.
 
-**Justification explicite** : `INITIAL_FOOD_RESERVE_TICKS` est exprimé en **ticks** (unité canonique du moteur), ce qui était précisément la correction d'unité demandée par SC1. Sa valeur brute `5` n'est pas multipliée par `TICK_DURATION_DAYS` — la multiplier rendrait la constante dimensionnellement incorrecte (tick × tick, pas tick). Elle est **unitairement neutre** par rapport à `TICK_DURATION_DAYS`. Le dénominateur du compteur porte donc sur les trois constantes réellement dérivées via `× TICK_DURATION_DAYS` : production, consommation, capacité de transport.
-
-### Calibration SC5
-
-Avec `FOOD_PRODUCTION_KG_PER_KM2_PER_TICK = 18.0` et
-`FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK = 2.0` à 10 hab/km² :
-
-- Production moyenne par km² : 18.0 × E[yield] = 18.0 × 1.0 = 18.0 kg/tick
-- Consommation par km² : 10 × 2.0 = 20.0 kg/tick
-- Déficit structurel moyen : 2.0 kg/km²/tick (production légèrement sous-équilibre)
-- La variabilité [0.5, 1.5] crée des ticks de surplus (yield × 18 > 20 quand yield > 1.11, probabilité ≈ 39 %) : ces surplus alimentent le commerce inter-cellules (SC4)
-- Les ticks de déficit créent des pénuries locales qui s'accumulent dans `food_deficit_kg`
-
-Sur 200 ticks avec `rng_seed=42` et `world_seed=42` (mesuré) :
-- 261 cellules avec `hunger_ticks > 0` au moins une fois
-- 7 544 299 morts cumulés
-- 8 171 507 kg transportés
-- Fraction de survie : 0.887 > 0.70 (SEUIL_SURVIE_POPULATION_FRACTION)
+C'est voulu — un monde qui démarre à l'équilibre exact ne montre ni famine ni
+commerce. Aucun chiffre mesuré n'est cité ici : voir « Ce qui dit que le monde
+vit », plus bas, et `python -m sim --ticks 20 --json` pour l'état du jour.
 
 ---
 
@@ -172,182 +176,113 @@ Sur 200 ticks avec `rng_seed=42` et `world_seed=42` (mesuré) :
 
 ### Champ `food_deficit_kg`
 
-Sentinelle : -1.0 = non encore calculé (hard-won rule 8 : zéro est une
-mesure réelle).
+La nourriture qui a manqué est une **dette**, pas un oubli. Sentinelle `-1.0`
+= non encore calculé (règle 8 : zéro est une mesure réelle, jamais un aveu).
 
-**Sémantique (brief 013)** :
-- Si `consommation > stock` après production + commerce : `food_deficit_kg += (consommation - stock)` ; `food_stock_kg = 0`
-- Si la cellule dispose d'un surplus (`remaining ≥ 0`) : `food_deficit_kg` est réduit **graduellement** :
-  `food_deficit_kg = max(0.0, food_deficit_kg × (1 - DEFICIT_RECOVERY_RATE_PER_TICK))`
+- Si `consommation > stock` après production et commerce :
+  `food_deficit_kg += (consommation − stock)` et `food_stock_kg = 0`.
+- Si la cellule a un surplus, la dette est remboursée par des kilogrammes
+  réels — voir « La récupération physique du déficit ».
 
-### SC4 brief 013 — Mortalité continue, déficit à mémoire graduelle
-
-**Retrait du plancher de mortalité** :
-
-La formule `deaths = max(1, int(population × death_rate))` est remplacée par
-`deaths = int(population × death_rate)`. Une famine légère (déficit < 1 kg/tête)
-ne tue plus au moins une personne : le plancher binaire est supprimé.
-Le taux effectif `deaths / population` respecte `MAX_DEATH_RATE_PER_TICK` pour
-toute population ≥ 1 (propriété préservée par construction : `death_rate ≤ MAX_DEATH_RATE_PER_TICK`
-avant la multiplication et l'arrondi par troncature vers zéro).
-
-**Formule de mortalité (brief 013)** :
-```
-if food_deficit_kg > 0 and population > 0:
-    per_capita_deficit = food_deficit_kg / population
-    death_rate = min(per_capita_deficit × HUNGER_DEATH_SCALE, MAX_DEATH_RATE_PER_TICK)
-    deaths = int(population × death_rate)   # sans max(1, …)
-    population = max(0, population - deaths)
-```
-
-**Déficit à mémoire graduelle** :
-
-Lorsqu'une cellule est en surplus (consommation couverte), le déficit accumulé
-est réduit graduellement au lieu d'être effacé instantanément :
-
-```python
-cell.food_deficit_kg = max(0.0, cell.food_deficit_kg * (1 - DEFICIT_RECOVERY_RATE_PER_TICK))
-```
-
-### SC4 brief 013 — Justification de `DEFICIT_RECOVERY_RATE_PER_TICK`
-
-| Constante | Valeur | Justification |
-|---|---|---|
-| `DEFICIT_RECOVERY_RATE_PER_TICK` | 0.10 | Taux de récupération choisi **avant mesure** : 10 % du déficit accumulé est effacé par tick de surplus. Physique médiévale : une semaine de famine (7 jours d'accumulation de déficit) ne se récupère pas en une journée d'abondance. Avec `r = 0.10`, la demi-vie de récupération est ≈ 7 ticks (ln(2)/ln(1/0.9) ≈ 6.6), ce qui signifie qu'une semaine de surplus efface la moitié d'un déficit accumulé sur une durée comparable. Ce choix est conservateur (récupération lente) et physiquement plausible pour une économie de subsistance. |
-
-**Propriété vérifiable** : pour tout `D > 0` et `DEFICIT_RECOVERY_RATE_PER_TICK < 1`,
-`D × (1 - DEFICIT_RECOVERY_RATE_PER_TICK) < D`, donc un seul tick de surplus
-ne peut pas effacer un déficit non nul.
-
-**Seuil de coupure `DEFICIT_ZERO_EPSILON`** (N4 feedback 001, itération 2) :
-
-La récupération graduelle `D' = D × (1 - r)` multiplie le déficit par un facteur
-strictement inférieur à 1 sans jamais atteindre zéro. Une cellule ayant connu la
-famine conserverait indéfiniment un déficit infinitésimal (`1e-300` reste positif
-après un tick de surplus), rendant l'état « aucun déficit » inatteignable. Cela
-n'est pas physiquement significatif et constituerait un piège pour tout compteur
-futur de cellules en déficit.
-
-Correctif retenu : après récupération graduelle, tout déficit résiduel inférieur à
-`DEFICIT_ZERO_EPSILON = 1e-6` est ramené à zéro. Ce seuil est à la fois :
-- Négligeable physiquement (1 mg de déficit pour la population entière d'une cellule)
-- Assez grand pour nettoyer les résidus de calcul flottant (≫ `1e-15` machine)
-
-Le seuil est appliqué uniquement lors d'un tick de surplus (pas lors d'accumulation),
-et uniquement après le passage `× (1 - r)`. Le test `test_deficit_non_efface_en_1_tick`
-vérifie qu'un déficit de 10 000 kg n'est pas effacé en un tick (résiduel = 9 000 kg ≫
-epsilon).
-
-### Formule de mortalité originale (brief 012 — archivé)
+### La mortalité
 
 ```
-if food_deficit_kg > 0 and population > 0:
-    per_capita_deficit = food_deficit_kg / population
-    death_rate = min(per_capita_deficit × HUNGER_DEATH_SCALE, MAX_DEATH_RATE_PER_TICK)
-    deaths = max(1, int(population × death_rate))   # plancher supprimé par brief 013
-    population = max(0, population - deaths)
+si food_deficit_kg > 0 et population > 0 :
+    deficit_par_tete = food_deficit_kg / population
+    taux = min(deficit_par_tete × HUNGER_DEATH_SCALE, MAX_DEATH_RATE_PER_TICK)
+    brut   = population × taux + mortality_remainder
+    morts  = int(brut)
+    mortality_remainder = brut − morts
+    population = max(0, population − morts)
 ```
 
-| Constante | Valeur | Unité | Justification |
+| Constante | Valeur | Unité | Ordre de grandeur |
 |---|---|---|---|
-| `HUNGER_DEATH_SCALE` | 0.005 | 1/(kg/personne) | Facteur de mortalité : 1 kg de déficit par tête → 0.5 % de mortalité par tick. Proxy : famine médiévale sévère documentée à 10-30 % de mortalité annuelle sur populations très touchées (~0.03-0.08 %/jour). Le facteur 0.005 permet des déficits modestes (5–10 kg/tête) pour atteindre 2-5 % de mortalité journalière. |
-| `MAX_DEATH_RATE_PER_TICK` | 0.10 | — | Plafond de 10 % par tick : empêche l'effondrement instantané même à déficit extrême |
+| `HUNGER_DEATH_SCALE` | 0.005 | 1/(kg/personne) | 1 kg de dette par tête → 0,5 % de mortalité par tick. Une famine médiévale sévère est documentée à 10–30 % de mortalité annuelle sur les populations les plus touchées, soit 0,03–0,08 %/jour ; ce facteur permet à une dette de 5–10 kg/tête d'atteindre 2–5 % par jour. |
+| `MAX_DEATH_RATE_PER_TICK` | 0.10 | — | Plafond de 10 % par tick : pas d'effondrement instantané, même à dette extrême. |
+
+**Il n'y a pas de plancher `max(1, …)`.** Une famine légère ne tue plus au
+moins une personne par cellule et par tick : le report de la fraction
+(`mortality_remainder`, plus bas) fait ce travail correctement, sans inventer
+de mort.
+
+> Les formules antérieures — plancher de mortalité binaire, récupération de
+> dette multiplicative `D × (1 − r)`, seuil de coupure `DEFICIT_ZERO_EPSILON` —
+> ne sont plus décrites ici. Une formule morte décrite au présent piège le
+> brief suivant. Elles sont dans l'historique git, avec les raisons de leur
+> retrait dans les messages de commit.
 
 ---
 
-## Le seuil de survie, dérivé analytiquement
+## Ce qui dit que le monde vit
 
-**Formule analytique** (capacité de charge malthusienne) :
+Il n'y a **pas de prédiction analytique** de la fraction de survivants. Il y a
+trois propriétés, mesurées sur le moteur, dans `sim/tests/test_survie.py`.
 
-```
-rendement_moyen = (RNG_YIELD_LOW + RNG_YIELD_HIGH) / 2
-capacite_charge_hab_km2 = (FOOD_PRODUCTION_KG_PER_KM2_PER_TICK × rendement_moyen)
-                           / FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-fraction_predite = capacite_charge_hab_km2 / INITIAL_POPULATION_PER_KM2
-```
-
-Avec les constantes actuelles :
-```
-rendement_moyen = (0.5 + 1.5) / 2 = 1.0
-capacite_charge_hab_km2 = (18.0 × 1.0) / 2.0 = 9.0 hab/km²
-fraction_predite = 9.0 / 10.0 = 0.90
-```
-
-**Dérivation analytique de `SURVIE_MARGE_DERIVEE`** (itération 2 — N.B. historique
-de provenance ci-dessous) :
-
-La formule `fraction_predite = 0.9` est un équilibre stationnaire (infini). Sur
-N=200 ticks (fenêtre de transition), la fraction mesurée s'écarte de cette
-prédiction pour deux raisons quantifiables sans jamais regarder la mesure :
-
-**Effet 1 — Dépassement initial de la capacité de charge**
+**1. Le monde ne s'éteint pas et ne nourrit pas plus de monde qu'il ne produit.**
 
 ```
-cap_hab_km2 = 9.0
-depassement_initial = max(0, (d0 - cap) / d0) = (10 - 9) / 10 = 0.10
+plafond = production_moyenne_du_monde / (ration × population_de_départ)
+0 < fraction_de_survivants ≤ plafond
 ```
 
-Cette fraction de la population initiale est au-dessus de la capacité de charge ;
-elle mourra pendant la fenêtre de 200 ticks. L'effet est proportionnel à
-`fraction_predite` (plus l'équilibre prédit est haut, plus la correction est
-grande). Terme retenu : `depassement_initial × fraction_predite = 0.1 × 0.9 = 0.09`.
+Le plafond est **dérivé du moteur** : `production_moyenne_kg_par_tick()` appelle
+`production_kg()`, la même et unique formule que le tick emploie, avec le
+rendement moyen au lieu d'un tirage. Il ne peut donc pas diverger de ce que le
+monde produit — et il suivra tout seul le jour où le relief modulera le
+rendement.
 
-**Effet 2 — Pression stochastique des ticks déficitaires**
+Ce que son dépassement voudrait dire : la population survivante mange plus que
+le monde ne produit, donc des kilogrammes apparaissent ailleurs que dans la
+production. Un commerce qui duplique, une consommation qui ne prélève pas, une
+dette effacée sans surplus pour la payer : tout cela se voit ici.
 
-```
-ratio_C_P = (FOOD_CONSUMPTION × d0) / FOOD_PRODUCTION = 20.0 / 18.0 ≈ 1.111
-p_tick_deficitaire = (ratio_C_P - RNG_YIELD_LOW) / (RNG_YIELD_HIGH - RNG_YIELD_LOW)
-                   = (1.111 - 0.5) / 1.0 ≈ 0.611
-```
+**2. La survie répond à la mortalité.** `s(HDS×0.5) > s(HDS) > s(HDS×2)`.
 
-La majorité des ticks (61 %) sont structurellement déficitaires. La récupération
-est de `DEFICIT_RECOVERY_RATE_PER_TICK = 0.10` par tick d'excédent. Le produit
-`p_tick_deficitaire × DEFICIT_RECOVERY_RATE_PER_TICK` donne la pression nette du
-déficit stochastique sur la mortalité. Terme retenu :
-`(11/18) × 0.10 ≈ 0.0611`.
+**3. La survie répond à la nourriture.** `s(production) > s(production÷2)`.
 
-**Formule assemblée** :
+### Pourquoi la direction, et pas la valeur
 
-```
-SURVIE_MARGE_DERIVEE = depassement_initial × fraction_predite
-                        + p_tick_deficitaire × DEFICIT_RECOVERY_RATE_PER_TICK
-                     = 0.1 × 0.9 + (11/18) × 0.1
-                     ≈ 0.09 + 0.0611
-                     ≈ 0.1511
-```
+Le modèle précédent prédisait la valeur **absolue** de la fraction de
+survivants : capacité de charge, oscillateur déficit/population, espérance du
+manque, trois tolérances dérivées, horizon de 1 000 ticks. Il occupait 262 des
+358 lignes de `sim/constants.py`.
 
-Cette expression sort uniquement des constantes du modèle. Sa valeur (`≈ 0.1511`)
-diffère volontairement du `0.15` de l'itération 1 : voir historique ci-dessous.
+Sa dérivation suppose **une** capacité de charge globale, `cap = F × ȳ / C`.
+Cette grandeur cesse d'exister dès que la production varie d'une cellule à
+l'autre — c'est-à-dire au prochain pas du modèle, le relief. Mesuré, en
+faisant jouer le relief : la survie tombe à **0,447** contre une prédiction de
+**0,797 ± 0,101** — 3,5 fois la tolérance. Le test devient rouge sans qu'aucun
+défaut n'existe, et la seule issue commode est d'élargir la tolérance après
+avoir vu la mesure. C'est la calibration après mesure, que ce document
+interdisait ailleurs.
 
-```
-SEUIL_SURVIE_POPULATION_FRACTION = fraction_predite - SURVIE_MARGE_DERIVEE
-                                 ≈ 0.90 - 0.1511 ≈ 0.7489
-```
+La garde payée par un vrai défaut est conservée intacte : le critère de survie
+ne doit pas être **aveugle aux constantes qui gouvernent la mort** — c'est ce
+que le brief 017 reprochait à celui du brief 013, où une famine deux fois plus
+meurtrière passait le même contrôle. La propriété n° 2 la tient directement,
+sur le moteur, et survit à tout changement du modèle de production. Rouge
+prouvé : avec une mortalité qui ignore `HUNGER_DEATH_SCALE`, les trois régimes
+rendent la même fraction et le test échoue.
 
-**Vérification de falsifiabilité** : si `INITIAL_POPULATION_PER_KM2` est doublé
-à 20 hab/km², alors `_fraction_predite = 0.45`, `_depassement_initial = 0.55`,
-`_p_tick_deficitaire = 1.0`, et `SURVIE_MARGE_DERIVEE = 0.55 × 0.45 + 1.0 × 0.10
-= 0.3475`. La fenêtre devient `[0.45 - 0.3475, ...] = [0.1025, ...]`. Avec une
-densité double, tous les ticks sont déficitaires et la fraction mesurée converge
-vers zéro — le test `test_fraction_dans_marge` rougit.
+### Sur les valeurs mesurées citées dans ce document
 
----
+Elles sont datées et elles vieillissent. La règle 12 le dit pour les empreintes
+de parité, et vaut ici : **un compteur se cite par son nom, pas par sa valeur.**
+Avant ce lot, ce document affirmait, sur 200 ticks aux graines 42/42 :
 
-**Historique de provenance (itération 2 — correction B1 feedback 001)** :
+| affirmé | mesuré au 2026-08-25 |
+|---|---|
+| 261 cellules affamées | 8 |
+| 7 544 299 morts | 16 211 220 |
+| 8 171 507 kg transportés | 4 503 375 |
+| fraction de survie 0,887 | 0,757555 |
 
-À l'itération 1, la marge avait été fixée à `0.10` puis, après observation que
-la mesure (`0.766`) tombait hors de la fenêtre `[0.80, 1.0]`, réajustée à `0.15`
-pour que la fenêtre inclue la mesure. Le journal de l'itération 1 l'avait reconnu
-explicitement. Les commentaires dans `sim/constants.py` et le présent fichier
-affirmaient alors « valeur choisie avant mesure » — ce qui était faux au regard
-de la chronologie réelle.
+Les quatre étaient faux, de deux à trente fois. Ils dataient d'un moteur deux
+révisions plus vieux, et ce document est celui qu'Hermes découpe en briefs.
 
-À l'itération 2, la marge est remplacée par l'expression dérivée ci-dessus.
-L'ordre des opérations réel est : formule posée → valeur calculée (`≈ 0.1511`) →
-mesure effectuée (`0.766`) → résultat constaté (mesure dans la fenêtre `[0.749,
-1.051]`). La provenance de la valeur est désormais le modèle, pas l'observation.
-
----
+Aucune valeur mesurée n'est donc citée ci-dessous comme une propriété du
+modèle. Pour connaître l'état du monde : `python -m sim --ticks 20 --json`.
 
 ## Le commerce entre cellules
 
@@ -411,152 +346,6 @@ et change les compteurs du monde réel (SC6 re-mesuré en conséquence).
 
 ---
 
-## Le seuil de survie de la population
-
-| Constante | Valeur | Justification |
-|---|---|---|
-| `SEUIL_SURVIE_POPULATION_FRACTION` | 0.70 | Autorise jusqu'à 30 % de pertes globales — compatible avec des famines médiévales régionales sévères sans effondrement civilisationnel. Calibré pour être compatible avec les paramètres de production/consommation ci-dessus (mesuré à 0.887 sur N=200 ticks). |
-
----
-
-## Le modèle de survie stationnaire
-
-> **Ordre de rédaction.** Cette section, ainsi que les sections SC2, SC3, SC4
-> et SC5 du brief 017 ci-dessous, ont été écrites et committées **avant**
-> d'exécuter la moindre simulation du monde réel. Aucun coefficient, aucune
-> tolérance, aucun horizon n'a été ajusté après avoir vu une valeur mesurée.
-> C'est le mode d'échec n° 5 (calibration après mesure) que cette discipline
-> évite.
-
-### Ce qui est supprimé et pourquoi
-
-`SURVIE_MARGE_DERIVEE` et `SEUIL_SURVIE_POPULATION_FRACTION` (brief 013) sont
-**supprimées**. Elles ne dépendaient ni de `HUNGER_DEATH_SCALE` ni de
-`MAX_DEATH_RATE_PER_TICK` : le critère qui certifiait que « le monde vit »
-était aveugle aux constantes qui gouvernent la mort. Une famine deux fois plus
-mortelle passait le même contrôle. De plus, la récupération du déficit y entrait
-avec le mauvais signe (une récupération plus rapide élargissait la marge
-d'erreur au lieu d'augmenter la survie).
-
-L'archive de leur dérivation reste ci-dessus (section « SC3 brief 013 ») et
-n'est pas retouchée.
-
-### Densité stationnaire : le dépassement est un oscillateur
-
-Par km², en notant `C` la consommation par personne et par tick, `F` la
-production par km² et par tick, `d` la densité d'habitants et `D` le déficit
-alimentaire cumulé :
-
-```py
-cap = F × rendement_moyen / C          # densité de charge : 18 × 1.0 / 2 = 9 hab/km²
-```
-
-Tant que `d > cap`, le déficit croît de `C × (d − cap)` par tick, et la
-mortalité fait décroître `d` de `HUNGER_DEATH_SCALE × D` par tick. En posant
-`x = d − cap`, on a exactement :
-
-```py
-D' = C × x
-x' = -HUNGER_DEATH_SCALE × D
-```
-
-C'est un oscillateur de pulsation `ω = sqrt(HUNGER_DEATH_SCALE × C)`. Sa
-quantité conservée est `Q = C·x² + HDS·D² + C·HDS·x·D` (invariance vérifiable
-à la main sur le schéma d'Euler semi-implicite qu'est l'ordre du tick :
-consommation puis mortalité). Partant de `D = 0` et `x = x0 = d0 − cap`, le
-déficit revient à zéro quand `x = −x0`, c'est-à-dire :
-
-```py
-densite_stationnaire = cap − (d0 − cap) = 2 × cap − d0     # 2 × 9 − 10 = 8 hab/km²
-fraction_depassement = densite_stationnaire / d0            # 8 / 10 = 0.80
-```
-
-La population ne dépasse pas seulement en descendant jusqu'à la capacité de
-charge : elle la dépasse par le bas, parce que la dette alimentaire accumulée
-pendant la descente continue de tuer après que la densité soit repassée sous
-`cap`.
-
-### Érosion stochastique : c'est ici qu'entre `HUNGER_DEATH_SCALE`
-
-À la densité stationnaire, un tick de mauvais rendement crée encore un déficit.
-L'espérance de ce manque, pour un rendement `Y` uniforme sur
-`[RNG_YIELD_LOW, RNG_YIELD_HIGH]` et un besoin `A = C × d_stat` :
-
-```py
-E[max(0, A − F×Y)] = (A − F×RNG_YIELD_LOW)² / (2 × F × (RNG_YIELD_HIGH − RNG_YIELD_LOW))
-                     # valable quand F×LOW < A < F×HIGH
-```
-
-Ce déficit tue une fraction `min(HDS × déficit_par_tête, MAX_DEATH_RATE_PER_TICK)`
-de la population, pendant le temps qu'il met à être remboursé
-(`1 / DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG` tick au ratio nominal 1:1), et sur
-l'échelle de temps du tampon alimentaire — `INITIAL_FOOD_RESERVE_TICKS`, la
-seule échelle de stockage nommée du modèle.
-
-```py
-SURVIE_FRACTION_PREDITE_STATIONNAIRE = fraction_depassement × (1 − erosion)
-erosion = min(1, min(HDS × deficit_par_tete, MAX_DEATH_RATE_PER_TICK)
-                  × (1 / DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG)
-                  × INITIAL_FOOD_RESERVE_TICKS)
-```
-
-**Propriétés de signe** (exigées par le brief, vérifiées par SC2) :
-`HDS × 2` double l'érosion → la prédiction **diminue** ;
-`DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG × 2` divise par deux la durée de la dette
-→ la prédiction **augmente** ; `FOOD_PRODUCTION × 2` relève `cap` → la
-prédiction **augmente**.
-
-### Horizon `N_STAT_SURVIE` — justification avant mesure
-
-Le transitoire dure au plus une période d'oscillation :
-
-```py
-periode = 2π / sqrt(HUNGER_DEATH_SCALE × FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK)
-        = 2π / sqrt(0.005 × 2.0) ≈ 63 ticks
-N_STAT_SURVIE = max(1000, ceil(periode / MAX_DEATH_RATE_PER_TICK))
-```
-
-`1 / MAX_DEATH_RATE_PER_TICK` est l'échelle de temps au bout de laquelle toute
-mortalité résiduelle au taux plafond est épuisée ; l'horizon couvre donc la
-période d'oscillation répétée dix fois. Le plancher de 1000 ticks est imposé
-par le brief 017. Avec les constantes actuelles : `N_STAT_SURVIE = 1000`.
-
-### Tolérances — dérivées, jamais ajustées
-
-| constante | expression | valeur | justification |
-|---|---|---|---|
-| `SURVIE_TOLERANCE_STATIONNAIRE` | `(σ_Y / ȳ) × (cap / d0) × P(tick déficitaire)` | ≈ 0.101 | Le modèle remplace le tirage de rendement par sa moyenne. L'erreur au premier ordre est la dispersion relative du rendement (σ_Y = (HIGH−LOW)/√12), convertie en habitants par le rapport `cap / d0`, et restreinte au seul côté de la distribution qui tue (un bon rendement ne tue personne). |
-| `SURVIE_CONVERGENCE_DELTA` | `(σ_Y / ȳ) × MAX_DEATH_RATE_PER_TICK` | ≈ 0.029 | À l'état stationnaire, la seule dérive restante vient des fluctuations de rendement : une fluctuation d'un écart-type expose une fraction `σ_Y/ȳ` de la population, et une population exposée ne peut perdre plus que le taux plafond par tick. |
-| `SURVIE_TOLERANCE_SENSIBILITE` | `SURVIE_TOLERANCE_STATIONNAIRE + (d0 − cap)/d0` | ≈ 0.201 | Les régimes de sensibilité sont mesurés à N = 200 ticks. Dans un régime à faible `HUNGER_DEATH_SCALE`, la période d'oscillation s'allonge (ω ∝ √HDS) et le dépassement initial n'est pas totalement résorbé : on ajoute son amplitude. |
-
----
-
-## Sensibilité : le moteur relit les constantes courantes
-
-Le test de sensibilité remplace `HUNGER_DEATH_SCALE` **en mémoire**, jamais par
-écriture dans le fichier source. Deux mécanismes rendent cela possible :
-
-1. `sim/engine.py` lit `HUNGER_DEATH_SCALE` et `MAX_DEATH_RATE_PER_TICK` via le
-   module (`_constantes.HUNGER_DEATH_SCALE`) et non par valeur importée. Une
-   valeur importée par `from … import …` est figée au chargement : la
-   remplacer dans `sim.constants` ne changerait rien au moteur.
-2. `SURVIE_FRACTION_PREDITE_STATIONNAIRE` est le résultat d'une **fonction**,
-   `compute_survie_fraction_predite_stationnaire()`, qui relit les globales
-   courantes du module à chaque appel. La constante de module figée au
-   chargement resterait, elle, à sa valeur nominale. `importlib.reload` n'est
-   pas utilisé : il recharge `sim.constants` sans recharger `sim.engine`, ce
-   qui laisserait le moteur et la prédiction sur deux jeux de constantes
-   différents.
-
-### Note documentaire P3-2 — écrêtage sans réallocation
-
-L'écrêtage côté receveur (passe 1d de `_apply_commerce`) ne réalloue pas le
-surplus libéré à d'autres cellules demandeuses : le surplus non livré reste
-chez sa source. C'est un choix de simplicité assumé, pas un défaut ; le code du
-commerce n'est pas modifié par le brief 017.
-
----
-
 ## Le report de la fraction de mortalité
 
 `int(population × death_rate)` arrondit à zéro dès que
@@ -609,7 +398,7 @@ surplus réel : un surplus d'un nanogramme effaçait 1 000 kg d'une dette de
 
 Successeur nommé : `DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG = 1.0` — kilogrammes
 de dette remboursés par kilogramme de surplus **réellement consommé** au-delà
-du besoin d'entretien (voie (a) du brief : ratio 1:1).
+du besoin d'entretien. Ratio 1:1.
 
 ```py
 remboursement = min(food_deficit_kg, surplus_du_tick × ratio)
@@ -619,13 +408,22 @@ food_stock_kg = surplus_du_tick − remboursement    # les kg quittent le stock
 
 Le ratio est borné à 1.0 dans le moteur : la réduction de la dette ne peut
 jamais dépasser le surplus physique du tick, quelle que soit la valeur donnée à
-la constante. La coupure `DEFICIT_ZERO_EPSILON` (brief 013) est conservée : un
-résidu de dette inférieur à 1 mg est ramené à zéro.
+la constante.
 
-**Conséquence attendue et assumée** : la dette se rembourse beaucoup plus vite
-qu'avec l'ancienne formule dès qu'il y a un vrai surplus, et pas du tout quand
-le surplus est infime. Les compteurs du monde réel changent légitimement —
-c'est l'objet de la re-mesure SC6 du brief 017.
+**La coupure `DEFICIT_ZERO_EPSILON` est supprimée.** Elle n'avait plus de
+travail. Le remboursement est une **soustraction** : `dette − min(dette,
+surplus × ratio)`. Quand le surplus couvre, `min` rend la dette elle-même et
+la soustraction donne **exactement `0.0`** en IEEE 754 — il n'y a pas d'asymptote
+à nettoyer. Tout résidu est donc une dette réelle que le surplus n'a pas payée,
+et l'effacer faisait disparaître des kilogrammes sans contrepartie : la même
+faute de principe 3 que le seuil avait été écrit pour accompagner.
+
+Mesuré sur 1 000 ticks du monde réel (596 000 passages du maillon
+consommation) : 9 147 remboursements sur dette, dont 1 536 à résidu nul exact,
+7 611 à résidu réel — et **zéro** dans l'intervalle que la coupure effaçait.
+
+**Conséquence assumée** : la dette se rembourse vite dès qu'il y a un vrai
+surplus, et pas du tout quand le surplus est infime.
 
 ---
 
@@ -681,7 +479,7 @@ sont parcourus. La comparaison retenue est
 `carré < meilleur` **ou** (`carré == meilleur` **et** `id < meilleur_id`). Un
 simple « le premier rencontré gagne » donnerait le même résultat dans un ordre
 de parcours et un autre résultat dans l'ordre inverse : le déterminisme serait
-espéré, pas prouvé. `sim/tests/test_determinisme_departage_purete.py` monte le
+espéré, pas prouvé. `sim/tests/test_determinisme.py` monte le
 cas d'égalité exacte et l'essaie dans les deux ordres.
 
 ### Refus de deviner (D5)

@@ -37,7 +37,8 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
   de `sim/`, un cron à ajuster — et l’écrire sous `hermes/propositions/`.
 - **Piloter un lot.** Enregistrer puis lancer un run durable avec
   `forgepilot start <brief.md>` ; suivre et reprendre avec `status` et
-  `resume`. Le runbook est `docs/operations/workflow-acceleration.md`.
+  `resume`. Les modèles, efforts et délais par niveau de risque se lisent
+  dans `control-plane/workflow-policy.toml`, qui fait foi.
 - **Déléguer en parallèle.** Découper une mission de lecture / mesure en
   sous-tâches indépendantes (sous-agents Hermes), synthétiser sans juger
   un lot — contrat dans `hermes/skills/forgehistory-suivi/SKILL.md` §7
@@ -59,11 +60,13 @@ checks sont verts.
 `hermes/DASHBOARD.md` est une vue, pas une base parallèle. Elle ne liste
 plus la file d'audits Cursor : cette boucle est historique. Régénération :
 
-- à la main : `py hermes/dashboard.py` (sections GitHub absentes) ;
-- workflow GitHub `hermes-dashboard.yml` (`workflow_dispatch`) pour la vue
-  complète ;
+- à la main : `py hermes/dashboard.py` ;
 - cron quotidien : il **signale** l’âge de la vue ; il ne pousse pas
   `master` tout seul.
+
+Il n'y a plus de workflow GitHub de tableau de bord : les douze workflows
+sont passés à deux au dégraissage (ADR-0018), les tests et le scan de
+sécurité.
 
 ## Format
 

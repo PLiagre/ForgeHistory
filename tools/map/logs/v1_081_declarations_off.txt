@@ -1,1 +1,0 @@
-pipeline r1 | projection=EPSG:3035 | apply_declarations=False | gisements_rattaches=0 | cellules_dotees=0 | par_nature={'sel': 0, 'fer': 0, 'cuivre': 0, 'argent': 0, 'etain': 0, 'plomb': 0, 'charbon': 0, 'mercure': 0, 'alun': 0, 'or': 0}
