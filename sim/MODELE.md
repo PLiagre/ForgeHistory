@@ -32,7 +32,19 @@ comme « le centre administratif le plus proche » (ADR-0003).
 
 La carte porte trois couches que le tick **ne joue pas** : le relief en cinq
 classes, les déterminants du climat, les 27 gisements. Le snapshot le dit
-lui-même, couche par couche (`utilisee_par_le_moteur: false`).
+lui-même, couche par couche.
+
+Ce n'est pas une déclaration, c'est une **mesure**. Pour chaque couche, le
+snapshot charge deux mondes identiques, en altère franchement la couche dans
+l'un **avant l'amorçage**, joue trois ticks avec la même graine et compare
+l'état obtenu. Différent : le moteur lit la couche. Identique au bit près :
+il ne la lit pas.
+
+Conséquence voulue : le jour où le tick consommera le relief,
+`utilisee_par_le_moteur` passera à `true` tout seul. Personne n'a de
+constante à retourner, et personne ne peut la retourner sans que le moteur
+ait changé. C'était auparavant un triplet de booléens écrits à la main, et
+le test se contentait de figer leur valeur courante.
 
 Le prochain pas du modèle est de faire compter le relief dans le rendement :
 une cellule de montagne ne produit pas comme une plaine. Il se fait **à un

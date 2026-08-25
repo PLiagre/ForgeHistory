@@ -63,20 +63,32 @@ class World:
         self.carte_meta = carte_meta or {}
 
     @classmethod
-    def charger(cls, rng_seed: int = 0) -> "World":
-        """
-        Lit la carte figée et amorce le monde.
-
-        Le nombre de cellules est dérivé du fichier — jamais codé en dur.
-        """
-        rng = random.Random(rng_seed)
-
+    def lire_carte(cls) -> dict:
+        """La carte figée, telle qu'elle est sur le disque."""
         if not CARTE_PATH.is_file():
             raise FileNotFoundError(
                 f"Carte du monde introuvable : {CARTE_PATH}. "
                 "La reconstruire avec `python tools/map/build_world.py`."
             )
-        carte_doc = json.loads(CARTE_PATH.read_text(encoding="utf-8"))
+        return json.loads(CARTE_PATH.read_text(encoding="utf-8"))
+
+    @classmethod
+    def charger(cls, rng_seed: int = 0, carte_doc: dict | None = None) -> "World":
+        """
+        Amorce le monde à partir de la carte figée.
+
+        Le nombre de cellules est dérivé du fichier — jamais codé en dur.
+
+        `carte_doc` permet d'amorcer depuis une carte déjà en mémoire au lieu
+        du disque. Sert aux sondes qui demandent « le moteur lit-il cette
+        couche ? » : altérer la carte APRÈS le chargement ne prouverait rien
+        d'un moteur qui la lit AU chargement. Aucun appelant du jeu ne s'en
+        sert ; le comportement par défaut est inchangé.
+        """
+        rng = random.Random(rng_seed)
+
+        if carte_doc is None:
+            carte_doc = cls.lire_carte()
 
         raw_cells = carte_doc["cellules"]
         raw_adjacency = carte_doc["adjacence"]
