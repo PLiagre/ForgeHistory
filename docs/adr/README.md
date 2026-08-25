@@ -19,3 +19,29 @@
 | [0015](0015-capacites-hermes-sous-agents-crons-issues.md) | Les trois capacités d'Hermes : sous-agents qui lisent sans juger, crons de lecture, issues qui pointent sans instruire | accepted | 2026-08-19 |
 | [0016](0016-sim-sans-unity-hermes-pilote-et-propose.md) | `sim/` sans Unity est le produit vivant ; Hermes pilote et propose | accepted | 2026-08-20 |
 | [0017](0017-grok-juge-claude-temoin-fusion-mecanique.md) | Grok juge la PR, Claude Opus 5 témoin rare, fusion mécanique | accepted | 2026-08-23 |
+| [0018](0018-degraissage-trois-acteurs-et-carte-figee.md) | Le dégraissage — trois acteurs, carte figée, vraisemblable plutôt que véridique | accepted | 2026-08-25 |
+
+## Lecture
+
+**ADR-0018 est le point d'entrée.** Il amende ADR-0001, ADR-0002 et
+ADR-0005 à ADR-0017 : là où l'un d'eux contredit ADR-0018, c'est ADR-0018
+qui vaut.
+
+Les ADR périmés par le dégraissage — parce qu'ils décrivent un code ou une
+organisation qui n'existent plus — sont conservés comme mémoire du projet,
+mais ne sont plus à lire au démarrage :
+
+| ADR | pourquoi il ne décrit plus le dépôt |
+|---|---|
+| 0001 | les trois rôles ne sont plus trois agents ; seule la règle « qui produit ne juge pas » subsiste |
+| 0002 | le backend Générateur enfichable est supprimé |
+| 0005, 0012 | la boucle audit / contre-audit et sa machine d'états sont supprimées |
+| 0006, 0007 | le pipeline full-auto est supprimé |
+| 0008, 0009 | le backend Codex est supprimé |
+| 0010, 0011, 0013, 0014, 0015 | la chaîne à quatre acteurs est remplacée par les trois acteurs d'ADR-0018 |
+| 0016 | reste vrai sauf sur un point : Hermes écrit désormais les briefs |
+| 0017 | reste vrai sur la répartition des modèles ; la fusion mécanique automatique disparaît |
+
+Restent pleinement en vigueur : **ADR-0003** (la cellule est la clé spatiale
+unique, la province est dérivée), **ADR-0004** (l'origine du code Unity, en
+veille) et **ADR-0018**.
