@@ -19,7 +19,25 @@ Mesure explicite sans tests produit :
 ```
 
 La sortie inclut l'état git, les worktrees, l'espace disque, l'âge du tableau
-de bord et deux contrôles du jeu. Le script ne nettoie rien.
+de bord, le **déterminisme du jeu** et deux contrôles. Le script ne nettoie
+rien.
+
+Le contrôle de déterminisme rejoue `python -m sim --ticks 20 --json` et
+compare la ligne obtenue à celle de la veille, mémorisée dans
+`hermes/propositions/.veille-etat.json` (git-ignoré). Sa référence est donc
+**dérivée** — la mesure d'hier, jamais un nombre écrit à la main. Trois cas,
+un seul est une alerte :
+
+| ce qu'on voit | verdict |
+|---|---|
+| ligne identique | `stable` |
+| ligne différente, HEAD différent | `change_avec_le_code` — normal |
+| ligne différente, **HEAD inchangé** | `ROMPU` — **alerte** |
+
+Le dernier cas veut dire que le même code, avec la même graine, ne rend plus
+le même monde : le déterminisme est cassé, ou la carte figée a bougé sans
+commit. C'est l'un des trois invariants du dépôt, et rien ne le surveillait
+entre deux lots.
 
 La surveillance du cache de tuiles d'altitude a été retirée : elle ne pouvait
 produire aucune alerte quel que soit l'état du cache, et faisait tomber la

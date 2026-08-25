@@ -35,6 +35,12 @@ from typing import Callable, Iterable, Mapping, Sequence
 
 
 DEFAULT_REPORT = Path("hermes/propositions/DERNIERE-VEILLE.md")
+# Mémoire d'un jour à l'autre : la ligne du jeu et le HEAD qui l'a produite.
+# Git-ignoré comme le rapport ; ce n'est pas un artefact du dépôt.
+ETAT_PRECEDENT = Path("hermes/propositions/.veille-etat.json")
+# Assez de ticks pour que les cinq maillons aient joué ; assez peu pour que
+# le contrôle coûte une fraction de seconde.
+TICKS_DETERMINISME = 20
 MIN_FREE_BYTES = 5 * 1024**3
 _DASHBOARD_TIMESTAMP_RE = re.compile(
     r"Générée le (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC"
@@ -117,6 +123,84 @@ def parse_worktrees(porcelain: str) -> list[dict[str, object]]:
     return records
 
 
+def determinisme_metric(
+    repo: Path,
+    *,
+    head: str,
+    runner: Callable[..., dict[str, object]],
+) -> dict[str, object]:
+    """
+    Le jeu rend-il toujours la même ligne pour la même graine ?
+
+    La référence est DÉRIVÉE : c'est la ligne mesurée hier, pas un nombre
+    écrit à la main (règle 2). Trois cas, et un seul est une alerte :
+
+      * ligne identique                      -> rien à dire ;
+      * ligne différente, HEAD différent     -> normal, du code a été fusionné ;
+      * ligne différente, HEAD INCHANGÉ      -> le déterminisme est cassé, ou
+                                                la carte a bougé sans commit.
+
+    Le déterminisme est l'un des trois invariants que le dépôt protège, et
+    rien ne le surveillait entre deux lots.
+    """
+    resultat = runner(
+        [sys.executable, "-m", "sim", "--ticks", str(TICKS_DETERMINISME), "--json"],
+        cwd=repo,
+        timeout=180,
+    )
+    if int(resultat.get("code", 1)) != 0:
+        return {"etat": "injouable", "ligne": None, "head": head,
+                "code": resultat.get("code")}
+
+    ligne = str(resultat.get("stdout") or "").strip()
+    precedent = _lire_etat_precedent(repo)
+    ancienne = precedent.get("ligne")
+    ancien_head = precedent.get("head")
+
+    if ancienne is None:
+        etat = "premiere_mesure"
+    elif ligne == ancienne:
+        etat = "stable"
+    elif ancien_head != head:
+        etat = "change_avec_le_code"
+    else:
+        etat = "ROMPU"
+
+    return {
+        "etat": etat,
+        "ligne": ligne,
+        "head": head,
+        "ligne_precedente": ancienne,
+        "head_precedent": ancien_head,
+        "ticks": TICKS_DETERMINISME,
+    }
+
+
+def _lire_etat_precedent(repo: Path) -> dict[str, object]:
+    chemin = repo / ETAT_PRECEDENT
+    try:
+        return json.loads(chemin.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _ecrire_etat(repo: Path, determinisme: Mapping[str, object]) -> None:
+    """Mémorise la ligne du jour, de façon atomique, sans jamais committer."""
+    if determinisme.get("ligne") is None:
+        return
+    chemin = (repo / ETAT_PRECEDENT).resolve()
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    temporaire = chemin.with_name(f".{chemin.name}.{os.getpid()}.tmp")
+    temporaire.write_text(
+        json.dumps(
+            {"ligne": determinisme["ligne"], "head": determinisme["head"]},
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    os.replace(temporaire, chemin)
+
+
 def disk_metric(repo: Path) -> dict[str, object]:
     usage = shutil.disk_usage(repo)
     free_percent = 100.0 if usage.total == 0 else usage.free * 100.0 / usage.total
@@ -180,6 +264,9 @@ def collect_report(
     }
     disk = disk_metric(repo_path)
     dashboard = dashboard_metric(repo_path)
+    determinisme = determinisme_metric(
+        repo_path, head=str(git["head"]), runner=runner
+    ) if run_checks else {"etat": "non_mesure", "ligne": None, "head": git["head"]}
 
     checks: list[dict[str, object]] = []
     if run_checks:
@@ -212,11 +299,22 @@ def collect_report(
         )
     if any(bool(worktree.get("prunable")) for worktree in worktrees):
         alerts.append("au moins un worktree est déclaré prunable par Git")
+    if determinisme.get("etat") == "ROMPU":
+        alerts.append(
+            "DÉTERMINISME ROMPU : même graine, même HEAD "
+            f"({str(determinisme.get('head'))[:12]}), ligne différente d'hier. "
+            f"hier : {determinisme.get('ligne_precedente')} — "
+            f"aujourd'hui : {determinisme.get('ligne')}"
+        )
+    elif determinisme.get("etat") == "injouable":
+        alerts.append(
+            f"le jeu ne se joue plus (code {determinisme.get('code')})"
+        )
     for check in checks:
         if check["code"] != 0:
             alerts.append(f"contrôle {check['name']} en échec (code {check['code']})")
 
-    return {
+    rapport = {
         "schema_version": 1,
         "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "ok" if not alerts else "alert",
@@ -224,9 +322,12 @@ def collect_report(
         "git": git,
         "disk": disk,
         "dashboard": dashboard,
+        "determinisme": determinisme,
         "checks": checks,
         "destructive_actions": 0,
     }
+    _ecrire_etat(repo_path, determinisme)
+    return rapport
 
 
 def _gib(value: object) -> str:
@@ -271,6 +372,8 @@ def render_markdown(report: Mapping[str, object]) -> str:
         f"- worktrees : `{git['worktree_count']}`",
         f"- disque libre : `{_gib(disk['free_bytes'])}` (`{disk['free_percent']} %`)",
         f"- âge du tableau de bord : `{_age(dashboard['age_seconds'])}`",
+        f"- déterminisme du jeu : `{report['determinisme']['etat']}`"
+        f" (`--ticks {report['determinisme'].get('ticks', '?')}`)",
         "",
         "## Worktrees",
         "",

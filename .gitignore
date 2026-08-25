@@ -49,6 +49,9 @@ control-plane/*.egg-info/
 # vérité. S'il était versionné, chaque run salirait le dépôt et ForgePilot
 # refuserait d'ouvrir un worktree.
 hermes/propositions/DERNIERE-VEILLE.md
+# Mémoire de la veille d'un jour à l'autre : la ligne du jeu et le HEAD qui
+# l'a produite. Mesure locale, jamais un artefact du dépôt.
+hermes/propositions/.veille-etat.json
 
 # Sources geographiques retelechargeables (ADR-0018) — jamais versionnees.
 tools/map/sources/
