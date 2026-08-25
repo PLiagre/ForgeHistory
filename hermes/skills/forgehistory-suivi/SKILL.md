@@ -114,7 +114,7 @@ instruction d'exécution.
 travail, et c'est l'étape la moins chère du lot :
 
 ```bash
-$P brief-review harness/queue/briefs/<NNN-slug>/brief.md --repo $R --run
+$P brief-review harness/queue/briefs/<NNN-slug>/brief.md --repo $R --risk <R1-ou-R2> --run
 ```
 
 Le relecteur cherche six défauts : plusieurs lots dans un seul, un critère
