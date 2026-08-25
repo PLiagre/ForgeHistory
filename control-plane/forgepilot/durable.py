@@ -1060,11 +1060,28 @@ def _review_current_head(
             error="Le reviewer a déclaré le lot BLOCKED.",
         )
     if plateau >= 2:
+        # ADR-0018 : Claude est le regard de dernier recours quand un lot ne
+        # converge pas. Le détecteur de non-convergence existait ; la main
+        # tendue vers lui, non — le lot s'arrêtait et attendait qu'on
+        # remarque. Le message nomme désormais la commande exacte.
+        plan_path = _artifact_path(state_path, state, "plan")
+        appel = (
+            f"forgepilot witness {plan_path} --repo <dépôt> --run"
+            if plan_path is not None
+            else "forgepilot witness <plan.json> --repo <dépôt> --run"
+        )
         return transition(
             state_path,
             state,
             "BLOCKED",
-            error="Deux itérations sans amélioration ; arrêt honnête du lot.",
+            error=(
+                f"Deux itérations sans amélioration ({len(signatures)} "
+                f"constat{'s' if len(signatures) > 1 else ''} encore "
+                "ouvert) ; arrêt honnête du lot. Une troisième "
+                "itération sur le même plan ne changerait rien : c'est le "
+                "BRIEF qu'il faut relire, pas le code. Appeler le regard de "
+                f"dernier recours (ADR-0018) : {appel}"
+            ),
         )
     feedback_path = write_feedback(
         state_path.parent,

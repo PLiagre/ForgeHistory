@@ -1154,6 +1154,27 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual(2, final["iteration"]["plateau_count"])
             self.assertEqual(3, reviews)
 
+            # ADR-0018 : Claude est le regard de dernier recours quand un lot
+            # ne converge pas. Le détecteur existait depuis toujours ; il
+            # s'arrêtait sur « arrêt honnête du lot » sans dire à personne
+            # quoi faire, et le lot attendait qu'on le remarque. Un arrêt qui
+            # ne nomme pas la sortie de secours n'est pas une passation.
+            erreur = str(final.get("error") or "")
+            print(f"message d'arret : {erreur}")
+            self.assertIn(
+                "witness",
+                erreur,
+                "L'arrêt pour non-convergence ne nomme pas le regard de "
+                f"dernier recours : {erreur!r}",
+            )
+            self.assertIn(
+                "BRIEF",
+                erreur,
+                "L'arrêt ne dit pas que c'est le brief qu'il faut relire, "
+                "pas le code : une quatrième tentative sur le même plan ne "
+                f"changerait rien. Message : {erreur!r}",
+            )
+
     def test_iterate_run_refuses_missing_feedback(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
