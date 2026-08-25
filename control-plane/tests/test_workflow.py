@@ -144,6 +144,90 @@ class WorkflowTests(unittest.TestCase):
         for arg in invocation.argv:
             self.assertNotIn(marker, arg)
 
+    def test_executor_prompt_does_not_grow_with_the_plan(self):
+        """
+        Le plan et le feedback arrivent à l'exécutant par RÉFÉRENCE, jamais
+        recopiés dans la ligne de commande.
+
+        Cursor n'accepte le prompt que par `-p`, donc en argv. Windows borne
+        la ligne complète à 32 767 unités UTF-16, d'où la marge portable de
+        30 000. Tant que le plan était recopié dans le prompt, la taille du
+        lot décidait de sa faisabilité : mesuré, un plan de 39 ko refusait
+        de démarrer, et un feedback de revue à 80 constats tuait l'itération.
+
+        Le planificateur et le relecteur passaient déjà par une référence.
+        L'exécutant est le seul qui ne l'avait pas.
+
+        Ce test rougit dès qu'un corps redevient inline : la ligne de
+        commande cesse alors d'être plate en fonction de la taille du plan.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            worktree = Path(tmp)
+            (worktree / ".git").mkdir()
+
+            def plan_de(n_criteres: int) -> Path:
+                chemin = worktree / "plan.json"
+                chemin.write_text(
+                    json.dumps(
+                        {
+                            "task": "mesure de la taille de commande",
+                            "acceptance_criteria": [
+                                f"critere {i} : la propriete P{i} reste vraie"
+                                for i in range(n_criteres)
+                            ],
+                            "files_allowed_to_change": ["sim/engine.py"],
+                        },
+                        ensure_ascii=False,
+                    ),
+                    encoding="utf-8",
+                )
+                return chemin
+
+            def unites(invocation) -> int:
+                ligne = subprocess.list2cmdline(list(invocation.argv))
+                return len(ligne.encode("utf-16-le")) // 2 + 1
+
+            petit = unites(executor_invocation(SETTINGS, worktree, plan_de(5)))
+            gros = unites(executor_invocation(SETTINGS, worktree, plan_de(2000)))
+
+            plan = plan_de(5)
+            feedback = worktree / "feedback.json"
+            feedback.write_text(
+                json.dumps(
+                    {
+                        "verdict": "FAIL",
+                        "findings": [
+                            {
+                                "id": f"F{i:03d}",
+                                "path": "sim/engine.py",
+                                "severity": "P1",
+                                "issue": "constante lue par valeur",
+                                "evidence": "sim/engine.py:48",
+                            }
+                            for i in range(500)
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            avec_feedback = unites(
+                executor_invocation(SETTINGS, worktree, plan, feedback=feedback)
+            )
+
+            print(f"plan 5 criteres      : {petit} unites")
+            print(f"plan 2000 criteres   : {gros} unites")
+            print(f"feedback 500 constats: {avec_feedback} unites")
+
+            # La ligne de commande ne bouge pas avec la taille des corps.
+            self.assertEqual(
+                petit,
+                gros,
+                "La taille du plan change la ligne de commande : il est encore "
+                "recopié dans le prompt au lieu d'être passé par référence.",
+            )
+            self.assertLess(avec_feedback, 4000, "Le feedback est encore inline.")
+
     def test_iterate_without_worktree_refuses_naming_execute(self):
         """SC3 : iterate sans worktree rend 2 et nomme execute (pas SystemExit)."""
         with tempfile.TemporaryDirectory() as tmp:

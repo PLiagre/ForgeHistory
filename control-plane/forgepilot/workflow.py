@@ -389,6 +389,32 @@ def witness_invocation(
     )
 
 
+def _stage_reference(worktree: Path, source: Path, nom: str) -> str:
+    """
+    Dépose une copie du corps sous `.forgepilot/` DANS le worktree et rend son
+    chemin relatif, pour que le prompt le cite au lieu de le recopier.
+
+    Pourquoi dans le worktree, et pas un `--add-dir` sur le dossier du run
+    comme le fait le relecteur : le relecteur est en lecture seule (`ask`),
+    l'exécutant tourne avec `--force`. Lui ouvrir le dossier du run lui
+    donnerait accès à `state.json`. Ici il ne voit qu'une copie.
+
+    Pourquoi `.forgepilot/` : le chemin est git-ignoré, donc invisible à
+    `working_tree_paths()`. Le contrôle de périmètre `files_allowed_to_change`
+    n'a rien à voir passer, et rien n'est jamais indexé ni commité.
+    """
+    if not source.is_file():
+        raise PilotError(f"{nom.capitalize()} introuvable : {source}")
+    corps = source.read_text(encoding="utf-8").strip()
+    if not corps:
+        raise PilotError(f"Le {nom} est vide.")
+    dossier = worktree / ".forgepilot"
+    dossier.mkdir(parents=True, exist_ok=True)
+    cible = dossier / f"{nom}.json"
+    cible.write_text(corps, encoding="utf-8")
+    return cible.relative_to(worktree).as_posix()
+
+
 def executor_invocation(
     settings: Settings,
     worktree: Path,
@@ -403,16 +429,34 @@ def executor_invocation(
     _assert_policy_backend(settings, risk, "executor", "cursor")
     if effort:
         raise PilotError(CURSOR_EFFORT_REFUSED)
-    plan_body = _task_text(plan)
+    # Le plan et le feedback arrivent par RÉFÉRENCE, jamais recopiés dans le
+    # prompt — donc jamais dans argv. Cursor n'accepte le prompt que par `-p`,
+    # et Windows borne la ligne complète à 32 767 unités UTF-16 : tant que les
+    # corps étaient inline, la taille du lot décidait de sa faisabilité.
+    # Le planificateur et le relecteur passaient déjà par une référence ;
+    # l'exécutant était le seul à ne pas l'avoir.
+    plan_reference = _stage_reference(worktree, plan, "plan")
     if feedback is not None:
-        feedback_body = _task_text(feedback)
+        feedback_reference = _stage_reference(worktree, feedback, "feedback")
         prompt = (
             _read_prompt("iterator.md")
-            .replace("{{PLAN}}", plan_body)
-            .replace("{{FEEDBACK}}", feedback_body)
+            .replace(
+                "{{PLAN}}",
+                f"Lis intégralement `{plan_reference}` dans ton worktree. "
+                "Ce fichier est l'unique plan autoritaire.",
+            )
+            .replace(
+                "{{FEEDBACK}}",
+                f"Lis intégralement `{feedback_reference}` dans ton worktree. "
+                "Ce fichier est l'unique feedback de la revue indépendante.",
+            )
         )
     else:
-        prompt = _read_prompt("executor.md").replace("{{PLAN}}", plan_body)
+        prompt = _read_prompt("executor.md").replace(
+            "{{PLAN}}",
+            f"Lis intégralement `{plan_reference}` dans ton worktree. "
+            "Ce fichier est l'unique plan autoritaire.",
+        )
     resolved = resolve_role(settings, "executor", model=model, effort=None, risk=risk)
     argv = [
         settings.cursor_binary,
