@@ -275,6 +275,78 @@ def plan_invocation(
     )
 
 
+def brief_review_invocation(
+    settings: Settings,
+    repo: Path,
+    brief: Path,
+    *,
+    model: str | None = None,
+    effort: str | None = None,
+    risk: str | None = None,
+) -> Invocation:
+    """
+    Fait relire le BRIEF avant qu'un exécutant démarre.
+
+    Le relecteur de PR arrive après que l'exécutant a travaillé — jusqu'à
+    deux heures au profil R2. Un brief qui contient deux lots, un critère
+    invérifiable ou une demande de modifier un test existant coûte alors un
+    aller-retour complet. Relu d'abord, il coûte le budget du relecteur.
+
+    Même backend et même effort que le relecteur de PR : c'est le même
+    travail de lecture adverse, sur un objet plus petit. Le brief est passé
+    par RÉFÉRENCE, jamais recopié dans la ligne de commande.
+
+    Ce n'est pas un jugement de lot : personne n'a encore produit quoi que ce
+    soit. La règle « celui qui produit ne prononce pas la recevabilité de son
+    propre travail » est respectée — Hermes écrit le brief, un autre le lit.
+    """
+    backend = _role_backend(settings, risk, "reviewer")
+    if backend == "none":
+        raise PilotError(
+            "Aucun relecteur n'est configuré pour ce risque : un lot R0 ne "
+            "mobilise aucun agent, la relecture de brief n'a pas lieu d'être."
+        )
+    resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
+
+    if backend == "cursor":
+        try:
+            reference = brief.resolve().relative_to(repo.resolve()).as_posix()
+        except ValueError as exc:
+            raise PilotError(
+                "Le brief doit vivre dans le dépôt pour être lu par chemin."
+            ) from exc
+        corps = (
+            f"Lis intégralement `{reference}` dans le dépôt. Ce fichier est "
+            "l'unique brief à relire ; ne le résume pas avant de juger."
+        )
+        prompt = _read_prompt("brief-reviewer.md").replace("{{BRIEF}}", corps)
+        cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
+        argv = _cursor_read_argv(settings, repo, prompt, mode="ask", model=cursor_model)
+        return Invocation(
+            "brief-reviewer",
+            tuple(argv),
+            str(repo),
+            {},
+            prompt,
+            model=cursor_model or None,
+            effort=resolved.effort or None,
+            backend="cursor",
+        )
+
+    prompt = _read_prompt("brief-reviewer.md").replace("{{BRIEF}}", _task_text(brief))
+    argv = _claude_argv(settings, "reviewer", model=model, effort=effort, risk=risk)
+    return Invocation(
+        "brief-reviewer",
+        tuple(argv),
+        str(repo),
+        {},
+        prompt,
+        model=resolved.model or None,
+        effort=resolved.effort or None,
+        backend="claude",
+    )
+
+
 def review_invocation(
     settings: Settings,
     repo: Path,

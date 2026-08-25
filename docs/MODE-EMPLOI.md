@@ -32,14 +32,27 @@ qui n'a pas vu le code s'écrire.
 |---|---|---|---|---|
 | 1 | **vous** | n'importe où | dire à Hermes ce que vous voulez | rien encore |
 | 2 | Hermes | VPS | *(il rédige)* | `harness/queue/briefs/NNN-slug/brief.md` |
-| 3 | **vous** | — | **vous lisez le brief** | votre accord, ou une correction |
-| 4 | Hermes | VPS | `forgepilot doctor --repo /srv/ForgeHistory --check-auth` | « poste de pilotage sain » |
-| 5 | Hermes | VPS | `forgepilot start /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md --repo /srv/ForgeHistory --run` | un `RUN_ID`, une branche `agent/NNN-slug`, une draft PR |
-| 6 | Cursor | VPS | *(lancé par ForgePilot)* | des commits, les tests verts, une relecture |
-| 7 | Hermes | VPS | `forgepilot status latest --repo /srv/ForgeHistory` | où en est le lot |
-| 8 | Hermes | VPS | `forgepilot verdict latest --repo /srv/ForgeHistory` | le compte-rendu, passé à la porte |
-| 9 | CI | GitHub | *(automatique sur la PR)* | 5 travaux : `sim-tests`, `viewer-tests`, `harness-tests`, `control-plane-tests`, `f0-demo` |
-| 10 | **vous** | GitHub | **vous lisez le diff, puis vous fusionnez** | `master` |
+| 3 | Hermes | VPS | `forgepilot brief-review harness/queue/briefs/NNN-slug/brief.md --repo /srv/ForgeHistory --run` | un verdict sur le **brief**, avant tout code |
+| 4 | **vous** | — | **vous lisez le brief et son verdict** | votre accord, ou une correction |
+| 5 | Hermes | VPS | `forgepilot doctor --repo /srv/ForgeHistory --check-auth` | « poste de pilotage sain » |
+| 6 | Hermes | VPS | `forgepilot start /srv/ForgeHistory/harness/queue/briefs/NNN-slug/brief.md --repo /srv/ForgeHistory --run` | un `RUN_ID`, une branche `agent/NNN-slug`, une draft PR |
+| 7 | Cursor | VPS | *(lancé par ForgePilot)* | des commits, les tests verts, une relecture |
+| 8 | Hermes | VPS | `forgepilot status latest --repo /srv/ForgeHistory` | où en est le lot |
+| 9 | Hermes | VPS | `forgepilot verdict latest --repo /srv/ForgeHistory` | le compte-rendu, passé à la porte |
+| 10 | CI | GitHub | *(automatique sur la PR)* | 5 travaux : `sim-tests`, `viewer-tests`, `harness-tests`, `control-plane-tests`, `f0-demo` |
+| 11 | **vous** | GitHub | **vous lisez le diff, puis vous fusionnez** | `master` |
+
+**L'étape 3 est nouvelle, et c'est la moins chère du tableau.** Un relecteur
+lit le brief avant qu'une seule ligne soit écrite, et cherche six défauts :
+plusieurs lots dans un seul, un critère invérifiable, un compteur sans
+dénominateur dérivé, une demande de modifier un test existant, un niveau de
+fidélité absent, un périmètre d'écriture trop large. Le plus grave est le
+quatrième : ajuster un contrôle après avoir vu une mesure est une calibration
+déguisée. Sans cette étape, ces défauts se découvraient par l'échec du code,
+après jusqu'à deux heures de travail.
+
+Un lot purement documentaire (R0) n'a pas de relecteur : la commande le
+refuse en le disant, au lieu de lancer un agent pour rien.
 
 **Ce qui produit quoi, sur le disque :**
 

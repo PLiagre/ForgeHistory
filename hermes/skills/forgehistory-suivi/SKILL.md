@@ -110,7 +110,20 @@ Le classement et la montée de risque viennent exclusivement de
 aucune valeur. Le brief actif reste l'unique
 instruction d'exécution.
 
-Un brief existe déjà. Enregistrer le run durable, puis le lancer :
+**Fais d'abord relire le brief.** Il est de toi ; tu ne juges pas ton propre
+travail, et c'est l'étape la moins chère du lot :
+
+```bash
+$P brief-review harness/queue/briefs/<NNN-slug>/brief.md --repo $R --run
+```
+
+Le relecteur cherche six défauts : plusieurs lots dans un seul, un critère
+invérifiable, un compteur sans dénominateur dérivé, une demande de modifier
+un test existant, un niveau de fidélité absent, un périmètre trop large. Un
+`FAIL` se corrige dans le **brief**, jamais dans le code. Un lot R0 n'a pas
+de relecteur : la commande le refuse en le disant.
+
+Ensuite seulement, enregistrer le run durable et le lancer :
 
 ```bash
 P=.venv/bin/forgepilot

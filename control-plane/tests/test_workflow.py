@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import io
 import json
 import os
@@ -11,9 +12,11 @@ from unittest.mock import patch
 
 from forgepilot.cli import main
 from forgepilot.config import Settings
+from forgepilot.policy import load_policy
 from forgepilot.process import PilotError
 from forgepilot.workflow import (
     READ_ONLY_CLAUDE_TOOLS,
+    brief_review_invocation,
     create_worktree,
     executor_invocation,
     existing_worktree,
@@ -143,6 +146,77 @@ class WorkflowTests(unittest.TestCase):
         self.assertLess(max_arg, bound)
         for arg in invocation.argv:
             self.assertNotIn(marker, arg)
+
+    def test_brief_review_reads_only_and_never_inlines_the_brief(self):
+        """
+        La relecture de brief arrive AVANT tout code, en lecture seule, et le
+        brief est passé par référence.
+
+        Trois propriétés, chacune payée :
+
+        1. **Lecture seule.** Le relecteur ne doit rien pouvoir écrire — ni
+           `--force`, ni `--sandbox`, et le mode Cursor est `ask`. Un
+           relecteur qui peut corriger devient le producteur, et la règle
+           « celui qui produit ne juge pas » tombe.
+        2. **Par référence.** La ligne de commande ne bouge pas avec la
+           taille du brief : c'est ce qui a tué des lots quand l'exécutant
+           recopiait le plan dans `-p`.
+        3. **R0 refuse.** Un lot documentaire ne mobilise aucun agent ; y
+           faire relire un brief serait une cérémonie sans objet, et le
+           refus doit le DIRE plutôt que de lancer un agent pour rien.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / ".git").mkdir()
+            brief = repo / "brief.md"
+
+            def unites(invocation) -> int:
+                ligne = subprocess.list2cmdline(list(invocation.argv))
+                return len(ligne.encode("utf-16-le")) // 2 + 1
+
+            # Politique chargée et risque R1 : c'est le chemin Cursor, celui
+            # qui met le prompt dans argv. Sans elle le test emprunterait le
+            # chemin Claude, qui passe par stdin et ne prouverait rien.
+            settings = replace(SETTINGS, policy=load_policy())
+
+            brief.write_text("# brief court\n", encoding="utf-8")
+            court = brief_review_invocation(settings, repo, brief, risk="R1")
+            brief.write_text("# brief\n" + ("Une ligne. " * 20000), encoding="utf-8")
+            long = brief_review_invocation(settings, repo, brief, risk="R1")
+
+            self.assertEqual("cursor", long.backend, "chemin Cursor attendu")
+            self.assertIn("--mode", long.argv)
+            self.assertEqual("ask", long.argv[long.argv.index("--mode") + 1])
+
+            print(f"brief court : {unites(court)} unites")
+            print(f"brief long  : {unites(long)} unites ({brief.stat().st_size} o)")
+
+            self.assertEqual(
+                unites(court),
+                unites(long),
+                "La taille du brief change la ligne de commande : il est "
+                "recopié dans le prompt au lieu d'être cité.",
+            )
+
+            argv = " ".join(long.argv)
+            for interdit in ("--force", "--sandbox", "--write"):
+                self.assertNotIn(
+                    interdit,
+                    argv,
+                    f"Le relecteur de brief porte {interdit} : il n'est plus "
+                    "en lecture seule.",
+                )
+
+    def test_brief_review_refuses_when_no_reviewer_is_configured(self):
+        """R0 n'a pas de relecteur : le refus doit nommer la raison."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / ".git").mkdir()
+            brief = repo / "brief.md"
+            brief.write_text("# brief\n", encoding="utf-8")
+            settings = replace(SETTINGS, policy=load_policy())
+            with self.assertRaisesRegex(PilotError, "aucun agent"):
+                brief_review_invocation(settings, repo, brief, risk="R0")
 
     def test_executor_prompt_does_not_grow_with_the_plan(self):
         """
