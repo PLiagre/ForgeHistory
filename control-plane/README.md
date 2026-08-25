@@ -115,18 +115,31 @@ Les sous-commandes une par une restent disponibles pour un dépannage
 (`iterate` après une revue) :
 
 ```bash
-forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory
-forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory --run
-forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory
-forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --run
-forgepilot iterate /chemin/vers/plan.json --feedback /chemin/feedback.json --task-name fh-001 --repo /srv/ForgeHistory --run
+forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory --risk R1
+forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory --risk R1 --run
+forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --risk R1
+forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --risk R1 --run
+forgepilot iterate /chemin/vers/plan.json --feedback /chemin/feedback.json --task-name fh-001 --repo /srv/ForgeHistory --risk R1 --run
 forgepilot publish --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --title "fh-001" --plan /chemin/plan.json --run
-forgepilot review /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master --run
+forgepilot review /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master --risk R2 --run
 forgepilot witness /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master
 ```
 
+`--risk` n'est pas décoratif : c'est lui qui choisit le fournisseur, le modèle
+et les délais dans `workflow-policy.toml`. Sans lui, ces commandes refusent au
+lieu de retomber sur un défaut historique — `review` appelait Claude alors que
+la politique nomme Cursor. `plan` accepte de le dériver du brief
+(`Risque : R2`) ; le témoin (`witness`) reste nommé par `[witness]`,
+seule exemption (ADR-0017).
+
 Sans `--run`, une commande affiche son invocation normalisée et ne lance aucun
 agent. Les sorties réelles vont dans `.forgepilot/runs/`, ignoré par Git.
+Ce que ForgePilot tend à LIRE à un agent — plan, feedback, bundle de revue —
+passe par `.forge-exchange/`, un canal git-ignoré mais jamais cursor-ignoré :
+`.forgepilot/` étant filtré par `.cursorignore`, un bundle qui y restait était
+présent, lisible par le système, et hors de portée de son relecteur. Une
+réponse fournisseur refusée laisse sa trace caviardée sous
+`.forgepilot/runs/<run>/traces/`.
 Le prompt de Claude Code (`plan`, `review`) passe par stdin, car le noyau
 limite chaque argument à 128 Ko.
 

@@ -27,6 +27,13 @@ REVIEW_FIELDS = {
     "checks_observed",
     "human_decision_required",
 }
+# Une panne de transport n'est pas un jugement sur le produit. Sans ce champ,
+# un relecteur incapable de lire son bundle rendait BLOCKED, et le harnais
+# archivait un verdict produit là où il n'y avait qu'un fichier illisible
+# (lot 033). `material_unreadable` nomme la panne ; `durable.py` la rejoue au
+# lieu de la figer.
+REVIEW_OPTIONAL_FIELDS = {"blocked_reason"}
+BLOCKED_REASONS = {"material_unreadable", "product"}
 EXECUTOR_FIELDS = {"summary", "files_modified", "checks", "blockages"}
 EXECUTOR_OPTIONAL_FIELDS = {"approach_changed", "session_id"}
 _TRANSPORT_FIELDS = {"session_id"}
@@ -218,9 +225,22 @@ def validate_review(
     for key in tuple(review):
         if key in _TRANSPORT_FIELDS:
             review.pop(key)
-    _closed_object(review, REVIEW_FIELDS, context="Revue")
+    _closed_object(review, REVIEW_FIELDS, optional=REVIEW_OPTIONAL_FIELDS, context="Revue")
     if review["verdict"] not in {"PASS", "FAIL", "BLOCKED"}:
         raise PilotError(f"Verdict invalide : {review['verdict']!r}.")
+    blocked_reason: str | None = None
+    if "blocked_reason" in review:
+        blocked_reason = _nonempty_string(
+            review["blocked_reason"], context="Revue.blocked_reason"
+        )
+        if blocked_reason not in BLOCKED_REASONS:
+            raise PilotError(f"Cause de blocage invalide : {blocked_reason!r}.")
+        if review["verdict"] != "BLOCKED":
+            raise PilotError(
+                "Revue invalide : blocked_reason n'accompagne qu'un verdict BLOCKED."
+            )
+        review["blocked_reason"] = blocked_reason
+    material_unreadable = blocked_reason == "material_unreadable"
     criteria = _validate_observations(
         review["acceptance_criteria"],
         context="Revue.acceptance_criteria",
@@ -232,7 +252,10 @@ def validate_review(
         label_key="check",
     )
     expected = list(expected_criteria) if expected_criteria is not None else None
-    if expected is not None:
+    # Un relecteur qui n'a pas pu lire son bundle n'a pas pu y lire les
+    # critères du plan : le tenir à leur énumération exacte transformerait
+    # une panne signalée honnêtement en sortie invalide, donc en silence.
+    if expected is not None and not material_unreadable:
         if not all(isinstance(item, str) and item.strip() for item in expected):
             raise PilotError("Critères attendus invalides.")
         observed = [item["criterion"] for item in criteria]
@@ -277,7 +300,7 @@ def validate_review(
         raise PilotError("PASS incohérent : constat ou contrôle non PASS présent.")
     if verdict == "FAIL" and not findings and "FAIL" not in statuses:
         raise PilotError("FAIL incohérent : aucun constat ni statut FAIL.")
-    if verdict == "BLOCKED" and "BLOCKED" not in statuses:
+    if verdict == "BLOCKED" and "BLOCKED" not in statuses and not material_unreadable:
         raise PilotError("BLOCKED incohérent : aucun critère ou contrôle BLOCKED.")
     review["acceptance_criteria"] = criteria
     review["checks_observed"] = checks

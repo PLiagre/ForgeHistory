@@ -371,6 +371,10 @@ class WorkflowTests(unittest.TestCase):
                         "iter-reuse",
                         "--repo",
                         str(repo),
+                        # Une politique chargée exige un risque déclaré : sans
+                        # lui le backend viendrait d'un défaut oublié.
+                        "--risk",
+                        "R1",
                     ]
                 )
             after = sorted(p.name for p in worktrees.iterdir())
@@ -402,6 +406,8 @@ class WorkflowTests(unittest.TestCase):
                                 "iter-sandbox",
                                 "--repo",
                                 str(repo),
+                                "--risk",
+                                "R1",
                             ]
                         )
             self.assertEqual(0, code)
@@ -724,6 +730,10 @@ class WorkflowTests(unittest.TestCase):
                 str(task),
                 "--repo",
                 str(root),
+                # Le risque est déclaré pour que le refus testé ici soit bien
+                # celui de l'effort, et pas celui de la politique fermée.
+                "--risk",
+                "R1",
                 "--effort",
                 "ultra",
             ]

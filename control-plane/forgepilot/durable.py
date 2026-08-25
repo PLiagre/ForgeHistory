@@ -285,14 +285,19 @@ def _run_agent(
     *,
     risk: str,
     role: str,
+    trace_dir: Path | None = None,
 ) -> object:
     # L'événement est volontairement éphémère : l'état durable reçoit les
     # transitions et le résultat normalisé, jamais le prompt ni le flux brut.
+    # `trace_dir` est la seule exception, et elle ne sert qu'en cas d'échec :
+    # une sortie refusée y laisse sa trace caviardée, sous `traces/`, hors du
+    # canal d'échange — aucun agent ne la relit.
     return execute_invocation(
         invocation,  # type: ignore[arg-type]
         settings,
         timeout_seconds=_role_timeout(settings, risk, role),
         stream=True,
+        trace_dir=trace_dir,
     )
 
 
@@ -922,6 +927,27 @@ def _certify_if_required(
     return transition(state_path, state, "CERTIFIED", role=None)
 
 
+def _assert_review_material_was_readable(
+    review: dict[str, object],
+    bundle_path: Path,
+) -> None:
+    """Une panne de transport remonte comme erreur d'étape, pas comme verdict.
+
+    Rien n'est archivé : ni `review-output-<sha>.json`, ni le matériau de
+    revue. C'est délibéré — un fichier écrit ici serait relu tel quel à la
+    reprise, et le lot resterait bloqué sur une panne déjà réparée. Le SHA
+    candidat, lui, ne bouge pas : la revue reprend sur le même produit.
+    """
+    if review.get("blocked_reason") != "material_unreadable":
+        return
+    raise PilotError(
+        "Le relecteur n'a pas pu lire son matériel de revue "
+        f"({bundle_path.name}) ; aucun verdict produit n'a été rendu. "
+        "Vérifier le canal d'échange (`.forge-exchange/`, jamais cursor-ignoré) "
+        "puis relancer la revue sur le même SHA."
+    )
+
+
 def _review_current_head(
     settings: Settings,
     repo: Path,
@@ -978,6 +1004,7 @@ def _review_current_head(
             json.loads(output_path.read_text(encoding="utf-8")),
             expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
         )
+        _assert_review_material_was_readable(review, bundle_path)
     else:
         invocation = review_invocation(
             settings,
@@ -987,12 +1014,16 @@ def _review_current_head(
             risk=risk,
             bundle_path=bundle_path,
         )
-        result = _run_agent(invocation, settings, risk=risk, role="reviewer")
+        result = _run_agent(
+            invocation, settings, risk=risk, role="reviewer",
+            trace_dir=state_path.parent,
+        )
         review = validate_review(
             result,
             expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
             forbidden_prompt=invocation.prompt,
         )
+        _assert_review_material_was_readable(review, bundle_path)
         write_normalized_json(
             output_path,
             review,
@@ -1158,7 +1189,10 @@ def _iterate(
                 feedback=feedback,
                 resume_session=str(session) if resume_supported and session else None,
             )
-            raw_result = _run_agent(invocation, settings, risk=risk, role="executor")
+            raw_result = _run_agent(
+                invocation, settings, risk=risk, role="executor",
+                trace_dir=state_path.parent,
+            )
             result = validate_executor(
                 raw_result,
                 iteration=True,
@@ -1410,7 +1444,10 @@ def _resume_run_locked(
                 Path(str(state["task"])),
                 risk=risk,
             )
-            result = _run_agent(invocation, settings, risk=risk, role="planner")
+            result = _run_agent(
+                invocation, settings, risk=risk, role="planner",
+                trace_dir=state_path.parent,
+            )
             plan = validate_plan(result, forbidden_prompt=invocation.prompt)
             plan_path = write_normalized_json(
                 state_path.parent / "plan.json",
@@ -1462,7 +1499,10 @@ def _resume_run_locked(
                         ),
                     )
                 invocation = executor_invocation(settings, worktree, plan_path, risk=risk)  # type: ignore[arg-type]
-                raw_result = _run_agent(invocation, settings, risk=risk, role="executor")
+                raw_result = _run_agent(
+                    invocation, settings, risk=risk, role="executor",
+                    trace_dir=state_path.parent,
+                )
                 result = validate_executor(
                     raw_result,
                     forbidden_prompt=invocation.prompt,

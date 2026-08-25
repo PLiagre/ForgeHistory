@@ -30,7 +30,13 @@ from forgepilot.review import (
     render_verdict_material,
     write_feedback,
 )
-from forgepilot.state import atomic_write_json, load_state, save_state, transition
+from forgepilot.state import (
+    atomic_write_json,
+    load_state,
+    run_state_path,
+    save_state,
+    transition,
+)
 from forgepilot.workflow import Invocation, execute_invocation, executor_invocation, format_invocation
 from forgepilot.workflow import create_worktree, publish_preview
 
@@ -965,7 +971,7 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                 load_settings(), repo, task, "complete", base_ref="main", base_branch="main"
             )
 
-            def fake_agent(invocation, settings, *, risk, role):
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
                 if role == "planner":
                     return valid_plan()
                 if role == "executor":
@@ -1018,7 +1024,7 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             review_count = 0
             resumed: list[str] = []
 
-            def fake_agent(invocation, settings, *, risk, role):
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
                 nonlocal review_count
                 if role == "planner":
                     return valid_plan()
@@ -1064,6 +1070,61 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual(1, final["iteration"]["count"])
             self.assertTrue(any(proof.get("profile") == "fast" for proof in final["proofs"]))
 
+    def test_bundle_illisible_ne_fige_pas_le_lot(self):
+        """Une panne de transport se rejoue ; elle ne devient pas un verdict.
+
+        Le lot 033 a fini BLOCKED — « le reviewer a déclaré le lot BLOCKED » —
+        alors que le relecteur n'avait simplement pas pu lire son bundle. Le
+        SHA candidat ne bouge pas : l'étape doit rester reprenable, et rien
+        ne doit être archivé qui serait relu tel quel à la reprise.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            _, state = register_run(
+                load_settings(), repo, task, "illisible", base_ref="main", base_branch="main"
+            )
+
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
+                if role == "planner":
+                    return valid_plan()
+                if role == "executor":
+                    (Path(invocation.cwd) / "feature.txt").write_text(
+                        "v1\n", encoding="utf-8"
+                    )
+                    return valid_executor()
+                revue = valid_review("BLOCKED")
+                revue["blocked_reason"] = "material_unreadable"
+                return revue
+
+            patches = (
+                patch("forgepilot.durable.missing_binaries", return_value=[]),
+                patch("forgepilot.durable._run_agent", side_effect=fake_agent),
+                patch("forgepilot.durable._push_candidate_and_pr", side_effect=self._fake_publish),
+                patch(
+                    "forgepilot.durable.run_targeted_tests",
+                    return_value={"returncode": 0, "duration_seconds": 0.01},
+                ),
+                patch(
+                    "forgepilot.durable.run_test_profile",
+                    return_value={"returncode": 0, "duration_seconds": 0.01},
+                ),
+            )
+            with patches[0], patches[1], patches[2], patches[3], patches[4]:
+                with self.assertRaises(PilotError) as capture:
+                    resume_run(load_settings(), repo, str(state["run_id"]))
+                final = load_state(run_state_path(repo, str(state["run_id"])))
+                dossier = run_state_path(repo, str(state["run_id"])).parent
+
+        self.assertIn("pas pu lire son matériel", str(capture.exception))
+        self.assertEqual("ERROR", final["step"])
+        self.assertEqual("REVIEWING", final["resume_from"])
+        self.assertEqual([], sorted(dossier.glob("review-output-*.json")))
+        self.assertNotIn("review", final.get("artifacts", {}))
+
     def test_plan_paths_raise_risk_before_cursor(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -1082,7 +1143,7 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             )
             observed: list[tuple[str, str]] = []
 
-            def fake_agent(invocation, settings, *, risk, role):
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
                 observed.append((role, risk))
                 if role == "planner":
                     return valid_plan(allowed=["control-plane/feature.py"])
@@ -1120,7 +1181,7 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             )
             reviews = 0
 
-            def fake_agent(invocation, settings, *, risk, role):
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
                 nonlocal reviews
                 if role == "planner":
                     return valid_plan()
@@ -1197,6 +1258,10 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                         str(repo),
                         "--task-name",
                         "direct",
+                        # Sans risque déclaré, la politique fermée refuserait
+                        # avant d'atteindre le refus testé ici.
+                        "--risk",
+                        "R1",
                         "--run",
                     ]
                 )

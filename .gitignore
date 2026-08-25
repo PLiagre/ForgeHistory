@@ -39,6 +39,13 @@ harness/pipeline/demo/output/
 # Les décisions autoritaires restent dans la roadmap, les issues et les PR.
 .forgepilot/
 
+# Canal d'échange ForgePilot -> agent : la copie du plan, du feedback ou du
+# bundle que l'agent doit LIRE. Git-ignoré comme `.forgepilot/`, mais jamais
+# cursor-ignoré — sinon le fichier existe et reste hors de portée de celui à
+# qui on le tend. `control-plane/tests/test_exchange_channel.py` tient les
+# deux conditions ensemble.
+.forge-exchange/
+
 # Métadonnées de build régénérées par `pip install -e ./control-plane`
 # (installation locale du pilote, voir control-plane/README.md) : jamais
 # versionnées, et leur présence bloquait `forgepilot execute`, qui exige

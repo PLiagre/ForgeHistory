@@ -12,7 +12,14 @@ objet stable avec exactement `id`, `path`, `issue`, `evidence` et, si utile,
 `P1`, `P2` ou `P3` — jamais `high`, `medium` ou `low` — afin qu'une itération
 suivante puisse prouver sa résolution. Un `PASS` exige tous les statuts à
 `PASS` et aucun constat. Laisse
-`human_decision_required` à `true` et n'ajoute aucun autre champ.
+`human_decision_required` à `true`.
+
+Un seul champ facultatif existe : `blocked_reason`, et seulement avec un
+verdict `BLOCKED`. Il vaut `material_unreadable` si tu n'as pas pu LIRE le
+bundle — fichier absent, filtré, illisible — et `product` si c'est le lot
+lui-même qui est bloqué. La distinction compte : `material_unreadable` n'est
+pas un jugement sur le produit, il dit que la revue n'a pas eu lieu et qu'il
+faut réparer le transport, pas le code. N'ajoute aucun autre champ.
 
 Le bundle ci-dessous est borné et indépendant : il contient le plan, les SHA,
 les diffs des fichiers écrits à la main, les empreintes des artefacts générés

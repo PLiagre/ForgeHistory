@@ -15,6 +15,7 @@ from .config import (
     Settings,
     assert_valid_effort,
 )
+from .exchange import stage_exchange
 from .policy import GROK_EFFORTS, effective_risk
 from .process import PilotError, git, resolve_binary, run_command, run_command_stream
 from .protocol import extract_session_id, validate_plan, write_normalized_json
@@ -122,7 +123,25 @@ def resolve_role(
     return RoleSettings(model=resolved_model or "", effort=resolved_effort or "")
 
 
-def _role_backend(settings: Settings, risk: str | None, role: str) -> str:
+def _role_backend(
+    settings: Settings,
+    risk: str | None,
+    role: str,
+    *,
+    policy_exempt: bool = False,
+) -> str:
+    if settings.policy is not None and risk is None and not policy_exempt:
+        # Une politique chargée et aucun risque : le repli historique
+        # ci-dessous renvoyait « claude » en silence, et `workflow-policy.toml`
+        # ne décidait plus rien. C'est ainsi que `forgepilot review` appelait
+        # Claude alors que la politique R1 nomme Cursor — un fournisseur choisi
+        # par un défaut oublié, pas par la règle. Refuser est la seule réponse
+        # honnête : le risque se déclare (`--risk`) ou se dérive du brief.
+        raise PilotError(
+            f"Aucun risque déclaré pour le rôle {role} alors qu'une politique "
+            f"est chargée ({settings.policy.path}). Passer --risk R0|R1|R2, "
+            "ou déclarer `Risque : R…` dans le brief."
+        )
     if risk is None or settings.policy is None:
         return "cursor" if role == "executor" else "claude"
     return settings.policy.profile(risk).roles[role].backend
@@ -357,8 +376,9 @@ def review_invocation(
     effort: str | None = None,
     risk: str | None = None,
     bundle_path: Path | None = None,
+    policy_exempt: bool = False,
 ) -> Invocation:
-    backend = _role_backend(settings, risk, "reviewer")
+    backend = _role_backend(settings, risk, "reviewer", policy_exempt=policy_exempt)
     if backend == "none":
         raise PilotError("Aucun relecteur n'est configuré pour ce risque.")
     resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
@@ -366,16 +386,26 @@ def review_invocation(
     if backend == "cursor" and bundle_path is not None:
         if not bundle_path.is_file():
             raise PilotError(f"Bundle de revue introuvable : {bundle_path}")
+        # Le bundle vit à côté de `state.json`, dans le dossier du run. L'y
+        # laisser imposait un `--add-dir` sur ce dossier : le relecteur voyait
+        # alors l'état interne du lot — verdicts antérieurs, compteur
+        # d'itérations, conclusions du producteur — que le bundle exclut
+        # justement (`producer_conclusions_included: false`). Une copie dans
+        # le canal d'échange lui donne son matériel, et rien d'autre.
+        bundle_reference_path = stage_exchange(repo, bundle_path, "review-bundle")
         bundle_reference = (
-            f"Lis intégralement le bundle de revue `{bundle_path.resolve()}`. "
-            "Ce fichier est l'unique bundle autoritaire ; rends ensuite le JSON de revue fermé."
+            f"Lis intégralement le bundle de revue `{bundle_reference_path}` "
+            "dans ton espace de travail. Ce fichier est l'unique bundle "
+            "autoritaire ; rends ensuite le JSON de revue fermé. Si ce fichier "
+            "est illisible, rends `verdict` `BLOCKED` avec "
+            "`blocked_reason` `material_unreadable` : une panne de transport "
+            "n'est pas un jugement sur le produit."
         )
         prompt = _read_prompt("reviewer.md").replace("{{REVIEW_BUNDLE}}", bundle_reference)
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
         argv = _cursor_read_argv(
             settings, repo, prompt, mode="ask", model=cursor_model
         )
-        argv.extend(["--add-dir", str(bundle_path.resolve().parent)])
     else:
         if bundle_path is not None:
             bundle_body = _task_text(bundle_path)
@@ -448,6 +478,9 @@ def witness_invocation(
         effort=witness.effort,
         bundle_path=bundle_path,
         risk=None,
+        # ADR-0017 : le témoin est nommé par [witness], pas par le profil
+        # de risque. C'est la seule exemption, et elle est explicite.
+        policy_exempt=True,
     )
     return Invocation(
         "witness",
@@ -463,28 +496,20 @@ def witness_invocation(
 
 def _stage_reference(worktree: Path, source: Path, nom: str) -> str:
     """
-    Dépose une copie du corps sous `.forgepilot/` DANS le worktree et rend son
+    Dépose une copie du corps dans le canal d'échange DU worktree et rend son
     chemin relatif, pour que le prompt le cite au lieu de le recopier.
 
-    Pourquoi dans le worktree, et pas un `--add-dir` sur le dossier du run
-    comme le fait le relecteur : le relecteur est en lecture seule (`ask`),
-    l'exécutant tourne avec `--force`. Lui ouvrir le dossier du run lui
-    donnerait accès à `state.json`. Ici il ne voit qu'une copie.
+    Pourquoi dans le worktree, et pas un `--add-dir` sur le dossier du run :
+    l'exécutant tourne avec `--force`, et lui ouvrir le dossier du run lui
+    donnerait accès à `state.json`. Ici il ne voit qu'une copie. Le relecteur
+    passe désormais par la même porte, pour la même raison.
 
-    Pourquoi `.forgepilot/` : le chemin est git-ignoré, donc invisible à
-    `working_tree_paths()`. Le contrôle de périmètre `files_allowed_to_change`
-    n'a rien à voir passer, et rien n'est jamais indexé ni commité.
+    Pourquoi `.forge-exchange/` et plus `.forgepilot/` : les deux sont
+    git-ignorés, donc invisibles à `working_tree_paths()` — mais `.forgepilot/`
+    est aussi cursor-ignoré, ce qui rendait la copie illisible à celui à qui
+    on la tendait. Voir `exchange.py` et `tests/test_exchange_channel.py`.
     """
-    if not source.is_file():
-        raise PilotError(f"{nom.capitalize()} introuvable : {source}")
-    corps = source.read_text(encoding="utf-8").strip()
-    if not corps:
-        raise PilotError(f"Le {nom} est vide.")
-    dossier = worktree / ".forgepilot"
-    dossier.mkdir(parents=True, exist_ok=True)
-    cible = dossier / f"{nom}.json"
-    cible.write_text(corps, encoding="utf-8")
-    return cible.relative_to(worktree).as_posix()
+    return stage_exchange(worktree, source, nom)
 
 
 def executor_invocation(
@@ -625,6 +650,49 @@ def _stream_argv(invocation: Invocation) -> tuple[str, ...]:
     return tuple(argv)
 
 
+def persist_failure_trace(
+    trace_dir: Path,
+    role: str,
+    invocation: Invocation,
+    error: PilotError,
+) -> Path | None:
+    """Archive la sortie brute d'une invocation refusée, prompt caviardé.
+
+    Ce que le pilote tenait en main au moment de lever — `stdout_tail` côté
+    process, la réponse finale côté Cursor — partait dans le message d'erreur
+    et nulle part ailleurs. Deux revues de secours du lot 033 sont restées
+    indiagnosticables pour cette seule raison.
+
+    Le prompt est remplacé par `<prompt>` : un fournisseur peut le recopier
+    dans sa réponse, et le dépôt n'archive jamais un prompt.
+    """
+    raw = getattr(error, "raw", None)
+    if not raw:
+        return None
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    dossier = Path(trace_dir) / "traces"
+    dossier.mkdir(parents=True, exist_ok=True)
+    corps = str(raw)
+    if invocation.prompt:
+        corps = corps.replace(invocation.prompt, "<prompt>")
+    cible = dossier / f"{stamp}-{role}-raw.txt"
+    cible.write_text(corps, encoding="utf-8")
+    write_normalized_json(
+        dossier / f"{stamp}-{role}-envelope.json",
+        {
+            "role": role,
+            "backend": invocation.backend,
+            "model": invocation.model,
+            "effort": invocation.effort,
+            "error": str(error),
+            "raw_chars": len(corps),
+            "raw_path": cible.name,
+            "invocation": json.loads(format_invocation(invocation)),
+        },
+    )
+    return cible
+
+
 def execute_invocation(
     invocation: Invocation,
     settings: Settings,
@@ -633,7 +701,30 @@ def execute_invocation(
     timeout_seconds: int | None = None,
     stream: bool = False,
     on_event: Callable[[object], None] | None = None,
+    trace_dir: Path | None = None,
 ) -> object:
+    if trace_dir is not None:
+        try:
+            return execute_invocation(
+                invocation,
+                settings,
+                stdin=stdin,
+                timeout_seconds=timeout_seconds,
+                stream=stream,
+                on_event=on_event,
+            )
+        except PilotError as exc:
+            trace = persist_failure_trace(trace_dir, invocation.role, invocation, exc)
+            if trace is not None:
+                # Le message reste STABLE : `_record_step_failure` en dérive la
+                # signature qui compte les échecs identiques. Y glisser le nom
+                # horodaté de la trace rendrait chaque échec unique, et le
+                # garde-fou « trois fois la même panne » ne se déclencherait
+                # plus jamais. Le dossier suffit à retrouver le fichier.
+                raise PilotError(
+                    f"{exc} Sortie brute conservée sous {trace.parent.name}/."
+                ) from exc
+            raise
     resolve_binary(invocation.argv[0])
     runner = run_command_stream if stream else run_command
     kwargs: dict[str, object] = {
@@ -681,7 +772,10 @@ def execute_invocation(
             try:
                 payload = json.loads(candidate)
             except json.JSONDecodeError as exc:
-                raise PilotError("Cursor a réussi sans rendre le JSON métier attendu.") from exc
+                raise PilotError(
+                    "Cursor a réussi sans rendre le JSON métier attendu.",
+                    raw=candidate,
+                ) from exc
         else:
             payload = cursor_result
     if (
