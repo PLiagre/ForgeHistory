@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/no_bare_python.py\"",
+            "command": "sh -c 'if command -v py >/dev/null 2>&1; then exec py \"$1\"; else exec python3 \"$1\"; fi' _ \"$CLAUDE_PROJECT_DIR/.claude/hooks/no_bare_python.py\"",
             "timeout": 5
           }
         ],
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_git_push.py\"",
+            "command": "sh -c 'if command -v py >/dev/null 2>&1; then exec py \"$1\"; else exec python3 \"$1\"; fi' _ \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_git_push.py\"",
             "timeout": 30
           }
         ],
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_vision_edit.py\"",
+            "command": "sh -c 'if command -v py >/dev/null 2>&1; then exec py \"$1\"; else exec python3 \"$1\"; fi' _ \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_vision_edit.py\"",
             "timeout": 5
           }
         ],

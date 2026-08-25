@@ -15,6 +15,7 @@ repository fails the ordinary test run rather than waiting for someone to
 notice a missing file.
 """
 import json
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -107,4 +108,97 @@ def test_hook_commands_resolve_from_any_working_directory():
     assert not broken, (
         "hook command(s) use a working-directory-relative script path and will "
         f"break as soon as any tool runs from a subdirectory: {broken}"
+    )
+
+
+# --- Une garde dont l'interpréteur n'existe pas ne garde rien ---
+
+def _run_hook_command(command: str, payload: str) -> subprocess.CompletedProcess:
+    """Joue la commande EXACTE de settings.json, comme le ferait le harnais."""
+    return subprocess.run(
+        command.replace("$CLAUDE_PROJECT_DIR", str(REPO_ROOT)),
+        shell=True, input=payload, capture_output=True, text=True, timeout=60,
+    )
+
+
+def test_the_old_windows_only_form_is_recognised_as_broken():
+    """
+    Rouge d'abord, gardé plutôt que joué une fois.
+
+    Les trois gardes étaient câblées en `py <script>`. `py` est exigé sur la
+    machine Windows du propriétaire — c'est la règle 1, payée par un vrai
+    défaut : `python` y est un faux alias du Microsoft Store. Mais `py`
+    n'existe pas sous Linux, et le VPS, WSL2 et Cursor Cloud sont Linux.
+
+    Sur ces trois-là, les gardes ne bloquaient donc RIEN : ni l'envoi quand
+    les tests sont rouges, ni l'édition de VISION.md, ni l'appel à `python`
+    nu. Elles ne protestaient pas non plus — elles étaient simplement
+    absentes, ce qui est le pire des deux.
+
+    Ce test prouve que le détecteur réagit à la forme qui a causé la panne.
+    """
+    assert _interprete_absent("py /chemin/vers/un/hook.py")
+    assert not _interprete_absent(
+        "sh -c 'if command -v py >/dev/null 2>&1; then exec py \"$1\"; "
+        "else exec python3 \"$1\"; fi' _ \"/chemin/vers/un/hook.py\""
+    )
+
+
+def _interprete_absent(command: str) -> bool:
+    """
+    Vrai quand la commande nomme UN seul interpréteur, sans repli.
+
+    La référence est DÉRIVÉE de la commande : on ne cherche pas le mot `py`,
+    on vérifie qu'un choix à l'exécution existe. Une commande qui teste la
+    présence de l'interpréteur avant de l'appeler est portable ; une qui le
+    nomme directement ne l'est que là où il est installé.
+    """
+    return "command -v" not in command
+
+
+def test_every_hook_names_an_interpreter_that_exists_here():
+    """
+    La présence n'est pas la fonction (règle 7) : une garde câblée dont
+    l'interpréteur manque est une garde absente.
+
+    La référence est dérivée — on ne suppose pas quelle plateforme tourne,
+    on joue la commande réelle et on regarde si elle atteint le script.
+    """
+    commands = hook_commands()
+    assert commands, "settings.json ne déclare aucune garde"
+
+    non_portables = [c for c in commands if _interprete_absent(c)]
+    assert not non_portables, (
+        "garde(s) qui nomment un interpréteur sans repli : elles ne "
+        f"protègent que les machines où il est installé : {non_portables}"
+    )
+
+
+def test_the_bare_python_guard_actually_blocks_here():
+    """
+    Bout en bout, sur cette machine-ci : la commande de `settings.json`
+    doit rendre 2 (bloquer) sur `python foo.py`, et 0 sur `py foo.py`.
+
+    C'est la seule vérification qui prouve que la garde marche vraiment,
+    plutôt que d'être correctement écrite.
+    """
+    command = next(c for c in hook_commands() if "no_bare_python.py" in c)
+
+    bloque = _run_hook_command(
+        command, json.dumps({"tool_input": {"command": "python foo.py"}})
+    )
+    laisse = _run_hook_command(
+        command, json.dumps({"tool_input": {"command": "py foo.py"}})
+    )
+
+    print(f"`python foo.py` -> code {bloque.returncode} (2 attendu)")
+    print(f"`py foo.py`     -> code {laisse.returncode} (0 attendu)")
+
+    assert bloque.returncode == 2, (
+        "La garde n'a pas bloqué `python foo.py` sur cette machine. "
+        f"Code {bloque.returncode}. Sortie : {bloque.stdout}{bloque.stderr}"
+    )
+    assert laisse.returncode == 0, (
+        "La garde a bloqué `py foo.py`, qui est la forme exigée par la "
+        f"règle 1. Code {laisse.returncode}. Sortie : {laisse.stderr}"
     )
