@@ -26,6 +26,33 @@ TICK_DURATION_DAYS = 1
 # TICK_DURATION_DAYS (voir MODELE.md).
 FOOD_PRODUCTION_KG_PER_KM2_PER_TICK = 18.0 * TICK_DURATION_DAYS
 
+
+# --- Relief dans le rendement (brief 033, fidélité niveau 2) ---
+
+# Facteurs de production par classe de relief : ordres de grandeur plausibles
+# niveau 2, jamais sourcés historiquement.
+FACTEUR_RELIEF_PLAINE = 1.0
+FACTEUR_RELIEF_COLLINE = 0.80
+FACTEUR_RELIEF_MONTAGNE = 0.45
+FACTEUR_RELIEF_HAUTE_MONTAGNE = 0.15
+FACTEUR_RELIEF_MARAIS = 0.50
+
+
+def facteurs_production_par_relief() -> dict[str, float]:
+    """
+    Table des facteurs de production par classe de relief.
+
+    Relue les constantes nommées à chaque appel : un test de régime qui
+    remplace une constante en mémoire doit changer le moteur.
+    """
+    return {
+        "plaine": FACTEUR_RELIEF_PLAINE,
+        "colline": FACTEUR_RELIEF_COLLINE,
+        "montagne": FACTEUR_RELIEF_MONTAGNE,
+        "haute_montagne": FACTEUR_RELIEF_HAUTE_MONTAGNE,
+        "marais": FACTEUR_RELIEF_MARAIS,
+    }
+
 # --- Variabilité de rendement (SC2 brief 012) ---
 
 # Le rendement de chaque cellule est multiplié par un facteur uniforme

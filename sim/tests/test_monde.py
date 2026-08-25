@@ -348,3 +348,87 @@ def test_zero_mesure_n_est_pas_sentinelle():
     cell = doc["cells"][0]
     assert cell["hunger_ticks"] == 0
     assert cell["hunger_ticks"] != -1
+
+# --- brief 033 : relief dans le rendement ---
+
+
+def test_production_kg_modulée_par_le_relief():
+    """
+    SC1 — À surface et rendement identiques, chaque classe de relief de la
+    carte applique son facteur nominal via l'unique formule production_kg().
+    """
+    from sim import constants as _k
+    from sim import engine
+
+    carte = World.lire_carte()
+    par_classe: dict[str, int] = {}
+    for raw in carte["cellules"]:
+        relief = raw.get("relief")
+        if relief and relief not in par_classe:
+            par_classe[relief] = int(raw["cell_id"])
+
+    assert par_classe, "échantillon vide : aucune classe de relief mesurée"
+
+    attendus = {
+        "plaine": _k.FACTEUR_RELIEF_PLAINE,
+        "colline": _k.FACTEUR_RELIEF_COLLINE,
+        "montagne": _k.FACTEUR_RELIEF_MONTAGNE,
+        "haute_montagne": _k.FACTEUR_RELIEF_HAUTE_MONTAGNE,
+        "marais": _k.FACTEUR_RELIEF_MARAIS,
+    }
+    assert set(par_classe) == set(attendus)
+
+    world = World.charger(0)
+    surface_commune = 10.0
+    rendement = 1.0
+    productions = {}
+    for cls, cid in sorted(par_classe.items()):
+        cell = world.cells[cid]
+        cell.area_km2 = surface_commune
+        engine._carte_du_tick = world.carte
+        try:
+            productions[cls] = engine.production_kg(cell, rendement)
+        finally:
+            engine._carte_du_tick = None
+
+    ref_plaine = productions["plaine"]
+    for cls, facteur in attendus.items():
+        ratio = productions[cls] / ref_plaine
+        print(f"{cls}: production={productions[cls]} ratio={ratio} facteur={facteur}")
+        assert ratio == facteur / attendus["plaine"], (
+            f"classe {cls}: ratio {ratio} != facteur nominal {facteur}"
+        )
+
+
+def test_tick_refuse_relief_inconnu():
+    """SC2 — Le tick refuse une classe de relief absente de l'ensemble dérivé."""
+    import random
+
+    from sim.engine import ReliefInvalideError, tick
+
+    world = World.charger(0)
+    cid = next(iter(world.cells))
+    entree = dict(world.carte[cid])
+    entree["relief"] = "relief_inconnu_033"
+    world.carte[cid] = entree
+
+    with pytest.raises(ReliefInvalideError, match=f"cell_id={cid}") as exc:
+        tick(world, random.Random(0))
+    assert "relief_inconnu_033" in str(exc.value)
+
+
+def test_tick_refuse_relief_absent():
+    """SC2 — Une classe manquante dans world.carte est refusée explicitement."""
+    import random
+
+    from sim.engine import ReliefInvalideError, tick
+
+    world = World.charger(0)
+    cid = next(iter(world.cells))
+    entree = dict(world.carte[cid])
+    del entree["relief"]
+    world.carte[cid] = entree
+
+    with pytest.raises(ReliefInvalideError, match=f"cell_id={cid}") as exc:
+        tick(world, random.Random(0))
+    assert "relief=None" in str(exc.value)
