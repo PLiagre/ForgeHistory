@@ -1,9 +1,0 @@
-PREUVE : provenance du littoral corrige de 1400, empreintes calculees a l'execution et jamais imprimees.
-  concordent : artifacts/coastline_1400.json (empreinte calculee a l'execution) vs MANIFEST_g3.json inputs.coastline_1400
-  concordent : artifacts/coastline_1400.json (empreinte calculee a l'execution) vs MANIFEST_g2b.json outputs[artifacts/coastline_1400.json]
-  concordent : artifacts/coastline_1400.json (empreinte calculee a l'execution) vs MANIFEST_g4.json inputs.coastline_1400
-  concordent : MANIFEST_g3.json inputs.coastline_1400 vs MANIFEST_g4.json coastline_1400_sha_declared_by_g3
-  concordent : MANIFEST_g4.json coastline_1400_sha_equal vs la comparaison recalculee par cette garde
-  concordent : stats_g4.json coastline_1400_sha_equals_g3_input vs la comparaison recalculee par cette garde
-comparaisons_concordantes: 6 / 6
-VERT : la terre declaree par les cellules est la terre que la chaine produit, et G4 relit la meme declaration.
