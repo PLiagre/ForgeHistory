@@ -37,9 +37,12 @@ Dans cet ordre, en disant ce que tu as lu. Rien d'autre.
 3. `hermes/propositions/` — seulement les fichiers `status: OPEN`.
    Zéro fichier OPEN = rien n'attend.
 4. `ROADMAP.md` — couches et prochain pas produit unique.
-5. `HANDOFF.md` — trois sessions seulement.
-6. `.venv/bin/forgepilot doctor --repo <racine> --check-auth`
-7. `.venv/bin/python -m sim --ticks 0 --json` — la sim tourne-t-elle ?
+5. `.venv/bin/forgepilot doctor --repo <racine> --check-auth`
+6. `.venv/bin/python -m sim --ticks 0 --json` — la sim tourne-t-elle ?
+
+`HANDOFF.md` n'existe plus (ADR-0018) : l'état de la session vit dans
+`hermes/DASHBOARD.md`, régénéré, et le récit du projet dans
+`hermes/reports/`.
 
 `--snapshot-json` seulement si `ROADMAP.md` dit que le prochain pas
 est visuel.
@@ -279,17 +282,16 @@ est un **rapport à vérifier**, pas un fait.
 
 ## 8. Frontières
 
-- Au boot, n'ouvre pas `architecture/` (inbox, archive, decisions).
-  Ce dossier ne s'ouvre que sur demande explicite du propriétaire.
-- Au boot, n'ouvre pas les briefs 001–025. Un brief se lit seulement
-  quand on lance ce lot.
+- Les audits (`architecture/`) et les briefs terminés sont archivés sous
+  le tag `archive/2026-08` : `git show archive/2026-08:<chemin>`. On ne les
+  ouvre que sur demande explicite du propriétaire.
 - `hermes/requests/` : seulement `status: OPEN`. Aujourd'hui : zéro.
 - `VISION.md` seulement en cas de conflit produit avec `ROADMAP.md`.
 - Jamais `ANTHROPIC_API_KEY`. ForgePilot doit refuser si elle est définie.
-- Jamais `mode: full_auto` sans décision écrite nouvelle. ADR-0017
-  autorise `forgepilot merge` mécanique, pas le full-auto historique.
-- Jamais un brief, un verdict, du code sous `sim/`, `unity/`, `harness/`,
-  `.github/`.
+- Le pipeline full-auto n'existe plus (ADR-0018). Le rétablir demande une
+  décision écrite nouvelle, pas une réactivation.
+- **Tu écris les briefs** (ADR-0018). Tu n'écris toujours ni verdict, ni
+  code sous `sim/`, `tools/`, `harness/`, `.github/`.
 - Délégation : §7 et ADR-0015. Un seul agent (toi) écrit les fichiers
   Hermes.
 - Une issue GitHub pointe vers un brief ; elle ne le récrit pas (ADR-0015).

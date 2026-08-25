@@ -24,7 +24,7 @@ l'ADR sur la clé spatiale — voir
 
 La vision complète du moteur est dans [`VISION.md`](../VISION.md). Les
 principes de simulation (sept modes d'échec diagnostiqués) sont dans
-[`docs/rules/simulation-principles.md`](../docs/rules/simulation-principles.md).
+[`AGENTS.md`](../AGENTS.md).
 
 ---
 
@@ -33,14 +33,14 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 | Fichier | Rôle |
 |---|---|
 | `sim/__init__.py` | Paquet Python, expose `__version__` |
-| `sim/constants.py` | Constantes paramétriques nommées (voir `sim/SEEDING.md`) |
+| `sim/constants.py` | Constantes paramétriques nommées (voir `sim/MODELE.md`) |
 | `sim/model.py` | Dataclass `Cell` — entité géographique de base |
 | `sim/world.py` | `World` — chargement depuis les artefacts G3, sérialisation |
 | `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
 | `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
 | `sim/__main__.py` | `python -m sim` — lance le monde, sans Unity |
 | `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`) |
-| `sim/SEEDING.md` | Documentation de l'amorçage paramétrique |
+| `sim/MODELE.md` | Comment le monde fonctionne — tenu par Claude (ADR-0018) |
 
 ---
 
@@ -62,7 +62,7 @@ seule :
 
 Ces centres sont un proxy hérité, pas des frontières historiques : leur
 provenance et les limites de ce qu'ils prouvent sont décrites dans
-`sim/SEEDING.md`, section « brief 018 ».
+`sim/MODELE.md`, section « La province dérivée et ses centres ».
 
 Le nombre exact de cellules et d'arêtes est disponible dans `stats_g3.json`
 (`cell_count`) et se recalcule à chaque rejeu du pipeline géographique — il

@@ -18,7 +18,11 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/no_bare_python.py\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/no_bare_python.py\"",
+            "timeout": 5
+          }
         ],
         "description": "Block bare `python` invocations — fake Store stub on this machine; use `py`.",
         "id": "pre:bash:no-bare-python"
@@ -26,7 +30,11 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_git_push.py\"", "timeout": 30 }
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_git_push.py\"",
+            "timeout": 30
+          }
         ],
         "description": "Block `git push` if harness/tests/ is red.",
         "id": "pre:bash:guard-git-push"
@@ -34,20 +42,14 @@
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_vision_edit.py\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_vision_edit.py\"",
+            "timeout": 5
+          }
         ],
         "description": "Block edits to VISION.md unless FORGE_ALLOW_VISION_EDIT=1 is set.",
         "id": "pre:edit:guard-vision"
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          { "type": "command", "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/remind_handoff_stale.py\"", "timeout": 5 }
-        ],
-        "description": "Warn (never block) if HANDOFF.md looks stale vs recently changed harness/docs/.claude files.",
-        "id": "stop:remind-handoff-stale"
       }
     ]
   }

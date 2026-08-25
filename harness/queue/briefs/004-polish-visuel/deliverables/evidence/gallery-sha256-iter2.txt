@@ -1,8 +1,0 @@
-﻿# Iteration 2 SHA256 -- Success Condition 4 P1 (LAWMOD/STAB/LEG default-mode leak) proof pairs
-# generated 2026-08-01T11:21:43.6915749+02:00
-before_iter1_default_02 sha256=9C4E1DE109395265064AC6C2B524457D5E56FA8900D22021A425CE785B0DA68F path=D:\ForgeHistory\unity\game_unity\Captures\v004_after_default\02_country_selected.png
-after2_default_02 sha256=B95172C7A8D5FD96802D25A9FF81AA5875FBEC0FF5A1A352A167C7395AA6883D path=D:\ForgeHistory\unity\game_unity\Captures\v004_after2_default\02_country_selected.png
-after2_debug_02 sha256=2D9E7ADDA4572612C5B7D13F42421141C23C40B97E1F69F47E50AA0FAE5B60B6 path=D:\ForgeHistory\unity\game_unity\Captures\v004_after2_debug\02_country_selected.png
-before_iter1_07 sha256=329DF25BA6E3F109BDB0D0086697DD82D996AD239184EE834431C88151F27728 path=D:\ForgeHistory\unity\game_unity\Captures\v004_before\07_hover_debug_leak.png
-after2_default_07 sha256=313D1B6C844A809082552CFEF69CEEB22A15C588E3B1FBFC9E94A76C481264EC path=D:\ForgeHistory\unity\game_unity\Captures\v004_after2_default\07_hover_debug_leak.png
-after2_debug_07 sha256=0062D29E90043E64E4D0F5D812FB0A2D944CC5093DBF380CE54B233214318E20 path=D:\ForgeHistory\unity\game_unity\Captures\v004_after2_debug\07_hover_debug_leak.png

@@ -1,4 +1,0 @@
-{
-  "response_continuity": 0.5,
-  "continuity_justification": "v1_026 redescente: c=1 (même à w=0.25) casse V1016/17 (armée t3000). ADOPTÉ c=0.5 w=0.25: grille pop=154437 ratio=0.985 army=24057. Palier w=0.5 sous c=1 prouvé mais non livré. c=0 = escalier bit-identique."
-}

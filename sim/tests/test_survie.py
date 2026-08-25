@@ -389,7 +389,7 @@ def test_famine_tue_en_borne_de_ticks():
     SC3 — Une cellule de 5 habitants en famine totale perd au moins un
     habitant en au plus N_BOUND_MORT ticks.
 
-    Borne analytique (dérivée, documentée dans sim/SEEDING.md SC3 brief 017) :
+    Borne analytique (dérivée, documentée dans sim/MODELE.md SC3 brief 017) :
     au plafond de mortalité, `raw` augmente de
     `population × MAX_DEATH_RATE_PER_TICK` par tick, soit une mort entière en
     au plus `ceil(1 / MAX_DEATH_RATE_PER_TICK)` ticks quelle que soit la

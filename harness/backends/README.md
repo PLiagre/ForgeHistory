@@ -1,6 +1,6 @@
 # Pluggable Générateur Backends
 
-The Générateur role (see `docs/rules/harness-roles.md`) may run as the
+Le rôle d'exécution (voir `AGENTS.md`) peut tourner comme
 native Claude Code `forge-generateur` agent (default, in-session, no wrapper
 needed), or be delegated to another backend. This directory holds wrappers
 for the alternative backends.
@@ -33,7 +33,7 @@ which backend produced it.
 | Backend | Wrapper | Status |
 |---|---|---|
 | Claude Code (default) | none needed — native `forge-generateur` agent, in-session | working |
-| Cursor CLI | `run_cursor_generator.sh` | written; end-to-end run against the real `cursor-agent` binary requires the project owner's own Cursor login — see `HANDOFF.md` for whether it's actually been tested here |
+| Cursor CLI | `run_cursor_generator.sh` | written; end-to-end run against the real `cursor-agent` binary requires the project owner's own Cursor login — l'exécution de bout en bout demande le compte Cursor du propriétaire |
 | Codex CLI | `run_codex_generator.sh` | official wrapper; uses stable non-interactive `codex exec`, signs `forge-generateur-codex`, and runs the shared anti-auto-judgment preflight before writing |
 
 ## Usage

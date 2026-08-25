@@ -1,3 +1,0 @@
-.gitignore:35:game_unity/Logs/	game_unity/Logs/v1_041_tests.xml
-(no output above this line = confirmed never added in any commit, any branch)
-35:game_unity/Logs/

@@ -14,79 +14,69 @@
 
 ## Le jeu — cinq couches, dans l'ordre
 
-Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
-2026-08-23, après fusion de #126 :
+Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au 2026-08-25,
+après le dégraissage (ADR-0018) :
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
-| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **commencé** | `pipeline/geo/`, `sim/`, `viewer/` |
+| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **commencé** | `data/`, `sim/`, `viewer/` |
 | 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | non commencé | `sim/` |
 | 3 | **États** — fiscalité, lois, diplomatie, technologies, culture, religion | non commencé | `sim/` |
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
 | 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencé | `sim/` |
 
-**Couche 1 — état vrai**
+**Couche 1 — état vrai** (après le dégraissage ADR-0018, 2026-08-25)
 
-- Carte : littoral, cellules G3, mer G4, fleuves G5.
-- Relief G6 : **livré dans #126**, puis import `dem_batch` et correction Q10 fusionnés dans #130. La preuve Europe G6 a été rejouée sur le VPS avec le cache Copernicus complet (`1110/1110`) : contrôles verts et deux passes identiques. `sim/` **ne consomme toujours pas** ce relief (couche snapshot `not_consumed`) : le relief est calculé, mais ce n'est pas encore un terrain jouable.
-- Climat : déterminants physiques C1 livrés et consommables. Température et précipitations observées encore ouvertes.
-- Ressources : brief 026 écrit, arbitrage rendu, **non exécuté**.
-- `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot `v0a-1` (`--snapshot-json`).
-- `viewer/` : regard mince, preuve SVG. Pas une seconde simulation.
-- Unity : **en veille** (ADR-0016).
+- La carte est **figée** : `data/world-1400.json`, un seul fichier lu par
+  `sim/`. Elle porte 596 cellules, 1 364 arêtes d'adjacence, le relief en
+  cinq classes, les déterminants du climat et 27 gisements nommés de 1400.
+- `tools/map/` (ex-`pipeline/geo/`) est l'outil qui fabrique la carte. Il
+  est hors du chemin quotidien : on ne le ressort que pour refaire la carte.
+- `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot
+  `v0a-2`. Le tick **ne joue encore aucune des trois couches** (relief,
+  climat, gisements) : le snapshot le dit lui-même, couche par couche.
+- `viewer/` : regard mince, preuve SVG.
+- Unity : archivé sous le tag `archive/2026-08`.
 
 ## Le projet — phases F
 
 | Phase | Contenu | Statut |
 |---|---|---|
-| **F0** — Harnais | Trois rôles, porte mécanique, briefs d'outillage | **terminé** |
-| **F1** — Fondations monde | Geo : G3, G4, G5, C1, G6 livré non consommé. Restent ressources (026), climat observé, consommation honnête de G6 | **en cours** |
-| **F2** — Moteur `sim/` couche 1 | Amorçage, tick, survie, province, snapshot `v0a-1` | **en cours** — jalon E2 clos |
+| **F1** — Fondations monde | carte figée complète : littoral, cellules, adjacence, relief, climat, gisements | **terminée** |
+| **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — reste à faire jouer le relief et les gisements par le tick |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles | à venir |
 
-## Le workflow — Hermes pilote (ADR-0013, ADR-0014, ADR-0016)
+## Le workflow — trois acteurs (ADR-0018)
 
-Hermes propose, cadance, lance ForgePilot. Il n'écrit pas le code produit,
-ni un brief, ni un verdict, et il ne fusionne pas.
+> Hermes écrit un brief → Cursor l'exécute et ouvre une PR → les tests
+> passent et la porte mécanique vérifie le compte-rendu → le propriétaire
+> fusionne.
 
-Pilote multi-modèle (2026-08-21) : Grok planifie en lecture seule, Composer
-exécute, GPT-5.6 Sol XHigh relit dans une invocation neuve. Claude est un
-témoin critique différé. Le propriétaire fusionne.
+- **Hermes** (Sol 5.6, VPS) : roadmap, suivi, **écrit les briefs**, lance
+  Cursor, mesure. Ne code pas, ne fusionne pas, ne juge pas.
+- **Cursor** (Grok 4.6 pour le plan, Composer pour le code) : exécute,
+  ouvre la PR, se relit dans une invocation neuve.
+- **Claude** (à la demande) : architecte du modèle (`sim/MODELE.md`), et
+  regard de dernier recours quand un lot ne converge pas en trois
+  itérations. Hors du harnais, sans cron ni agent.
 
-Vérifications : R0 documentaire, R1 produit borné (défaut), R2 critique.
-Session : `hermes chat -s forgehistory-suivi`. Produit : `python -m sim`.
+Règle de fond conservée : celui qui produit ne prononce pas la recevabilité
+de son propre travail.
 
-Le pipeline GitHub full-auto reste en `mode: manual`. Pas d'auto-fusion.
-Cron quotidien de lecture / mesure / proposition : `hermes/crons/`.
-Runbook lots : `control-plane/README.md`. Contrat : `hermes/README.md`.
-
-Unity reste en veille. Un lot CityLab / Unity se refuse.
-
-## Grandes étapes — jalons d'audit (ADR-0012)
-
-Audit Cursor et contre-audit Claude : à la **clôture** d'une grande étape
-(`hermes/milestones/`), ou sur `workflow_dispatch`. Plus à chaque PR.
-
-| jalon | ce qu'il faut pour clore | statut |
-|---|---|---|
-| **V0 — Monde visible** | snapshot `v0a-1` + viewer mince | **première tranche livrée dans #126**. Verdicts 027/028 encore PENDING (évaluateur absent). |
-| **E1 — Fondations monde** | relief, climat, ressources, artefacts consommés par `sim/` | **en cours** — G6 livré non consommé ; C1 livré ; 026 suivant ; climat observé ouvert |
-| **E2 — Le monde vivant compte juste** | survie honnête + province dérivée | **clos** |
-| **E3 — Villes** | couche 2 | à venir |
-| **E4 — États** | couche 3 | à venir |
-| **E5 — Armées** | couche 4 | à venir |
-| **E6 — Batailles + rendu branché** | couche 5 ; Unity client mince si réveillé | à venir |
+Il ne reste que deux workflows GitHub : les tests, et le scan de sécurité.
+Il n'y a plus de pipeline full-auto, plus de bot de fusion, plus de machine
+d'états d'audit.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. **Produit (unique) :** exécuter le brief 026 — gisements 1400. C'est le
-   trou restant de la couche 1 qui peut avancer sans mentir sur G6.
-   La preuve Europe G6 est faite ; rendre G6 consommable reste un lot distinct,
-   à traiter seulement après 026. Les deux ne se lancent pas en parallèle.
-2. **Hermes :** cron VPS ; propositions seulement s'il y a un constat
-   nouveau ; zéro proposition OPEN aujourd'hui = rien n'attend.
-3. `forgepilot doctor`. Refuser tout lot Unity. Ne pas réactiver
-   `mode: full_auto` sans décision écrite nouvelle.
+1. **Produit :** faire jouer le relief par le tick — le rendement d'une
+   cellule de montagne n'est pas celui d'une plaine. C'est le premier lot
+   qui rend la carte vivante plutôt que décorative. Il demande d'abord
+   d'écrire le modèle (`sim/MODELE.md`), parce qu'il change l'équilibre de
+   survie et donc le modèle analytique qu'un test compare.
+2. **Puis :** les gisements consommés par l'économie.
+3. **Hermes :** cron quotidien de lecture et de mesure ; une proposition
+   seulement s'il y a un constat nouveau.
 
 ## Historique des révisions
 
@@ -112,3 +102,4 @@ Audit Cursor et contre-audit Claude : à la **clôture** d'une grande étape
 | 2026-08-23 | cursor-cloud (correction factuelle après fusion #126) | #126 fusionné : G6 A1/A2 livré non consommé, snapshot `v0a-1`, viewer mince, ForgePilot accéléré. V0 première tranche livrée. Prochain pas unique : brief 026. Plus de « G6 encore en PR ». |
 | 2026-08-23 | cursor-cloud (décision propriétaire — ADR-0017) | Grok 4.6 planifie et juge la PR finale ; Composer 2.5 code ; Claude Opus 5 témoin rare ; `forgepilot merge` si PASS + checks verts. Hermes principal : `openai/gpt-5.4`. |
 | 2026-08-23 | hermes (correction factuelle après #130 et preuve VPS) | cache Copernicus complet vérifié `1110/1110` ; preuve Europe G6 verte et déterministe. Le relief est calculé mais reste `not_consumed` par `sim/`. Le prochain pas unique reste le brief 026. |
+| 2026-08-25 | claude (correction factuelle, ADR-0018) | dégraissage : trois acteurs, carte figée, phases F et prochaines étapes réécrites sur l'état réel |

@@ -28,7 +28,7 @@ CARTE_PATH = _REPO_ROOT / "data" / "world-1400.json"
 
 
 def _seed_population(area_km2: float, rng: random.Random) -> int:
-    """Amorçage paramétrique de la population (voir sim/SEEDING.md)."""
+    """Amorçage paramétrique de la population (voir sim/MODELE.md)."""
     base = area_km2 * INITIAL_POPULATION_PER_KM2
     variation = rng.uniform(SEED_POPULATION_VARIATION_LOW, SEED_POPULATION_VARIATION_HIGH)
     return max(0, int(base * variation))

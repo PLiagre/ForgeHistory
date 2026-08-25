@@ -21,12 +21,16 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SETTINGS = REPO_ROOT / ".claude" / "settings.json"
 PARKED = REPO_ROOT / ".claude" / "settings.json.cursor-hook-bug-disabled"
 
-EXPECTED_HOOK_SCRIPTS = {
-    "no_bare_python.py",
-    "guard_git_push.py",
-    "guard_vision_edit.py",
-    "remind_handoff_stale.py",
-}
+HOOKS_DIR = REPO_ROOT / ".claude" / "hooks"
+
+
+def hook_scripts_on_disk() -> set[str]:
+    """
+    La liste attendue DÉRIVE du disque (règle 2 : un contrôle dérive, il
+    n'est jamais nommé d'après sa cible). Une liste écrite en dur ici
+    devenait fausse à chaque hook ajouté ou retiré.
+    """
+    return {p.name for p in HOOKS_DIR.glob("*.py")}
 
 
 def test_settings_json_is_not_parked():
@@ -43,12 +47,11 @@ def test_every_hook_script_is_still_wired():
     hard-won rule 5, applied to the wiring rather than the placement."""
     config = json.loads(SETTINGS.read_text(encoding="utf-8"))
     wired = json.dumps(config.get("hooks", {}))
-    missing = [name for name in EXPECTED_HOOK_SCRIPTS if name not in wired]
-    assert not missing, f"hook scripts present on disk but not wired in settings.json: {missing}"
+    scripts = hook_scripts_on_disk()
+    assert scripts, "aucun hook sur le disque : le dépôt est désarmé"
 
-    for name in EXPECTED_HOOK_SCRIPTS:
-        assert (REPO_ROOT / ".claude" / "hooks" / name).exists(), \
-            f"settings.json wires {name} but the script is gone"
+    missing = sorted(name for name in scripts if name not in wired)
+    assert not missing, f"hooks présents sur le disque mais non branchés dans settings.json : {missing}"
 
 
 def test_settings_json_stays_parseable():

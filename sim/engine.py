@@ -65,7 +65,7 @@ def _apply_commerce(world, total_transported: list) -> None:
     (un kg ne traverse au plus qu'une arête par tick) et l'invariance à
     l'ordre des arêtes.
 
-    Définition du besoin et du surplus (SC2 brief 013, documenté dans SEEDING.md) :
+    Définition du besoin et du surplus (SC2 brief 013, documenté dans MODELE.md) :
     - besoin d'une cellule = max(0, consommation_tick - stock_snapshot)
       (manque prévisible du tick courant)
     - surplus d'une cellule = max(0, stock_snapshot - consommation_tick)
@@ -231,7 +231,7 @@ def _update_hunger(cell: Cell, penurie_kg: float) -> None:
     tick avec un stock nul et un déficit nul : elle a mangé sa ration, elle
     n'est pas affamée. L'ancien critère testait le stock résiduel après
     consommation, ce qui confondait le garde-manger vide et la
-    sous-alimentation (voir sim/SEEDING.md, SC4 brief 017).
+    sous-alimentation (voir sim/MODELE.md, SC4 brief 017).
     Traite la sentinelle -1 comme hunger_ticks = 0.
     """
     if penurie_kg > 0.0:

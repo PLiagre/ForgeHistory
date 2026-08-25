@@ -1,7 +1,0 @@
-Commande :
-
-git check-ignore --quiet -- harness/pipeline/ci-budget-ledger.jsonl
-
-Sortie standard : aucune.
-Code de sortie capturé par PowerShell : 1.
-Interprétation : le chemin n'est pas ignoré par Git.

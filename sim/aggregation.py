@@ -17,7 +17,7 @@ Entrées lues, jamais écrites (ADR-0018 : elles vivent toutes dans `data/`) :
 - `data/province-centres-1400.json` — les centres administratifs
   (`coordinates`) et le paramètre de projection (`projection.mid_latitude`).
 
-Voir `sim/SEEDING.md`, section « brief 018 », pour la provenance des données,
+Voir `sim/MODELE.md`, section « brief 018 », pour la provenance des données,
 la projection employée, la règle de départage des égalités et la politique de
 refus de deviner.
 """

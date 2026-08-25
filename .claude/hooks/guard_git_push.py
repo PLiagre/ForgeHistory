@@ -3,7 +3,7 @@
 PreToolUse hook (Bash matcher). Blocks `git push` if the harness's own test
 suite is red.
 
-Explicitly required by the brief (see docs/rules/harness-roles.md /
+Explicitly required by the brief (voir AGENTS.md /
 project charter, section 5.5): "les hooks pour tout ce qui est mécanique et
 doit se vérifier à chaque fois ... garde avant `git push`." A mechanical,
 deterministic check -- no LLM inference, same philosophy as
