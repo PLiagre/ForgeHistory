@@ -29,7 +29,6 @@ from collections import defaultdict
 
 from sim import constants as _constantes
 from sim.constants import (
-    DEFICIT_ZERO_EPSILON,
     FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
     FOOD_PRODUCTION_KG_PER_KM2_PER_TICK,
     RNG_YIELD_HIGH,
@@ -189,6 +188,8 @@ def _apply_consumption(cell: Cell) -> float:
           d'entretien) : rien ne se téléporte (principe 3)
         - un surplus d'un nanogramme ne peut donc effacer qu'un nanogramme de
           dette, jamais 10 % d'une dette de 10 000 kg
+        - aucun seuil de coupure : la soustraction atteint 0.0 exactement
+          quand le surplus couvre, et tout résidu est une dette réelle
 
     Si stock < consommation (manque) :
         - stock = 0, le manque est ajouté à food_deficit_kg, et la pénurie
@@ -204,12 +205,12 @@ def _apply_consumption(cell: Cell) -> float:
         # quelle que soit la valeur donnée à la constante.
         ratio = min(1.0, _constantes.DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG)
         remboursement = min(prev_deficit, max(0.0, remaining) * ratio)
-        new_deficit = prev_deficit - remboursement
-        # Coupure epsilon : un déficit résiduel infime (< DEFICIT_ZERO_EPSILON)
-        # est ramené à zéro pour éviter l'accumulation de valeurs non physiques.
-        if new_deficit < DEFICIT_ZERO_EPSILON:
-            new_deficit = 0.0
-        cell.food_deficit_kg = new_deficit
+        # Le remboursement est SOUSTRAIT : quand le surplus couvre la dette,
+        # `min` rend la dette elle-même et la soustraction donne exactement
+        # 0.0. Tout résidu est donc une dette réelle, jamais un artefact de
+        # calcul flottant — et l'effacer serait faire disparaître des
+        # kilogrammes sans contrepartie (principe 3).
+        cell.food_deficit_kg = prev_deficit - remboursement
         cell.food_stock_kg = remaining - remboursement
         return 0.0
 

@@ -88,12 +88,6 @@ INITIAL_FOOD_RESERVE_TICKS = 5
 # Justification complète dans MODELE.md (SC5 brief 017).
 DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG = 1.0
 
-# Seuil de coupure du déficit alimentaire (SC4 brief 013 — N4 feedback 001).
-# Un déficit résiduel inférieur à cette valeur est ramené à zéro après récupération,
-# évitant l'accumulation indéfinie de déficits infinitésimaux non physiques.
-# Justification dans MODELE.md (SC4 brief 013 — N4 feedback 001).
-DEFICIT_ZERO_EPSILON = 1e-6
-
 # --- Modèle de survie stationnaire (SC1 brief 017) ---
 #
 # Remplace SURVIE_MARGE_DERIVEE / SEUIL_SURVIE_POPULATION_FRACTION (brief 013),

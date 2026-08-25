@@ -219,24 +219,11 @@ cell.food_deficit_kg = max(0.0, cell.food_deficit_kg * (1 - DEFICIT_RECOVERY_RAT
 `D × (1 - DEFICIT_RECOVERY_RATE_PER_TICK) < D`, donc un seul tick de surplus
 ne peut pas effacer un déficit non nul.
 
-**Seuil de coupure `DEFICIT_ZERO_EPSILON`** (N4 feedback 001, itération 2) :
-
-La récupération graduelle `D' = D × (1 - r)` multiplie le déficit par un facteur
-strictement inférieur à 1 sans jamais atteindre zéro. Une cellule ayant connu la
-famine conserverait indéfiniment un déficit infinitésimal (`1e-300` reste positif
-après un tick de surplus), rendant l'état « aucun déficit » inatteignable. Cela
-n'est pas physiquement significatif et constituerait un piège pour tout compteur
-futur de cellules en déficit.
-
-Correctif retenu : après récupération graduelle, tout déficit résiduel inférieur à
-`DEFICIT_ZERO_EPSILON = 1e-6` est ramené à zéro. Ce seuil est à la fois :
-- Négligeable physiquement (1 mg de déficit pour la population entière d'une cellule)
-- Assez grand pour nettoyer les résidus de calcul flottant (≫ `1e-15` machine)
-
-Le seuil est appliqué uniquement lors d'un tick de surplus (pas lors d'accumulation),
-et uniquement après le passage `× (1 - r)`. Le test `test_deficit_non_efface_en_1_tick`
-vérifie qu'un déficit de 10 000 kg n'est pas effacé en un tick (résiduel = 9 000 kg ≫
-epsilon).
+**Seuil de coupure `DEFICIT_ZERO_EPSILON`** — *supprimé, voir plus bas.*
+Il existait parce que la récupération d'alors était **multiplicative**
+(`D' = D × (1 − r)`), donc asymptotique : elle n'atteignait jamais zéro. La
+récupération est devenue **soustractive** au brief 017 ; le seuil a survécu à
+sa cause.
 
 ### Formule de mortalité originale (brief 012 — archivé)
 
@@ -619,8 +606,19 @@ food_stock_kg = surplus_du_tick − remboursement    # les kg quittent le stock
 
 Le ratio est borné à 1.0 dans le moteur : la réduction de la dette ne peut
 jamais dépasser le surplus physique du tick, quelle que soit la valeur donnée à
-la constante. La coupure `DEFICIT_ZERO_EPSILON` (brief 013) est conservée : un
-résidu de dette inférieur à 1 mg est ramené à zéro.
+la constante.
+
+**La coupure `DEFICIT_ZERO_EPSILON` est supprimée.** Elle n'avait plus de
+travail. Le remboursement est une **soustraction** : `dette − min(dette,
+surplus × ratio)`. Quand le surplus couvre, `min` rend la dette elle-même et
+la soustraction donne **exactement `0.0`** en IEEE 754 — il n'y a pas d'asymptote
+à nettoyer. Tout résidu est donc une dette réelle que le surplus n'a pas payée,
+et l'effacer faisait disparaître des kilogrammes sans contrepartie : la même
+faute de principe 3 que le seuil avait été écrit pour accompagner.
+
+Mesuré sur 1 000 ticks du monde réel (596 000 passages du maillon
+consommation) : 9 147 remboursements sur dette, dont 1 536 à résidu nul exact,
+7 611 à résidu réel — et **zéro** dans l'intervalle que la coupure effaçait.
 
 **Conséquence attendue et assumée** : la dette se rembourse beaucoup plus vite
 qu'avec l'ancienne formule dès qu'il y a un vrai surplus, et pas du tout quand
