@@ -401,3 +401,56 @@ def test_chaque_constante_du_moteur_change_le_monde():
         f"d'épreuve : {inertes}. Soit le moteur ne les relit pas, soit "
         "plus personne ne s'en sert."
     )
+
+
+def test_aucune_constante_terminale():
+    """
+    Mode de défaillance n° 3, énoncé complètement : une constante déclarée que
+    plus personne ne lit est une variable terminale. Elle survit à sa cause,
+    elle continue d'être documentée et justifiée, et le jour où quelqu'un la
+    modifie il ne se passe rien.
+
+    Le contrôle voisin, `test_chaque_constante_du_moteur_change_le_monde`,
+    ne peut pas voir ce cas : son dénominateur est ce que le moteur consulte,
+    donc il se rétracte avec sa cible (mode n° 6). Ici le dénominateur est
+    l'ensemble des constantes DÉCLARÉES — il ne bouge que si on en supprime
+    une, ce qui est précisément l'action que ce test réclame.
+
+    Un test compte comme lecteur : une constante lue seulement par un test qui
+    protège un invariant réel fait son travail. Ce qui est refusé, c'est la
+    constante que rien ne lit du tout.
+
+    Cas payé : `DEFICIT_ZERO_EPSILON` a survécu deux briefs à la formule
+    multiplicative qui l'avait rendue nécessaire, sans qu'aucun contrôle ne
+    le signale.
+    """
+    import sim.constants as _k
+
+    declarees = {
+        nom for nom in dir(_k)
+        if nom.isupper() and isinstance(getattr(_k, nom), (int, float))
+    }
+    assert declarees, (
+        "Aucune constante déclarée n'a été trouvée dans sim/constants.py : "
+        "un échantillon vide doit ÉCHOUER, jamais passer (règle 6)."
+    )
+
+    lues = set()
+    for fichier in sorted(_SIM_DIR.rglob("*.py")):
+        arbre = ast.parse(fichier.read_text(encoding="utf-8"), filename=str(fichier))
+        for node in ast.walk(arbre):
+            # La déclaration elle-même ne compte pas comme une lecture.
+            if fichier.name == "constants.py" and isinstance(node, ast.Assign):
+                continue
+            if isinstance(node, ast.Attribute) and not isinstance(node.ctx, ast.Store):
+                lues.add(node.attr)
+            elif isinstance(node, ast.Name) and not isinstance(node.ctx, ast.Store):
+                lues.add(node.id)
+
+    terminales = sorted(declarees - lues)
+    print(f"constantes_declarees_lues = {len(declarees) - len(terminales)} / {len(declarees)}")
+    assert not terminales, (
+        f"Constantes déclarées que personne ne lit : {terminales}. "
+        "Soit un lecteur a disparu, soit la constante a survécu à sa cause "
+        "et doit être retirée."
+    )

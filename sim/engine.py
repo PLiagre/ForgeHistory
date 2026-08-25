@@ -37,6 +37,34 @@ from sim.model import Cell
 # La règle est uniforme et vérifiée par sim/tests/test_write_coverage.py.
 
 
+def production_kg(cell: Cell, yield_factor: float) -> float:
+    """
+    Ce qu'une cellule produit en un tick pour un rendement donné.
+
+    UNE seule formule de production dans le moteur, deux lecteurs : le tick,
+    qui lui passe un rendement tiré au sort, et `production_moyenne_kg_par_tick`,
+    qui lui passe le rendement moyen. Le plafond physique de survie s'en déduit,
+    donc il ne peut pas diverger de ce que le moteur produit vraiment.
+
+    C'est ici qu'entrera le relief : une cellule de montagne ne produit pas
+    comme une plaine. La modification se fait à cet endroit et à cet endroit
+    seul ; le plafond suit tout seul.
+    """
+    return cell.area_km2 * _constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * yield_factor
+
+
+def production_moyenne_kg_par_tick(world) -> float:
+    """
+    Nourriture que le monde produit en un tick au rendement moyen.
+
+    Sert de référence DÉRIVÉE au plafond physique de survie : une population
+    ne peut pas manger durablement plus que ce que son monde produit
+    (`sim/tests/test_survie.py`). Elle n'est jamais lue par le tick.
+    """
+    rendement_moyen = _constantes.rendement_moyen_courant()
+    return sum(production_kg(cell, rendement_moyen) for cell in world.cells.values())
+
+
 def _apply_production(cell: Cell, rng: random.Random) -> None:
     """
     Maillon 1 — Production.
@@ -45,7 +73,7 @@ def _apply_production(cell: Cell, rng: random.Random) -> None:
     Traite la sentinelle -1 comme un stock initial nul.
     """
     yield_factor = rng.uniform(_constantes.RNG_YIELD_LOW, _constantes.RNG_YIELD_HIGH)
-    food_produced = cell.area_km2 * _constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * yield_factor
+    food_produced = production_kg(cell, yield_factor)
     current = cell.food_stock_kg if cell.food_stock_kg >= 0 else 0.0
     cell.food_stock_kg = current + food_produced
 
