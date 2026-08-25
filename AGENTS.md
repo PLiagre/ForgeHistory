@@ -108,6 +108,12 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
 
 1. `py`, jamais `python` (sur la machine Windows du propriétaire, `python`
    est un faux alias du Microsoft Store). Sur Linux : `python3`.
+   *2026-08-25 : il n'y a plus de clone Windows de ce dépôt — le VPS, WSL2 et
+   Cursor Cloud sont Linux, et Unity, seule chose qui exigeait Windows natif,
+   est archivée. La moitié Windows de cette règle est donc devenue
+   historique. Elle reste écrite : elle a coûté un vrai défaut, et le jour où
+   un clone Windows réapparaît elle redevient vraie sans avoir à être
+   redécouverte.*
 2. Un contrôle **dérive** sa référence ; il n'est jamais nommé d'après sa
    cible. (Six récurrences historiques.)
 3. Un compteur dérive aussi.
