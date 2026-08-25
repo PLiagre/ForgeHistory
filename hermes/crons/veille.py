@@ -5,6 +5,17 @@ Le script ne supprime, ne committe et ne pousse rien. Il mesure l'état local,
 écrit le rapport git-ignoré ``DERNIERE-VEILLE.md`` de façon atomique, puis ne
 produit aucune sortie si les contrôles sont verts. Une alerte sort sur stderr
 avec un code non nul afin que le contrôleur puisse la transmettre à Discord.
+
+Ce que la veille regarde, et rien d'autre : l'état git, les worktrees, la
+place disque, l'âge du tableau de bord, et deux contrôles du jeu (la fumée et
+les tests de ``sim/``). Chacun de ces cinq points peut produire une alerte.
+
+Ce qu'elle ne regarde plus : le cache de tuiles d'altitude de ``tools/map/``.
+Cette section mesurait un répertoire de téléchargement, ne produisait AUCUNE
+alerte quel que soit son état, et faisait tomber la veille du jeu quand
+``tools/map/sources.lock`` manquait. ``tools/map/`` est hors du chemin
+quotidien depuis ADR-0018 : sa surveillance quotidienne protégeait un
+processus, pas le jeu.
 """
 
 from __future__ import annotations
@@ -23,10 +34,7 @@ from pathlib import Path
 from typing import Callable, Iterable, Mapping, Sequence
 
 
-CACHE_ENV = "FORGEHISTORY_DEM_CACHE_ROOT"
 DEFAULT_REPORT = Path("hermes/propositions/DERNIERE-VEILLE.md")
-HISTORICAL_CACHE = Path("tools/map/sources/dem_cache")
-SOURCE_LOCK = Path("tools/map/sources.lock")
 MIN_FREE_BYTES = 5 * 1024**3
 _DASHBOARD_TIMESTAMP_RE = re.compile(
     r"Générée le (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC"
@@ -109,83 +117,6 @@ def parse_worktrees(porcelain: str) -> list[dict[str, object]]:
     return records
 
 
-def _measure_tree(path: Path, *, now: float | None = None) -> dict[str, object]:
-    """Mesure taille et fraîcheur sans suivre de lien ni modifier le cache."""
-
-    if not path.exists():
-        return {
-            "exists": False,
-            "files": 0,
-            "bytes": 0,
-            "age_seconds": None,
-        }
-    clock = time.time() if now is None else now
-    files = 0
-    total = 0
-    root_mtime = path.stat(follow_symlinks=False).st_mtime
-    newest_file: float | None = None
-    stack = [path]
-    while stack:
-        directory = stack.pop()
-        try:
-            entries = list(os.scandir(directory))
-        except OSError as exc:
-            raise WatchError(f"cache illisible {directory} : {exc}") from exc
-        for entry in entries:
-            try:
-                if entry.is_symlink():
-                    continue
-                stat = entry.stat(follow_symlinks=False)
-                if entry.is_dir(follow_symlinks=False):
-                    stack.append(Path(entry.path))
-                elif entry.is_file(follow_symlinks=False):
-                    files += 1
-                    total += stat.st_size
-                    newest_file = (
-                        stat.st_mtime
-                        if newest_file is None
-                        else max(newest_file, stat.st_mtime)
-                    )
-            except OSError as exc:
-                raise WatchError(f"entrée de cache illisible {entry.path} : {exc}") from exc
-    return {
-        "exists": True,
-        "files": files,
-        "bytes": total,
-        "age_seconds": max(0, int(clock - (newest_file or root_mtime))),
-    }
-
-
-def cache_metric(
-    repo: Path,
-    environ: Mapping[str, str] | None = None,
-) -> dict[str, object]:
-    environ = os.environ if environ is None else environ
-    lock_path = repo / SOURCE_LOCK
-    try:
-        lock_digest = hashlib.sha256(lock_path.read_bytes()).hexdigest()
-    except OSError as exc:
-        raise WatchError(f"sources.lock illisible : {exc}") from exc
-
-    configured = environ.get(CACHE_ENV, "").strip()
-    if configured:
-        root = Path(configured).expanduser()
-        if not root.is_absolute():
-            raise WatchError(f"{CACHE_ENV} doit être un chemin absolu")
-        path = root / lock_digest
-        source = "shared"
-    else:
-        path = repo / HISTORICAL_CACHE
-        source = "historical"
-    metric = _measure_tree(path)
-    return {
-        "source": source,
-        "path": str(path.resolve()),
-        "source_lock_sha256": lock_digest,
-        **metric,
-    }
-
-
 def disk_metric(repo: Path) -> dict[str, object]:
     usage = shutil.disk_usage(repo)
     free_percent = 100.0 if usage.total == 0 else usage.free * 100.0 / usage.total
@@ -229,7 +160,6 @@ def collect_report(
     repo: Path | str,
     *,
     run_checks: bool = True,
-    environ: Mapping[str, str] | None = None,
     runner: Callable[..., dict[str, object]] = _run,
 ) -> dict[str, object]:
     repo_path = Path(repo).resolve()
@@ -249,7 +179,6 @@ def collect_report(
         "worktrees": worktrees,
     }
     disk = disk_metric(repo_path)
-    cache = cache_metric(repo_path, environ)
     dashboard = dashboard_metric(repo_path)
 
     checks: list[dict[str, object]] = []
@@ -295,7 +224,6 @@ def collect_report(
         "git": git,
         "disk": disk,
         "dashboard": dashboard,
-        "dem_cache": cache,
         "checks": checks,
         "destructive_actions": 0,
     }
@@ -319,12 +247,10 @@ def _age(value: object) -> str:
 def render_markdown(report: Mapping[str, object]) -> str:
     git = report["git"]
     disk = report["disk"]
-    cache = report["dem_cache"]
     dashboard = report["dashboard"]
     assert (
         isinstance(git, dict)
         and isinstance(disk, dict)
-        and isinstance(cache, dict)
         and isinstance(dashboard, dict)
     )
     lines = [
@@ -345,14 +271,6 @@ def render_markdown(report: Mapping[str, object]) -> str:
         f"- worktrees : `{git['worktree_count']}`",
         f"- disque libre : `{_gib(disk['free_bytes'])}` (`{disk['free_percent']} %`)",
         f"- âge du tableau de bord : `{_age(dashboard['age_seconds'])}`",
-        "",
-        "## Cache DEM",
-        "",
-        f"- mode : `{cache['source']}`",
-        f"- chemin effectif : `{cache['path']}`",
-        f"- empreinte de sources : `{cache['source_lock_sha256']}`",
-        f"- présent / fichiers / taille : `{cache['exists']}` / `{cache['files']}` / `{_gib(cache['bytes'])}`",
-        f"- âge du fichier le plus récent : `{_age(cache['age_seconds'])}`",
         "",
         "## Worktrees",
         "",

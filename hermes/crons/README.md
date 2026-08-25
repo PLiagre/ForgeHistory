@@ -18,10 +18,13 @@ Mesure explicite sans tests produit :
 .venv/bin/python hermes/crons/veille.py --repo . --metrics-only --json
 ```
 
-La sortie inclut l'espace disque, les worktrees et l'âge du cache DEM. Si
-`FORGEHISTORY_DEM_CACHE_ROOT` est défini, le chemin mesuré reprend la clé issue
-de `pipeline/geo/sources.lock`; sinon le repli historique est observé. Le
-script ne nettoie rien.
+La sortie inclut l'état git, les worktrees, l'espace disque, l'âge du tableau
+de bord et deux contrôles du jeu. Le script ne nettoie rien.
+
+La surveillance du cache de tuiles d'altitude a été retirée : elle ne pouvait
+produire aucune alerte quel que soit l'état du cache, et faisait tomber la
+veille quand `tools/map/sources.lock` manquait. `tools/map/` est hors du
+chemin quotidien depuis ADR-0018.
 
 ## Installation VPS
 
