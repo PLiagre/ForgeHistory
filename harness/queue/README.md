@@ -14,5 +14,8 @@ git show archive/2026-08:harness/queue/briefs/011-sim-monde-vivant-amorcage/brie
 git checkout archive/2026-08 -- harness/queue/briefs/   # les récupérer tous
 ```
 
+Si `archive/2026-08` est introuvable, c'est que le tag n'a pas encore été
+poussé : voir « Les archives » dans `AGENTS.md`.
+
 Les deux briefs de démonstration restent en place, dans `harness/demo/` :
 un faux compte-rendu que la porte refuse, un honnête qu'elle accepte.

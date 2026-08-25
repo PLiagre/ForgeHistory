@@ -151,6 +151,23 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
 | `control-plane/` | ForgePilot — l'outil qui lance un lot chez Cursor. |
 | `docs/adr/` | une décision structurelle = un ADR daté. **ADR-0018 est le point d'entrée.** |
 
+## Les archives
+
+`unity/`, `architecture/` et les 33 briefs terminés sont sortis de l'arbre
+de travail au dégraissage (ADR-0018). Ils restent dans l'historique git,
+au commit du lot D, pointé par le tag **`archive/2026-08`**.
+
+```bash
+git show archive/2026-08:unity/<chemin>        # relire un fichier
+git checkout archive/2026-08 -- unity/         # récupérer tout un dossier
+```
+
+> **Le tag n'a pas pu être poussé depuis la session** (le jeton pousse des
+> branches, pas des tags). À faire une fois, depuis un clone local :
+> `git fetch origin && git tag -a archive/2026-08 <sha du lot D> && git push origin archive/2026-08`.
+> Tant que ce n'est pas fait, le tag n'existe qu'en local et la récupération
+> passe par le commit du lot D dans l'historique de la branche.
+
 ## Les commandes
 
 ```bash
