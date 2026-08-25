@@ -641,6 +641,8 @@ def run_test_profile(
         suites.append(("sim-tests", [sys.executable, "-m", "pytest", "sim/tests", "-q"], worktree))
     if (worktree / "harness" / "tests").is_dir():
         suites.append(("harness-tests", [sys.executable, "-m", "pytest", "harness/tests", "-q"], worktree))
+    if (worktree / "viewer" / "tests").is_dir():
+        suites.append(("viewer-tests", [sys.executable, "-m", "pytest", "viewer/tests", "-q"], worktree))
     control_plane = worktree / "control-plane"
     if (control_plane / "tests").is_dir():
         suites.append(
