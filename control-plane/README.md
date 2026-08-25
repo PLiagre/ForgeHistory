@@ -61,14 +61,13 @@ Claude Code doit être authentifié avec le compte Claude.ai Pro. Ne pas utilise
 chemins basculent vers la facturation API. ForgePilot utilise `claude -p` sans
 mode `--bare`, car le mode bare ignore l'authentification d'abonnement.
 
-## Gate Unity Windows
+## Unity
 
-Cette PR n'installe rien dans VictoriaCityLab. Avant le premier lot qui touche
-ce dépôt, une PR dédiée doit implémenter le contrat
-[`docs/operations/unity-windows-worker.md`](../docs/operations/unity-windows-worker.md).
-Le worker récupère le commit exact et Git LFS, exécute Unity 6000.0.43f1 en
-batchmode, puis publie ses preuves. Tant que le worker est absent, hors ligne
-ou en échec, une modification CityLab reste bloquée.
+Unity est archivé (ADR-0018) : `unity/` est sorti de l'arbre de travail, au
+commit `da1596d`. ForgePilot ne pilote rien du côté Unity, et le contrat de
+worker Windows qui était décrit ici a été supprimé avec le reste. Rouvrir ce
+sujet demande une décision, donc un ADR — pas la relecture d'un document
+disparu.
 
 VictoriaCityLab étant public, le runner personnel ne répond jamais directement
 à `pull_request` et n'exécute jamais le code d'un fork. Pendant le pilote, seule

@@ -10,17 +10,17 @@ Il tourne **sans Unity** :
 ```
 
 `--snapshot-json` écrit une photographie cellulaire déterministe (schéma
-`v0a-1`) : géométrie G3, état simulé, province dérivée, déterminants C1.
-Ce n'est pas une seconde simulation. Le relief G6 n'y est pas consommé.
+`SNAPSHOT_SCHEMA_VERSION`) : géométrie, état simulé, province dérivée,
+climat. Ce n'est pas une seconde simulation. Le snapshot déclare lui-même,
+couche par couche, ce que le moteur consomme et ce qu'il ne consomme pas.
 
-Ce répertoire était un stub vide jusqu'au brief 011
-(`harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md`), qui constitue
-la première autorisation d'écrire du code de simulation. Le brief 012
-(`harness/queue/briefs/012-monde-vivant-commerce-inter-cellules/brief.md`)
-a ajouté la base de temps unique, le déficit alimentaire persisté et le
-commerce inter-cellules physique. Cette autorisation était conditionnée à
-l'ADR sur la clé spatiale — voir
-`docs/adr/0003-single-spatial-primary-key.md`.
+Le nom du schéma n'est pas recopié ici : il est dans `sim/constants.py`, et
+un document qui porte une version morte piège le brief suivant (règle 12).
+
+La clé spatiale unique qui fonde tout ceci est décidée par
+`docs/adr/0003-single-spatial-primary-key.md`. Les briefs qui ont autorisé
+l'écriture de ce code sont archivés au commit `da1596d` (voir AGENTS.md,
+§ « Les archives »).
 
 La vision complète du moteur est dans [`VISION.md`](../VISION.md). Les
 principes de simulation (sept modes d'échec diagnostiqués) sont dans
@@ -64,9 +64,9 @@ Ces centres sont un proxy hérité, pas des frontières historiques : leur
 provenance et les limites de ce qu'ils prouvent sont décrites dans
 `sim/MODELE.md`, section « La province dérivée et ses centres ».
 
-Le nombre exact de cellules et d'arêtes est disponible dans `stats_g3.json`
-(`cell_count`) et se recalcule à chaque rejeu du pipeline géographique — il
-n'est pas recopié ici pour éviter la stale data.
+Le nombre exact de cellules et d'arêtes n'est recopié nulle part : il se lit
+dans `data/world-1400.json` et se dérive du chargement. La commande qui le
+donne est `python -m sim --ticks 0 --json`.
 
 Ces fichiers sont suivis par git et lisibles depuis un clone frais.
 

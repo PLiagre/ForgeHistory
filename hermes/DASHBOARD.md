@@ -4,7 +4,7 @@
 > main**. Régénérer avec `python hermes/dashboard.py`. Une vue
 > périmée reste périmée tant que personne ne la régénère.
 >
-> Générée le 2026-08-25 10:33 UTC.
+> Générée le 2026-08-25 14:10 UTC.
 
 ## En bref
 

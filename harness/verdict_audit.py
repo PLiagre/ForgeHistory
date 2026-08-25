@@ -6,8 +6,12 @@ Usage: py harness/verdict_audit.py <brief_dir>
 Exit:  0 ACCEPT | 1 REJECT | 2 INTERNAL ERROR (never treated as a pass)
 
 Operates on a brief directory containing brief.md, eval-rubric.md,
-verdict.md, and deliverables/manifest.json. See docs/rules/harness-roles.md
-and docs/rules/hard-won-rules.md for the rules each check enforces.
+verdict.md, and deliverables/manifest.json.
+
+Les regles que chaque controle applique vivent dans AGENTS.md, seul fichier
+de regles du depot (ADR-0018) : les douze regles payees par un vrai defaut et
+les sept modes de defaillance diagnostiques. Les anciens docs/rules/*.md ont
+ete supprimes au degraissage.
 """
 from __future__ import annotations
 

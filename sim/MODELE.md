@@ -467,7 +467,7 @@ sont parcourus. La comparaison retenue est
 `carré < meilleur` **ou** (`carré == meilleur` **et** `id < meilleur_id`). Un
 simple « le premier rencontré gagne » donnerait le même résultat dans un ordre
 de parcours et un autre résultat dans l'ordre inverse : le déterminisme serait
-espéré, pas prouvé. `sim/tests/test_determinisme_departage_purete.py` monte le
+espéré, pas prouvé. `sim/tests/test_determinisme.py` monte le
 cas d'égalité exacte et l'essaie dans les deux ordres.
 
 ### Refus de deviner (D5)

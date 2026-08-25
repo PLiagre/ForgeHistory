@@ -143,7 +143,7 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
 | chemin | quoi |
 |---|---|
 | `sim/` | **le produit vivant** — `python -m sim`. Voir `sim/README.md`. |
-| `data/` | la carte figée `world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
+| `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
 | `viewer/` | un regard mince sur un snapshot. Jamais une seconde simulation. |
 | `tools/map/` | l'outil qui fabrique la carte. Hors du chemin quotidien : ne se ressort que si on refait la carte. Voir `tools/map/BUILD.md`. |
 | `harness/` | la porte mécanique, et rien d'autre. Voir `harness/README.md`. |
@@ -154,19 +154,23 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
 ## Les archives
 
 `unity/`, `architecture/` et les 33 briefs terminés sont sortis de l'arbre
-de travail au dégraissage (ADR-0018). Ils restent dans l'historique git,
-au commit du lot D, pointé par le tag **`archive/2026-08`**.
+de travail au dégraissage (ADR-0018). Ils restent dans l'historique git, au
+commit du lot D : **`da1596d`**. C'est la référence qui marche aujourd'hui,
+depuis n'importe quel clone :
 
 ```bash
-git show archive/2026-08:unity/<chemin>        # relire un fichier
-git checkout archive/2026-08 -- unity/         # récupérer tout un dossier
+git show da1596d:unity/<chemin>          # relire un fichier
+git checkout da1596d -- unity/           # récupérer tout un dossier
+git ls-tree --name-only da1596d:unity    # voir ce qu'il y a
 ```
 
-> **Le tag n'a pas pu être poussé depuis la session** (le jeton pousse des
-> branches, pas des tags). À faire une fois, depuis un clone local :
-> `git fetch origin && git tag -a archive/2026-08 <sha du lot D> && git push origin archive/2026-08`.
-> Tant que ce n'est pas fait, le tag n'existe qu'en local et la récupération
-> passe par le commit du lot D dans l'historique de la branche.
+> **Le tag `archive/2026-08` n'existe pas sur `origin`.** Deux sessions ont
+> essayé de le pousser, les deux ont reçu un `HTTP 403` : le jeton pousse des
+> branches, pas des tags. Vérifiable : `git ls-remote --tags origin` ne le
+> montre pas. Tant que quelqu'un ne l'aura pas posé depuis un clone local
+> (`git tag -a archive/2026-08 da1596d && git push origin archive/2026-08`),
+> **utiliser le SHA ci-dessus** — les commandes en `archive/2026-08` échouent
+> avec `fatal: invalid object name`.
 
 ## Les commandes
 
@@ -174,6 +178,7 @@ git checkout archive/2026-08 -- unity/         # récupérer tout un dossier
 python -m sim                            # le produit vivant
 python -m sim --ticks 0 --json           # fumée : le monde s'amorce
 python -m pytest sim/tests/ -q           # les tests du jeu
+python -m pytest viewer/tests/ -q        # le regard mince
 python -m pytest harness/tests/ -q       # la porte mécanique
 python harness/verdict_audit.py <brief>  # la porte, sur un lot
 python tools/map/build_world.py          # refaire la carte figée

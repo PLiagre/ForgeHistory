@@ -73,7 +73,7 @@ Le propriétaire donne une autorisation permanente pour lancer directement les s
 
 Un seul lot à la fois. Critères mesurables, sinon tu t’arrêtes.
 
-- **`sim/` / `pipeline/geo/` / `viewer/` / harnais / ForgePilot** — portable, tu peux
+- **`sim/` / `tools/map/` / `viewer/` / harnais / ForgePilot** — portable, tu peux
   lancer. Le visualiseur web V0 est un client mince : il lit les snapshots
   déterministes de `sim/` et ne porte aucune logique métier.
 - **Unity / CityLab** — **refuse.** En veille jusqu’à décision contraire
@@ -90,8 +90,8 @@ l’arbitrage indiqué.
 ## 4. Faire tourner un lot (ForgePilot)
 
 Le classement et la montée de risque viennent exclusivement de
-`control-plane/workflow-policy.toml`. Le mode opératoire détaillé est
-`docs/operations/workflow-acceleration.md`; le brief actif reste l'unique
+`control-plane/workflow-policy.toml`, qui fait foi : ce fichier n'en recopie
+aucune valeur. Le brief actif reste l'unique
 instruction d'exécution.
 
 Un brief existe déjà. Enregistrer le run durable, puis le lancer :
