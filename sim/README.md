@@ -24,7 +24,7 @@ l'ADR sur la clé spatiale — voir
 
 La vision complète du moteur est dans [`VISION.md`](../VISION.md). Les
 principes de simulation (sept modes d'échec diagnostiqués) sont dans
-[`docs/rules/simulation-principles.md`](../docs/rules/simulation-principles.md).
+[`AGENTS.md`](../AGENTS.md).
 
 ---
 
@@ -33,14 +33,14 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 | Fichier | Rôle |
 |---|---|
 | `sim/__init__.py` | Paquet Python, expose `__version__` |
-| `sim/constants.py` | Constantes paramétriques nommées (voir `sim/SEEDING.md`) |
+| `sim/constants.py` | Constantes paramétriques nommées (voir `sim/MODELE.md`) |
 | `sim/model.py` | Dataclass `Cell` — entité géographique de base |
 | `sim/world.py` | `World` — chargement depuis les artefacts G3, sérialisation |
 | `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
 | `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
 | `sim/__main__.py` | `python -m sim` — lance le monde, sans Unity |
 | `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`) |
-| `sim/SEEDING.md` | Documentation de l'amorçage paramétrique |
+| `sim/MODELE.md` | Comment le monde fonctionne — tenu par Claude (ADR-0018) |
 
 ---
 
@@ -48,22 +48,21 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 
 Les artefacts G3 sont générés par le pipeline géographique :
 
-- `pipeline/geo/artifacts/cells_g3.json` — cellules (cell_id, area_km2, centroid, geometry…)
-- `pipeline/geo/artifacts/adjacency_g3.json` — arêtes d'adjacence
-- `pipeline/geo/artifacts/stats_g3.json` — statistiques (`cell_count`, etc.)
+- `data/world-1400.json` — la carte figée : cellules (cell_id, area_km2, centroid,
+  geometry, relief, climat, gisements) et adjacence, dans un seul fichier
 
 `sim/aggregation.py` lit deux sources supplémentaires, toujours en lecture
 seule :
 
-- `pipeline/geo/artifacts/cells_g3.json` — la position géographique de chaque
+- `data/world-1400.json` — la position géographique de chaque
   cellule (`centroid.lat`, `centroid.lon`, repère WGS84) ;
-- `pipeline/geo/legacy_game_data/province_coordinates.json` — les centres
+- `data/province-centres-1400.json` — les centres
   administratifs hérités du jeu (tableau `coordinates` : `id`, `name`, `lon`,
   `lat`) et le paramètre de projection `projection.mid_latitude`.
 
 Ces centres sont un proxy hérité, pas des frontières historiques : leur
 provenance et les limites de ce qu'ils prouvent sont décrites dans
-`sim/SEEDING.md`, section « brief 018 ».
+`sim/MODELE.md`, section « La province dérivée et ses centres ».
 
 Le nombre exact de cellules et d'arêtes est disponible dans `stats_g3.json`
 (`cell_count`) et se recalcule à chaque rejeu du pipeline géographique — il
@@ -94,7 +93,7 @@ suite de tests (artefacts de preuve, non collectés par pytest).
   `sim.model`, et le déplacement d'un centre administratif recalcule
   l'appartenance sans réécrire aucune cellule.
 - **Commerce inter-cellules physique** : les arêtes d'adjacence G3
-  (nombre lu dans `pipeline/geo/artifacts/stats_g3.json` / le fichier
+  (nombre lu dans `data/world-1400.json` / le fichier
   d'adjacence, jamais recopié ici) sont lues par `_apply_commerce` à
   chaque tick. Transfert borné par
   `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`. Conservation stricte de la masse.

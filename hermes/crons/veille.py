@@ -25,8 +25,8 @@ from typing import Callable, Iterable, Mapping, Sequence
 
 CACHE_ENV = "FORGEHISTORY_DEM_CACHE_ROOT"
 DEFAULT_REPORT = Path("hermes/propositions/DERNIERE-VEILLE.md")
-HISTORICAL_CACHE = Path("pipeline/geo/sources/dem_cache")
-SOURCE_LOCK = Path("pipeline/geo/sources.lock")
+HISTORICAL_CACHE = Path("tools/map/sources/dem_cache")
+SOURCE_LOCK = Path("tools/map/sources.lock")
 MIN_FREE_BYTES = 5 * 1024**3
 _DASHBOARD_TIMESTAMP_RE = re.compile(
     r"Générée le (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC"

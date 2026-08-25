@@ -4,7 +4,7 @@ PreToolUse hook (Edit/Write/MultiEdit matcher). Blocks edits to VISION.md
 unless explicitly overridden.
 
 Mechanically enforces a rule we'd otherwise only have as documentation
-(HANDOFF.md: "do not silently rewrite VISION.md to fix [dead links]") --
+(ne pas réécrire VISION.md en silence pour réparer un lien mort) --
 hard-won rule 5: a guard placed after the effect it should prevent protects
 nothing, so this exists before anyone edits it, not after.
 
@@ -38,10 +38,10 @@ def main() -> int:
     print(
         "Blocked: VISION.md may not be edited without an explicit override.\n"
         "VISION.md is a verbatim copy of VictoriaProject's vision -- see "
-        "HANDOFF.md for known gaps (e.g. dead ADR links) that are tracked "
+        "ROADMAP.md for known gaps (e.g. dead ADR links) that are tracked "
         "as decisions to make explicitly, not silent fixes.\n"
         "To intentionally change it, set FORGE_ALLOW_VISION_EDIT=1 for this "
-        "command and record why in HANDOFF.md or an ADR.",
+        "command and record why in an ADR.",
         file=sys.stderr,
     )
     return 2

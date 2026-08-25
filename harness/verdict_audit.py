@@ -223,7 +223,7 @@ def check_captures_differ(bd: Path, m: dict) -> CheckResult:
     - `must_differ_from`: a second path inside the brief dir. The pre-state
       has to be committed as its own copy for this to work.
     - `must_differ_from_git`: git's own `<rev>:<path>` (e.g.
-      `origin/master:pipeline/geo/constants.py`). Git already stores every
+      `origin/master:tools/map/constants.py`). Git already stores every
       pre-edit state; committing a `.orig` duplicate of a tracked file next
       to it buys nothing the repository did not already hold. Prefer this
       form for any file git tracks.

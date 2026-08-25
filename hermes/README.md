@@ -19,7 +19,7 @@ Le produit vivant est le moteur Python `sim/`. Unity est en veille
 | `hermes/skills/*/SKILL.md` | outillage Hermes, y compris ses propres améliorations de skill |
 | `hermes/crons/` | contrat et script des tâches planifiées |
 
-Hermes n’écrit **jamais** : le code produit (`sim/`, `pipeline/`, `unity/`,
+Hermes n’écrit **jamais** : le code produit (`sim/`, `tools/`,
 `harness/` hors vue), la CI, un brief, une rubrique, un verdict, un audit.
 Une proposition n’est **pas** une instruction. Le brief reste la seule
 source d’instruction d’un exécutant.

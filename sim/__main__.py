@@ -28,7 +28,7 @@ EXIT_REFUS = 2
 
 def _simulate(ticks: int, seed: int) -> tuple[dict, World]:
     """Amorce le monde G3 et avance `ticks` pas. Retourne résumé + monde."""
-    world = World.from_g3(rng_seed=seed)
+    world = World.charger(rng_seed=seed)
     population_depart = sum(cell.population for cell in world.cells.values())
     stock_depart = sum(cell.food_stock_kg for cell in world.cells.values())
     rng = random.Random(seed)

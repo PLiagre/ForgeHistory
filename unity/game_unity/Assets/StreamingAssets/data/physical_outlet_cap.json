@@ -1,6 +1,0 @@
-{
-  "outlet_cap_intensity": 1,
-  "storage_months_of_local_demand": 3.0,
-  "intensity_justification": "v1_032 balayage intensity t3000 seed=42195: adopté i=1 pop=155053 (ratio=1.008) sat=0.643 deadShare=0.723 ratioPC=1.137 bourgWine=47653.024 cloth=0.291 stabilityLite=Y. plus fort palier vivant+stableLite (i=1)",
-  "storage_justification": "v1_031: capacite d'entreposage = storage_months × demande locale / tick (1 tick ≈ 1 mois). 3 mois = reserve de saison, derivee de la demande reelle — PAS un plafond arbitraire."
-}

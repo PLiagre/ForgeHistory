@@ -90,11 +90,13 @@ def cell_value(cell: dict, layer: str) -> Any:
         return cell["food_deficit_kg"]
     if layer == "hunger_ticks":
         return cell["hunger_ticks"]
-    drivers = cell.get("climate_drivers") or {}
+    climat = cell.get("climat")
+    if climat is None:
+        raise KeyError(f"couche climat absente du snapshot pour {layer}")
     if layer == "insolation":
-        return drivers.get("insolation_annual_mj_m2")
+        return climat["insolation_annuelle_mj_m2"]
     if layer == "dist_sea":
-        return drivers.get("dist_sea_centroid_m")
+        return climat["distance_mer_centroide_m"]
     raise KeyError(layer)
 
 

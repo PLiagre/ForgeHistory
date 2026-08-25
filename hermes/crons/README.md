@@ -3,7 +3,7 @@
 Autorités : [ADR-0015](../../docs/adr/0015-capacites-hermes-sous-agents-crons-issues.md),
 [ADR-0016](../../docs/adr/0016-sim-sans-unity-hermes-pilote-et-propose.md) et
 [runbook du workflow](../../docs/operations/workflow-acceleration.md). Le brief
-[029](../../harness/queue/briefs/029-workflow-acceleration/brief.md) reste
+le lot 029 (archivé sous `archive/2026-08`) reste
 l'unique instruction du lot qui a créé cette veille.
 
 `quotidien.sh` lance directement `veille.py` : aucun modèle ni agent n'est

@@ -1,4 +1,0 @@
-Commande : py -m pytest harness/tests/test_ci_budget_guard.py -q
-
-..........                                                               [100%]
-10 passed in 0.22s

@@ -1,9 +1,0 @@
-============================= test session starts ==============================
-platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
-cachedir: .pytest_cache
-rootdir: /workspace
-collecting ... collected 1 item
-
-sim/tests/test_sensibilite_survie.py::test_sensibilite_hds PASSED        [100%]
-
-============================== 1 passed in 1.06s ===============================

@@ -3,10 +3,10 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import asdict
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import re
+import sys
 from typing import Iterable
 
 from .config import Settings
@@ -606,6 +606,11 @@ def _commit_push_and_pr(
     return str(candidate["head_sha"]), pull_request
 
 
+# Bornes des suites de tests lancées sur le candidat (ADR-0018).
+_TEST_TIMEOUT_SECONDS = 1800
+_TEST_OUTPUT_TAIL = 4000
+
+
 def run_test_profile(
     worktree: Path,
     *,
@@ -617,35 +622,65 @@ def run_test_profile(
     head_sha: str | None = None,
     allow_heavy: bool = False,
 ) -> dict[str, object]:
-    # Le routeur appartient au contrôleur ForgePilot courant, pas au candidat.
-    # Les commandes qu'il produit s'exécutent toutefois dans le worktree.
-    router = Path(__file__).resolve().parents[2] / "harness" / "workflow_test_router.py"
-    if not router.is_file():
-        raise PilotError(f"Routeur de tests ciblés du contrôleur introuvable : {router}")
-    spec = importlib.util.spec_from_file_location("forgepilot_workflow_test_router", router)
-    if spec is None or spec.loader is None:
-        raise PilotError(f"Routeur de tests impossible à charger : {router}")
-    try:
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        plan = module.build_plan(
-            worktree,
-            paths,
-            profile,
-            risk=risk,
-            policy_path=worktree / "control-plane" / "workflow-policy.toml",
-            base_sha=base_sha,
-            head_sha=head_sha,
+    """
+    Lance les suites de tests du candidat, dans son worktree.
+
+    ADR-0018 : le routeur de tests par profil de risque est supprimé. Il
+    existait parce que la suite était longue ; elle ne l'est plus. On lance
+    ce qui existe, dans l'ordre du moins cher au plus cher, et on s'arrête
+    à la première suite rouge.
+
+    Les paramètres `paths`, `profile`, `risk`, `base_sha`, `head_sha` et
+    `allow_heavy` sont conservés pour ne pas toucher aux appelants ; ils ne
+    changent plus la sélection, seulement ce qui est écrit dans la preuve.
+    """
+    suites: list[tuple[str, list[str], Path]] = [
+        ("git-diff-check", ["git", "--no-pager", "diff", "--check"], worktree),
+    ]
+    if (worktree / "sim" / "tests").is_dir():
+        suites.append(("sim-tests", [sys.executable, "-m", "pytest", "sim/tests", "-q"], worktree))
+    if (worktree / "harness" / "tests").is_dir():
+        suites.append(("harness-tests", [sys.executable, "-m", "pytest", "harness/tests", "-q"], worktree))
+    control_plane = worktree / "control-plane"
+    if (control_plane / "tests").is_dir():
+        suites.append(
+            ("control-plane-tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests"], control_plane)
         )
-        summary = module.run_plan(plan, worktree, allow_heavy=allow_heavy)
-    except Exception as exc:
-        raise PilotError(f"Routeur de tests {profile} en refus : {exc}") from exc
-    if not isinstance(summary, dict):
-        raise PilotError("Le routeur de tests n'a pas produit de résumé JSON.")
+
+    results: list[dict[str, object]] = []
+    code = 0
+    for suite_id, command, cwd in suites:
+        # run_command lève dès qu'une commande sort non nulle. On rattrape ici
+        # pour que la preuve soit écrite AUSSI quand une suite est rouge : une
+        # preuve qui n'existe qu'en cas de succès ne prouve rien.
+        try:
+            completed = run_command(command, cwd=cwd, timeout_seconds=_TEST_TIMEOUT_SECONDS)
+            entree = {
+                "returncode": 0,
+                "stdout_tail": (completed.stdout or "")[-_TEST_OUTPUT_TAIL:],
+                "stderr_tail": (completed.stderr or "")[-_TEST_OUTPUT_TAIL:],
+            }
+        except PilotError as exc:
+            entree = {"returncode": 1, "stdout_tail": "", "stderr_tail": str(exc)[-_TEST_OUTPUT_TAIL:]}
+        results.append({"id": suite_id, "command": command, **entree})
+        if entree["returncode"] != 0:
+            code = int(entree["returncode"])
+            break
+
+    summary: dict[str, object] = {
+        "profile": profile,
+        "risk": risk,
+        "paths": list(paths),
+        "base_sha": base_sha,
+        "head_sha": head_sha,
+        "allow_heavy": allow_heavy,
+        "results": results,
+        "returncode": code,
+        "code": code,
+    }
     write_normalized_json(output_path, summary)
-    code = summary.get("returncode", summary.get("code", 1))
     if code != 0:
-        raise PilotError(f"Tests ciblés en échec (code {code}).")
+        raise PilotError(f"Tests en échec (code {code}).")
     return summary
 
 

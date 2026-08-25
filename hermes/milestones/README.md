@@ -29,7 +29,8 @@ livré (avec les PRs/commits), et ce qui a été volontairement reporté.
 1. `pipeline-audit.yml` lance `cursor-auditor` (avec `cursor-qa-scout`)
    sur l'étape entière : tout ce qui est entré sur `master` depuis le
    jalon précédent (ou depuis l'origine pour le premier).
-2. L'audit déposé dans `architecture/inbox/` déclenche le contre-audit
+2. (Historique — la boucle audit / contre-audit est supprimée par ADR-0018.)
+   L'audit déposé dans `architecture/inbox/` déclenchait le contre-audit
    (`pipeline-challenge.yml`), puis la décision (`pipeline-orchestrate`) —
    mécanique inchangée, cadence par jalon.
 

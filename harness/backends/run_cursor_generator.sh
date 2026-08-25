@@ -99,7 +99,7 @@ if [ -z "${CURSOR_API_KEY:-}" ]; then
 fi
 
 # A brief usually needs to write outside its own harness/queue/briefs/NNN-*/
-# directory (e.g. pipeline/geo/, docs/adr/) -- so the workspace root is the
+# directory (e.g. tools/map/, docs/adr/) -- so the workspace root is the
 # repo, not the brief directory. A brief that also needs to READ from a
 # directory outside this repo entirely (e.g. porting from a sibling project)
 # can request that via CURSOR_EXTRA_DIRS, a `:`-separated list of absolute

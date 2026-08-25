@@ -7,6 +7,7 @@ import re
 from typing import Any, Iterable
 
 from .process import PilotError
+from .state import SECRET_MIN_LENGTH
 
 
 PLAN_FIELDS = {
@@ -389,7 +390,10 @@ def write_normalized_json(
         if isinstance(value, str):
             result = value
             for name, secret in os.environ.items():
-                if secret and re.search(r"(?:key|token|secret|password|authorization)", name, re.I):
+                if (
+                    len(secret) >= SECRET_MIN_LENGTH
+                    and re.search(r"(?:key|token|secret|password|authorization)", name, re.I)
+                ):
                     result = result.replace(secret, "<secret>")
             return result
         return value

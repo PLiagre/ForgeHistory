@@ -1,2 +1,0 @@
-ECART : artifacts/coastline_1400.json (empreinte calculee a l'execution) et MANIFEST_g3.json inputs.coastline_1400 ne designent pas le meme fichier.
-Le meme littoral vivant egale-t-il la sortie declaree par MANIFEST_g2b.json outputs[artifacts/coastline_1400.json] ? oui.

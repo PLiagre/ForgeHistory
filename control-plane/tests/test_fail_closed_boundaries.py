@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from forgepilot.process import PilotError, _process_group_options, run_command_stream
 from forgepilot.protocol import (
@@ -310,3 +312,34 @@ class StreamingFailClosedTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RedactionMinimumLengthTests(unittest.TestCase):
+    """
+    Une variable d'environnement au nom « token-esque » mais à la valeur très
+    courte ne doit pas être masquée : masquer « 4 » corrompt tout texte qui en
+    contient un — un SHA de commit, par exemple, qui devient plus long que 40
+    caractères et ne correspond plus à rien.
+
+    Défaut réel : CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR vaut un chiffre. Avec
+    lui dans l'environnement, deux tests du flux d'itération échouaient sur
+    « Feedback périmé : il ne vise pas le head SHA courant » — le SHA relu avait
+    été mangé par la redaction.
+    """
+
+    SHA = "b6d814f0e528545e4e8ccdda63cea2feb24996f6"
+
+    def test_une_valeur_courte_ne_corrompt_pas_un_sha(self):
+        from forgepilot.state import sanitize_error
+
+        with patch.dict(os.environ, {"UN_TOKEN_FILE_DESCRIPTOR": "4"}, clear=False):
+            self.assertIn(self.SHA, sanitize_error(f"head {self.SHA}"))
+
+    def test_un_vrai_secret_reste_masque(self):
+        from forgepilot.state import sanitize_error
+
+        secret = "sk-un-vrai-secret-assez-long"
+        with patch.dict(os.environ, {"UN_API_KEY": secret}, clear=False):
+            sortie = sanitize_error(f"echec avec {secret}")
+            self.assertNotIn(secret, sortie)
+            self.assertIn("<secret>", sortie)

@@ -1,9 +1,0 @@
-============================= test session starts ==============================
-platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/.venv/bin/python
-cachedir: .pytest_cache
-rootdir: /workspace
-collecting ... collected 1 item
-
-harness/tests/test_pr_audit_guard.py::test_exits_1_when_audit_challenged PASSED [100%]
-
-============================== 1 passed in 0.01s ===============================

@@ -1,7 +1,7 @@
 """
 Constantes nommées du moteur de simulation.
 
-Toutes les valeurs paramétriques documentées dans sim/SEEDING.md.
+Toutes les valeurs paramétriques documentées dans sim/MODELE.md.
 Aucun code de calcul du moteur ne doit contenir de littéral numérique
 au-delà de 0 et 1 (valeurs structurelles) — voir brief 011, SC9.
 
@@ -14,7 +14,7 @@ import math
 
 # --- Base de temps unique (SC1 brief 012) ---
 
-# Durée d'un tick en jours (proxy paramétrique, voir SEEDING.md).
+# Durée d'un tick en jours (proxy paramétrique, voir MODELE.md).
 # Toutes les constantes temporelles ci-dessous sont dérivées de cette valeur.
 TICK_DURATION_DAYS = 1
 
@@ -23,7 +23,7 @@ TICK_DURATION_DAYS = 1
 # Rendement agricole paramétrique : kilogrammes de nourriture produits
 # par km² et par tick.
 # Proxy : 6 570 kg/km²/an (rendement médiéval estimé) ÷ 365 jours ×
-# TICK_DURATION_DAYS (voir SEEDING.md).
+# TICK_DURATION_DAYS (voir MODELE.md).
 FOOD_PRODUCTION_KG_PER_KM2_PER_TICK = 18.0 * TICK_DURATION_DAYS
 
 # --- Variabilité de rendement (SC2 brief 012) ---
@@ -31,7 +31,7 @@ FOOD_PRODUCTION_KG_PER_KM2_PER_TICK = 18.0 * TICK_DURATION_DAYS
 # Le rendement de chaque cellule est multiplié par un facteur uniforme
 # tiré du rng à chaque tick (fluctuations climatiques/agronomiques).
 # Distribution : rng.uniform(RNG_YIELD_LOW, RNG_YIELD_HIGH)
-# Documentée dans SEEDING.md.
+# Documentée dans MODELE.md.
 RNG_YIELD_LOW = 0.5
 RNG_YIELD_HIGH = 1.5
 
@@ -45,7 +45,7 @@ FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK = 2.0 * TICK_DURATION_DAYS
 
 # Capacité de transport maximale par arête d'adjacence et par tick (kg).
 # Proxy paramétrique : convoi à dos de mulet ≈ 200 kg/jour sur une
-# liaison rurale (voir SEEDING.md).
+# liaison rurale (voir MODELE.md).
 TRADE_CAPACITY_KG_PER_EDGE_PER_TICK = 200.0 * TICK_DURATION_DAYS
 
 # --- Mortalité par famine (SC3 brief 012) ---
@@ -54,7 +54,7 @@ TRADE_CAPACITY_KG_PER_EDGE_PER_TICK = 200.0 * TICK_DURATION_DAYS
 # par kg de déficit alimentaire cumulé par habitant.
 # Mortalité = population × min(per_capita_deficit × HUNGER_DEATH_SCALE,
 #                              MAX_DEATH_RATE_PER_TICK)
-# Proxy paramétrique — voir SEEDING.md.
+# Proxy paramétrique — voir MODELE.md.
 HUNGER_DEATH_SCALE = 0.005
 
 # Taux de mortalité maximal par tick (plafond) — empêche l'effondrement
@@ -63,7 +63,7 @@ MAX_DEATH_RATE_PER_TICK = 0.10
 
 # --- Amorçage initial ---
 
-# Densité de population initiale par km² (proxy paramétrique, voir SEEDING.md).
+# Densité de population initiale par km² (proxy paramétrique, voir MODELE.md).
 INITIAL_POPULATION_PER_KM2 = 10.0
 
 # Variation aléatoire autour de la densité nominale lors de l'amorçage.
@@ -85,13 +85,13 @@ INITIAL_FOOD_RESERVE_TICKS = 5
 # Nouvelle sémantique : kilogrammes de dette alimentaire remboursés par
 # kilogramme de surplus RÉELLEMENT consommé au-delà du besoin d'entretien.
 # Voie (a) du brief 017 : ratio 1:1. Les kg remboursés quittent le stock.
-# Justification complète dans SEEDING.md (SC5 brief 017).
+# Justification complète dans MODELE.md (SC5 brief 017).
 DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG = 1.0
 
 # Seuil de coupure du déficit alimentaire (SC4 brief 013 — N4 feedback 001).
 # Un déficit résiduel inférieur à cette valeur est ramené à zéro après récupération,
 # évitant l'accumulation indéfinie de déficits infinitésimaux non physiques.
-# Justification dans SEEDING.md (SC4 brief 013 — N4 feedback 001).
+# Justification dans MODELE.md (SC4 brief 013 — N4 feedback 001).
 DEFICIT_ZERO_EPSILON = 1e-6
 
 # --- Modèle de survie stationnaire (SC1 brief 017) ---
@@ -99,7 +99,7 @@ DEFICIT_ZERO_EPSILON = 1e-6
 # Remplace SURVIE_MARGE_DERIVEE / SEUIL_SURVIE_POPULATION_FRACTION (brief 013),
 # supprimées : ces deux constantes ignoraient HUNGER_DEATH_SCALE et faisaient
 # entrer la récupération du déficit avec le mauvais signe. Motivation détaillée
-# dans SEEDING.md (SC1 brief 017) et dans le journal du Générateur.
+# dans MODELE.md (SC1 brief 017) et dans le journal du Générateur.
 #
 # Toutes les grandeurs ci-dessous sont calculées par des FONCTIONS qui relisent
 # les globales courantes du module à chaque appel. C'est indispensable au test
@@ -139,7 +139,7 @@ def densite_stationnaire_courante() -> float:
     """
     Densité atteinte après le dépassement (« overshoot ») du transitoire.
 
-    Dérivation (documentée dans SEEDING.md, SC1 brief 017) : tant que la
+    Dérivation (documentée dans MODELE.md, SC1 brief 017) : tant que la
     densité d dépasse la capacité de charge, le déficit D croît au rythme
     C·(d − cap) et la mortalité fait décroître d au rythme HDS·D. Ce couple
     est un oscillateur : d dépasse la capacité de charge par le bas d'autant
@@ -189,7 +189,7 @@ def compute_survie_fraction_predite_stationnaire() -> float:
     Fraction de population survivante prédite à l'état stationnaire.
 
     Deux termes, tous deux dérivés des constantes (jamais calibrés sur une
-    mesure — voir SEEDING.md SC1 brief 017, rédigé avant toute mesure) :
+    mesure — voir MODELE.md SC1 brief 017, rédigé avant toute mesure) :
 
     1. Dépassement déterministe : d_stat / d0, où d_stat est la densité
        atteinte quand le déficit revient à zéro (densite_stationnaire_courante).
@@ -352,7 +352,7 @@ DEFAULT_CLI_SEED = 0
 # --- Snapshot cellulaire V0-A (brief 027) ---
 # Première photographie cellulaire du jalon V0-A ; le suffixe -1 permet une
 # révision du contrat sans réutiliser le même nom.
-SNAPSHOT_SCHEMA_VERSION = "v0a-1"
-# Même pas que pipeline/geo/io_util.py : plus fin serait du bruit, plus gros
+SNAPSHOT_SCHEMA_VERSION = "v0a-2"
+# Même pas que tools/map/io_util.py : plus fin serait du bruit, plus gros
 # écraserait des centroïdes voisins.
 SNAPSHOT_FLOAT_DECIMALS = 6

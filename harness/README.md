@@ -1,38 +1,51 @@
-# Harness
+# Le harnais
 
-The mechanism that keeps "celui qui produit ne prononce pas la recevabilité"
-true in practice. See `docs/rules/harness-roles.md` for the role contract.
+Ce qui reste après ADR-0018 : **la porte mécanique**, et rien d'autre.
 
-## Layout
+Le harnais n'orchestre plus personne. Hermes écrit les briefs, Cursor les
+exécute, le propriétaire fusionne. Le harnais sert à une seule chose :
+refuser un compte-rendu qui se contredit lui-même.
 
-- `queue/` — the brief queue. `briefs/NNN-<slug>/` holds one brief's full
-  lifecycle: `brief.md`, `eval-rubric.md`, `deliverables/`, `feedback/`,
-  `verdict.md`.
-- `verdict_audit.py` — the tier-1 mechanical gate. Stdlib-only, zero LLM
-  inference. Reads only the brief-directory contract, so it is completely
-  agnostic to which backend produced the deliverables.
-- `tests/` — the gate's own test suite. Every check has a fixture proving it
-  can go red (hard-won rule 4) before trusting it ever goes green.
-- `demo/` — `fake_brief_001/` (a deliberately forged brief that must be
-  rejected, with a proof script) and `honest_brief_001/` (a clean control
-  case that must be accepted — without it, a gate that always rejects would
-  trivially "pass" while being useless).
-- `backends/` — pluggable Générateur backends beyond the native Claude Code
-  agent. Currently: Cursor CLI.
+## Contenu
 
-## Design Property Worth Stating Explicitly
+| chemin | à quoi ça sert |
+|---|---|
+| `verdict_audit.py` | la porte mécanique — relit un dossier de brief et refuse un compte-rendu incohérent |
+| `bare_python.py` | la reconnaissance des `python` nus, partagée avec le hook `.claude/hooks/no_bare_python.py` |
+| `queue/briefs/` | les dossiers de brief, un par lot |
+| `demo/fake_brief_001/` | la preuve que la porte refuse un faux compte-rendu — rejouée en CI |
+| `demo/honest_brief_001/` | le contrôle inverse, un compte-rendu honnête accepté |
+| `backends/run_cursor_generator.sh` | déléguer l'exécution d'un brief à Cursor CLI |
+| `tests/` | les tests de la porte et des hooks |
 
-`verdict_audit.py` never asks who produced `deliverables/manifest.json` or
-`generator-log.md` — it only checks the contract those files must satisfy.
-This is what makes the Générateur role backend-pluggable (see ADR-0002)
-without touching the gate at all.
+## La règle de fond
 
-## Quick Reference
+**Celui qui produit ne prononce pas la recevabilité de son propre travail.**
+
+C'est tout ce qui subsiste des trois rôles d'ADR-0001. Elle est tenue par
+deux choses : la porte mécanique ci-dessus, et la relecture Cursor dans une
+invocation neuve.
+
+## Une seule source d'instruction
+
+Exactement un document dit ce qu'un agent doit faire pour un lot : le
+fichier `brief.md` du lot. Tout autre document peut y renvoyer ; aucun ne
+peut le paraphraser. Vérifié par
+`tests/test_single_source_of_instruction.py`.
+
+## Commandes
 
 ```bash
-py harness/verdict_audit.py <brief_dir>
-py -m pytest harness/tests/ -v
-py harness/demo/fake_brief_001/run_demo.py
-py harness/verdict_audit.py harness/demo/honest_brief_001
-bash harness/backends/run_cursor_generator.sh <brief_dir>
+python harness/verdict_audit.py <dossier_du_brief>   # la porte
+python -m pytest harness/tests/ -v                    # les tests de la porte
+python harness/demo/fake_brief_001/run_demo.py        # un faux compte-rendu est refusé
+bash harness/backends/run_cursor_generator.sh <dossier_du_brief>
 ```
+
+## Ce qui a été supprimé, et pourquoi
+
+Le pipeline full-auto (jamais sorti du `mode: manual`), la machine d'états
+d'audit, le budget d'exécution, le comptage de jetons, le bot de fusion,
+l'aiguillage de risque et de tests, les trois agents Claude et le backend
+Codex. Voir
+[ADR-0018](../docs/adr/0018-degraissage-trois-acteurs-et-carte-figee.md).

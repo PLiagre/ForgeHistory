@@ -1,6 +1,0 @@
-py -m pytest harness/tests/test_merge_bot_policy.py -q
-
-......                                                                   [100%]
-6 passed in 0.04s
-
-Code de sortie : 0. Exécuté après la création du module.
