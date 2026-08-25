@@ -148,12 +148,34 @@ class PolicyTests(unittest.TestCase):
                 load_policy(path)
 
     def test_risk_can_only_rise(self):
+        """
+        Le risque demandé ne peut que monter, jamais descendre.
+
+        L'exemple sensible était `docs/rules/security.md` : ce répertoire a
+        été supprimé au dégraissage (ADR-0018) et son motif est sorti de la
+        politique. Un test dont l'exemple ne peut plus exister ne prouve rien
+        — il passait sur un motif que personne ne pouvait déclencher.
+
+        Il est remplacé par `AGENTS.md`, le seul fichier de règles du dépôt.
+
+        Ce test ne vérifie PAS que chaque motif R2 désigne un fichier
+        existant, et c'est délibéré : `.gitleaks.toml` et `SECURITY.md` sont
+        listés sans exister, pour que le jour où on les crée ils soient
+        d'emblée au niveau le plus élevé. Un contrôle qui refuserait ces
+        deux-là refuserait une garde légitime — trop grossier coûte aussi
+        cher que laxiste (règle 6). Un motif devenu mort se voit à la
+        lecture, pas mécaniquement : rien ne distingue « supprimé » de
+        « pas encore créé ».
+        """
         policy = load_policy()
         self.assertEqual("R0", derive_risk(policy, ["docs/operations/runbook.md"]))
+        self.assertEqual("R0", derive_risk(policy, ["docs/MODE-EMPLOI.md"]))
         self.assertEqual("R1", derive_risk(policy, ["sim/model.py"]))
         self.assertEqual("R2", derive_risk(policy, ["control-plane/forgepilot/cli.py"]))
+        self.assertEqual("R2", derive_risk(policy, ["AGENTS.md"]))
         self.assertEqual(("R2", "R0"), effective_risk(policy, "R2", ["docs/operations/runbook.md"]))
-        self.assertEqual(("R2", "R2"), effective_risk(policy, "R0", ["docs/rules/security.md"]))
+        self.assertEqual(("R2", "R2"), effective_risk(policy, "R0", ["AGENTS.md"]))
+
 
     def test_plan_allows_github_governance_but_not_git_internals(self):
         plan = validate_plan(valid_plan(allowed=[".github/workflows/**", ".gitignore"]))
