@@ -1,21 +1,15 @@
 """
-Brief 018 — la Province dérivée : couverture, garde spatiale, couverture
-d'écriture de la vue.
+La province est une vue dérivée, jamais une donnée stockée (ADR-0003).
 
-Ce fichier couvre :
-- SC1 : chaque cellule chargée relève d'exactement une province ;
-- SC1/D5 : une cellule sans position connue fait lever une erreur explicite,
-  jamais une attribution par défaut ;
-- SC2 : aucune dataclass de `sim.model` ni du module d'agrégation ne porte de
-  champ dont le nom normalisé commence par `province` (découverte par
-  introspection, jamais par une liste de noms écrite à la main) ;
-- SC2 : la garde `_NoBadSpatialField` est exercée sur plusieurs variantes de
-  nom interdit ;
-- SC2 : chaque champ déclaré par le module d'agrégation a un site de
-  construction ET un site de lecture dans le code de production ;
-- SC4 : les égalités de distance observées sur le monde réel sont comptées.
+Ce que ce fichier protège (ADR-0018) :
+  - une seule source de vérité : aucune entité ne porte de champ province ;
+    la vue ne transporte que des identifiants, jamais une cellule modifiable ;
+  - invariant : chaque cellule relève d'exactement une province ;
+  - déterminisme : à égalité de distance, le plus petit identifiant gagne,
+    et la dérivation ne modifie aucune entrée.
 
-Les compteurs sont imprimés : `-s` les montre.
+Fusion des anciens fichiers province_aggregation, redessin_province et
+adr_compliance (dont les cas nominatifs étaient déjà couverts ici).
 """
 
 import ast
@@ -23,9 +17,7 @@ import dataclasses
 import inspect
 import json
 import pathlib
-
 import pytest
-
 import sim.aggregation as agregation
 import sim.model as modele
 from sim.aggregation import (
@@ -45,25 +37,17 @@ from sim.aggregation import (
 )
 from sim.model import _NoBadSpatialField
 from sim.world import World
-
 RNG_SEED = 42
-
 _RACINE_DEPOT = pathlib.Path(__file__).parent.parent.parent
 _CHEMIN_STATS = _RACINE_DEPOT / "pipeline" / "geo" / "artifacts" / "stats_g3.json"
 _CHEMIN_CENTRES = (
     _RACINE_DEPOT / "pipeline" / "geo" / "legacy_game_data" / "province_coordinates.json"
 )
-
 _FICHIERS_PRODUCTION = [
     pathlib.Path(agregation.__file__),
     pathlib.Path(agregation.__file__).parent / "world.py",
 ]
-
-# Préfixe interdit, dérivé de la garde elle-même : si la garde change de
-# préfixe, ce test le suit au lieu de le contredire.
 _PREFIXE_INTERDIT = _NoBadSpatialField._FORBIDDEN_PREFIX
-
-
 def _dataclasses_du_module(module):
     """Découvre par introspection les dataclasses déclarées par un module."""
     trouvees = []
@@ -71,12 +55,55 @@ def _dataclasses_du_module(module):
         if dataclasses.is_dataclass(obj) and obj.__module__ == module.__name__:
             trouvees.append(obj)
     return trouvees
-
-
 def _normaliser(nom: str) -> str:
     return nom.lower().replace("_", "")
+def _sites_de_construction(fichiers, nom_classe: str, champs: set) -> set:
+    """Champs passés en argument nommé à un constructeur de la classe."""
+    trouves: set = set()
+    for chemin in fichiers:
+        arbre = ast.parse(chemin.read_text(encoding="utf-8"), filename=str(chemin))
+        for noeud in ast.walk(arbre):
+            if not isinstance(noeud, ast.Call):
+                continue
+            fonction = noeud.func
+            appelee = (
+                fonction.id
+                if isinstance(fonction, ast.Name)
+                else getattr(fonction, "attr", None)
+            )
+            if appelee != nom_classe:
+                continue
+            for mot_cle in noeud.keywords:
+                if mot_cle.arg in champs:
+                    trouves.add(mot_cle.arg)
+    return trouves
+def _sites_de_lecture(fichiers, champs: set) -> set:
+    """Champs lus (`objet.champ` en contexte Load) dans le code de production."""
+    trouves: set = set()
+    for chemin in fichiers:
+        arbre = ast.parse(chemin.read_text(encoding="utf-8"), filename=str(chemin))
+        for noeud in ast.walk(arbre):
+            if (
+                isinstance(noeud, ast.Attribute)
+                and noeud.attr in champs
+                and not isinstance(noeud.ctx, ast.Store)
+            ):
+                trouves.add(noeud.attr)
+    return trouves
+from sim.aggregation import (
+    agregat_depuis_monde,
+    appartenance_depuis_regroupements,
+    charger_centres,
+    charger_positions,
+)
+def _releve_attributs(monde) -> dict:
+    """Contenu complet des attributs d'instance de chaque cellule."""
+    return {cell_id: dict(vars(cellule)) for cell_id, cellule in monde.cells.items()}
+def _champs_declares(cellule) -> set:
+    return {champ.name for champ in dataclasses.fields(cellule)}
 
 
+# --- test_province_aggregation.py ---
 def test_province_couverture_totale_monde_reel():
     """
     SC1 — sur le monde réel, chaque cellule chargée relève d'exactement une
@@ -141,6 +168,7 @@ def test_province_couverture_totale_monde_reel():
     assert 0 < provinces_non_vides <= centroides_lus
 
 
+# --- test_province_aggregation.py ---
 def test_province_consultation_rend_le_centre_le_plus_proche():
     """
     SC1 — la consultation de production rend bien le centre le plus proche,
@@ -175,6 +203,7 @@ def test_province_consultation_rend_le_centre_le_plus_proche():
     assert verifiees == len(monde.cells)
 
 
+# --- test_province_aggregation.py ---
 def test_province_refus_position_absente():
     """
     SC1/D5 — une cellule chargée sans position connue fait lever une erreur
@@ -208,6 +237,7 @@ def test_province_refus_position_absente():
         agregat_depuis_monde(monde, positions=positions_amputees)
 
 
+# --- test_province_aggregation.py ---
 def test_province_aucun_champ_province_sur_entites():
     """
     SC2 — par introspection : aucune dataclass de `sim.model` ni du module
@@ -243,6 +273,7 @@ def test_province_aucun_champ_province_sur_entites():
     assert champs_province_sur_entites == 0, f"champs interdits : {fautifs}"
 
 
+# --- test_province_aggregation.py ---
 def test_province_garde_prefixe_variantes_rouges():
     """
     SC2 — la garde `_NoBadSpatialField` est exercée : chaque variante de nom
@@ -268,43 +299,7 @@ def test_province_garde_prefixe_variantes_rouges():
     assert levees == len(variantes)
 
 
-def _sites_de_construction(fichiers, nom_classe: str, champs: set) -> set:
-    """Champs passés en argument nommé à un constructeur de la classe."""
-    trouves: set = set()
-    for chemin in fichiers:
-        arbre = ast.parse(chemin.read_text(encoding="utf-8"), filename=str(chemin))
-        for noeud in ast.walk(arbre):
-            if not isinstance(noeud, ast.Call):
-                continue
-            fonction = noeud.func
-            appelee = (
-                fonction.id
-                if isinstance(fonction, ast.Name)
-                else getattr(fonction, "attr", None)
-            )
-            if appelee != nom_classe:
-                continue
-            for mot_cle in noeud.keywords:
-                if mot_cle.arg in champs:
-                    trouves.add(mot_cle.arg)
-    return trouves
-
-
-def _sites_de_lecture(fichiers, champs: set) -> set:
-    """Champs lus (`objet.champ` en contexte Load) dans le code de production."""
-    trouves: set = set()
-    for chemin in fichiers:
-        arbre = ast.parse(chemin.read_text(encoding="utf-8"), filename=str(chemin))
-        for noeud in ast.walk(arbre):
-            if (
-                isinstance(noeud, ast.Attribute)
-                and noeud.attr in champs
-                and not isinstance(noeud.ctx, ast.Store)
-            ):
-                trouves.add(noeud.attr)
-    return trouves
-
-
+# --- test_province_aggregation.py ---
 def test_province_champs_vue_couverts():
     """
     SC2 — mode d'échec n° 2 appliqué à la vue dérivée : chaque champ déclaré
@@ -347,6 +342,7 @@ def test_province_champs_vue_couverts():
     assert champs_vue_couverts == champs_declares, f"champs non couverts : {manquants}"
 
 
+# --- test_province_aggregation.py ---
 def test_province_egalites_de_distance_monde_reel():
     """
     SC4 — nombre de cellules du monde réel dont la distance minimale est
@@ -380,6 +376,7 @@ def test_province_egalites_de_distance_monde_reel():
     assert egalites >= 0
 
 
+# --- test_province_aggregation.py ---
 def test_province_agregation_ne_reference_aucune_cellule_modifiable():
     """
     SC4 — la vue dérivée ne transporte que des identifiants : jamais un objet
@@ -400,3 +397,120 @@ def test_province_agregation_ne_reference_aucune_cellule_modifiable():
 
     appartenance = appartenance_depuis_regroupements(regroupements)
     assert set(appartenance) == set(monde.cells)
+
+
+# --- test_redessin_province.py ---
+def test_redessin_change_agregat_sans_reecrire_les_cellules():
+    """
+    SC3 — les deux faits sont vérifiés ensemble : l'agrégat bouge ET les
+    cellules ne bougent pas. Vérifier l'un sans l'autre ne prouverait rien.
+    """
+    monde = World.from_g3(rng_seed=RNG_SEED)
+    positions = charger_positions()
+    centres = charger_centres()
+
+    regroupements_a = agregat_depuis_monde(monde, positions=positions, centres=centres)
+    appartenance_a = appartenance_depuis_regroupements(regroupements_a)
+
+    serialisation_avant = json.dumps(monde.to_dict(), sort_keys=True)
+    attributs_avant = _releve_attributs(monde)
+    octets_avant = _CHEMIN_CENTRES.read_bytes()
+
+    # Le centre de plus petit id est déplacé sur la position exacte d'une
+    # cellule qui relève actuellement d'un autre centre : à distance nulle il
+    # gagne, et une éventuelle égalité serait tranchée en sa faveur par D4.
+    centre_deplace = min(centres, key=lambda centre: centre.id)
+    cible = next(
+        cell_id
+        for cell_id in sorted(appartenance_a)
+        if appartenance_a[cell_id] != centre_deplace.id
+    )
+    latitude_cible, longitude_cible = positions[cible]
+
+    centres_redessines = [
+        dataclasses.replace(centre, lat=latitude_cible, lon=longitude_cible)
+        if centre.id == centre_deplace.id
+        else centre
+        for centre in centres
+    ]
+
+    regroupements_b = agregat_depuis_monde(
+        monde, positions=positions, centres=centres_redessines
+    )
+    appartenance_b = appartenance_depuis_regroupements(regroupements_b)
+
+    serialisation_apres = json.dumps(monde.to_dict(), sort_keys=True)
+    attributs_apres = _releve_attributs(monde)
+    octets_apres = _CHEMIN_CENTRES.read_bytes()
+
+    cellules_changeant = sum(
+        1 for cell_id in appartenance_a if appartenance_a[cell_id] != appartenance_b[cell_id]
+    )
+    redessin_change_agregat = int(cellules_changeant > 0)
+
+    attributs_dynamiques = sum(
+        1
+        for cell_id, cellule in monde.cells.items()
+        if set(vars(cellule)) - _champs_declares(cellule)
+    )
+
+    redessin_cellules_intactes = int(
+        serialisation_avant == serialisation_apres and attributs_avant == attributs_apres
+    )
+    fichier_centroides_inchange = int(octets_avant == octets_apres)
+
+    total = len(monde.cells)
+    print(f"centre deplace : id={centre_deplace.id} nom={centre_deplace.name}")
+    print(f"cellule cible : {cible} (relevait du centre {appartenance_a[cible]})")
+    print(f"redessin_change_agregat = {redessin_change_agregat} / 1")
+    print(f"cellules_changeant_de_province_apres_redessin = {cellules_changeant} / {total}")
+    print(f"redessin_cellules_intactes = {redessin_cellules_intactes} / 1 ({total} cellules comparees)")
+    print(f"attributs_dynamiques_sur_cellules = {attributs_dynamiques} / {total}")
+    print(f"fichier_centroides_inchange_apres_redessin = {fichier_centroides_inchange} / 1")
+
+    assert redessin_change_agregat == 1, (
+        "Le redessin ne change aucune appartenance : la province n'est pas "
+        "derivee, elle est figee."
+    )
+    assert cellules_changeant > 0
+    assert appartenance_b[cible] == centre_deplace.id, (
+        "A distance nulle, le centre deplace doit gagner."
+    )
+    assert attributs_dynamiques == 0, (
+        "Au moins une cellule a acquis un attribut d'instance : "
+        "l'appartenance a ete estampillee sur les cellules."
+    )
+    assert redessin_cellules_intactes == 1, (
+        "La serialisation ou les attributs des cellules ont change pendant le "
+        "redessin : la province a ete reecrite sur les habitants."
+    )
+    assert fichier_centroides_inchange == 1, (
+        "Le fichier de centres a change sur le disque : le lot est en lecture "
+        "seule sur les donnees geographiques."
+    )
+
+
+# --- test_redessin_province.py ---
+def test_redessin_naffecte_pas_les_enregistrements_lus():
+    """
+    SC3 — le redessin produit de nouveaux enregistrements de centres ; il ne
+    réécrit pas ceux qui ont été lus du fichier.
+    """
+    centres = charger_centres()
+    avant = [dataclasses.astuple(centre) for centre in centres]
+
+    centre_deplace = min(centres, key=lambda centre: centre.id)
+    redessines = [
+        dataclasses.replace(centre, lat=centre.lat + 1.0, lon=centre.lon + 1.0)
+        if centre.id == centre_deplace.id
+        else centre
+        for centre in centres
+    ]
+
+    apres = [dataclasses.astuple(centre) for centre in centres]
+    modifies = sum(1 for a, b in zip(avant, apres) if a != b)
+    rang = centres.index(centre_deplace)
+
+    print(f"enregistrements_de_centres_modifies = {modifies} / {len(centres)}")
+    assert modifies == 0
+    assert redessines[rang] != centres[rang]

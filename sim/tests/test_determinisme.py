@@ -1,24 +1,34 @@
 """
-Brief 018, SC4 — fonction pure, déterminisme, départage stable.
+Même graine, même monde.
 
-Trois propriétés distinctes :
-- **purete** : `derive_appartenance` ne modifie aucun objet reçu et n'écrit
-  aucun fichier ;
-- **determinisme** : deux appels sur les mêmes entrées, plus un troisième avec
-  la liste des centres passée dans l'ordre inverse, rendent la même
-  appartenance cellule par cellule ;
-- **departage** : à distance exactement égale, le centre de plus petit `id`
-  l'emporte, et ce dans les deux ordres de parcours possibles.
+Ce que ce fichier protège (ADR-0018) :
+  - le rng est réellement consommé à chaque tick ;
+  - deux exécutions à graine identique donnent le même condensé, deux
+    graines différentes donnent des mondes différents ;
+  - la dérivation de province départage les égalités de façon stable et
+    ne mute aucune entrée.
 
-Compteurs : determinisme_agregation_deux_passes,
-departage_egalite_plus_petit_id.
+Fusion des anciens fichiers rng, seeding, engine et
+determinisme_departage_purete.
 """
 
+import hashlib
+import json
+import random
+from sim import engine
+from sim.world import World
+N_TICKS_DETERMINISME = 200
+def _run_n_ticks_digest(world_seed: int, rng_seed: int) -> str:
+    """Lance N_TICKS_DETERMINISME ticks et retourne le condensé SHA256 de l'état final."""
+    world = World.from_g3(rng_seed=world_seed)
+    rng = random.Random(rng_seed)
+    for _ in range(N_TICKS_DETERMINISME):
+        engine.tick(world, rng)
+    state = world.to_dict()
+    return hashlib.sha256(json.dumps(state, sort_keys=True).encode()).hexdigest()
 import copy
 import dataclasses
-import json
 import pathlib
-
 from sim.aggregation import (
     CentreAdministratif,
     charger_centres,
@@ -27,23 +37,122 @@ from sim.aggregation import (
     derive_appartenance,
     positions_du_monde,
 )
-from sim.world import World
-
 RNG_SEED = 42
-
 _RACINE_DEPOT = pathlib.Path(__file__).parent.parent.parent
 _CHEMIN_CENTRES = (
     _RACINE_DEPOT / "pipeline" / "geo" / "legacy_game_data" / "province_coordinates.json"
 )
 _CHEMIN_CELLULES = _RACINE_DEPOT / "pipeline" / "geo" / "artifacts" / "cells_g3.json"
-
-# Deux centres symétriques d'une cellule fabriquée : l'écart en longitude est
-# strictement opposé, donc les carrés de distance sont exactement égaux.
 _IDENTIFIANT_PETIT = 3
 _IDENTIFIANT_GRAND = 7
 _CELLULE_FABRIQUEE = 900001
 
 
+# --- test_rng.py ---
+def test_rng_etat_change_apres_tick():
+    """
+    SC2.1 — Le rng est consommé à chaque tick.
+    rng.getstate() avant ≠ rng.getstate() après 10 ticks.
+    Compteur : rng_etat_change_apres_tick (True si état différent).
+    """
+    world = World.from_g3(rng_seed=42)
+    rng = random.Random(42)
+
+    etat_avant = rng.getstate()
+
+    for _ in range(10):
+        engine.tick(world, rng)
+
+    etat_apres = rng.getstate()
+
+    rng_etat_change_apres_tick = etat_avant != etat_apres
+    print(f"etat_avant == etat_apres : {etat_avant == etat_apres}")
+    print(f"rng_etat_change_apres_tick = {rng_etat_change_apres_tick}")
+
+    assert rng_etat_change_apres_tick, (
+        "Le rng n'a pas été consommé : son état est identique avant et après 10 ticks."
+    )
+
+
+# --- test_rng.py ---
+def test_ticks_deterministes_meme_graine():
+    """
+    SC2.2 — Déterminisme à graine fixe.
+    Deux runs de 200 ticks, world_seed=42 et rng_seed=42, donnent
+    le même condensé SHA256. Condensés cités par nom (hard-won rule 12).
+    Compteur : ticks_deterministes_meme_graine (True si condensés égaux).
+    """
+    hash_run_A = _run_n_ticks_digest(world_seed=42, rng_seed=42)
+    hash_run_B = _run_n_ticks_digest(world_seed=42, rng_seed=42)
+
+    print(f"hash_run_A = {hash_run_A}")
+    print(f"hash_run_B = {hash_run_B}")
+    print(f"égaux : {hash_run_A == hash_run_B}")
+
+    ticks_deterministes_meme_graine = hash_run_A == hash_run_B
+    print(f"ticks_deterministes_meme_graine = {ticks_deterministes_meme_graine}")
+
+    assert ticks_deterministes_meme_graine, (
+        "Les deux runs avec la même graine ont produit des condensés différents."
+    )
+
+
+# --- test_rng.py ---
+def test_ticks_differents_graines_rng_differentes():
+    """
+    SC2.3 — Sensibilité à la graine rng.
+    Deux runs de 200 ticks, world_seed=42, mais rng_seed=42 vs rng_seed=999 :
+    les condensés doivent être différents (l'écart vient du tick, pas de
+    l'amorçage seul).
+    Compteur : ticks_differents_graines_rng_differentes (True si condensés différents).
+    """
+    hash_graine_42 = _run_n_ticks_digest(world_seed=42, rng_seed=42)
+    hash_graine_999 = _run_n_ticks_digest(world_seed=42, rng_seed=999)
+
+    print(f"hash_graine_42  = {hash_graine_42}")
+    print(f"hash_graine_999 = {hash_graine_999}")
+    print(f"différents : {hash_graine_42 != hash_graine_999}")
+
+    ticks_differents_graines_rng_differentes = hash_graine_42 != hash_graine_999
+    print(
+        f"ticks_differents_graines_rng_differentes = "
+        f"{ticks_differents_graines_rng_differentes}"
+    )
+
+    assert ticks_differents_graines_rng_differentes, (
+        "Les deux runs avec des graines rng différentes ont produit le même condensé. "
+        "Le rng n'influence pas le chemin du tick."
+    )
+
+
+# --- test_seeding.py ---
+def test_seeding_determinisme():
+    """
+    SC4 : deux runs avec la même graine rng_seed = 42 donnent
+    des populations identiques sur toutes les cellules.
+    """
+    w1 = World.from_g3(rng_seed=42)
+    w2 = World.from_g3(rng_seed=42)
+
+    assert set(w1.cells.keys()) == set(w2.cells.keys())
+
+    mismatches = [
+        cid
+        for cid in w1.cells
+        if w1.cells[cid].population != w2.cells[cid].population
+        or w1.cells[cid].food_stock_kg != w2.cells[cid].food_stock_kg
+    ]
+
+    amorçage_deterministe_valide = 0 if mismatches else 1
+    print(f"amorçage_deterministe_valide = {amorçage_deterministe_valide}")
+    print(f"cellules divergentes = {len(mismatches)}")
+
+    assert amorçage_deterministe_valide == 1, (
+        f"Amorçage non déterministe : {len(mismatches)} cellule(s) divergentes."
+    )
+
+
+# --- test_determinisme_departage_purete.py ---
 def test_determinisme_agregation_deux_passes():
     """
     SC4 — trois appels, une seule appartenance : deux fois les mêmes entrées,
@@ -76,6 +185,7 @@ def test_determinisme_agregation_deux_passes():
     assert premiere == deuxieme == inverse
 
 
+# --- test_determinisme_departage_purete.py ---
 def test_departage_egalite_plus_petit_id():
     """
     SC4/D4 — deux centres exactement équidistants d'une cellule fabriquée : la
@@ -114,6 +224,7 @@ def test_departage_egalite_plus_petit_id():
     )
 
 
+# --- test_determinisme_departage_purete.py ---
 def test_departage_egalite_est_bien_une_egalite_exacte():
     """
     SC4/D4 — le cas synthétique est bien une égalité exacte de distance, pas
@@ -134,6 +245,7 @@ def test_departage_egalite_est_bien_une_egalite_exacte():
     assert carres[0] == carres[1], "le cas synthetique n'est pas une egalite exacte"
 
 
+# --- test_determinisme_departage_purete.py ---
 def test_purete_agregation_ne_mute_pas_les_entrees():
     """
     SC4/D1 — `derive_appartenance` ne modifie aucun objet reçu et n'écrit
