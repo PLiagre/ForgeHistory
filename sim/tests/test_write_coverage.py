@@ -244,3 +244,160 @@ def test_write_coverage_counter_etendu():
     assert champs_modele_couverts_etendu == total_denominator, (
         f"Couverture étendue incomplète : {champs_modele_couverts_etendu}/{total_denominator}"
     )
+
+
+# --- Une constante que le moteur ne peut pas relire est une variable terminale ---
+
+def _constantes_consultees_par_le_moteur() -> set:
+    """
+    Dérive, de la source du moteur, l'ensemble des constantes de `sim.constants`
+    qu'il consulte. Jamais une liste écrite à la main : ajouter une constante au
+    moteur l'ajoute au dénominateur toute seule (règles 2 et 3).
+    """
+    import sim.constants as _k
+
+    numeriques = {
+        nom for nom in dir(_k)
+        if nom.isupper() and isinstance(getattr(_k, nom), (int, float))
+    }
+    tree = ast.parse(_ENGINE_FILE.read_text(encoding="utf-8"), filename=str(_ENGINE_FILE))
+    return {
+        node.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute)
+        and node.attr in numeriques
+        and not isinstance(node.ctx, ast.Store)
+    }
+
+
+class _MondeEpreuve:
+    """
+    Monde minuscule qui exerce les cinq maillons du tick en même temps :
+    une cellule riche et endettée (remboursement de dette, surplus, commerce
+    sortant), une cellule pauvre au plafond de mortalité (faim, mort, borne),
+    et une troisième voisine en équilibre.
+
+    Trois cellules plutôt que 596 : ce test répond à « le moteur voit-il cette
+    constante ? », pas à « le monde survit-il ? ». Il coûte des millisecondes.
+    """
+
+    def __init__(self):
+        from sim.model import Cell
+
+        self.cells = {
+            1: Cell(cell_id=1, area_km2=100.0, population=10,
+                    food_stock_kg=1000.0, hunger_ticks=0,
+                    food_deficit_kg=5000.0, mortality_remainder=0.0),
+            2: Cell(cell_id=2, area_km2=1.0, population=1000,
+                    food_stock_kg=0.0, hunger_ticks=0,
+                    food_deficit_kg=100000.0, mortality_remainder=0.5),
+            3: Cell(cell_id=3, area_km2=10.0, population=50,
+                    food_stock_kg=12.0, hunger_ticks=0,
+                    food_deficit_kg=0.0, mortality_remainder=0.0),
+        }
+        self.adjacency = [{"a": 1, "b": 2}, {"a": 1, "b": 3}]
+
+    def etat(self):
+        """Empreinte exacte : `repr` d'un flottant, jamais un arrondi."""
+        return [
+            (c.cell_id, c.population, repr(c.food_stock_kg), c.hunger_ticks,
+             repr(c.food_deficit_kg), repr(c.mortality_remainder))
+            for c in sorted(self.cells.values(), key=lambda c: c.cell_id)
+        ]
+
+
+def _jouer_le_monde_d_epreuve(n_ticks: int = 3) -> list:
+    import random
+
+    from sim import engine
+
+    monde = _MondeEpreuve()
+    rng = random.Random(1)
+    for _ in range(n_ticks):
+        engine.tick(monde, rng)
+    return monde.etat()
+
+
+def test_le_moteur_ne_lie_aucune_constante_par_valeur():
+    """
+    Mode de défaillance n° 3 (variable terminale) appliqué aux constantes.
+
+    Un nom lié par `from sim.constants import X` est figé au chargement du
+    module. Le remplacer en mémoire ne change alors RIEN au moteur — et un
+    test de régime croit mesurer un régime alors qu'il mesure un moteur
+    inchangé, sans qu'aucune erreur ne soit levée.
+
+    Cinq constantes sur huit étaient dans ce cas : production, consommation,
+    les deux bornes de rendement et la capacité de transport. Seules la
+    mortalité et le remboursement de la dette atteignaient le moteur, et la
+    règle qui les distinguait n'était écrite nulle part.
+
+    Ce test rougit dès qu'un `from sim.constants import ...` réapparaît dans
+    le moteur. La référence est dérivée de l'arbre syntaxique, jamais nommée.
+    """
+    tree = ast.parse(_ENGINE_FILE.read_text(encoding="utf-8"), filename=str(_ENGINE_FILE))
+    liees_par_valeur = sorted(
+        alias.asname or alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module == "sim.constants"
+        for alias in node.names
+    )
+    print(f"constantes_liees_par_valeur = {len(liees_par_valeur)} {liees_par_valeur}")
+    assert not liees_par_valeur, (
+        "sim/engine.py lie des constantes par valeur : "
+        f"{liees_par_valeur}. Les remplacer en mémoire n'atteindrait pas le "
+        "moteur. Lire par le module : `_constantes.X`."
+    )
+
+
+def test_chaque_constante_du_moteur_change_le_monde():
+    """
+    La présence n'est pas la fonction (règle 7) : lire par le module ne suffit
+    pas à prouver que la lecture sert. Chaque constante que le moteur consulte
+    est remplacée en mémoire, et le monde d'épreuve doit en sortir différent.
+
+    Le balayage essaie plusieurs facteurs, à la hausse ET à la baisse : une
+    constante qui est une borne (`min(1.0, ratio)`, plafond de mortalité) ne
+    bouge que du côté où la borne cesse de mordre. Un seul facteur à la hausse
+    déclarerait ces bornes inertes à tort.
+
+    Portée exacte, dite ici pour que personne ne s'y trompe : le dénominateur
+    est dérivé de ce que le moteur consulte. Une constante que le moteur
+    CESSE de lire sort donc du dénominateur au lieu de faire rougir — ce
+    contrôle-là est `test_aucune_constante_terminale`, dont le dénominateur
+    est l'ensemble des constantes déclarées.
+    """
+    import sim.constants as _k
+
+    # Assez larges pour franchir une borne dans un sens comme dans l'autre.
+    facteurs = (0.1, 3.0, 1e6)
+
+    consultees = _constantes_consultees_par_le_moteur()
+    assert consultees, (
+        "Aucune constante consultée n'a pu être dérivée de sim/engine.py. "
+        "Un échantillon vide doit ÉCHOUER, jamais passer en silence (règle 6)."
+    )
+
+    reference = _jouer_le_monde_d_epreuve()
+    inertes = []
+    for nom in sorted(consultees):
+        nominal = getattr(_k, nom)
+        bouge = False
+        for facteur in facteurs:
+            setattr(_k, nom, nominal * facteur if nominal else facteur)
+            try:
+                if _jouer_le_monde_d_epreuve() != reference:
+                    bouge = True
+                    break
+            finally:
+                setattr(_k, nom, nominal)
+        if not bouge:
+            inertes.append(nom)
+
+    print(f"constantes_du_moteur_atteignables = "
+          f"{len(consultees) - len(inertes)} / {len(consultees)}")
+    assert not inertes, (
+        "Remplacer ces constantes en mémoire ne change rien au monde "
+        f"d'épreuve : {inertes}. Soit le moteur ne les relit pas, soit "
+        "plus personne ne s'en sert."
+    )
