@@ -39,6 +39,11 @@ Le processus complet :
 > passent et la porte mécanique vérifie le compte-rendu → le propriétaire
 > fusionne.
 
+Le déroulé pas à pas, avec les commandes exactes de chaque étape :
+[`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md). Ce fichier-ci dit les
+**règles** ; celui-là dit **la marche à suivre**. Aucun des deux ne
+paraphrase l'autre.
+
 **Celui qui produit ne prononce pas la recevabilité de son propre travail.**
 C'est la seule règle de rôle qui subsiste, et elle ne se contourne pas.
 

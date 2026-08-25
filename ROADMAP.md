@@ -63,6 +63,9 @@ après le dégraissage (ADR-0018) :
 Règle de fond conservée : celui qui produit ne prononce pas la recevabilité
 de son propre travail.
 
+Le déroulé d'un lot, étape par étape et commande par commande, est dans
+[`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
+
 Il ne reste que deux workflows GitHub : les tests, et le scan de sécurité.
 Il n'y a plus de pipeline full-auto, plus de bot de fusion, plus de machine
 d'états d'audit.
