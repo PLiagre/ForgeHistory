@@ -20,7 +20,16 @@ effort = "high"
 [classification]
 # R0 est volontairement étroit : ces chemins ne peuvent rester R0 que si
 # tous les fichiers du lot correspondent à cette liste et à aucune règle R2.
+# R0 = aucun agent : ni planificateur, ni exécutant, ni relecteur. Réservé
+# à ce qui ne peut casser ni le jeu, ni les règles, ni le pilotage.
+#
+# Un lot n'est R0 que si TOUS ses fichiers correspondent à cette liste ET
+# qu'aucun ne touche `r2_paths` — la règle R2 gagne toujours. C'est ce qui
+# protège `docs/adr/**`, `CLAUDE.md`, `VISION.md` et `ROADMAP.md`, tous
+# listés en R2 : ils restent au niveau le plus élevé même si un motif
+# ci-dessous semble les couvrir.
 r0_allowlist = [
+  "docs/*.md",
   "docs/operations/*.md",
   "docs/research/*.md",
 ]
@@ -34,12 +43,11 @@ r2_paths = [
   "control-plane/**",
   "hermes/**",
   "harness/**",
+  "AGENTS.md",
   "CLAUDE.md",
   "VISION.md",
   "ROADMAP.md",
-  "HANDOFF.md",
   "docs/adr/**",
-  "docs/rules/**",
   "data/**",
   "tools/map/sources.lock",
   "tools/map/data/**",
