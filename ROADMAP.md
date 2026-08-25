@@ -36,7 +36,8 @@ après le dégraissage (ADR-0018) :
   `v0a-2`. Le tick **ne joue encore aucune des trois couches** (relief,
   climat, gisements) : le snapshot le dit lui-même, couche par couche.
 - `viewer/` : regard mince, preuve SVG.
-- Unity : archivé sous le tag `archive/2026-08`.
+- Unity : archivé, au commit `da1596d` (le tag `archive/2026-08` n'a
+  jamais pu être poussé — voir `AGENTS.md` § « Les archives »).
 
 ## Le projet — phases F
 
@@ -74,9 +75,11 @@ d'états d'audit.
 
 1. **Produit :** faire jouer le relief par le tick — le rendement d'une
    cellule de montagne n'est pas celui d'une plaine. C'est le premier lot
-   qui rend la carte vivante plutôt que décorative. Il demande d'abord
-   d'écrire le modèle (`sim/MODELE.md`), parce qu'il change l'équilibre de
-   survie et donc le modèle analytique qu'un test compare.
+   qui rend la carte vivante plutôt que décorative. Il se fait à un seul
+   endroit, `production_kg()` dans `sim/engine.py` : le plafond physique de
+   survie appelle la même fonction et suit tout seul, donc les tests de
+   survie n'ont pas à changer. Déroulé complet dans
+   [`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
 2. **Puis :** les gisements consommés par l'économie.
 3. **Hermes :** cron quotidien de lecture et de mesure ; une proposition
    seulement s'il y a un constat nouveau.
@@ -106,3 +109,4 @@ d'états d'audit.
 | 2026-08-23 | cursor-cloud (décision propriétaire — ADR-0017) | Grok 4.6 planifie et juge la PR finale ; Composer 2.5 code ; Claude Opus 5 témoin rare ; `forgepilot merge` si PASS + checks verts. Hermes principal : `openai/gpt-5.4`. |
 | 2026-08-23 | hermes (correction factuelle après #130 et preuve VPS) | cache Copernicus complet vérifié `1110/1110` ; preuve Europe G6 verte et déterministe. Le relief est calculé mais reste `not_consumed` par `sim/`. Le prochain pas unique reste le brief 026. |
 | 2026-08-25 | claude (correction factuelle, ADR-0018) | dégraissage : trois acteurs, carte figée, phases F et prochaines étapes réécrites sur l'état réel |
+| 2026-08-25 | claude (**correction factuelle uniquement**, aucune décision nouvelle) | deux affirmations devenues fausses : le tag `archive/2026-08` n'existe pas sur `origin` (403 au push, deux sessions) — le commit `da1596d` le remplace ; et le prochain lot ne demande plus de re-dériver un modèle analytique de survie, celui-ci ayant été retiré au profit de trois propriétés mesurées. Renvoi ajouté vers `docs/MODE-EMPLOI.md`. |
