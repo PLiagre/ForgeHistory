@@ -692,3 +692,164 @@ def test_la_survie_repond_a_la_nourriture(monkeypatch):
         f"({s_nominal:.6f} contre {s_maigre:.6f}). Soit le moteur ne relit "
         "pas la constante, soit la nourriture ne décide plus de rien."
     )
+
+
+# --- brief 036 : natalité ---
+
+import math
+
+
+def _cellule_rassasiee_productive(population: int, area_km2: float = 50.0) -> tuple[World, int]:
+    """Micro-monde d'une cellule auto-suffisante en nourriture."""
+    besoin = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    cell = Cell(
+        cell_id=1,
+        area_km2=area_km2,
+        population=population,
+        food_stock_kg=besoin * 10,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        mortality_remainder=0.0,
+        natalite_remainder=0.0,
+    )
+    return World(cells={1: cell}, adjacency=[]), population
+
+
+def test_cellule_rassasiee_gagne_habitants():
+    """
+    SC1 — Une cellule rassasiée sans dette voit sa population croître en au
+    plus ceil(1 / (population × taux)) ticks rassasiés.
+    """
+    population = 100
+    world, pop_init = _cellule_rassasiee_productive(population)
+    rate = constantes.naissances_par_habitant_par_tick()
+    borne = math.ceil(1.0 / (rate * population))
+    rng = random.Random(42)
+    for _ in range(borne):
+        tick(world, rng)
+    pop_fin = world.cells[1].population
+    print(f"population initiale = {pop_init}, finale = {pop_fin}, borne = {borne}")
+    assert pop_fin > pop_init, (
+        f"La cellule rassasiée n'a gagné aucun habitant en {borne} ticks."
+    )
+
+
+def test_cellule_affamee_ne_gagne_pas_habitants():
+    """
+    SC2 — En pénurie (consommation > stock), population et natalite_remainder
+    n'augmentent jamais sur le même horizon.
+    """
+    population = 50
+    cell = Cell(
+        cell_id=1,
+        area_km2=0.0,
+        population=population,
+        food_stock_kg=0.0,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        mortality_remainder=0.0,
+        natalite_remainder=0.0,
+    )
+    world = World(cells={1: cell}, adjacency=[])
+    rate = constantes.naissances_par_habitant_par_tick()
+    horizon = math.ceil(1.0 / rate)
+    rng = random.Random(0)
+    pop_max = population
+    remainder_max = cell.natalite_remainder
+    for _ in range(horizon):
+        tick(world, rng)
+        c = world.cells[1]
+        pop_max = max(pop_max, c.population)
+        remainder_max = max(remainder_max, c.natalite_remainder)
+    print(
+        f"pop_max = {pop_max}, remainder_max = {remainder_max}, "
+        f"horizon = {horizon}"
+    )
+    assert pop_max == population, (
+        f"La population a augmenté en pénurie : max={pop_max}, départ={population}."
+    )
+    assert remainder_max == cell.natalite_remainder, (
+        "natalite_remainder a progressé alors que la cellule était affamée."
+    )
+
+
+def test_petite_cellule_finalement_gagne_un_habitant():
+    """
+    SC3 — population × taux < 1 : un habitant en au plus
+    ceil(1 / (population × taux)) ticks rassasiés.
+    """
+    population = 5
+    world, pop_init = _cellule_rassasiee_productive(population)
+    rate = constantes.naissances_par_habitant_par_tick()
+    borne = math.ceil(1.0 / (rate * population))
+    rng = random.Random(42)
+    for _ in range(borne):
+        tick(world, rng)
+    pop_fin = world.cells[1].population
+    print(f"petite cellule : initiale = {pop_init}, finale = {pop_fin}, borne = {borne}")
+    assert pop_fin > pop_init, (
+        f"Stérilité par arrondi : {pop_init} habitants après {borne} ticks rassasiés."
+    )
+
+
+def test_natalite_remainder_sentinelle_et_amorcage():
+    """
+    SC4 — Sentinelle -1.0 sur Cell() ; 0.0 sur cellule d'un World.charger().
+    """
+    cell_vierge = Cell(cell_id=1, area_km2=1.0, population=10)
+    assert cell_vierge.natalite_remainder == -1.0
+    world = World.charger(rng_seed=0)
+    cell_amorcee = next(iter(world.cells.values()))
+    assert cell_amorcee.natalite_remainder == 0.0
+    print(
+        f"vierge = {cell_vierge.natalite_remainder}, "
+        f"amorcée = {cell_amorcee.natalite_remainder}"
+    )
+
+
+def test_le_monde_ne_nourrit_pas_plus_a_horizon_allonge():
+    """
+    SC5 — Même plafond dérivé à cinq fois l'horizon de N_TICKS_OBSERVES.
+    """
+    horizon = N_TICKS_OBSERVES * 5
+    fraction, monde, pop_initiale = _observer_le_monde(n_ticks=horizon)
+    production_moyenne = production_moyenne_kg_par_tick(monde)
+    ration_du_monde = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * pop_initiale
+    plafond = production_moyenne / ration_du_monde
+    print(f"horizon = {horizon}, plafond = {plafond:.6f}, fraction = {fraction:.6f}")
+    assert fraction > 0.0
+    assert fraction <= plafond
+
+
+def test_la_demographie_repond_a_la_natalite(monkeypatch):
+    """
+    SC6 — fraction_survie(taux_nul) < fraction_survie(taux_nominal)
+    < fraction_survie(taux_double).
+    """
+    nominal = constantes.NAISSANCES_PAR_HABITANT_PAR_TICK
+
+    def _regime(facteur: float) -> float:
+        monkeypatch.setattr(
+            constantes, "NAISSANCES_PAR_HABITANT_PAR_TICK", nominal * facteur
+        )
+        try:
+            fraction, _, _ = _observer_le_monde()
+        finally:
+            monkeypatch.setattr(
+                constantes, "NAISSANCES_PAR_HABITANT_PAR_TICK", nominal
+            )
+        return fraction
+
+    s_nul = _regime(0.0)
+    s_nominal = _regime(1.0)
+    s_double = _regime(2.0)
+
+    print(f"taux nul : {s_nul:.6f}")
+    print(f"taux nominal : {s_nominal:.6f}")
+    print(f"taux double : {s_double:.6f}")
+
+    assert constantes.NAISSANCES_PAR_HABITANT_PAR_TICK == nominal
+    assert s_nul < s_nominal < s_double, (
+        f"La démographie ne répond pas au taux de natalité : "
+        f"{s_nul:.6f} / {s_nominal:.6f} / {s_double:.6f}."
+    )

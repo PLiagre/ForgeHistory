@@ -14,6 +14,9 @@ Chaîne causale (brief 013) :
     _apply_mortality   → mortalité proportionnelle à food_deficit_kg,
                          sans plancher max(1, …) — SC4 brief 013 —
                          avec report de la fraction de mort (SC3 brief 017)
+    _apply_natalite    → natalité sur cellules rassasiées sans dette,
+                         formule inverse de la mortalité avec report
+                         de fraction (brief 036)
 
 Règle SC9 : aucun littéral numérique non nommé dans les fonctions de calcul.
 Toutes les constantes paramétriques sont dans sim/constants.py.
@@ -360,6 +363,19 @@ def _apply_mortality(cell: Cell) -> None:
         cell.mortality_remainder = remainder
 
 
+def _apply_natalite(cell: Cell, penurie_kg: float) -> None:
+    remainder = cell.natalite_remainder if cell.natalite_remainder >= 0.0 else 0.0
+
+    if penurie_kg == 0.0 and cell.food_deficit_kg == 0.0 and cell.population > 0:
+        rate = _constantes.naissances_par_habitant_par_tick()
+        raw = cell.population * rate + remainder
+        births = int(raw)
+        cell.natalite_remainder = raw - births
+        cell.population += births
+    else:
+        cell.natalite_remainder = remainder
+
+
 def tick(world, rng: random.Random) -> float:
     """
     Avance le monde d'un pas de temps.
@@ -370,6 +386,7 @@ def tick(world, rng: random.Random) -> float:
         3. Consommation (_apply_consumption) — pour chaque cellule
         4. Faim        (_update_hunger)      — pour chaque cellule
         5. Mortalité   (_apply_mortality)    — pour chaque cellule
+        6. Natalité    (_apply_natalite)     — pour chaque cellule
 
     rng : instance de random.Random initialisée par l'appelant —
           jamais d'aléa global non contrôlé.
@@ -388,5 +405,6 @@ def tick(world, rng: random.Random) -> float:
         penurie_kg = _apply_consumption(cell)
         _update_hunger(cell, penurie_kg)
         _apply_mortality(cell)
+        _apply_natalite(cell, penurie_kg)
 
     return total_transported[0]

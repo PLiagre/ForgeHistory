@@ -112,6 +112,7 @@ class World:
                 # Monde amorcé : aucune fraction de mort en attente.
                 # La sentinelle -1.0 signifie « non calculé », jamais « nul ».
                 mortality_remainder=0.0,
+                natalite_remainder=0.0,
             )
             cells[cid] = cell
 
@@ -133,6 +134,7 @@ class World:
                     "hunger_ticks": c.hunger_ticks,
                     "food_deficit_kg": c.food_deficit_kg,
                     "mortality_remainder": c.mortality_remainder,
+                    "natalite_remainder": c.natalite_remainder,
                 }
                 for cid, c in sorted(self.cells.items())
             }

@@ -57,6 +57,12 @@ class Cell(_NoBadSpatialField):
                            habitant : une petite cellule devient immortelle
                            par arrondi.
                            Sentinelle -1 = non calculé (hard-won rule 8).
+        natalite_remainder : partie fractionnaire de naissance non encore
+                           appliquée, reportée au tick suivant (SC3 brief 036).
+                           Sans ce report, int(population x taux) vaut zero
+                           des que le produit est inferieur a un : une petite
+                           cellule reste sterile par arrondi.
+                           Sentinelle -1 = non calculé (hard-won rule 8).
     """
 
     cell_id: int
@@ -66,3 +72,4 @@ class Cell(_NoBadSpatialField):
     hunger_ticks: int = field(default=-1)
     food_deficit_kg: float = field(default=-1.0)
     mortality_remainder: float = field(default=-1.0)
+    natalite_remainder: float = field(default=-1.0)
