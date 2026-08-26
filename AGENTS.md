@@ -162,6 +162,7 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
 | `harness/` | la porte mécanique, et rien d'autre. Voir `harness/README.md`. |
 | `hermes/` | le pilotage : propositions, demandes, rapports, crons, tableau de bord. |
 | `control-plane/` | ForgePilot — l'outil qui lance un lot chez Cursor. |
+| `docs/operations/pc-windows-worker.md` | contrat du worker PC (ADR-0020) : présence GitHub, pas un second chef. |
 | `docs/adr/` | une décision structurelle = un ADR daté. **ADR-0018 est le point d'entrée**, amendé sur un point par ADR-0019 : qui écrit le brief. |
 
 ## Les archives
@@ -197,6 +198,7 @@ python harness/verdict_audit.py <brief>  # la porte, sur un lot
 python tools/map/build_world.py          # refaire la carte figée
 python hermes/dashboard.py               # régénérer le tableau de bord
 cd control-plane && python -m unittest discover -s tests   # ForgePilot
+.venv/bin/forgepilot workers --repo .    # constat du worker PC (ADR-0020)
 ```
 
 ## Notes d'environnement (VM Linux Cursor Cloud)

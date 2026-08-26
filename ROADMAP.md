@@ -73,9 +73,9 @@ de son propre travail.
 Le déroulé d'un lot, étape par étape et commande par commande, est dans
 [`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
 
-Il ne reste que deux workflows GitHub : les tests, et le scan de sécurité.
-Il n'y a plus de pipeline full-auto, plus de bot de fusion, plus de machine
-d'états d'audit.
+Trois workflows GitHub : les tests, le scan de sécurité, et le ping du
+worker PC (`workflow_dispatch` seulement, ADR-0020). Il n'y a plus de
+pipeline full-auto, plus de bot de fusion, plus de machine d'états d'audit.
 
 ## Prochaines étapes (dans l'ordre)
 
@@ -152,3 +152,4 @@ seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
 | 2026-08-25 | claude (correction factuelle, ADR-0018) | dégraissage : trois acteurs, carte figée, phases F et prochaines étapes réécrites sur l'état réel |
 | 2026-08-25 | claude (**correction factuelle uniquement**, aucune décision nouvelle) | deux affirmations devenues fausses : le tag `archive/2026-08` n'existe pas sur `origin` (403 au push, deux sessions) — le commit `da1596d` le remplace ; et le prochain lot ne demande plus de re-dériver un modèle analytique de survie, celui-ci ayant été retiré au profit de trois propriétés mesurées. Renvoi ajouté vers `docs/MODE-EMPLOI.md`. |
 | 2026-08-26 | claude (décision propriétaire du 2026-08-26 — **ADR-0019**) | Claude écrit désormais tous les briefs, Hermes pilote et cesse de rédiger. Corrections factuelles jointes : le relief est joué par le tick depuis la fusion du lot 033 (PR #137) ; onze lots écrits et listés dans « Prochaines étapes » ; et la mesure qui explique pourquoi aucun lot « ville » n'est écrit |
+| 2026-08-26 | cursor (correction factuelle, ADR-0020 proposed) | un troisième workflow GitHub : ping worker PC en `workflow_dispatch` seulement ; ce n'est pas le retour du full-auto |

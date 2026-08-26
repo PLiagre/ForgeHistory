@@ -21,6 +21,7 @@
 | [0017](0017-grok-juge-claude-temoin-fusion-mecanique.md) | Grok juge la PR, Claude Opus 5 témoin rare, fusion mécanique | accepted | 2026-08-23 |
 | [0018](0018-degraissage-trois-acteurs-et-carte-figee.md) | Le dégraissage — trois acteurs, carte figée, vraisemblable plutôt que véridique | accepted | 2026-08-25 |
 | [0019](0019-claude-ecrit-les-briefs-hermes-pilote.md) | Claude écrit les briefs, Hermes pilote — amende ADR-0018 § 1 | accepted | 2026-08-26 |
+| [0020](0020-pc-worker-opportuniste.md) | Le PC Windows est un worker opportuniste (GitHub Actions), pas un second chef | proposed | 2026-08-26 |
 
 ## Lecture
 
@@ -30,6 +31,9 @@ qui vaut.
 
 **ADR-0019 amende ADR-0018 sur un seul point** : le `brief.md` est écrit par
 Claude, pas par Hermes. Partout ailleurs, ADR-0018 reste tel quel.
+
+**ADR-0020** (proposed) amende ADR-0013 sur le worker Windows seulement :
+il ne change ni les trois acteurs ni la fusion.
 
 Les ADR périmés par le dégraissage — parce qu'ils décrivent un code ou une
 organisation qui n'existent plus — sont conservés comme mémoire du projet,
@@ -48,4 +52,5 @@ mais ne sont plus à lire au démarrage :
 
 Restent pleinement en vigueur : **ADR-0003** (la cellule est la clé spatiale
 unique, la province est dérivée), **ADR-0004** (l'origine du code Unity, en
-veille), **ADR-0018** et **ADR-0019**.
+veille), **ADR-0018** et **ADR-0019**. **ADR-0020** (proposed) s'y ajoute
+pour le PC worker, sans rouvrir Unity.

@@ -94,6 +94,15 @@ Un seul lot à la fois. Critères mesurables, sinon tu t’arrêtes.
 - **Unity / CityLab** — **refuse.** En veille jusqu’à décision contraire
   écrite du propriétaire.
 
+Le PC Windows est un worker opportuniste (ADR-0020), pas un second chef.
+Constater : `.venv/bin/forgepilot workers --repo <racine>` (ajouter
+`--require windows` avant une tâche machine). Code 2 = worker absent : tu
+refuses la tâche machine, tu ne dispatch pas, le VPS continue. Un constat
+vert n'est pas un ordre d'exécuter : ensuite seulement
+`gh workflow run worker-pc.yml -f tache=ping`. Hermes Desktop, depuis le
+PC, pointe vers **ce** VPS. Le profil local de Desktop n'est pas chef : il
+n'écrit ni `ROADMAP.md` ni brief.
+
 S'il n'y a pas de brief, **tu le demandes à Claude** (ADR-0019). Tu ne
 l'écris pas, même partiellement, même « pour gagner du temps ».
 
@@ -412,9 +421,10 @@ trois lectures produit une synthèse molle.
 - Les prochains lots sont **écrits et en file** sous
   `harness/queue/briefs/`. `ROADMAP.md` § « Prochaines étapes » donne
   l'ordre et les dépendances ; le `brief.md` de chacun dit quoi faire.
-- Il ne reste que deux workflows GitHub : les tests et le scan de sécurité.
-  Le pipeline full-auto n'existe plus (ADR-0018) ; le rétablir demande une
-  décision écrite nouvelle, pas une réactivation.
+- Trois workflows GitHub : les tests, le scan de sécurité, et le ping
+  worker PC (`workflow_dispatch` seulement, ADR-0020). Le pipeline
+  full-auto n'existe plus (ADR-0018) ; le rétablir demande une décision
+  écrite nouvelle, pas une réactivation.
 - Ne recopie aucun numéro de version de schéma, aucun compteur mesuré et
   aucun nom de modèle dans ce fichier. Ils vieillissent, et ce fichier est lu
   au démarrage de chaque session (règle 12).
