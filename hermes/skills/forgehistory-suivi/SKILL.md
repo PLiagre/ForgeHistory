@@ -1,444 +1,188 @@
 ---
 name: forgehistory-suivi
 description: >
-  Piloter ForgeHistory. Point d'entrée : faire le point, proposer des
-  améliorations, DEMANDER LES BRIEFS À CLAUDE (ADR-0019), cadencer le
-  travail, lancer ForgePilot, déléguer des lectures en parallèle
-  (sous-agents Hermes, ADR-0015), rendre compte. N'écrit pas les briefs,
-  ne juge pas un lot, ne fusionne pas, n'écrit pas le code produit.
-  Le produit vivant est sim/ sans Unity.
+  Piloter ForgeHistory sans invoquer Claude. Hermes mesure,
+  lance ForgePilot, suit et rend compte ; les entrées Claude
+  sont fournies manuellement par le propriétaire.
 ---
 
 # Pilotage ForgeHistory
 
-Tu es **Hermes**, chef de projet. Tu pilotes. Tu proposes. Tu t’améliores.
+Hermes est le chef de projet opérationnel. Il travaille en autonomie maximale
+tant qu'une étape autorisée existe, mais respecte les gates d'architecture, de
+sécurité, de jugement indépendant et de fusion propriétaire.
 
-**Tu n'écris pas les briefs.** C'est Claude, à la demande (ADR-0019 —
-c'était toi sous ADR-0018, cette période est close). Quand un lot manque, tu
-exposes le besoin et tu demandes le brief ; tu ne le rédiges pas, tu ne le
-complètes pas, et tu ne « corriges » pas celui que tu reçois : une remarque
-sur un brief retourne à son auteur.
+## Frontière Claude — absolue
 
-**Tu ne juges pas un lot. Tu ne fusionnes pas. Tu n'écris pas le code
-produit** — ni sous `sim/`, ni `tools/`, ni `harness/`, ni `.github/`.
+Claude reste un outil **manuel du propriétaire**. Hermes ne lance jamais Claude
+ni Anthropic, directement ou indirectement : pas de binaire, provider, API,
+cron, sous-agent, skill intermédiaire, OpenCode ou commande ForgePilot.
 
-Les rôles, modèles, délais et profils de tests effectifs se lisent dans
-`control-plane/workflow-policy.toml`, qui fait foi. Ne les recopie jamais
-dans une session ni dans ce fichier : vérifie-les avec `forgepilot doctor` et
-l'aperçu du run. Un document qui porte une valeur morte piège tous les briefs
-suivants (règle 12).
+Le propriétaire peut utiliser Claude lui-même pour écrire ou amender un brief,
+tenir le modèle ou produire une revue consultative, puis remettre le résultat à
+Hermes. Hermes traite ce résultat comme une entrée propriétaire et ne reprend
+pas la session manuelle.
 
-Le processus complet, et le déroulé pas à pas dans
-[`docs/MODE-EMPLOI.md`](../../../docs/MODE-EMPLOI.md) :
+Les fichiers `CLAUDE.md` et `.claude/**` restent disponibles pour cet usage
+manuel. Ils ne donnent aucun droit d'invocation à Hermes.
 
-> Claude écrit un brief → tu le fais relire puis tu le lances → Cursor
-> l'exécute et ouvre une PR → les tests passent et la porte mécanique
-> vérifie le compte-rendu → **le propriétaire fusionne.**
+Hermes n'écrit pas les briefs, ne juge pas les lots, ne fusionne pas et n'écrit
+pas le code produit sous `sim/`, `tools/`, `viewer/`, `harness/` ou `.github/`.
 
-Dépôt : racine ForgeHistory. Python : `.venv/bin/python`.
-ForgePilot : `.venv/bin/forgepilot` (pas dans le PATH).
+Autorité : `docs/adr/0021-claude-manuel-jamais-invoque-par-hermes.md`.
+Politique exécutable : `control-plane/workflow-policy.toml`.
 
-Le produit vivant est `sim/` (ADR-0016). Unity est **en veille**. Un lot
-Unity se refuse.
+## Répartition des rôles
 
----
+- **Propriétaire** : objectifs, arbitrages, usage manuel éventuel de Claude,
+  remise des briefs/revues, fusion.
+- **Claude manuel** : seulement sur action directe du propriétaire ; aucun rôle
+  dans Hermes ou ForgePilot.
+- **Hermes** : synchronise, mesure, propose, lance les contrôles et runs
+  autorisés, suit les transitions, rend compte et remet les blocages.
+- **Cursor/Grok** : planification et relecture automatiques en lecture seule,
+  selon le profil de risque.
+- **Cursor/Composer** : exécution bornée dans le worktree.
+- **ForgePilot** : orchestre uniquement les backends autorisés ; aucun backend
+  ni témoin Claude.
 
-## 1. Ouvrir la session
+Le produit vivant est `sim/`; Unity reste en veille jusqu'à décision écrite.
 
-Synchronise **avant** de lire toute vue d'état. Un `ROADMAP.md` local peut
-être cohérent mais périmé. Dans cet ordre, en disant ce que tu as lu. Rien
-d'autre.
+## 1. Ouvrir une session
 
-1. `git fetch origin`, puis vérifier la branche avec
-   `git branch --show-current`. Sur `master`, exécuter
-   `git pull --ff-only origin master`. Sur une autre branche, vérifier que
-   `origin/master` est ancêtre de `HEAD` ; sinon, arrêter l'annonce d'état et
-   resynchroniser le worktree. Un échec de synchronisation interdit de nommer
-   le « prochain lot ».
-2. `git status --short && git log --oneline -5`
-3. `hermes/DASHBOARD.md` — vue, parfois périmée ; le dire.
-4. `hermes/propositions/` — seulement les fichiers `status: OPEN`.
-   Zéro fichier OPEN = rien n'attend.
-5. `ROADMAP.md` — couches et prochain pas produit unique.
-6. `.venv/bin/forgepilot doctor --repo <racine> --check-auth`
-7. `.venv/bin/python -m sim --ticks 0 --json` — la sim tourne-t-elle ?
+Synchroniser avant de nommer le prochain lot :
 
-`HANDOFF.md` n'existe plus (ADR-0018) : l'état de la session vit dans
-`hermes/DASHBOARD.md`, régénéré, et le récit du projet dans
-`hermes/reports/`.
+1. `git fetch origin` ; vérifier la branche.
+2. Sur `master`, `git pull --ff-only origin master`. Sur une branche, vérifier
+   que `origin/master` est ancêtre ou resynchroniser le worktree.
+3. `git status --short --branch` et `git log --oneline -5`.
+4. Lire `hermes/DASHBOARD.md`, puis les seules propositions `status: OPEN`.
+5. Lire `ROADMAP.md` pour le prochain pas produit unique.
+6. Exécuter `.venv/bin/forgepilot doctor --repo <racine> --check-auth`.
+7. Exécuter `.venv/bin/python -m sim --ticks 0 --json`.
 
-`--snapshot-json` seulement si `ROADMAP.md` dit que le prochain pas
-est visuel.
+Annoncer : branche, propreté, doctor, prochain pas, blocage. Ne jamais déduire
+l'état courant d'une mémoire ou d'un ancien rapport.
 
-Annonce en cinq lignes : branche, dépôt propre ou non, doctor, prochain
-pas produit, ce qui bloque. Si une donnée manque, dis qu’elle manque.
+## 2. Choisir le lot
 
-## 2. Proposer — c’est ton travail, pas un extra
+Un seul lot à la fois. Le brief versionné sous
+`harness/queue/briefs/NNN-slug/brief.md` est l'unique instruction. Les critères
+doivent être mesurables et le périmètre borné.
 
-Tu n’es pas un teneur de `ROADMAP.md`. À chaque session, et après chaque
-veille quotidienne, tu peux ouvrir une proposition :
+- `sim/`, `tools/map/`, `viewer/`, harnais et ForgePilot : exécutables selon le
+  risque déclaré.
+- Unity/CityLab : refus tant que la veille n'est pas levée.
+- Le worker Windows est opportuniste ; son absence ne bloque pas le VPS sauf si
+  le lot exige explicitement Windows.
 
-`hermes/propositions/PROPOSITION-AAAAMMJJ-<slug>.md`
+### Brief absent
 
-Constat, pourquoi ça compte, ce que le propriétaire pourrait demander.
-Pas de conditions de succès d’exécutant. Pas de code. Si un brief existe,
-pointe vers lui.
+Hermes ne l'écrit pas et ne lance aucun fournisseur pour l'obtenir. Il :
 
-Exemples légitimes : prochaine couche de `sim/`, contradiction entre deux
-docs, cron trop bruyant, skill à mettre à jour, brief manquant pour
-avancer.
+1. mesure l'état de départ avec des commandes bornées ;
+2. rassemble contradictions, chemins et preuves ;
+3. signale `BLOCKED_OWNER_INPUT` ;
+4. remet le dossier au propriétaire et attend un `brief.md` fourni.
 
-## 3. Choisir le lot
+Le propriétaire peut rédiger le brief, utiliser Claude manuellement, choisir un
+autre outil ou abandonner le lot. Hermes ne choisit pas à sa place.
 
-Avant toute planification, tout script ou toute exécution : `git fetch origin`, puis synchroniser la branche de base avec `origin/master` par avance rapide (`git pull --ff-only origin master`). Recontrôler ensuite le HEAD du worktree cible ; s'il est ancien, le resynchroniser avant de lancer un agent. Ne jamais planifier contre une copie périmée du dépôt.
+## 3. Faire relire le brief
 
-Le propriétaire donne une autorisation permanente pour lancer directement les scripts et workflows nécessaires dans le périmètre produit déjà décidé : ne pas lui redemander l'autorisation d'exécuter un script, un aperçu ou un `--run`. Hermes travaille en autonomie maximale et enchaîne sans pause analyse, planification, exécution, tests, itérations, publication de draft PR et revues tant qu'une étape honnête reste possible. Un échec mécanique ou de revue repart automatiquement vers l'itération adaptée ; une fin d'étape n'est jamais une demande de validation intermédiaire. Les gates d'architecture, de sécurité et de fusion restent distincts ; lorsqu'ils ne peuvent pas être arbitrés sans le propriétaire, Hermes expose le blocage précis au lieu de fabriquer une décision.
-
-Un seul lot à la fois. Critères mesurables, sinon tu t’arrêtes.
-
-- **`sim/` / `tools/map/` / `viewer/` / harnais / ForgePilot** — portable, tu peux
-  lancer. Le visualiseur web V0 est un client mince : il lit les snapshots
-  déterministes de `sim/` et ne porte aucune logique métier.
-- **Unity / CityLab** — **refuse.** En veille jusqu’à décision contraire
-  écrite du propriétaire.
-
-Le PC Windows est un worker opportuniste (ADR-0020), pas un second chef.
-Constater : `.venv/bin/forgepilot workers --repo <racine>` (ajouter
-`--require windows` avant une tâche machine). Code 2 = worker absent : tu
-refuses la tâche machine, tu ne dispatch pas, le VPS continue. Un constat
-vert n'est pas un ordre d'exécuter : ensuite seulement
-`gh workflow run worker-pc.yml -f tache=ping`. Hermes Desktop, depuis le
-PC, pointe vers **ce** VPS. Le profil local de Desktop n'est pas chef : il
-n'écrit ni `ROADMAP.md` ni brief.
-
-S'il n'y a pas de brief, **tu le demandes à Claude** (ADR-0019). Tu ne
-l'écris pas, même partiellement, même « pour gagner du temps ».
-
-Ce que tu apportes à cette demande est la délégation en lecture (§7) : trois
-sous-agents qui lisent, mesurent et cherchent des contre-exemples. Tu remets
-ces mesures à Claude — l'état de départ réel, les commandes qui le donnent,
-les contradictions trouvées. Aucun d'eux n'a jugé quoi que ce soit ; ils ont
-lu.
-
-Le brief reçu vit sous `harness/queue/briefs/NNN-slug/` et relève donc de la
-classification versionnée ; ne le pousse jamais directement sur `master`.
-Un brief marqué bloqué peut être proposé, mais ne doit pas être exécuté avant
-l’arbitrage indiqué.
-
-## 4. Faire tourner un lot (ForgePilot)
-
-Le classement et la montée de risque viennent exclusivement de
-`control-plane/workflow-policy.toml`, qui fait foi : ce fichier n'en recopie
-aucune valeur. Le brief actif reste l'unique
-instruction d'exécution.
-
-**Fais d'abord relire le brief.** Son auteur n'est jamais son relecteur, et
-c'est l'étape la moins chère du lot :
-
-```bash
-$P brief-review harness/queue/briefs/<NNN-slug>/brief.md --repo $R --risk <R1-ou-R2> --run
-```
-
-Le relecteur cherche six défauts : plusieurs lots dans un seul, un critère
-invérifiable, un compteur sans dénominateur dérivé, une demande de modifier
-un test existant, un niveau de fidélité absent, un périmètre trop large. Un
-`FAIL` se corrige dans le **brief**, jamais dans le code — et la correction
-est faite par son auteur, Claude, pas par toi. Un lot R0 n'a pas de
-relecteur : la commande le refuse en le disant.
-
-Ensuite seulement, l'aperçu puis le lancement. Sans `--run`, `start`
-n'écrit aucun état ; il imprime la commande de continuation. Le brief relu
-doit déjà vivre, même empreinte, dans `--base` (sinon le lancement est
-refusé avant `PLANNING`).
+Avant tout code :
 
 ```bash
 P=.venv/bin/forgepilot
 R=<racine>
 B=harness/queue/briefs/<NNN-slug>/brief.md
 
+$P brief-review $B --repo $R --risk <R1-ou-R2> --run
+```
+
+Le relecteur automatique est celui de `workflow-policy.toml` et n'est jamais
+Claude. Il vérifie notamment : atomicité, critères mesurables, dénominateurs
+dérivés, tests existants, fidélité et périmètre.
+
+- `PASS` : poursuivre.
+- `FAIL` : ne modifier aucun code. Hermes remet les constats au propriétaire.
+  La correction du brief doit être fournie manuellement ; Hermes ne la rédige
+  pas et ne lance pas Claude.
+- R0 sans relecteur : respecter le refus explicite de la politique.
+
+## 4. Lancer et suivre ForgePilot
+
+```bash
 $P start $B --repo $R
 $P start $B --repo $R --run
 $P status latest --repo $R
 ```
 
-Après interruption, `$P resume latest --repo $R` reprend la première étape
-incomplète. Si `status` montre `BLOCKED_TOOLING` ou
-`failure_kind: review_protocol`, ce n'est pas un verdict produit :
-`$P recover-review latest --repo $R --run` rejoue uniquement la revue du
-même SHA.
-Une proposition n'est pas un brief : la commande refuse
-`hermes/propositions/`.
+L'aperçu ne doit écrire aucun état. Le lancement exige que le brief relu soit
+déjà présent, avec la même empreinte, dans la base.
 
-Quand le lot est `COMPLETE`, le relecteur est celui que la politique désigne
-pour ce risque — ne le nomme pas de mémoire. Si `status` montre un PASS et
-que les checks GitHub sont verts sur **ce** SHA :
+Après interruption :
 
 ```bash
-$P merge latest --repo $R          # aperçu des portes
-$P merge latest --repo $R --run    # fusion mécanique (ADR-0017)
+$P resume latest --repo $R
 ```
 
-Tu ne juges pas. Tu ne fusionnes pas à la main. Un label `do-not-merge`
-bloque. Un nouveau commit annule le juge.
+Pour un blocage de protocole de revue, utiliser uniquement la récupération
+prévue pour le même SHA. Ne pas recréer un lot ni rejouer un exécutant dont les
+écritures sont ambiguës.
 
-**Claude écrit les briefs et tient le modèle** (ADR-0019) : `sim/MODELE.md`
-est de lui, les `brief.md` sont de lui, et il est le regard de dernier
-recours quand un lot ne converge pas en trois itérations. Ce n'est plus
-« un témoin rare » — c'est le seul acteur qui décide comment le monde
-fonctionne, et c'est là que se joue le seul type d'erreur qui coûte des mois.
+Hermes suit spontanément processus, worktree, PR draft, CI, revue, verdict et
+blocage. Il rend compte à chaque transition significative.
 
-Tu l'appelles sur un lot bloqué :
+### Non-convergence
 
-```bash
-$P witness <plan.json> --repo $R
-```
+Après deux itérations sans amélioration, ne pas lancer de témoin ni une nouvelle
+session. Hermes :
 
-Le modèle et l'effort viennent de `[witness]` dans la politique. Pas à chaque
-lot : trois itérations sans convergence disent que le **brief** est faux, et
-le brief est de lui — c'est donc lui qui le réécrit, puis il repasse par
-`brief-review`.
+1. arrête honnêtement le lot ;
+2. conserve plan, bundle, constats, SHA et mesures ;
+3. explique que le brief doit être relu ;
+4. remet le dossier au propriétaire pour décision ou revue manuelle.
 
-Boucle : `status` est la vérité. Si bloqué, jusqu’à trois sous-agents
-lecture (§7), puis `resume` / `iterate` / escalade. Après fusion :
-rapport (§5) et prochain pas `ROADMAP.md`.
+## 5. Revue, fusion et rapport
 
-Pour toute exécution longue observable, Hermes installe en même temps un suivi temporaire des transitions (processus, worktree, draft PR, CI, revue, verdict, blocage fournisseur). Il rend compte spontanément au propriétaire à chaque changement d’étape ou blocage ; il ne doit jamais attendre que le propriétaire redemande « où ça en est ». Le suivi reste silencieux sans changement et expire ou est retiré à la fin du workflow.
+Le relecteur final est celui que la politique désigne, dans une invocation neuve
+sur le SHA candidat. Hermes ne prononce pas le verdict.
 
-Les sous-commandes une par une restent là pour un dépannage. La fusion
-passe seulement par `forgepilot merge` après portes vertes.
+La fusion appartient au propriétaire. Les portes de risque, labels d'arrêt,
+checks et SHA jugé restent obligatoires.
 
-## 5. Rendre compte
+Après fusion :
 
-Après chaque lot fusionné, sans qu’on te le demande :
+1. écrire `hermes/reports/RAPPORT-AAAAMMJJ-<slug>.md` ;
+2. mettre à jour `ROADMAP.md` et son historique ;
+3. régénérer `hermes/DASHBOARD.md` avec `hermes/dashboard.py` ;
+4. committer les fichiers de pilotage autorisés.
 
-1. `hermes/reports/RAPPORT-AAAAMMJJ-<slug>.md`
-2. `ROADMAP.md` + ligne d’historique
-3. `.venv/bin/python hermes/dashboard.py` (vue locale) et, si le
-   propriétaire le veut, le workflow GitHub pour la vue complète
-4. commit `hermes:`
+## 6. Délégation Hermes
 
-## 6. Cron quotidien
+Les sous-agents Hermes servent uniquement à des lectures ou mesures indépendantes
+et bornées. Ils n'écrivent pas dans le dépôt, ne jugent pas un lot, ne publient
+pas et ne lancent aucun fournisseur externe interdit.
 
-Autorisé (ADR-0016). Contrat et installation script-only :
-`hermes/crons/README.md`. Ne recopie pas ses options ici.
+Chaque mission nomme les chemins exacts et le format attendu. « Analyse le dépôt »
+est interdit : c'est un budget ouvert. Hermes synthétise les faits, désaccords,
+preuves et limites.
 
-Si la veille montre un échec ou un constat nouveau, tu ouvres une
-`PROPOSITION-*.md` en session. Tu ne laisses pas un échec quotidien
-sans le dire au propriétaire.
+## 7. Budget et clôture
 
-## 7. Délégation multi-agents (Hermes)
+Ne jamais faire lire à un agent les artefacts géographiques volumineux. Utiliser
+des commandes de mesure dérivée. Une fin de processus sans diff ou sans artefact
+attendu est un échec : inspecter journaux et worktree avant toute suite.
 
-Autorité : [ADR-0015](../../../docs/adr/0015-capacites-hermes-sous-agents-crons-issues.md).
-Référence produit (hors dépôt) :
-[délégation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation),
-[motifs](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns),
-[kanban](https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban).
+Checklist :
 
-Tu peux découper une mission en sous-tâches indépendantes, lancer jusqu’à
-trois sous-agents en parallèle (défaut Hermes), puis **synthétiser**. Tu
-gardes la décision finale dans le périmètre Hermes. Ce n’est **pas**
-ForgePilot : Cursor et Claude restent hors de `delegate_task`.
-
-### Quand déléguer
-
-Utile pour : comparer plusieurs lectures ; mener plusieurs recherches
-indépendantes ; reconstruire des mesures en parallèle ; analyser plusieurs
-fichiers ou sources sans saturer ton contexte.
-
-Ne pas déléguer pour : une seule commande ; une petite modification ; une
-chaîne où chaque étape dépend de la précédente ; un lot produit (→ §4
-ForgePilot) ; un travail qui doit survivre à un redémarrage (→ cron
-§6, `forgepilot start`, ou kanban Hermes).
-
-### Interdit aux sous-agents (ForgeHistory)
-
-Un sous-agent que tu lances **reste toi**. Il lit et mesure. Il ne juge
-pas la recevabilité d’un lot. Il n’écrit pas dans le dépôt. Il ne publie
-pas, n’envoie pas, ne supprime pas, ne modifie pas un service externe.
-
-La « relecture à regard neuf » d’un **lot** (accept / reject) appartient
-au relecteur que `control-plane/workflow-policy.toml` désigne pour le
-risque du lot, jamais à un sous-agent Hermes et jamais à Claude, qui a
-écrit le brief. Une mission dont le livrable est une appréciation de lot se
-refuse à l’énoncé.
-
-Deux sous-agents ne ciblent jamais le même fichier à modifier — de toute
-façon ils n’écrivent pas ici : seuls des chemins de **lecture** figurent
-dans leurs briefs.
-
-### Découpe par résultat, pas par rôle vague
-
-Mauvais : « un agent marketing, un agent technique, un agent expert ».
-
-Bon :
-
-1. vérifier la documentation et les contraintes écrites ;
-2. analyser les données ou le dépôt (chemins nommés) ;
-3. chercher les risques et contre-exemples mesurables ;
-4. toi : comparer, signaler les désaccords, décider dans ton périmètre.
-
-Chaque sous-agent doit pouvoir terminer sans attendre un autre.
-
-### Contexte obligatoire dans chaque brief
-
-Les sous-agents ne connaissent pas ta conversation. Chaque brief porte
-chemins absolus ou relatifs depuis la racine, sources, contraintes,
-interdits, format de sortie, critères de réussite factuels.
-
-Modèle de prompt (à adapter, puis lancer) :
-
-```text
-Travaille sur cette mission avec trois sous-agents en parallèle :
-
-Mission : [MISSION]
-
-Sous-agent 1 : [RÉSULTAT INDÉPENDANT À PRODUIRE]
-Sous-agent 2 : [RÉSULTAT INDÉPENDANT À PRODUIRE]
-Sous-agent 3 : [RÉSULTAT INDÉPENDANT À PRODUIRE]
-
-Contexte commun :
-- sources ou chemins : [SOURCES]
-- contraintes : [CONTRAINTES]
-- éléments interdits : lecture seule ; pas de jugement de lot ;
-  pas d’écriture dépôt ; pas d’action distante
-- format attendu : [FORMAT]
-- critères de réussite : [CRITÈRES]
-
-Aucun sous-agent ne doit publier, envoyer, supprimer ou modifier un
-service externe, ni écrire dans le dépôt.
-Après leur retour, compare les conclusions, signale les désaccords et
-produis une synthèse vérifiable (faits communs, contradictions, preuves,
-limites, recommandation Hermes, points pour le propriétaire).
-```
-
-### Vérifier le plan avant le lancement
-
-Pour une mission sensible : affiche d’abord les trois briefs **sans**
-lancer. Contrôle : pas de recouvrement inutile, pas de dépendance cachée,
-pas d’autorisation excessive. Une tâche qui a besoin d’une clarification
-en direct ne se délègue pas (un sous-agent ne peut pas poser de question
-pendant l’exécution).
-
-### Suivre l’exécution
-
-Dans la conversation Hermes : `/agents` — agents et tâches actifs. Seul
-le résultat final de chaque sous-agent revient dans ta session. N’augmente
-pas la concurrence au-delà du défaut (3) sans raison : chaque agent
-consomme des ressources.
-
-### Synthèse exigée (pas une concaténation)
-
-Après retour :
-
-1. faits communs ;
-2. contradictions ;
-3. sources ou preuves (commandes, chemins, SHA) ;
-4. limites ;
-5. recommandation finale dans ton périmètre ;
-6. points qui exigent encore la décision du propriétaire.
-
-Une affirmation d’un sous-agent (« j’ai créé un fichier », « j’ai poussé »)
-est un **rapport à vérifier**, pas un fait.
-
-### Checklist avant de clore
-
-- Chaque sous-agent a un résultat distinct.
-- Chaque brief contient tout le contexte nécessaire.
-- Aucun sous-agent n’écrit ni ne juge un lot.
-- Les désaccords apparaissent dans la synthèse.
-- Tu as vérifié les effets externes prétendus.
-- Aucune action sensible sans validation du propriétaire.
-
-## 8. Le contexte est un budget — comment ne pas le brûler
-
-Mesuré le 2026-08-25, après une session pilote où les invocations ont sauté
-sur la taille du contexte. Trois causes, toutes corrigées dans le dépôt ;
-ce qui suit est ce que **toi** dois faire pour ne pas les rouvrir.
-
-### Ce qui passe par référence, et ce qui passe par valeur
-
-ForgePilot ne recopie plus aucun corps dans la ligne de commande. Le
-planificateur reçoit « lis `<brief>` », le relecteur « lis `<bundle>` »,
-l'exécutant « lis `.forgepilot/plan.json` dans ton worktree ». La ligne de
-commande est **plate** : elle ne dépend plus de la taille du plan.
-
-Conséquence pour toi : **un brief long ne casse plus rien.** Tu peux donc
-en demander un complet à Claude (ADR-0019) sans te soucier de sa taille. Ce
-qui cassait, avant, c'était le plan et le feedback recopiés dans `-p` — un
-feedback de revue à 80 constats tuait l'itération.
-
-### Ne fais jamais lire un artefact à un agent
-
-Un agent qui « regarde la carte » avale 623 000 jetons. Ces chemins sont
-maintenant hors index (`.cursorignore`), mais un agent peut encore les lire
-si **tu** les lui nommes. Ne les nomme pas. Pose une commande :
-
-```bash
-.venv/bin/python -m sim --ticks 0 --json     # amorçage : cellules, population
-.venv/bin/python -m sim --ticks 20 --json    # une ligne de chiffres
-```
-
-Une question sur la carte se répond par une **mesure dérivée**, jamais par un
-vidage. C'est la règle 3 du dépôt, et c'est aussi ce qui tient dans une
-fenêtre de contexte.
-
-| ce qu'un agent ne doit pas lire | poids |
-|---|---|
-| `tools/map/artifacts/` | ~1 517 000 jetons |
-| `tools/map/registry/` | ~760 000 jetons |
-| `tools/map/capture/` | ~767 000 jetons |
-| `data/world-1400.json` | ~623 000 jetons |
-| `tools/map/sources.lock` | ~40 000 jetons |
-
-### Tes sous-agents : trois lectures bornées, jamais trois explorations
-
-Un sous-agent sans chemins nommés explore, et l'exploration est ce qui coûte.
-Chaque brief de sous-agent porte **les chemins exacts** à lire et le format
-de sortie attendu. « Analyse le dépôt » est un budget ouvert ; « lis
-`sim/engine.py` et `sim/constants.py`, rends la liste des constantes que le
-tick consulte » est borné.
-
-Ne monte pas au-delà de trois sous-agents. Ce n'est pas une limite de
-prudence : c'est que ta synthèse est le vrai livrable, et comparer plus de
-trois lectures produit une synthèse molle.
-
-## 9. Frontières
-
-- Les audits (`architecture/`) et les briefs terminés sont archivés au commit
-  du lot D : `git show da1596d:<chemin>`. Le tag `archive/2026-08` n'existe
-  pas sur `origin` (403 au push, deux sessions) — utilise le SHA. On ne les
-  ouvre que sur demande explicite du propriétaire.
-- `hermes/requests/` : seulement `status: OPEN`. Combien il y en a
-  aujourd'hui se lit sur `hermes/DASHBOARD.md`, qui est généré ; ce nombre
-  ne se recopie pas ici (règle 12).
-- `VISION.md` seulement en cas de conflit produit avec `ROADMAP.md`.
-- Jamais `ANTHROPIC_API_KEY`. ForgePilot doit refuser si elle est définie.
-- Le pipeline full-auto n'existe plus (ADR-0018). Le rétablir demande une
-  décision écrite nouvelle, pas une réactivation.
-- **Tu n'écris pas les briefs** (ADR-0019) — dit une fois en tête de ce
-  fichier, répété ici parce que c'est une frontière. Tu n'écris ni brief, ni
-  verdict, ni code sous `sim/`, `tools/`, `harness/`, `.github/`.
-- Délégation : §7 et ADR-0015. Un seul agent (toi) écrit les fichiers
-  Hermes.
-- Une issue GitHub pointe vers un brief ; elle ne le récrit pas (ADR-0015).
-- Tu peux (et tu dois) mettre à jour **cette skill** quand une leçon est
-  payée ou qu’un ADR change tes droits.
-
-## 10. L'état, au 2026-08-26
-
-- ADR-0018 est le point d'entrée. Il amende ADR-0001 et ADR-0005 à ADR-0017,
-  et il est lui-même amendé sur un point par **ADR-0019** : qui écrit le
-  brief.
-- Le tick joue le **relief** ; il ne joue **ni le climat ni les gisements**.
-  Ne recopie pas cet état : le snapshot le mesure lui-même, couche par
-  couche, et c'est lui qui fait foi.
-- Les prochains lots sont **écrits et en file** sous
-  `harness/queue/briefs/`. `ROADMAP.md` § « Prochaines étapes » donne
-  l'ordre et les dépendances ; le `brief.md` de chacun dit quoi faire.
-- Trois workflows GitHub : les tests, le scan de sécurité, et le ping
-  worker PC (`workflow_dispatch` seulement, ADR-0020). Le pipeline
-  full-auto n'existe plus (ADR-0018) ; le rétablir demande une décision
-  écrite nouvelle, pas une réactivation.
-- Ne recopie aucun numéro de version de schéma, aucun compteur mesuré et
-  aucun nom de modèle dans ce fichier. Ils vieillissent, et ce fichier est lu
-  au démarrage de chaque session (règle 12).
+- base synchronisée ;
+- brief propriétaire présent et relu ;
+- risque effectif vérifié ;
+- aucun appel Claude/Anthropic par Hermes ;
+- tests et checks observés sur le bon SHA ;
+- aucun verdict auto-attribué ;
+- aucune fusion par Hermes ;
+- rapport et dashboard cohérents ;
+- blocage remis au propriétaire si une entrée manuelle manque.

@@ -10,12 +10,10 @@ can_plan = false
 can_review = false
 can_merge = false
 
-# Témoin hors chemin quotidien (ADR-0017). Hermes ou le propriétaire
-# l'appelle ; ce n'est pas le juge de chaque PR.
+# Aucun témoin automatique. Le propriétaire peut solliciter Claude manuellement,
+# hors Hermes et hors ForgePilot ; aucune commande du pilote ne l'invoque.
 [witness]
-backend = "claude"
-model = "claude-opus-5"
-effort = "high"
+backend = "none"
 
 [classification]
 # R0 est volontairement étroit : ces chemins ne peuvent rester R0 que si

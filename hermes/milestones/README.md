@@ -1,8 +1,8 @@
 # hermes/milestones/ — les jalons d'audit (ADR-0012)
 
-Un fichier ici = une **grande étape close**. Sa fusion sur `master` est le
-seul déclencheur automatique de l'audit Cursor (puis du contre-audit Claude
-qui suit tout dépôt d'audit). La liste des étapes et leur contenu vivent
+Un fichier ici = une **grande étape close**. La boucle automatique historique
+d'audit/contre-audit est supprimée. Toute revue Claude éventuelle est lancée
+manuellement par le propriétaire, jamais par Hermes. La liste des étapes vit
 dans `ROADMAP.md` § « Grandes étapes — jalons d'audit » — ce dossier ne
 définit rien, il **constate**.
 

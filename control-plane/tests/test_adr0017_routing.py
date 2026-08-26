@@ -9,7 +9,7 @@ from unittest.mock import patch
 from forgepilot.config import load_settings
 from forgepilot.merge import assert_merge_ready
 from forgepilot.process import PilotError
-from forgepilot.workflow import grok_model_for_effort, plan_invocation, review_invocation, witness_invocation
+from forgepilot.workflow import grok_model_for_effort, plan_invocation, review_invocation
 
 
 class GrokEffortTests(unittest.TestCase):
@@ -97,22 +97,10 @@ class PolicyRoutingTests(unittest.TestCase):
         self.assertIn("Lis intégralement", prompt)
         self.assertNotIn(marker, prompt)
 
-    def test_witness_stays_claude_opus_5_high(self):
-        settings = load_settings()
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            plan = root / "plan.json"
-            plan.write_text('{"task":"x"}', encoding="utf-8")
-            bundle = root / "bundle.json"
-            bundle.write_text('{"plan":"x"}', encoding="utf-8")
-            invocation = witness_invocation(
-                settings, root, plan, "HEAD", bundle_path=bundle
-            )
-        self.assertEqual("witness", invocation.role)
-        self.assertEqual("claude", invocation.backend)
-        self.assertEqual("claude-opus-5", invocation.model)
-        self.assertEqual("high", invocation.effort)
-        self.assertEqual("claude", invocation.argv[0])
+    def test_witness_api_is_absent_and_manual_review_remains_owner_choice(self):
+        from forgepilot import workflow
+
+        self.assertFalse(hasattr(workflow, "witness_invocation"))
 
 
 class MergeGateTests(unittest.TestCase):

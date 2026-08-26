@@ -36,7 +36,6 @@ from .state import (
 from .exchange import unstage_exchange
 from .workflow import (
     Invocation,
-    assert_not_api_billing,
     assert_task_is_instruction,
     create_worktree,
     default_task_name,
@@ -197,7 +196,6 @@ def preview_start(
 ) -> dict[str, object]:
     """Aperçu de `start` : aucune écriture d'état, aucun agent."""
 
-    assert_not_api_billing()
     assert_task_is_instruction(task)
     if not task.is_file() or not task.read_text(encoding="utf-8").strip():
         raise PilotError(f"Tâche introuvable ou vide : {task}")
@@ -268,7 +266,6 @@ def register_run(
     title: str | None = None,
     allow_heavy: bool = False,
 ) -> tuple[Path, dict[str, object]]:
-    assert_not_api_billing()
     assert_task_is_instruction(task)
     if not task.is_file() or not task.read_text(encoding="utf-8").strip():
         raise PilotError(f"Tâche introuvable ou vide : {task}")
@@ -1461,16 +1458,6 @@ def _review_current_head(
             error="Le reviewer a déclaré le lot BLOCKED.",
         )
     if plateau >= 2:
-        # ADR-0018 : Claude est le regard de dernier recours quand un lot ne
-        # converge pas. Le détecteur de non-convergence existait ; la main
-        # tendue vers lui, non — le lot s'arrêtait et attendait qu'on
-        # remarque. Le message nomme désormais la commande exacte.
-        plan_path = _artifact_path(state_path, state, "plan")
-        appel = (
-            f"forgepilot witness {plan_path} --repo <dépôt> --run"
-            if plan_path is not None
-            else "forgepilot witness <plan.json> --repo <dépôt> --run"
-        )
         return transition(
             state_path,
             state,
@@ -1480,8 +1467,9 @@ def _review_current_head(
                 f"constat{'s' if len(signatures) > 1 else ''} encore "
                 "ouvert) ; arrêt honnête du lot. Une troisième "
                 "itération sur le même plan ne changerait rien : c'est le "
-                "BRIEF qu'il faut relire, pas le code. Appeler le regard de "
-                f"dernier recours (ADR-0018) : {appel}"
+                "BRIEF qu'il faut relire, pas le code. Aucun témoin n'est "
+                "lancé automatiquement : remettre le dossier au propriétaire, "
+                "qui peut demander une revue manuelle hors Hermes et ForgePilot."
             ),
         )
     feedback_path = write_feedback(

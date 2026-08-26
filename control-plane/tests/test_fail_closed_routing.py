@@ -25,7 +25,6 @@ from forgepilot.workflow import (
     persist_failure_trace,
     plan_invocation,
     review_invocation,
-    witness_invocation,
 )
 
 
@@ -63,18 +62,10 @@ class PolitiqueFermeeTests(unittest.TestCase):
             with self.assertRaises(PilotError):
                 plan_invocation(self.settings, racine, tache)
 
-    def test_temoin_reste_exempte(self):
-        """ADR-0017 : le témoin est nommé par [witness], pas par le profil."""
-        with tempfile.TemporaryDirectory() as tmp:
-            racine = Path(tmp)
-            plan = racine / "plan.json"
-            plan.write_text('{"task":"x"}', encoding="utf-8")
-            bundle = racine / "bundle.json"
-            bundle.write_text('{"plan":"x"}', encoding="utf-8")
-            invocation = witness_invocation(
-                self.settings, racine, plan, "HEAD", bundle_path=bundle
-            )
-        self.assertEqual("claude", invocation.backend)
+    def test_api_temoin_automatique_absente(self):
+        from forgepilot import workflow
+
+        self.assertFalse(hasattr(workflow, "witness_invocation"))
 
 
 class CauseDeBlocageTests(unittest.TestCase):

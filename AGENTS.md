@@ -1,6 +1,7 @@
 # AGENTS.md — les règles, pour tous les agents
 
-Le seul fichier de règles du dépôt (ADR-0018). Hermes, Cursor et Claude
+Le seul fichier de règles du dépôt (ADR-0018, amendé par ADR-0021). Hermes,
+Cursor et Claude utilisé manuellement
 lisent celui-ci. Il ne paraphrase aucun autre document : ce qui est ici
 n'est écrit qu'ici.
 
@@ -29,13 +30,14 @@ technique nécessaire s'explique en une phrase la première fois.
 
 | acteur | fait | ne fait pas |
 |---|---|---|
-| **Hermes** (Sol 5.6, VPS) | roadmap, suivi, **demande le brief**, le fait relire, lance Cursor, mesure, rend compte | n'écrit pas de brief, ne code pas, ne fusionne pas, ne juge pas un lot |
+| **Hermes** (Sol 5.6, VPS) | roadmap, suivi, remet au propriétaire les besoins de brief, fait relire les briefs fournis, lance Cursor, mesure, rend compte | n'écrit pas de brief, ne code pas, ne fusionne pas, ne juge pas un lot et **ne lance jamais Claude/Anthropic** |
 | **Cursor** (Grok 4.6 plan, Composer code) | exécute le brief, ouvre la PR, se relit dans une invocation neuve, itère jusqu'au vert | ne décide pas de ce qui est recevable |
-| **Claude** (à la demande) | **écrit les briefs** (ADR-0019), architecte du modèle (`sim/MODELE.md`), regard de dernier recours quand un lot ne converge pas | n'a plus d'agent, plus de cron, plus de rôle dans le harnais ; ne relit pas son propre brief, ne juge aucun lot |
+| **Claude manuel** | sur action directe du propriétaire, peut écrire les briefs, tenir `sim/MODELE.md` ou produire une revue consultative | n'a aucun agent, cron, backend ou témoin dans Hermes/ForgePilot ; Hermes ne le lance jamais |
 
 Le processus complet :
 
-> Claude écrit un brief → Hermes le fait relire puis le lance → Cursor
+> Le propriétaire fournit un brief, éventuellement écrit avec Claude manuel →
+> Hermes le fait relire puis le lance → Cursor
 > l'exécute et ouvre une PR → les tests passent et la porte mécanique
 > vérifie le compte-rendu → le propriétaire fusionne.
 
@@ -163,7 +165,7 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
 | `hermes/` | le pilotage : propositions, demandes, rapports, crons, tableau de bord. |
 | `control-plane/` | ForgePilot — l'outil qui lance un lot chez Cursor. |
 | `docs/operations/pc-windows-worker.md` | contrat du worker PC (ADR-0020) : présence GitHub, pas un second chef. |
-| `docs/adr/` | une décision structurelle = un ADR daté. **ADR-0018 est le point d'entrée**, amendé sur un point par ADR-0019 : qui écrit le brief. |
+| `docs/adr/` | une décision structurelle = un ADR daté. **ADR-0021 est la frontière opérationnelle la plus récente** : Claude reste manuel et Hermes ne l'invoque jamais. |
 
 ## Les archives
 
