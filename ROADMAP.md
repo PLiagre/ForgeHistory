@@ -15,7 +15,7 @@
 ## Le jeu — cinq couches, dans l'ordre
 
 Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
-2026-08-26, après la fusion du lot 033 :
+2026-08-26, après la fusion du lot 034 :
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
@@ -25,7 +25,7 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
 | 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencé | `sim/` |
 
-**Couche 1 — état vrai** (au 2026-08-26, après la fusion du lot 033)
+**Couche 1 — état vrai** (au 2026-08-26, après la fusion du lot 034)
 
 - La carte est **figée** : `data/world-1400.json`, un seul fichier lu par
   `sim/`. Elle porte 596 cellules, 1 364 arêtes d'adjacence, le relief en
@@ -33,9 +33,10 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 - `tools/map/` (ex-`pipeline/geo/`) est l'outil qui fabrique la carte. Il
   est hors du chemin quotidien : on ne le ressort que pour refaire la carte.
 - `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot
-  `v0a-2`. Le tick joue **le relief** depuis le lot 033 ; il ne joue
-  toujours **ni le climat ni les gisements**. Ce n'est pas une déclaration :
-  le snapshot le mesure, couche par couche, avec sa propre sonde.
+  `v0a-2`. Depuis le lot 034, le tick reçoit la carte explicitement et ne
+  porte plus d'état global caché. Il joue **le relief** ; il ne joue toujours
+  **ni le climat ni les gisements**. Ce n'est pas une déclaration : le
+  snapshot le mesure, couche par couche, avec sa propre sonde.
 - Ce que le monde ne sait pas encore faire : naître (la population ne fait
   que mourir), connaître la saison, porter autre chose que de la
   nourriture, migrer.
@@ -79,13 +80,12 @@ pipeline full-auto, plus de bot de fusion, plus de machine d'états d'audit.
 
 ## Prochaines étapes (dans l'ordre)
 
-Onze lots sont écrits et attendent sous `harness/queue/briefs/`. La liste
+Dix lots écrits attendent sous `harness/queue/briefs/`. La liste
 ci-dessous est un **renvoi**, pas une instruction : ce qu'il faut faire pour
 un lot est dans son `brief.md`, et nulle part ailleurs.
 
 | # | lot | en une phrase |
 |---|---|---|
-| 034 | `moteur-sans-etat-cache` | le moteur cesse de porter un état global pendant le tick |
 | 035 | `la-saison-joue-le-rendement` | le tick connaît le jour de l'année ; le climat de la carte module la production |
 | 036 | `on-nait-aussi` | la population ne fait plus que mourir |
 | 037 | `le-stock-devient-un-panier` | le stock cesse d'être un seul nombre de nourriture |
@@ -97,10 +97,10 @@ un lot est dans son `brief.md`, et nulle part ailleurs.
 | 043 | `le-convoi-a-l-echelle-de-la-cellule` | le commerce cesse d'être mille fois trop petit pour les cellules |
 | 044 | `un-metier-le-mineur` | première division du travail : les mineurs ne labourent pas |
 
-Dépendances : 034 avant 035 · 037 avant 038, et 038 avant 039 · 038 avant
+Dépendances restantes : 037 avant 038, et 038 avant 039 · 038 avant
 044 · 040 avant 043 (le facteur de terrain se prouve plus simplement sur une
 capacité constante ; il multiplie ensuite la capacité dérivée) · 043 avant
-tout lot de couche 2. Seuls 036 et 041 sont indépendants une fois 034 passé.
+tout lot de couche 2. Le lot 034 étant passé, 036 et 041 sont indépendants.
 
 ### Pourquoi il n'y a pas de lot « ville »
 
@@ -153,3 +153,4 @@ seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
 | 2026-08-25 | claude (**correction factuelle uniquement**, aucune décision nouvelle) | deux affirmations devenues fausses : le tag `archive/2026-08` n'existe pas sur `origin` (403 au push, deux sessions) — le commit `da1596d` le remplace ; et le prochain lot ne demande plus de re-dériver un modèle analytique de survie, celui-ci ayant été retiré au profit de trois propriétés mesurées. Renvoi ajouté vers `docs/MODE-EMPLOI.md`. |
 | 2026-08-26 | claude (décision propriétaire du 2026-08-26 — **ADR-0019**) | Claude écrit désormais tous les briefs, Hermes pilote et cesse de rédiger. Corrections factuelles jointes : le relief est joué par le tick depuis la fusion du lot 033 (PR #137) ; onze lots écrits et listés dans « Prochaines étapes » ; et la mesure qui explique pourquoi aucun lot « ville » n'est écrit |
 | 2026-08-26 | cursor (correction factuelle, ADR-0020 proposed) | un troisième workflow GitHub : ping worker PC en `workflow_dispatch` seulement ; ce n'est pas le retour du full-auto |
+| 2026-08-26 | hermes (correction factuelle après fusion #142) | lot 034 fusionné : le moteur ne porte plus d'état global caché pendant le tick ; prochain lot unique 035 |

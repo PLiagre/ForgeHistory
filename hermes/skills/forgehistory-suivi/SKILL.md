@@ -45,15 +45,23 @@ Unity se refuse.
 
 ## 1. Ouvrir la session
 
-Dans cet ordre, en disant ce que tu as lu. Rien d'autre.
+Synchronise **avant** de lire toute vue d'état. Un `ROADMAP.md` local peut
+être cohérent mais périmé. Dans cet ordre, en disant ce que tu as lu. Rien
+d'autre.
 
-1. `git status --short && git log --oneline -5`
-2. `hermes/DASHBOARD.md` — vue, parfois périmée ; le dire.
-3. `hermes/propositions/` — seulement les fichiers `status: OPEN`.
+1. `git fetch origin`, puis vérifier la branche avec
+   `git branch --show-current`. Sur `master`, exécuter
+   `git pull --ff-only origin master`. Sur une autre branche, vérifier que
+   `origin/master` est ancêtre de `HEAD` ; sinon, arrêter l'annonce d'état et
+   resynchroniser le worktree. Un échec de synchronisation interdit de nommer
+   le « prochain lot ».
+2. `git status --short && git log --oneline -5`
+3. `hermes/DASHBOARD.md` — vue, parfois périmée ; le dire.
+4. `hermes/propositions/` — seulement les fichiers `status: OPEN`.
    Zéro fichier OPEN = rien n'attend.
-4. `ROADMAP.md` — couches et prochain pas produit unique.
-5. `.venv/bin/forgepilot doctor --repo <racine> --check-auth`
-6. `.venv/bin/python -m sim --ticks 0 --json` — la sim tourne-t-elle ?
+5. `ROADMAP.md` — couches et prochain pas produit unique.
+6. `.venv/bin/forgepilot doctor --repo <racine> --check-auth`
+7. `.venv/bin/python -m sim --ticks 0 --json` — la sim tourne-t-elle ?
 
 `HANDOFF.md` n'existe plus (ADR-0018) : l'état de la session vit dans
 `hermes/DASHBOARD.md`, régénéré, et le récit du projet dans
