@@ -727,6 +727,12 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
         )
         return "https://example.test/pr/29"
 
+    def _exchange_roles(self, worktree: Path) -> list[str]:
+        dossier = Path(worktree) / ".forge-exchange"
+        if not dossier.is_dir():
+            return []
+        return sorted(path.name for path in dossier.iterdir() if path.name != ".gitignore")
+
     def test_blocked_plan_stops_before_cursor_and_worktree(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -1004,6 +1010,8 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertIn("REVIEWING", final["durations_seconds"])
             self.assertEqual("composer-2.5", final["effective_models"]["executor"]["model"])
             self.assertEqual([("pr", False), ("certify", False)], profiles)
+            worktree = Path(str(final["worktree"]))
+            self.assertEqual([], self._exchange_roles(worktree))
             self.assertEqual(
                 1,
                 sum(
@@ -1443,7 +1451,8 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                         resume_run(load_settings(), repo, str(state["run_id"]))
                     final = load_state(run_state_path(repo, str(state["run_id"])))
                     dossier = run_state_path(repo, str(state["run_id"])).parent
-                    traces = list(dossier.glob("traces/review-raw-*.json"))
+                    traces = list(dossier.glob("traces/*-reviewer-raw.txt"))
+                    enveloppes = list(dossier.glob("traces/*-reviewer-envelope.json"))
 
                 self.assertRegex(
                     str(capture.exception),
@@ -1453,10 +1462,15 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                 self.assertEqual("REVIEWING", final["resume_from"])
                 self.assertEqual("review_protocol", final["failure_kind"])
                 self.assertEqual("review_protocol", final["failures"]["REVIEWING"]["failure_kind"])
-                self.assertEqual(1, len(traces))
+                self.assertEqual(1, len(traces), traces)
+                self.assertEqual(1, len(enveloppes), enveloppes)
                 corps = traces[0].read_text(encoding="utf-8")
                 self.assertIn("acceptance_criteria", corps)
                 self.assertNotIn("PROMPT", corps)
+                enveloppe = json.loads(enveloppes[0].read_text(encoding="utf-8"))
+                self.assertEqual("reviewer", enveloppe["role"])
+                self.assertEqual(final["head_sha"], enveloppe.get("head_sha"))
+                self.assertEqual([], self._exchange_roles(Path(str(final["worktree"]))))
 
     def test_two_identical_protocol_errors_become_blocked_tooling(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1570,6 +1584,36 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual(1, roles.count("executor"))
             self.assertEqual(tests_before, test_calls["n"])
             self.assertNotIn("planner", roles[roles.index("reviewer") + 1 :])
+            self.assertEqual([], self._exchange_roles(Path(str(final["worktree"]))))
+
+    def test_exchange_role_files_are_gone_after_executor_failure(self):
+        """Le canal n'archive pas : plan.json disparaît même si Cursor est refusé."""
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            _, state = register_run(
+                load_settings(), repo, task, "echange-executor", base_ref="main", base_branch="main"
+            )
+
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
+                if role == "planner":
+                    return valid_plan()
+                if role == "executor":
+                    (Path(invocation.cwd) / "feature.txt").write_text("v1\n", encoding="utf-8")
+                    return {"summary": ""}
+                return valid_review("PASS")
+
+            patches = self._flow_patches(fake_agent)
+            with patches[0], patches[1], patches[2], patches[3], patches[4]:
+                with self.assertRaises(PilotError):
+                    resume_run(load_settings(), repo, str(state["run_id"]))
+                final = load_state(run_state_path(repo, str(state["run_id"])))
+            self.assertEqual("ERROR", final["step"])
+            self.assertEqual([], self._exchange_roles(Path(str(final["worktree"]))))
 
 
 if __name__ == "__main__":

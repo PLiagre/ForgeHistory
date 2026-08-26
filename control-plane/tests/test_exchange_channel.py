@@ -19,7 +19,7 @@ import tempfile
 import unittest
 
 from forgepilot.config import load_settings
-from forgepilot.exchange import EXCHANGE_DIRNAME, exchange_dir, stage_exchange
+from forgepilot.exchange import EXCHANGE_DIRNAME, exchange_dir, stage_exchange, unstage_exchange
 from forgepilot.process import PilotError
 from forgepilot.workflow import review_invocation
 
@@ -92,6 +92,22 @@ class CanalEchangeTests(unittest.TestCase):
             vide.write_text("   \n", encoding="utf-8")
             with self.assertRaises(PilotError):
                 stage_exchange(racine, vide, "plan")
+
+    def test_unstage_retire_le_fichier_de_role_sans_lancer_cursor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            source = racine / "plan-source.json"
+            source.write_text('{"task":"x"}', encoding="utf-8")
+            stage_exchange(racine, source, "plan")
+            autre = racine / "bundle-source.json"
+            autre.write_text('{"plan":"x"}', encoding="utf-8")
+            stage_exchange(racine, autre, "review-bundle")
+            unstage_exchange(racine, "plan")
+            dossier = exchange_dir(racine)
+            self.assertFalse((dossier / "plan.json").exists())
+            self.assertTrue((dossier / "review-bundle.json").is_file())
+            unstage_exchange(racine, "review-bundle")
+            self.assertFalse(dossier.exists())
 
 
 class BundleDuRelecteurTests(unittest.TestCase):

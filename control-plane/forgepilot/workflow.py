@@ -374,7 +374,7 @@ def brief_review_invocation(
 
 
 def _stage_review_schema(repo: Path, *, near: Path | None = None) -> str:
-    """Dépose le schéma JSON fermé dans le canal d'échange, jamais le prompt."""
+    """Dépose le schéma dans le canal d'échange de la PR #138, pas un second tuyau."""
 
     source = (near.parent if near is not None else repo / ".forgepilot") / "review-schema.json"
     source.parent.mkdir(parents=True, exist_ok=True)
@@ -704,17 +704,48 @@ def persist_failure_trace(
     role: str,
     invocation: Invocation,
     error: PilotError,
+    *,
+    head_sha: str | None = None,
 ) -> Path | None:
     """Archive la sortie brute d'une invocation refusée, prompt caviardé.
 
-    Ce que le pilote tenait en main au moment de lever — `stdout_tail` côté
-    process, la réponse finale côté Cursor — partait dans le message d'erreur
-    et nulle part ailleurs. Deux revues de secours du lot 033 sont restées
-    indiagnosticables pour cette seule raison.
+    Livré par la PR #138 pour les erreurs levées pendant `execute_invocation()`.
+    Étendu ensuite aux refus de `validate_review()` / `validate_executor()` :
+    l'invocation a réussi, le contrat JSON n'a pas tenu. Même dossier
+    `traces/`, même caviardage, même message d'erreur stable. Ce n'est pas
+    un second canal : le transport reste `.forge-exchange/`.
 
     Le prompt est remplacé par `<prompt>` : un fournisseur peut le recopier
     dans sa réponse, et le dépôt n'archive jamais un prompt.
     """
+    raw = getattr(error, "raw", None)
+    if not raw:
+        return None
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    dossier = Path(trace_dir) / "traces"
+    dossier.mkdir(parents=True, exist_ok=True)
+    corps = str(raw)
+    if invocation.prompt:
+        corps = corps.replace(invocation.prompt, "<prompt>")
+    cible = dossier / f"{stamp}-{role}-raw.txt"
+    cible.write_text(corps, encoding="utf-8")
+    envelope: dict[str, object] = {
+        "role": role,
+        "backend": invocation.backend,
+        "model": invocation.model,
+        "effort": invocation.effort,
+        "error": str(error),
+        "raw_chars": len(corps),
+        "raw_path": cible.name,
+        "invocation": json.loads(format_invocation(invocation)),
+    }
+    if head_sha:
+        envelope["head_sha"] = head_sha
+    write_normalized_json(
+        dossier / f"{stamp}-{role}-envelope.json",
+        envelope,
+    )
+    return cible
     raw = getattr(error, "raw", None)
     if not raw:
         return None

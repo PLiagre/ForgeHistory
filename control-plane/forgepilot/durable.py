@@ -33,7 +33,9 @@ from .state import (
     save_state,
     transition,
 )
+from .exchange import unstage_exchange
 from .workflow import (
+    Invocation,
     assert_not_api_billing,
     assert_task_is_instruction,
     create_worktree,
@@ -42,6 +44,7 @@ from .workflow import (
     executor_invocation,
     existing_worktree,
     missing_binaries,
+    persist_failure_trace,
     plan_invocation,
     review_invocation,
 )
@@ -469,11 +472,8 @@ def _run_agent(
     role: str,
     trace_dir: Path | None = None,
 ) -> object:
-    # L'événement est volontairement éphémère : l'état durable reçoit les
-    # transitions et le résultat normalisé, jamais le prompt ni le flux brut.
-    # `trace_dir` est la seule exception, et elle ne sert qu'en cas d'échec :
-    # une sortie refusée y laisse sa trace caviardée, sous `traces/`, hors du
-    # canal d'échange — aucun agent ne la relit.
+    # Traces #138 : une panne pendant execute_invocation laisse sa sortie
+    # caviardée sous traces/. Le canal d'échange n'archive rien.
     return execute_invocation(
         invocation,  # type: ignore[arg-type]
         settings,
@@ -481,6 +481,44 @@ def _run_agent(
         stream=True,
         trace_dir=trace_dir,
     )
+
+
+def _clear_exchange(worktree: Path, *noms: str) -> None:
+    for nom in noms:
+        unstage_exchange(worktree, nom)
+
+
+def _payload_as_raw(payload: object) -> str:
+    if isinstance(payload, (dict, list)):
+        return json.dumps(payload, ensure_ascii=False)
+    return str(payload)
+
+
+def _trace_protocol_failure(
+    trace_dir: Path,
+    invocation: Invocation,
+    payload: object,
+    error: PilotError,
+    *,
+    head_sha: str | None = None,
+) -> ReviewProtocolError:
+    """Étend les traces #138 : l'invocation a réussi, le contrat JSON a refusé."""
+
+    protocol = (
+        error
+        if isinstance(error, ReviewProtocolError)
+        else ReviewProtocolError(str(error), raw=_payload_as_raw(payload))
+    )
+    if protocol.raw is None:
+        protocol.raw = _payload_as_raw(payload)
+    persist_failure_trace(
+        trace_dir,
+        invocation.role,
+        invocation,
+        protocol,
+        head_sha=head_sha,
+    )
+    return protocol
 
 
 def recover_executor_result(
@@ -660,17 +698,19 @@ def recover_review_result(
                 "Récupération revue refusée : JSON sans provenance d'invocation agent. "
                 "Fournir l'enveloppe brute (type=result), jamais un avis édité à la main."
             )
-        write_normalized_json(
-            state_path.parent / "traces" / f"review-raw-{head_sha}.json",
-            raw_result,
-        )
         try:
             review = validate_review(
                 raw_result,
                 expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
             )
         except PilotError as exc:
-            raise ReviewProtocolError(str(exc)) from exc
+            raise _trace_protocol_failure(
+                state_path.parent,
+                Invocation("reviewer", ("recover-review",), str(repo), {}),
+                raw_result,
+                exc,
+                head_sha=head_sha,
+            ) from exc
         bundle_path = _artifact_path(state_path, state, "review_bundle")
         if bundle_path is None or not bundle_path.is_file():
             raise PilotError("Récupération revue refusée : bundle de revue absent.")
@@ -679,9 +719,6 @@ def recover_review_result(
             state_path.parent / f"review-output-{head_sha}.json",
             review,
         )
-        raw_kept = state_path.parent / "traces" / f"review-raw-{head_sha}.json"
-        if raw_kept.is_file():
-            raw_kept.unlink()
     elif (state_path.parent / f"review-output-{head_sha}.json").is_file():
         raise PilotError(
             "Récupération revue refusée : une sortie reviewer est déjà archivée pour ce SHA ; "
@@ -1335,33 +1372,33 @@ def _review_current_head(
             bundle_path=bundle_path,
             schema_retry=schema_retry,
         )
-        result = _run_agent(
-            invocation, settings, risk=risk, role="reviewer",
-            trace_dir=state_path.parent,
-        )
-        raw_trace = write_normalized_json(
-            state_path.parent / "traces" / f"review-raw-{head_sha}.json",
-            result,
-            forbidden_texts=(invocation.prompt or "",),
-        )
         try:
-            review = validate_review(
-                result,
-                expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
-                forbidden_prompt=invocation.prompt,
+            result = _run_agent(
+                invocation, settings, risk=risk, role="reviewer",
+                trace_dir=state_path.parent,
             )
-        except PilotError as exc:
-            raise ReviewProtocolError(
-                str(exc),
-                raw=raw_trace.read_text(encoding="utf-8"),
-            ) from exc
-        _assert_review_material_was_readable(review, bundle_path)
-        raw_trace.unlink(missing_ok=True)
-        write_normalized_json(
-            output_path,
-            review,
-            forbidden_texts=(invocation.prompt or "",),
-        )
+            try:
+                review = validate_review(
+                    result,
+                    expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
+                    forbidden_prompt=invocation.prompt,
+                )
+            except PilotError as exc:
+                raise _trace_protocol_failure(
+                    state_path.parent,
+                    invocation,
+                    result,
+                    exc,
+                    head_sha=head_sha,
+                ) from exc
+            _assert_review_material_was_readable(review, bundle_path)
+            write_normalized_json(
+                output_path,
+                review,
+                forbidden_texts=(invocation.prompt or "",),
+            )
+        finally:
+            _clear_exchange(worktree, "review-bundle", "review-schema")
     material_path = archive_review_material(
         state_path.parent,
         base_sha=review_base,
@@ -1522,20 +1559,23 @@ def _iterate(
                 feedback=feedback,
                 resume_session=str(session) if resume_supported and session else None,
             )
-            raw_result = _run_agent(
-                invocation, settings, risk=risk, role="executor",
-                trace_dir=state_path.parent,
-            )
-            result = validate_executor(
-                raw_result,
-                iteration=True,
-                forbidden_prompt=invocation.prompt,
-            )
-            write_normalized_json(
-                output_path,
-                result,
-                forbidden_texts=(invocation.prompt or "",),
-            )
+            try:
+                raw_result = _run_agent(
+                    invocation, settings, risk=risk, role="executor",
+                    trace_dir=state_path.parent,
+                )
+                result = validate_executor(
+                    raw_result,
+                    iteration=True,
+                    forbidden_prompt=invocation.prompt,
+                )
+                write_normalized_json(
+                    output_path,
+                    result,
+                    forbidden_texts=(invocation.prompt or "",),
+                )
+            finally:
+                _clear_exchange(worktree, "plan", "feedback")
 
         iteration["count"] = next_iteration
         state["iteration"] = iteration
@@ -1857,19 +1897,22 @@ def _resume_run_locked(
                         ),
                     )
                 invocation = executor_invocation(settings, worktree, plan_path, risk=risk)  # type: ignore[arg-type]
-                raw_result = _run_agent(
-                    invocation, settings, risk=risk, role="executor",
-                    trace_dir=state_path.parent,
-                )
-                result = validate_executor(
-                    raw_result,
-                    forbidden_prompt=invocation.prompt,
-                )
-                write_normalized_json(
-                    output_path,
-                    result,
-                    forbidden_texts=(invocation.prompt or "",),
-                )
+                try:
+                    raw_result = _run_agent(
+                        invocation, settings, risk=risk, role="executor",
+                        trace_dir=state_path.parent,
+                    )
+                    result = validate_executor(
+                        raw_result,
+                        forbidden_prompt=invocation.prompt,
+                    )
+                    write_normalized_json(
+                        output_path,
+                        result,
+                        forbidden_texts=(invocation.prompt or "",),
+                    )
+                finally:
+                    _clear_exchange(worktree, "plan")
             state["executor_session"] = extract_session_id(result)
             state = _set_artifact(state_path, state, "executor", output_path)
             state = transition(state_path, state, "EXECUTED", role=None)

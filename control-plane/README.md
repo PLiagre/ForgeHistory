@@ -160,11 +160,16 @@ agent. Les sorties réelles vont dans `.forgepilot/runs/`, ignoré par Git.
 Ce que ForgePilot tend à LIRE à un agent — plan, feedback, bundle de revue —
 passe par `.forge-exchange/`, un canal git-ignoré mais jamais cursor-ignoré :
 `.forgepilot/` étant filtré par `.cursorignore`, un bundle qui y restait était
-présent, lisible par le système, et hors de portée de son relecteur. Une
-réponse fournisseur refusée laisse sa trace caviardée sous
-`.forgepilot/runs/<run>/traces/`.
+présent, lisible par le système, et hors de portée de son relecteur. C'est le
+canal livré par la PR #138 ; on ne le remplace pas. Chaque fichier de rôle
+est retiré à la fin de l'étape qui l'a consommé, succès ou échec : le canal
+n'est pas une archive.
+
+Une panne pendant l'invocation, ou un JSON métier reçu puis refusé par
+`validate_review()`, laisse sa trace caviardée sous
+`.forgepilot/runs/<run>/traces/` — le même format, la même observabilité.
 Le prompt de Claude Code (`plan`, `review`) passe par stdin, car le noyau
-limite chaque argument à 128 Ko.
+limite chaque argument à 128 Ko. Le prompt reste masqué à `<prompt>`.
 
 ## Politique effective R0 / R1 / R2
 

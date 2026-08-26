@@ -72,3 +72,34 @@ def stage_exchange(root: Path, source: Path, nom: str) -> str:
             f"{obtenu[:12]} relu."
         )
     return cible.relative_to(Path(root)).as_posix()
+
+
+def unstage_exchange(root: Path, nom: str) -> None:
+    """Retire le fichier de rôle du canal après l'étape qui l'a consommé.
+
+    Le canal n'est pas une archive : les preuves durables restent sous
+    `.forgepilot/runs/`. Sans ce nettoyage, le worktree du lot 034 a
+    conservé `plan.json` et `review-bundle.json` après l'arrêt. Le dossier
+    disparaît quand il ne reste plus que sa garde `.gitignore`.
+    """
+
+    dossier = exchange_dir(root)
+    cible = dossier / f"{nom}.json"
+    try:
+        cible.unlink()
+    except FileNotFoundError:
+        return
+    if not dossier.is_dir():
+        return
+    restants = [path for path in dossier.iterdir() if path.name != ".gitignore"]
+    if restants:
+        return
+    garde = dossier / ".gitignore"
+    try:
+        garde.unlink()
+    except FileNotFoundError:
+        pass
+    try:
+        dossier.rmdir()
+    except OSError:
+        pass
