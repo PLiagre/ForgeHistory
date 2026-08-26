@@ -64,7 +64,7 @@ def parser() -> argparse.ArgumentParser:
     doctor.add_argument("--repo", type=_path, default=Path.cwd())
     doctor.add_argument("--check-auth", action="store_true")
 
-    plan = commands.add_parser("plan", help="faire préparer un plan par Claude Code")
+    plan = commands.add_parser("plan", help="faire préparer un plan par le planificateur Cursor")
     plan.add_argument("task", type=_path)
     plan.add_argument("--repo", type=_path, default=Path.cwd())
     plan.add_argument("--model")
@@ -96,7 +96,7 @@ def parser() -> argparse.ArgumentParser:
     iterate.add_argument("--risk", choices=("R0", "R1", "R2"))
     iterate.add_argument("--run", action="store_true")
 
-    review = commands.add_parser("review", help="faire relire un diff par Claude Code")
+    review = commands.add_parser("review", help="faire relire un diff par le relecteur Cursor")
     review.add_argument("plan", type=_path)
     review.add_argument("--repo", type=_path, default=Path.cwd())
     review.add_argument("--base")

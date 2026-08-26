@@ -37,6 +37,28 @@ class NoClaudeRuntimeTests(unittest.TestCase):
         self.assertNotIn("_claude_argv(", runtime)
         self.assertNotIn('["claude",', runtime)
 
+    def test_cli_help_never_designates_claude_for_a_cursor_role(self):
+        """Le grep de motifs d'appel laissait passer le texte lu par Hermes.
+
+        `plan` et `review` se sont annoncés « par Claude Code » alors que la
+        politique les route vers Cursor : aucune invocation Claude n'était
+        possible, mais l'aide contredisait ADR-0021 sous les yeux du pilote.
+        """
+        aides = [
+            (choix.dest, choix.help)
+            for action in parser()._actions
+            for choix in getattr(action, "_choices_actions", ())
+        ]
+        self.assertIn("plan", [dest for dest, _ in aides])
+        for dest, aide in aides:
+            self.assertNotIn("claude", (aide or "").lower(), f"aide de {dest!r}")
+
+    def test_prompts_never_name_claude_as_the_agent(self):
+        for prompt in sorted((Path(__file__).parents[1] / "prompts").glob("*.md")):
+            self.assertNotIn(
+                "claude", prompt.read_text(encoding="utf-8").lower(), prompt.name
+            )
+
     def test_missing_binaries_never_checks_claude(self):
         settings = load_settings()
         checked: list[str] = []
