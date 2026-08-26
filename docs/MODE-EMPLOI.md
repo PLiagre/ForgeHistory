@@ -144,6 +144,14 @@ forgepilot resume latest --repo /srv/ForgeHistory   # repartir de l'étape incom
 `resume` repart de la première étape incomplète : rien n'est refait deux fois,
 une branche déjà créée est récupérée et pas recréée.
 
+Si `status` montre `BLOCKED_TOOLING` ou `failure_kind: review_protocol`, ce
+n'est pas un jugement sur le produit. Rejouer uniquement la revue du SHA
+déjà publié, sans replanifier ni réexécuter :
+
+```bash
+forgepilot recover-review latest --repo /srv/ForgeHistory --run
+```
+
 **Deux acteurs ne sont pas d'accord.**
 Ce n'est pas à eux de trancher, et surtout pas à celui qui a produit le code.
 L'ordre est : la porte mécanique d'abord (elle est déterministe, elle ne

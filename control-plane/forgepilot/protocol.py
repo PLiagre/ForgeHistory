@@ -34,6 +34,80 @@ REVIEW_FIELDS = {
 # lieu de la figer.
 REVIEW_OPTIONAL_FIELDS = {"blocked_reason"}
 BLOCKED_REASONS = {"material_unreadable", "product"}
+# Schéma fermé imposé au reviewer. Cursor n'a pas de drapeau --json-schema ;
+# l'invocation le déclare dans le prompt et le canal d'échange, puis
+# validate_review() reste obligatoire après la réponse fournisseur.
+REVIEW_JSON_SCHEMA: dict[str, Any] = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ForgePilotReview",
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "verdict",
+        "acceptance_criteria",
+        "findings",
+        "checks_observed",
+        "human_decision_required",
+    ],
+    "properties": {
+        "verdict": {"type": "string", "enum": ["PASS", "FAIL", "BLOCKED"]},
+        "human_decision_required": {"type": "boolean", "const": True},
+        "blocked_reason": {
+            "type": "string",
+            "enum": ["material_unreadable", "product"],
+        },
+        "acceptance_criteria": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["criterion", "status"],
+                "properties": {
+                    "criterion": {"type": "string", "minLength": 1},
+                    "status": {"type": "string", "enum": ["PASS", "FAIL", "BLOCKED"]},
+                    "evidence": {"type": "string", "minLength": 1},
+                },
+            },
+        },
+        "checks_observed": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["check", "status"],
+                "properties": {
+                    "check": {"type": "string", "minLength": 1},
+                    "status": {"type": "string", "enum": ["PASS", "FAIL", "BLOCKED"]},
+                    "evidence": {"type": "string", "minLength": 1},
+                },
+            },
+        },
+        "findings": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["id", "path", "issue", "evidence"],
+                "properties": {
+                    "id": {"type": "string", "minLength": 1},
+                    "path": {"type": "string", "minLength": 1},
+                    "issue": {"type": "string", "minLength": 1},
+                    "evidence": {"type": "string", "minLength": 1},
+                    "severity": {"type": "string", "enum": ["P0", "P1", "P2", "P3"]},
+                },
+            },
+        },
+    },
+}
+REVIEW_SCHEMA_RETRY_HINT = (
+    "Ta réponse précédente a été refusée par le contrat JSON, pas jugée "
+    "sur le produit. Recommence à zéro, sans te souvenir de la tentative. "
+    "`acceptance_criteria` est une liste d'objets "
+    '`{"criterion":"...","status":"PASS"}`, jamais une liste de chaînes '
+    'ni un objet indexé `{"0":{...}}`. `checks_observed` de même avec `check`.'
+)
 EXECUTOR_FIELDS = {"summary", "files_modified", "checks", "blockages"}
 EXECUTOR_OPTIONAL_FIELDS = {"approach_changed", "session_id"}
 _TRANSPORT_FIELDS = {"session_id"}
@@ -51,6 +125,26 @@ def _json_object(value: object, *, context: str) -> dict[str, Any]:
         if isinstance(decoded, dict):
             return decoded
     raise PilotError(f"{context} n'est pas un objet JSON.")
+
+
+def is_agent_envelope(payload: object) -> bool:
+    """Vrai si le JSON a une provenance d'invocation agent, pas un avis édité.
+
+    `recover-review --result` refuse un objet revue nu : ce serait contourner
+    le juge. Une enveloppe Cursor/Claude porte `type=result` ou un
+    `session_id` avec un champ métier (`result` / `output` / `content`).
+    """
+
+    if not isinstance(payload, dict):
+        return False
+    if payload.get("type") == "result" and any(
+        key in payload for key in ("result", "output", "content")
+    ):
+        return True
+    session = payload.get("session_id") or payload.get("sessionId")
+    if isinstance(session, str) and session.strip():
+        return any(key in payload for key in ("result", "output", "content"))
+    return False
 
 
 def unwrap_agent_result(result: object, *, context: str) -> dict[str, Any]:

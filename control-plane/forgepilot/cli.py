@@ -10,8 +10,11 @@ from .config import CURSOR_EFFORT_REFUSED, load_settings
 from .durable import (
     continue_after_external_merge,
     declared_risk,
+    preview_recover_review,
+    preview_start,
     recover_executor_result,
     recover_iteration_result,
+    recover_review_result,
     register_run,
     resume_run,
 )
@@ -131,7 +134,7 @@ def parser() -> argparse.ArgumentParser:
 
     start = commands.add_parser(
         "start",
-        help="enregistrer un lot durable et, avec --run, lancer sa première étape",
+        help="aperçu du lot ; avec --run, créer le run durable et lancer sa première étape",
     )
     start.add_argument("task", type=_path)
     start.add_argument("--repo", type=_path, default=Path.cwd())
@@ -172,6 +175,19 @@ def parser() -> argparse.ArgumentParser:
     recover_iteration.add_argument("run_id")
     recover_iteration.add_argument("--repo", type=_path, default=Path.cwd())
     recover_iteration.add_argument("--result", type=_path, required=True)
+
+    recover_review = commands.add_parser(
+        "recover-review",
+        help="rejouer uniquement la revue du SHA candidat, sans replanifier ni réexécuter",
+    )
+    recover_review.add_argument("run_id")
+    recover_review.add_argument("--repo", type=_path, default=Path.cwd())
+    recover_review.add_argument(
+        "--result",
+        type=_path,
+        help="enveloppe brute d'une nouvelle invocation agent ; jamais un JSON édité",
+    )
+    recover_review.add_argument("--run", action="store_true")
 
     continue_merged = commands.add_parser(
         "continue-after-merge",
@@ -416,6 +432,26 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "start":
             task_name = args.task_name or default_task_name(args.task)
+            if not args.run:
+                payload = preview_start(
+                    settings,
+                    args.repo,
+                    args.task,
+                    task_name,
+                    requested_risk=args.risk,
+                    changed_paths=args.changed_path,
+                    base_ref=args.base,
+                    base_branch=args.base_branch,
+                    title=args.title,
+                    allow_heavy=args.allow_heavy,
+                )
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                print(
+                    f"Continuer : {payload['continue_with']}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                return 0
             state_path, state = register_run(
                 settings,
                 args.repo,
@@ -428,19 +464,18 @@ def main(argv: list[str] | None = None) -> int:
                 title=args.title,
                 allow_heavy=args.allow_heavy,
             )
-            if args.run:
-                print(
-                    f"RUN {state['run_id']} enregistré ; suivi : "
-                    f"forgepilot status {state['run_id']} --repo {args.repo}",
-                    file=sys.stderr,
-                    flush=True,
-                )
-                state = resume_run(
-                    settings,
-                    args.repo,
-                    str(state["run_id"]),
-                    allow_heavy=args.allow_heavy,
-                )
+            print(
+                f"RUN {state['run_id']} enregistré ; suivi : "
+                f"forgepilot status {state['run_id']} --repo {args.repo}",
+                file=sys.stderr,
+                flush=True,
+            )
+            state = resume_run(
+                settings,
+                args.repo,
+                str(state["run_id"]),
+                allow_heavy=args.allow_heavy,
+            )
             print(json.dumps({"state_path": str(state_path), "state": state}, indent=2, ensure_ascii=False))
             return 0
 
@@ -477,6 +512,25 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "recover-iteration":
             state = recover_iteration_result(args.repo, args.run_id, args.result)
+            print(json.dumps(state, indent=2, ensure_ascii=False))
+            return 0
+
+        if args.command == "recover-review":
+            if not args.run:
+                payload = preview_recover_review(args.repo, args.run_id)
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                print(
+                    f"Continuer : {payload['continue_with']}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                return 0
+            state = recover_review_result(
+                settings,
+                args.repo,
+                args.run_id,
+                result_path=args.result,
+            )
             print(json.dumps(state, indent=2, ensure_ascii=False))
             return 0
 

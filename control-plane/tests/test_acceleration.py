@@ -17,6 +17,7 @@ from forgepilot.durable import (
     _candidate_paths,
     _commit_push_and_pr,
     _ensure_worktree,
+    recover_review_result,
     register_run,
     resume_run,
 )
@@ -270,6 +271,7 @@ class AtomicStateTests(unittest.TestCase, GitRepoMixin):
             _, first = register_run(
                 load_settings(), repo, task, "unique-name", base_ref="main", base_branch="main"
             )
+            transition(run_state_path(repo, str(first["run_id"])), first, "PLANNING", role="planner")
             with self.assertRaisesRegex(PilotError, "porte déjà le nom"):
                 register_run(
                     load_settings(),
@@ -725,6 +727,12 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
         )
         return "https://example.test/pr/29"
 
+    def _exchange_roles(self, worktree: Path) -> list[str]:
+        dossier = Path(worktree) / ".forge-exchange"
+        if not dossier.is_dir():
+            return []
+        return sorted(path.name for path in dossier.iterdir() if path.name != ".gitignore")
+
     def test_blocked_plan_stops_before_cursor_and_worktree(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -1002,6 +1010,8 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertIn("REVIEWING", final["durations_seconds"])
             self.assertEqual("composer-2.5", final["effective_models"]["executor"]["model"])
             self.assertEqual([("pr", False), ("certify", False)], profiles)
+            worktree = Path(str(final["worktree"]))
+            self.assertEqual([], self._exchange_roles(worktree))
             self.assertEqual(
                 1,
                 sum(
@@ -1267,6 +1277,343 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                 )
             self.assertEqual(2, code)
             self.assertIn("Feedback structuré absent", err.getvalue())
+
+    def _invalid_review_strings(self) -> dict[str, object]:
+        payload = valid_review("PASS")
+        payload["acceptance_criteria"] = ["preuve"]
+        return payload
+
+    def _invalid_review_object(self) -> dict[str, object]:
+        payload = valid_review("PASS")
+        payload["acceptance_criteria"] = {
+            "0": {"criterion": "preuve", "status": "PASS"}
+        }
+        return payload
+
+    def _flow_patches(self, fake_agent):
+        return (
+            patch("forgepilot.durable.missing_binaries", return_value=[]),
+            patch("forgepilot.durable._run_agent", side_effect=fake_agent),
+            patch("forgepilot.durable._push_candidate_and_pr", side_effect=self._fake_publish),
+            patch(
+                "forgepilot.durable.run_targeted_tests",
+                return_value={"returncode": 0, "duration_seconds": 0.01},
+            ),
+            patch(
+                "forgepilot.durable.run_test_profile",
+                return_value={"returncode": 0, "duration_seconds": 0.01},
+            ),
+        )
+
+    def test_start_preview_then_start_run_creates_a_single_run(self):
+        """`start` puis `start --run` : l'aperçu n'écrit rien ; --run crée le lot."""
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\nLot unique.\n", encoding="utf-8")
+            self.commit(repo, "task")
+            out = io.StringIO()
+            with patch("sys.stdout", out), patch("sys.stderr", io.StringIO()):
+                code = main(
+                    [
+                        "start",
+                        str(task),
+                        "--repo",
+                        str(repo),
+                        "--base",
+                        "main",
+                        "--task-name",
+                        "lot-start",
+                    ]
+                )
+            self.assertEqual(0, code)
+            payload = json.loads(out.getvalue())
+            self.assertFalse(payload["run"])
+            self.assertIn("--run", payload["continue_with"])
+            self.assertEqual([], list((repo / ".forgepilot").glob("runs/*/state.json")))
+
+            roles: list[str] = []
+
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
+                roles.append(role)
+                if role == "planner":
+                    return valid_plan()
+                if role == "executor":
+                    (Path(invocation.cwd) / "feature.txt").write_text("ok\n", encoding="utf-8")
+                    return valid_executor()
+                return valid_review("PASS")
+
+            patches = self._flow_patches(fake_agent)
+            with patches[0], patches[1], patches[2], patches[3], patches[4], patch(
+                "sys.stdout", io.StringIO()
+            ), patch("sys.stderr", io.StringIO()):
+                code = main(
+                    [
+                        "start",
+                        str(task),
+                        "--repo",
+                        str(repo),
+                        "--base",
+                        "main",
+                        "--task-name",
+                        "lot-start",
+                        "--run",
+                    ]
+                )
+            self.assertEqual(0, code)
+            runs = list((repo / ".forgepilot" / "runs").glob("*/state.json"))
+            self.assertEqual(1, len(runs))
+            self.assertEqual("COMPLETE", load_state(runs[0])["step"])
+            self.assertEqual(["planner", "executor", "reviewer"], roles)
+
+    def test_second_start_run_adopts_created_and_refuses_a_second_active_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            path, first = register_run(
+                load_settings(), repo, task, "unique-name", base_ref="main", base_branch="main"
+            )
+            _, adopted = register_run(
+                load_settings(), repo, task, "unique-name", base_ref="main", base_branch="main"
+            )
+            self.assertEqual(first["run_id"], adopted["run_id"])
+            self.assertEqual(path, run_state_path(repo, str(first["run_id"])))
+            transition(path, adopted, "PLANNING", role="planner")
+            with self.assertRaisesRegex(PilotError, "porte déjà le nom"):
+                register_run(
+                    load_settings(),
+                    repo,
+                    task,
+                    "unique-name",
+                    base_ref="main",
+                    base_branch="main",
+                )
+            self.assertEqual(1, len(list((repo / ".forgepilot" / "runs").glob("*/state.json"))))
+
+    def test_brief_absent_from_base_refuses_before_planning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\nbrief relu hors base\n", encoding="utf-8")
+            with self.assertRaisesRegex(PilotError, "absent de la base"):
+                register_run(
+                    load_settings(), repo, task, "hors-base", base_ref="main", base_branch="main"
+                )
+            self.assertEqual([], list((repo / ".forgepilot").glob("runs/*/state.json")))
+            self.commit(repo, "brief")
+            task.write_text("**Risque : R1.**\nbrief modifié après relecture\n", encoding="utf-8")
+            with self.assertRaisesRegex(PilotError, "diffère"):
+                register_run(
+                    load_settings(), repo, task, "derive", base_ref="main", base_branch="main"
+                )
+
+    def test_invalid_review_criteria_leave_a_redacted_trace(self):
+        """Liste de chaînes ou objet : refusés, trace caviardée conservée."""
+
+        for invalid, label in (
+            (self._invalid_review_strings(), "strings"),
+            (self._invalid_review_object(), "objet"),
+        ):
+            with self.subTest(forme=label), tempfile.TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                self.git_repo(repo)
+                task = repo / "task.md"
+                task.write_text("**Risque : R1.**\n", encoding="utf-8")
+                self.commit(repo, "task")
+                _, state = register_run(
+                    load_settings(),
+                    repo,
+                    task,
+                    f"trace-{label}",
+                    base_ref="main",
+                    base_branch="main",
+                )
+
+                def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
+                    if role == "planner":
+                        return valid_plan()
+                    if role == "executor":
+                        (Path(invocation.cwd) / "feature.txt").write_text(
+                            "v1\n", encoding="utf-8"
+                        )
+                        return valid_executor()
+                    return invalid
+
+                patches = self._flow_patches(fake_agent)
+                with patches[0], patches[1], patches[2], patches[3], patches[4]:
+                    with self.assertRaises(PilotError) as capture:
+                        resume_run(load_settings(), repo, str(state["run_id"]))
+                    final = load_state(run_state_path(repo, str(state["run_id"])))
+                    dossier = run_state_path(repo, str(state["run_id"])).parent
+                    traces = list(dossier.glob("traces/*-reviewer-raw.txt"))
+                    enveloppes = list(dossier.glob("traces/*-reviewer-envelope.json"))
+
+                self.assertRegex(
+                    str(capture.exception),
+                    r"liste non vide d'objets|doit être un objet",
+                )
+                self.assertEqual("ERROR", final["step"])
+                self.assertEqual("REVIEWING", final["resume_from"])
+                self.assertEqual("review_protocol", final["failure_kind"])
+                self.assertEqual("review_protocol", final["failures"]["REVIEWING"]["failure_kind"])
+                self.assertEqual(1, len(traces), traces)
+                self.assertEqual(1, len(enveloppes), enveloppes)
+                corps = traces[0].read_text(encoding="utf-8")
+                self.assertIn("acceptance_criteria", corps)
+                self.assertNotIn("PROMPT", corps)
+                enveloppe = json.loads(enveloppes[0].read_text(encoding="utf-8"))
+                self.assertEqual("reviewer", enveloppe["role"])
+                self.assertEqual(final["head_sha"], enveloppe.get("head_sha"))
+                self.assertEqual([], self._exchange_roles(Path(str(final["worktree"]))))
+
+    def test_two_identical_protocol_errors_become_blocked_tooling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            _, state = register_run(
+                load_settings(), repo, task, "protocole", base_ref="main", base_branch="main"
+            )
+            prompts: list[str] = []
+
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
+                if role == "planner":
+                    return valid_plan()
+                if role == "executor":
+                    (Path(invocation.cwd) / "feature.txt").write_text("v1\n", encoding="utf-8")
+                    return valid_executor()
+                prompts.append(invocation.prompt or "")
+                return self._invalid_review_strings()
+
+            patches = self._flow_patches(fake_agent)
+            with patches[0], patches[1], patches[2], patches[3], patches[4]:
+                with self.assertRaises(PilotError):
+                    resume_run(load_settings(), repo, str(state["run_id"]))
+                with self.assertRaises(PilotError):
+                    resume_run(load_settings(), repo, str(state["run_id"]))
+                final = resume_run(load_settings(), repo, str(state["run_id"]))
+
+            self.assertEqual("BLOCKED_TOOLING", final["step"])
+            self.assertIsNone(final.get("resume_from"))
+            self.assertEqual("review_protocol", final.get("failure_kind"))
+            self.assertNotEqual("BLOCKED", final["step"])
+            self.assertIn("pas un verdict produit", final["error"])
+            self.assertIn("recover-review", final["error"])
+            self.assertGreaterEqual(len(prompts), 2)
+            self.assertIn("Recommence à zéro", prompts[-1])
+
+    def test_recover_review_replays_only_review_on_the_same_sha(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            _, state = register_run(
+                load_settings(), repo, task, "reprise-revue", base_ref="main", base_branch="main"
+            )
+            roles: list[str] = []
+            test_calls = {"n": 0}
+
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
+                roles.append(role)
+                if role == "planner":
+                    return valid_plan()
+                if role == "executor":
+                    (Path(invocation.cwd) / "feature.txt").write_text("v1\n", encoding="utf-8")
+                    return valid_executor()
+                if roles.count("reviewer") < 3:
+                    return self._invalid_review_strings()
+                return valid_review("PASS")
+
+            def counting_tests(*args, **kwargs):
+                test_calls["n"] += 1
+                return {"returncode": 0, "duration_seconds": 0.01}
+
+            patches = (
+                patch("forgepilot.durable.missing_binaries", return_value=[]),
+                patch("forgepilot.durable._run_agent", side_effect=fake_agent),
+                patch("forgepilot.durable._push_candidate_and_pr", side_effect=self._fake_publish),
+                patch("forgepilot.durable.run_targeted_tests", side_effect=counting_tests),
+                patch("forgepilot.durable.run_test_profile", side_effect=counting_tests),
+            )
+            with patches[0], patches[1], patches[2], patches[3], patches[4]:
+                with self.assertRaises(PilotError):
+                    resume_run(load_settings(), repo, str(state["run_id"]))
+                with self.assertRaises(PilotError):
+                    resume_run(load_settings(), repo, str(state["run_id"]))
+                blocked = load_state(run_state_path(repo, str(state["run_id"])))
+                self.assertEqual("BLOCKED_TOOLING", blocked["step"])
+                tests_before = test_calls["n"]
+                base_sha = blocked["base_sha"]
+                head_sha = blocked["head_sha"]
+                bundle = blocked["artifacts"]["review_bundle"]
+                edited = Path(tmp) / "hand-edited.json"
+                edited.write_text(json.dumps(valid_review("PASS")), encoding="utf-8")
+                with self.assertRaisesRegex(PilotError, "sans provenance"):
+                    recover_review_result(
+                        load_settings(), repo, str(state["run_id"]), result_path=edited
+                    )
+                envelope = Path(tmp) / "envelope.json"
+                envelope.write_text(
+                    json.dumps(
+                        {
+                            "type": "result",
+                            "session_id": "review-recover",
+                            "result": valid_review("PASS"),
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                final = recover_review_result(
+                    load_settings(), repo, str(state["run_id"]), result_path=envelope
+                )
+
+            self.assertEqual("COMPLETE", final["step"])
+            self.assertEqual(base_sha, final["base_sha"])
+            self.assertEqual(head_sha, final["head_sha"])
+            self.assertEqual(bundle, final["artifacts"]["review_bundle"])
+            self.assertEqual(1, roles.count("executor"))
+            self.assertEqual(tests_before, test_calls["n"])
+            self.assertNotIn("planner", roles[roles.index("reviewer") + 1 :])
+            self.assertEqual([], self._exchange_roles(Path(str(final["worktree"]))))
+
+    def test_exchange_role_files_are_gone_after_executor_failure(self):
+        """Le canal n'archive pas : plan.json disparaît même si Cursor est refusé."""
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            _, state = register_run(
+                load_settings(), repo, task, "echange-executor", base_ref="main", base_branch="main"
+            )
+
+            def fake_agent(invocation, settings, *, risk, role, trace_dir=None):
+                if role == "planner":
+                    return valid_plan()
+                if role == "executor":
+                    (Path(invocation.cwd) / "feature.txt").write_text("v1\n", encoding="utf-8")
+                    return {"summary": ""}
+                return valid_review("PASS")
+
+            patches = self._flow_patches(fake_agent)
+            with patches[0], patches[1], patches[2], patches[3], patches[4]:
+                with self.assertRaises(PilotError):
+                    resume_run(load_settings(), repo, str(state["run_id"]))
+                final = load_state(run_state_path(repo, str(state["run_id"])))
+            self.assertEqual("ERROR", final["step"])
+            self.assertEqual([], self._exchange_roles(Path(str(final["worktree"]))))
 
 
 if __name__ == "__main__":

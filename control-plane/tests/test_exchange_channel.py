@@ -19,7 +19,7 @@ import tempfile
 import unittest
 
 from forgepilot.config import load_settings
-from forgepilot.exchange import EXCHANGE_DIRNAME, exchange_dir, stage_exchange
+from forgepilot.exchange import EXCHANGE_DIRNAME, exchange_dir, stage_exchange, unstage_exchange
 from forgepilot.process import PilotError
 from forgepilot.workflow import review_invocation
 
@@ -93,6 +93,22 @@ class CanalEchangeTests(unittest.TestCase):
             with self.assertRaises(PilotError):
                 stage_exchange(racine, vide, "plan")
 
+    def test_unstage_retire_le_fichier_de_role_sans_lancer_cursor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            source = racine / "plan-source.json"
+            source.write_text('{"task":"x"}', encoding="utf-8")
+            stage_exchange(racine, source, "plan")
+            autre = racine / "bundle-source.json"
+            autre.write_text('{"plan":"x"}', encoding="utf-8")
+            stage_exchange(racine, autre, "review-bundle")
+            unstage_exchange(racine, "plan")
+            dossier = exchange_dir(racine)
+            self.assertFalse((dossier / "plan.json").exists())
+            self.assertTrue((dossier / "review-bundle.json").is_file())
+            unstage_exchange(racine, "review-bundle")
+            self.assertFalse(dossier.exists())
+
 
 class BundleDuRelecteurTests(unittest.TestCase):
     def test_le_bundle_passe_par_le_canal_et_non_par_add_dir(self):
@@ -115,10 +131,13 @@ class BundleDuRelecteurTests(unittest.TestCase):
             copie = exchange_dir(racine) / "review-bundle.json"
             self.assertTrue(copie.is_file())
             self.assertTrue(copie.read_text(encoding="utf-8").startswith(marqueur))
+            self.assertTrue((exchange_dir(racine) / "review-schema.json").is_file())
 
         prompt = invocation.argv[invocation.argv.index("-p") + 1]
         self.assertIn(f"{EXCHANGE_DIRNAME}/review-bundle.json", prompt)
+        self.assertIn(f"{EXCHANGE_DIRNAME}/review-schema.json", prompt)
         self.assertIn("Lis intégralement", prompt)
+        self.assertNotIn("{{REVIEW_SCHEMA}}", prompt)
         self.assertNotIn(marqueur, prompt)
         self.assertNotIn("--add-dir", invocation.argv)
         self.assertNotIn(str(dossier_run), " ".join(invocation.argv))
