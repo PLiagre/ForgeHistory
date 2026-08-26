@@ -36,3 +36,10 @@ data/world-1400.json
 __pycache__/
 .pytest_cache/
 .forgepilot/
+
+# NE JAMAIS ajouter `.forge-exchange/` ici. C'est le canal par lequel
+# ForgePilot tend un fichier à un agent : le rendre invisible rendrait le
+# bundle de revue et le plan illisibles à ceux qui doivent les lire, sans
+# qu'aucune erreur ne le dise. `.forgepilot/` ci-dessus a exactement produit
+# cet effet sur le lot 033. Un test le vérifie :
+# `control-plane/tests/test_exchange_channel.py`.

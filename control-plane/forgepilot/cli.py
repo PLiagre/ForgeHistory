@@ -62,6 +62,7 @@ def parser() -> argparse.ArgumentParser:
     plan.add_argument("--repo", type=_path, default=Path.cwd())
     plan.add_argument("--model")
     plan.add_argument("--effort")
+    plan.add_argument("--risk", choices=("R0", "R1", "R2"))
     plan.add_argument("--run", action="store_true")
 
     execute = commands.add_parser("execute", help="faire exécuter un plan par Cursor")
@@ -71,6 +72,7 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--task-name", required=True)
     execute.add_argument("--model")
     execute.add_argument("--effort")
+    execute.add_argument("--risk", choices=("R0", "R1", "R2"))
     execute.add_argument("--run", action="store_true")
 
     iterate = commands.add_parser(
@@ -84,6 +86,7 @@ def parser() -> argparse.ArgumentParser:
     iterate.add_argument("--effort")
     iterate.add_argument("--feedback", type=_path)
     iterate.add_argument("--session")
+    iterate.add_argument("--risk", choices=("R0", "R1", "R2"))
     iterate.add_argument("--run", action="store_true")
 
     review = commands.add_parser("review", help="faire relire un diff par Claude Code")
@@ -93,6 +96,7 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--model")
     review.add_argument("--effort")
     review.add_argument("--bundle", type=_path)
+    review.add_argument("--risk", choices=("R0", "R1", "R2"))
     review.add_argument("--run", action="store_true")
 
     publish_parser = commands.add_parser("publish", help="ouvrir une draft PR après Cursor")
@@ -260,6 +264,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.task,
                 model=args.model,
                 effort=args.effort,
+                risk=args.risk or declared_risk(args.task),
             )
             return _run_or_print(invocation, settings, args.repo, args.run)
 
@@ -270,13 +275,13 @@ def main(argv: list[str] | None = None) -> int:
             if not args.run:
                 preview_worktree = args.repo / ".forgepilot" / "worktrees" / args.task_name
                 invocation = executor_invocation(
-                    settings, preview_worktree, args.plan, model=args.model
+                    settings, preview_worktree, args.plan, model=args.model, risk=args.risk
                 )
                 print(format_invocation(invocation))
                 return 0
             worktree, branch = create_worktree(args.repo, args.task_name, base)
             invocation = executor_invocation(
-                settings, worktree, args.plan, model=args.model
+                settings, worktree, args.plan, model=args.model, risk=args.risk
             )
             result = execute_invocation(invocation, settings)
             target = persist_result(args.repo, invocation.role, invocation, result)
@@ -297,6 +302,7 @@ def main(argv: list[str] | None = None) -> int:
                 worktree,
                 args.plan,
                 model=args.model,
+                risk=args.risk,
                 feedback=args.feedback,
                 resume_session=args.session,
             )
@@ -321,6 +327,7 @@ def main(argv: list[str] | None = None) -> int:
                 base,
                 model=args.model,
                 effort=args.effort,
+                risk=args.risk,
                 bundle_path=args.bundle,
             )
             return _run_or_print(invocation, settings, args.repo, args.run)

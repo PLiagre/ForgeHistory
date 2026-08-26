@@ -15,7 +15,17 @@ from typing import Callable, Iterable, Mapping, Sequence
 
 
 class PilotError(RuntimeError):
-    pass
+    """Erreur du pilote, portant si possible la sortie brute qui l'a causée.
+
+    `raw` n'est jamais lu par la logique métier : il sert uniquement à écrire
+    une trace de diagnostic. Sans lui, un « sans JSON métier » est
+    indiagnosticable — on ne sait pas si le fournisseur a rendu de la prose,
+    un bloc clôturé, une réponse vide ou une erreur non structurée.
+    """
+
+    def __init__(self, *args: object, raw: str | None = None) -> None:
+        super().__init__(*args)
+        self.raw = raw
 
 
 @dataclass(frozen=True)
@@ -32,7 +42,10 @@ class CommandResult:
         try:
             return json.loads(self.stdout)
         except json.JSONDecodeError as exc:
-            raise PilotError("La commande a réussi sans produire le JSON attendu.") from exc
+            raise PilotError(
+                "La commande a réussi sans produire le JSON attendu.",
+                raw=self.stdout,
+            ) from exc
 
 
 def resolve_binary(name: str) -> str:
@@ -325,11 +338,17 @@ def run_command_stream(
     )
     if returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip() or "aucun détail"
-        raise PilotError(f"Commande en échec ({returncode}) : {detail}")
+        raise PilotError(
+            f"Commande en échec ({returncode}) : {detail}",
+            raw="\n--- stderr ---\n".join((result.stdout, result.stderr)),
+        )
     if invalid_line is not None:
-        raise PilotError(f"Flux JSON invalide : {invalid_line}")
+        raise PilotError(f"Flux JSON invalide : {invalid_line}", raw=result.stdout)
     if last_event is None:
-        raise PilotError("La commande a réussi sans produire le JSON attendu.")
+        raise PilotError(
+            "La commande a réussi sans produire le JSON attendu.",
+            raw=result.stdout,
+        )
     return result
 
 

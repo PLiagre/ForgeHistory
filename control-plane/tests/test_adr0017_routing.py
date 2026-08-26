@@ -52,6 +52,14 @@ class PolicyRoutingTests(unittest.TestCase):
         )
 
     def test_large_cursor_review_bundle_is_referenced_by_path(self):
+        """Le bundle passe par le canal d'échange, jamais recopié dans argv.
+
+        Le `--add-dir` que ce test exigeait ouvrait le dossier du run, donc
+        `state.json`, et pointait un chemin cursor-ignoré : présent dans argv,
+        illisible pour l'agent. La propriété qui compte — le corps hors du
+        prompt, le chemin lisible, l'état interne fermé — est tenue par
+        `tests/test_exchange_channel.py`.
+        """
         settings = load_settings()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -68,11 +76,10 @@ class PolicyRoutingTests(unittest.TestCase):
             )
 
         prompt = invocation.argv[invocation.argv.index("-p") + 1]
-        self.assertIn(str(bundle), prompt)
+        self.assertIn(".forge-exchange/review-bundle.json", prompt)
         self.assertIn("Lis intégralement", prompt)
         self.assertNotIn(marker, prompt)
-        self.assertIn("--add-dir", invocation.argv)
-        self.assertEqual(str(bundle_dir), invocation.argv[invocation.argv.index("--add-dir") + 1])
+        self.assertNotIn("--add-dir", invocation.argv)
 
     def test_large_cursor_planning_brief_is_referenced_by_repo_path(self):
         settings = load_settings()
