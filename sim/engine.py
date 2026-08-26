@@ -30,11 +30,37 @@ from collections import defaultdict
 from sim import constants as _constantes
 from sim.model import Cell
 
+# Carte lue pendant un tick sur un monde chargé ; None hors tick ou sans carte.
+_carte_du_tick: dict | None = None
+
+
+class ReliefInvalideError(ValueError):
+    """Classe de relief absente ou inconnue sur une cellule du monde chargé."""
+
 # Le moteur lit TOUTES ses constantes réglables par le module `_constantes`,
 # jamais par `from sim.constants import ...`. Un nom importé par valeur est
 # figé au chargement : le remplacer en mémoire ne change alors rien au moteur,
 # et un test de régime mesure un moteur inchangé en croyant mesurer le régime.
 # La règle est uniforme et vérifiée par sim/tests/test_write_coverage.py.
+
+def _facteur_relief_pour_cellule(cell: Cell, carte: dict) -> float:
+    """Lit world.carte[cell_id]["relief"] et refuse toute classe inconnue."""
+    raw = carte.get(cell.cell_id)
+    if raw is None:
+        raise ReliefInvalideError(
+            f"cell_id={cell.cell_id} relief=absent de world.carte"
+        )
+    relief = raw.get("relief")
+    if relief is None:
+        raise ReliefInvalideError(
+            f"cell_id={cell.cell_id} relief=None"
+        )
+    facteurs = _constantes.facteurs_production_par_relief()
+    if relief not in facteurs:
+        raise ReliefInvalideError(
+            f"cell_id={cell.cell_id} relief={relief!r}"
+        )
+    return facteurs[relief]
 
 
 def production_kg(cell: Cell, yield_factor: float) -> float:
@@ -46,11 +72,18 @@ def production_kg(cell: Cell, yield_factor: float) -> float:
     qui lui passe le rendement moyen. Le plafond physique de survie s'en déduit,
     donc il ne peut pas diverger de ce que le moteur produit vraiment.
 
-    C'est ici qu'entrera le relief : une cellule de montagne ne produit pas
-    comme une plaine. La modification se fait à cet endroit et à cet endroit
-    seul ; le plafond suit tout seul.
+    Sur un monde chargé (carte non vide), le relief de world.carte modère la
+    production pendant le tick via `_carte_du_tick`. Sans carte, le chemin
+    unitaire historique reste inchangé.
     """
-    return cell.area_km2 * _constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK * yield_factor
+    base = (
+        cell.area_km2
+        * _constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK
+        * yield_factor
+    )
+    if _carte_du_tick:
+        return base * _facteur_relief_pour_cellule(cell, _carte_du_tick)
+    return base
 
 
 def production_moyenne_kg_par_tick(world) -> float:
@@ -62,7 +95,13 @@ def production_moyenne_kg_par_tick(world) -> float:
     (`sim/tests/test_survie.py`). Elle n'est jamais lue par le tick.
     """
     rendement_moyen = _constantes.rendement_moyen_courant()
-    return sum(production_kg(cell, rendement_moyen) for cell in world.cells.values())
+    global _carte_du_tick
+    ancienne = _carte_du_tick
+    _carte_du_tick = world.carte if world.carte else None
+    try:
+        return sum(production_kg(cell, rendement_moyen) for cell in world.cells.values())
+    finally:
+        _carte_du_tick = ancienne
 
 
 def _apply_production(cell: Cell, rng: random.Random) -> None:
@@ -321,15 +360,20 @@ def tick(world, rng: random.Random) -> float:
     pendant ce tick (kg).
     """
     total_transported = [0.0]
+    global _carte_du_tick
+    ancienne_carte = _carte_du_tick
+    _carte_du_tick = world.carte if getattr(world, "carte", None) else None
+    try:
+        for cell in world.cells.values():
+            _apply_production(cell, rng)
 
-    for cell in world.cells.values():
-        _apply_production(cell, rng)
+        _apply_commerce(world, total_transported)
 
-    _apply_commerce(world, total_transported)
-
-    for cell in world.cells.values():
-        penurie_kg = _apply_consumption(cell)
-        _update_hunger(cell, penurie_kg)
-        _apply_mortality(cell)
+        for cell in world.cells.values():
+            penurie_kg = _apply_consumption(cell)
+            _update_hunger(cell, penurie_kg)
+            _apply_mortality(cell)
+    finally:
+        _carte_du_tick = ancienne_carte
 
     return total_transported[0]

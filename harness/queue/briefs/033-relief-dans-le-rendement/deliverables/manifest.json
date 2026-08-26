@@ -1,0 +1,89 @@
+{
+  "brief": "033-relief-dans-le-rendement",
+  "files": [
+    {
+      "path": "../../../../sim/engine.py",
+      "must_differ_from_git": "448aa2a6c733331aebfb031e217a5c68f4c02c07:sim/engine.py"
+    },
+    {
+      "path": "../../../../sim/constants.py",
+      "must_differ_from_git": "448aa2a6c733331aebfb031e217a5c68f4c02c07:sim/constants.py"
+    },
+    {
+      "path": "../../../../sim/tests/test_monde.py"
+    },
+    {
+      "path": "deliverables/pre-edit/cli_ticks20_seed0.json"
+    },
+    {
+      "path": "deliverables/cli_ticks20_seed0_apres.json",
+      "must_differ_from": "deliverables/pre-edit/cli_ticks20_seed0.json"
+    },
+    {
+      "path": "deliverables/measure_033.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/manifest.json"
+    }
+  ],
+  "counters": [
+    {
+      "name": "classes_relief_carte",
+      "value": 5,
+      "sample_size": 5,
+      "denominator": "classes distinctes mesurées = 5"
+    },
+    {
+      "name": "cellules_par_classe",
+      "value": 596,
+      "sample_size": 596,
+      "denominator": "cellules mesurées = 596"
+    },
+    {
+      "name": "classes_avec_facteur_effectif",
+      "value": 5,
+      "sample_size": 5,
+      "denominator": "classes_relief_carte = 5"
+    },
+    {
+      "name": "classes_inconnues_refusees",
+      "value": 2,
+      "sample_size": 2,
+      "denominator": "mutations exécutées = 2"
+    },
+    {
+      "name": "couches_consommees_par_tick",
+      "value": 1,
+      "sample_size": 3,
+      "denominator": "couches déclarées dans le snapshot = 3"
+    },
+    {
+      "name": "sorties_cli_deterministes",
+      "value": 1,
+      "sample_size": 2,
+      "denominator": "exécutions lancées = 2"
+    },
+    {
+      "name": "champs_cli_modifies",
+      "value": 4,
+      "sample_size": 4,
+      "denominator": "champs comparés = 4"
+    },
+    {
+      "name": "tests_sim_verts",
+      "value": 65,
+      "sample_size": 65,
+      "denominator": "tests collectés = 65"
+    },
+    {
+      "name": "production_identique_avant_correction",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "1=cinq appels indistinguables sur moteur de base / 0=distinction déjà visible"
+    }
+  ],
+  "waivers": []
+}
