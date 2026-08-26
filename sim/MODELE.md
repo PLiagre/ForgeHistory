@@ -1,8 +1,10 @@
 # sim/MODELE.md — comment le monde fonctionne
 
-> **Tenu par Claude** (architecte du modèle, ADR-0018). C'est le document
-> qu'Hermes découpe en briefs. Il dit comment le monde fonctionne — pas
-> quoi faire pour un lot donné : ça, c'est le brief.
+> **Tenu par Claude** (architecte du modèle, ADR-0018 ; il écrit aussi les
+> briefs depuis ADR-0019). Ce fichier dit comment le monde fonctionne — pas
+> quoi faire pour un lot donné : ça, c'est le brief. C'est d'ici que les
+> briefs sont découpés, et c'est pourquoi une affirmation fausse ici se
+> propage à tous les lots suivants.
 >
 > Il s'appelait `MODELE.md` et était rangé par numéro de brief. Il est
 > maintenant rangé par mécanisme : les briefs sont archivés, leurs numéros
@@ -14,7 +16,8 @@ Le monde est une grille de 596 cellules lues dans la carte figée
 `data/world-1400.json`. À chaque tick, dans cet ordre :
 
 1. **Production** — chaque cellule produit de la nourriture proportionnellement
-   à sa surface, multipliée par un aléa de rendement du tick.
+   à sa surface, multipliée par un aléa de rendement du tick et par le facteur
+   de sa classe de relief : une montagne ne produit pas comme une plaine.
 2. **Commerce** — les cellules en surplus livrent leurs voisines en manque.
    Un kilogramme ne traverse qu'une arête par tick et ne nourrit qu'une fois.
 3. **Consommation** — chaque habitant mange sa ration. Ce qui manque devient
@@ -30,9 +33,9 @@ comme « le centre administratif le plus proche » (ADR-0003).
 
 ## Ce que le moteur ne fait pas encore
 
-La carte porte trois couches que le tick **ne joue pas** : le relief en cinq
-classes, les déterminants du climat, les 27 gisements. Le snapshot le dit
-lui-même, couche par couche.
+La carte porte trois couches. Le tick joue **le relief** depuis le lot 033 ; il
+ne joue **ni le climat, ni les 27 gisements**. Le snapshot le dit lui-même,
+couche par couche.
 
 Ce n'est pas une déclaration, c'est une **mesure**. Pour chaque couche, le
 snapshot charge deux mondes identiques, en altère franchement la couche dans
@@ -40,19 +43,53 @@ l'un **avant l'amorçage**, joue trois ticks avec la même graine et compare
 l'état obtenu. Différent : le moteur lit la couche. Identique au bit près :
 il ne la lit pas.
 
-Conséquence voulue : le jour où le tick consommera le relief,
-`utilisee_par_le_moteur` passera à `true` tout seul. Personne n'a de
-constante à retourner, et personne ne peut la retourner sans que le moteur
-ait changé. C'était auparavant un triplet de booléens écrits à la main, et
-le test se contentait de figer leur valeur courante.
+Conséquence voulue, et déjà vérifiée une fois : le jour où le tick a consommé
+le relief, `utilisee_par_le_moteur` est passé à `true` tout seul. Personne n'a
+eu de constante à retourner, et personne ne peut la retourner sans que le
+moteur ait changé. C'était auparavant un triplet de booléens écrits à la main,
+et le test se contentait de figer leur valeur courante.
 
-Le prochain pas du modèle est de faire compter le relief dans le rendement :
-une cellule de montagne ne produit pas comme une plaine. Il se fait **à un
-seul endroit**, `production_kg()` dans `sim/engine.py`. Le plafond physique de
-survie appelle la même fonction : il suit tout seul, et les tests de survie
-n'ont pas à changer. Ce n'était pas vrai avant ce lot — un modèle analytique
-prédisait la valeur absolue de la survie et devait être re-dérivé à chaque
-changement de la production.
+**Attention pour qui fera jouer le climat.** La sonde altère une couche en
+**multipliant** ses valeurs numériques. Une formule climatique qui rapporterait
+une grandeur à la moyenne propre de la cellule serait invariante à cette
+multiplication : la sonde déclarerait le climat non consommé alors qu'il le
+serait. Un écart doit donc être pris par rapport à une référence **absolue**,
+pas par rapport à une moyenne qui suit l'altération.
+
+Le monde ne sait pas non plus **naître** — aucun maillon n'augmente la
+population —, ni **migrer**, ni porter autre chose que de la nourriture : le
+stock d'une cellule est un seul flottant, nommé d'après son contenu.
+
+## Le mur qui sépare la couche 1 de la couche 2
+
+Mesuré le 2026-08-26 sur la carte figée, avant d'écrire les briefs 034 à 044 :
+
+| grandeur | valeur mesurée |
+|---|---|
+| cellule médiane | ~9 700 km², ~96 000 habitants |
+| ce qu'elle consomme | ~192 000 kg par tick |
+| ce qu'une arête d'adjacence transporte | 200 kg par tick |
+
+Le commerce est **de trois ordres de grandeur trop petit** pour l'échelle des
+cellules. La constante vaut un convoi de mulets par jour ; la cellule est une
+région.
+
+Conséquence directe, et vérifiée en jouant le moteur : **rien ne concentre la
+population.** Ni une natalité conditionnée à la satiété, ni une migration qui
+fuit la famine, ni une migration qui court vers l'abondance ne font monter la
+densité de la cellule la plus dense au-dessus de la médiane, à 365 comme à
+1 000 ticks. Chaque fois, les arrivants dépassent ce que leur nouvelle cellule
+cultive, et rien ne peut leur apporter la différence.
+
+Une ville est un endroit qui **ne produit pas ce qu'il mange**. Tant que ce
+rapport tient, la couche 2 n'est pas atteignable, et un lot qui définirait un
+bourg porterait sur un phénomène que le moteur ne peut pas produire.
+
+Ce que la carte offre pour lever le mur, et que `sim/` ne lit pas : chaque
+arête porte sa **longueur de frontière partagée** (médiane ~81 km, de 0,3 à
+216 km). Une capacité dérivée de cette longueur remplace un mulet par une
+frontière perméable, et rend possible qu'une cellule vive de ce qu'on lui
+apporte.
 
 ## Déclaration explicite
 
@@ -229,8 +266,8 @@ plafond = production_moyenne_du_monde / (ration × population_de_départ)
 Le plafond est **dérivé du moteur** : `production_moyenne_kg_par_tick()` appelle
 `production_kg()`, la même et unique formule que le tick emploie, avec le
 rendement moyen au lieu d'un tirage. Il ne peut donc pas diverger de ce que le
-monde produit — et il suivra tout seul le jour où le relief modulera le
-rendement.
+monde produit — et il a suivi tout seul le jour où le relief a modulé le
+rendement, sans qu'aucun test de survie ait à changer.
 
 Ce que son dépassement voudrait dire : la population survivante mange plus que
 le monde ne produit, donc des kilogrammes apparaissent ailleurs que dans la
@@ -250,7 +287,7 @@ manque, trois tolérances dérivées, horizon de 1 000 ticks. Il occupait 262 de
 
 Sa dérivation suppose **une** capacité de charge globale, `cap = F × ȳ / C`.
 Cette grandeur cesse d'exister dès que la production varie d'une cellule à
-l'autre — c'est-à-dire au prochain pas du modèle, le relief. Mesuré, en
+l'autre — c'est-à-dire dès le lot du relief, désormais fusionné. Mesuré, en
 faisant jouer le relief : la survie tombe à **0,447** contre une prédiction de
 **0,797 ± 0,101** — 3,5 fois la tolérance. Le test devient rouge sans qu'aucun
 défaut n'existe, et la seule issue commode est d'élargir la tolérance après
@@ -279,7 +316,7 @@ Avant ce lot, ce document affirmait, sur 200 ticks aux graines 42/42 :
 | fraction de survie 0,887 | 0,757555 |
 
 Les quatre étaient faux, de deux à trente fois. Ils dataient d'un moteur deux
-révisions plus vieux, et ce document est celui qu'Hermes découpe en briefs.
+révisions plus vieux, et ce document est celui d'où les briefs sont découpés.
 
 Aucune valeur mesurée n'est donc citée ci-dessous comme une propriété du
 modèle. Pour connaître l'état du monde : `python -m sim --ticks 20 --json`.
