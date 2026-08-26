@@ -33,8 +33,8 @@ def _simulate(ticks: int, seed: int) -> tuple[dict, World]:
     stock_depart = sum(cell.food_stock_kg for cell in world.cells.values())
     rng = random.Random(seed)
     kg_transportes = 0.0
-    for _ in range(ticks):
-        kg_transportes += tick(world, rng)
+    for numero_tick in range(ticks):
+        kg_transportes += tick(world, rng, numero_tick)
     population_arrivee = sum(cell.population for cell in world.cells.values())
     stock_arrivee = sum(cell.food_stock_kg for cell in world.cells.values())
     cellules_affamees = sum(

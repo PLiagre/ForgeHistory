@@ -1,0 +1,99 @@
+{
+  "brief": "035-la-saison-joue-le-rendement",
+  "base_ref": "9df4917b8e3a4c804c9263eac5973912a8a77092",
+  "commands": [
+    ".venv/bin/python -m pytest sim/tests/ -q",
+    ".venv/bin/python -m sim --ticks 365 --seed 0 --json",
+    ".venv/bin/python -c \"from sim.world import World; from sim.snapshot_export import build_snapshot_document; print(build_snapshot_document(World.charger(0), 0, 0)['couches'])\"",
+    "deliverables/measure_035.py",
+    ".venv/bin/python -c \"import ast, pathlib; t=ast.parse(pathlib.Path('sim/engine.py').read_text(encoding='utf-8')); g=[n.name for n in ast.walk(t) if isinstance(n, ast.FunctionDef) for c in ast.walk(n) if isinstance(c, ast.Global)]; a={n.attr for n in ast.walk(t) if isinstance(n, ast.Attribute)}; print('global', g); print('saison', a & {'SENSIBILITE_SAISON', 'JOUR_SOLSTICE_ETE', 'DUREE_JOUR_EQUINOXE_H'})\"",
+    "git diff --name-only 9df4917b8e3a4c804c9263eac5973912a8a77092 -- sim/tests/test_survie.py sim/snapshot_export.py sim/world.py sim/model.py sim/aggregation.py sim/MODELE.md data/world-1400.json brief.md eval-rubric.md"
+  ],
+  "must_differ_from_git": [
+    {
+      "path": "deliverables/pre-edit/cli_ticks365_seed0.json",
+      "git_ref": "9df4917b8e3a4c804c9263eac5973912a8a77092",
+      "replay_command": ".venv/bin/python -m sim --ticks 365 --seed 0 --json",
+      "compare_fields": [
+        "population_arrivee",
+        "cellules_affamees",
+        "kg_transportes",
+        "stock_kg_arrivee"
+      ]
+    }
+  ],
+  "counters": [
+    {
+      "name": "cellules_avec_deux_solstices",
+      "value": 596,
+      "sample_size": 596,
+      "denominator": "cellules mesurées dans la carte figée"
+    },
+    {
+      "name": "amplitudes_distinctes_mesurees",
+      "value": 559,
+      "sample_size": 596,
+      "denominator": "cellules_avec_deux_solstices = 596"
+    },
+    {
+      "name": "jours_de_l_annee_evalues",
+      "value": 365,
+      "sample_size": 365,
+      "denominator": "nombre de jours dérivé des constantes = 365"
+    },
+    {
+      "name": "ecart_ete_hiver_avant",
+      "value": 0.0,
+      "sample_size": 1,
+      "denominator": "couples été/hiver comparés = 1"
+    },
+    {
+      "name": "ecart_ete_hiver_apres",
+      "value": 106.03303618494661,
+      "sample_size": 1,
+      "denominator": "couples été/hiver comparés = 1"
+    },
+    {
+      "name": "couches_consommees_par_tick",
+      "value": 2,
+      "sample_size": 3,
+      "denominator": "couches déclarées dans le snapshot = 3"
+    },
+    {
+      "name": "cellules_climat_incomplet_refusees",
+      "value": 3,
+      "sample_size": 3,
+      "denominator": "mutations exécutées = 3"
+    },
+    {
+      "name": "ecart_relatif_somme_annuelle",
+      "value": 0.0,
+      "sample_size": 1,
+      "denominator": "cellules sommées = 1"
+    },
+    {
+      "name": "sorties_cli_deterministes",
+      "value": 1,
+      "sample_size": 2,
+      "denominator": "exécutions lancées = 2"
+    },
+    {
+      "name": "champs_cli_modifies",
+      "value": 3,
+      "sample_size": 4,
+      "denominator": "champs dérivés comparés = 4"
+    },
+    {
+      "name": "noms_de_constantes_saison_dans_engine",
+      "value": 0,
+      "sample_size": 3,
+      "denominator": "noms du motif 033 cherchés = 3"
+    },
+    {
+      "name": "tests_sim_verts",
+      "value": 76,
+      "sample_size": 76,
+      "denominator": "tests collectés = 76"
+    }
+  ]
+}

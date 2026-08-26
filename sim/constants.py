@@ -27,6 +27,84 @@ TICK_DURATION_DAYS = 1
 FOOD_PRODUCTION_KG_PER_KM2_PER_TICK = 18.0 * TICK_DURATION_DAYS
 
 
+# --- Saison dans le rendement (brief 035, fidélité niveau 2) ---
+
+# Durée d'un jour d'équinoxe — niveau 1 (douze heures partout).
+DUREE_JOUR_EQUINOXE_H = 12.0
+
+# Sensibilité du rendement à l'écart de durée du jour par rapport à l'équinoxe ;
+# ordre de grandeur plausible niveau 2, jamais sourcé.
+SENSIBILITE_SAISON = 0.5
+
+# Rang du solstice d'été dans l'année calendaire ; niveau 2.
+JOUR_SOLSTICE_ETE = 172
+
+
+def jour_de_tick(numero_tick: int | None) -> int:
+    """
+    Jour de l'année pour un numéro de tick ; absence = premier jour.
+
+    Relit TICK_DURATION_DAYS et CALENDAR_DAYS_PER_YEAR à chaque appel.
+    """
+    if numero_tick is None:
+        return 0
+    return (numero_tick * TICK_DURATION_DAYS) % CALENDAR_DAYS_PER_YEAR
+
+
+def jour_solstice_ete() -> int:
+    """Rang du solstice d'été ; relu à chaque appel."""
+    return JOUR_SOLSTICE_ETE
+
+
+def jour_solstice_hiver() -> int:
+    """Rang du solstice d'hiver, dérivé de la base de temps."""
+    return (JOUR_SOLSTICE_ETE + CALENDAR_DAYS_PER_YEAR // FACTEUR_DEUX) % CALENDAR_DAYS_PER_YEAR
+
+
+def duree_jour_h(jour: int, ete_h: float, hiver_h: float) -> float:
+    """
+    Durée du jour à une date, oscillant entre les deux solstices de la cellule.
+
+    Relit JOUR_SOLSTICE_ETE et CALENDAR_DAYS_PER_YEAR à chaque appel.
+    """
+    moyenne_h = (ete_h + hiver_h) / FACTEUR_DEUX
+    amplitude_h = (ete_h - hiver_h) / FACTEUR_DEUX
+    annee = CALENDAR_DAYS_PER_YEAR
+    solstice = JOUR_SOLSTICE_ETE
+    return moyenne_h + amplitude_h * math.cos(math.tau * (jour - solstice) / annee)
+
+
+def facteur_saison(duree_jour_h_val: float) -> float:
+    """
+    Modulation du rendement selon la durée du jour, par rapport à l'équinoxe.
+
+    Relit SENSIBILITE_SAISON et DUREE_JOUR_EQUINOXE_H à chaque appel.
+    Le plancher à zéro est un invariant physique : pas de production négative.
+    """
+    equinoxe = DUREE_JOUR_EQUINOXE_H
+    sensibilite = SENSIBILITE_SAISON
+    ecart = (duree_jour_h_val - equinoxe) / equinoxe
+    plancher = 0.0
+    return max(plancher, 1.0 + sensibilite * ecart)
+
+
+def facteur_saison_moyen_annuel(ete_h: float, hiver_h: float) -> float:
+    """
+    Moyenne du facteur saisonnier sur une année calendaire complète.
+
+    Somme jour par jour, divisée par le nombre de jours dérivé des constantes
+    de temps — pas la valeur 1 supposée.
+    """
+    annee = CALENDAR_DAYS_PER_YEAR
+    total = 0.0
+    jour = 0
+    while jour < annee:
+        duree = duree_jour_h(jour, ete_h, hiver_h)
+        total += facteur_saison(duree)
+        jour += 1
+    return total / annee
+
+
 # --- Relief dans le rendement (brief 033, fidélité niveau 2) ---
 
 # Facteurs de production par classe de relief : ordres de grandeur plausibles
