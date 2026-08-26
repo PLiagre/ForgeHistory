@@ -477,6 +477,7 @@ def _run_agent(
         timeout_seconds=_role_timeout(settings, risk, role),
         stream=True,
         trace_dir=trace_dir,
+        usage_dir=trace_dir,
     )
 
 

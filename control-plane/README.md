@@ -1,4 +1,4 @@
-# ForgePilot — pilote durable Hermes / Cursor / Claude
+# ForgePilot — pilote durable Hermes / Cursor
 
 ForgePilot est le pilote réversible du workflow. Il ne stocke aucune
 simulation.
@@ -16,7 +16,7 @@ Le tableau ci-dessous dit seulement quel accès en écriture ForgePilot accorde
 | Hermes | dialogue, lancement, suivi | aucun code, aucun jugement, aucune fusion |
 | Cursor, plan | plan, puis relecture de PR en invocation neuve | aucun (plan / ask) |
 | Cursor, code | implémentation dans un worktree `agent/*` | worktree du lot |
-| Claude | regard de dernier recours (`forgepilot witness`) | aucun |
+| Claude | outil manuel du propriétaire ; aucun rôle ForgePilot (ADR-0021) | aucun |
 | ForgePilot | commit, push, draft PR, `merge` mécanique | branche `agent/*` |
 | CI | tests ForgeHistory | artefacts de CI seulement |
 | propriétaire | label d'arrêt, veto, fusion | `do-not-merge` |
@@ -26,7 +26,7 @@ dans `control-plane/workflow-policy.toml`, qui fait foi (règle 12).
 
 ACP n'est pas utilisé pour le pilote. Hermes sait servir ACP, mais ne sait pas
 encore piloter un agent externe comme client ACP générique. Hermes lance donc
-les modes headless documentés de Claude Code et Cursor avec des arguments,
+le mode headless documenté de Cursor avec des arguments,
 jamais une commande construite par le modèle et passée à un shell. `agent -p`
 s'exécute sur la machine qui lance ForgePilot ; un transfert explicite vers un
 Cursor Cloud Agent serait un autre mode et n'est pas activé par ce pilote.
@@ -45,11 +45,9 @@ Les commandes Linux suivantes s'appliquent à WSL2 puis au futur VPS :
 python3 -m venv .venv
 .venv/bin/pip install -e ./control-plane
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-npm install -g @anthropic-ai/claude-code
 curl https://cursor.com/install -fsS | bash
 sudo apt-get install gh
 hermes setup
-claude auth login
 agent login
 gh auth login
 ```
@@ -60,10 +58,11 @@ Claude Pro : l'OAuth Anthropic natif de Hermes exige Claude Max et de l'usage
 supplémentaire. Hermes peut aussi rester facultatif et ForgePilot être lancé
 directement.
 
-Claude Code doit être authentifié avec le compte Claude.ai Pro. Ne pas utiliser
-`claude auth login --console` et ne pas définir `ANTHROPIC_API_KEY` : ces deux
-chemins basculent vers la facturation API. ForgePilot utilise `claude -p` sans
-mode `--bare`, car le mode bare ignore l'authentification d'abonnement.
+Claude n'est pas un prérequis du poste de pilotage : depuis ADR-0021, il
+n'a plus de backend, plus de commande et plus de témoin ici, et
+`doctor --check-auth` ne vérifie que Cursor et GitHub. Le propriétaire peut
+l'installer et l'utiliser lui-même dans le dépôt — c'est un usage manuel, hors
+ForgePilot, qui ne se déclare nulle part dans cette configuration.
 
 ## Worker PC (ADR-0020)
 
@@ -133,27 +132,32 @@ partiel.
 `enchaine` reste disponible comme façade compatible et aperçu. `start` est le
 chemin recommandé dès qu'une reprise ou une itération est possible.
 
-Les sous-commandes une par une restent disponibles pour un dépannage
-(`iterate` après une revue) :
+Les sous-commandes une par une restent des APERÇUS : elles montrent
+l'invocation exacte qui partirait, sans la lancer.
 
 ```bash
 forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory --risk R1
-forgepilot plan /srv/tasks/FH-001.md --repo /srv/ForgeHistory --risk R1 --run
 forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --risk R1
-forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHistory --risk R1 --run
-forgepilot iterate /chemin/vers/plan.json --feedback /chemin/feedback.json --task-name fh-001 --repo /srv/ForgeHistory --risk R1 --run
-forgepilot publish --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --title "fh-001" --plan /chemin/plan.json --run
-forgepilot review /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master --risk R2 --run
+forgepilot iterate /chemin/vers/plan.json --feedback /chemin/feedback.json --task-name fh-001 --repo /srv/ForgeHistory --risk R1
+forgepilot review /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master --risk R2
 forgepilot recover-review <RUN_ID> --repo /srv/ForgeHistory --run
-forgepilot witness /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master
 ```
+
+`--run` y est désactivé. Ces quatre commandes lançaient un agent hors de la
+machine à états : sans run durable, sans compteur de plateau, sans signature
+d'échec, sans vérifier que le brief avait été relu. C'est la forme d'appel qui
+a consommé le lot 035 sans rien livrer. Le seul chemin qui dépense est
+`start --run` puis `resume` ; les commandes `recover-*` reprennent une étape
+précise d'un run existant, jamais un lot neuf. `publish --run` était déjà
+refusé pour la même raison.
 
 `--risk` n'est pas décoratif : c'est lui qui choisit le fournisseur, le modèle
 et les délais dans `workflow-policy.toml`. Sans lui, ces commandes refusent au
-lieu de retomber sur un défaut historique — `review` appelait Claude alors que
-la politique nomme Cursor. `plan` accepte de le dériver du brief
-(`Risque : R2`) ; le témoin (`witness`) reste nommé par `[witness]`,
-seule exemption (ADR-0017).
+lieu de retomber sur un défaut historique — `review` a longtemps nommé Claude
+alors que la politique route ce rôle vers Cursor. `plan` accepte de le dériver du brief
+(`Risque : R2`). `[witness]` vaut `none` : il n'y a plus de témoin, plus de
+commande `witness`, et le chargeur de politique refuse tout backend Claude
+(ADR-0021).
 
 Sans `--run`, une commande affiche son invocation normalisée et ne lance aucun
 agent. Les sorties réelles vont dans `.forgepilot/runs/`, ignoré par Git.
@@ -168,8 +172,16 @@ n'est pas une archive.
 Une panne pendant l'invocation, ou un JSON métier reçu puis refusé par
 `validate_review()`, laisse sa trace caviardée sous
 `.forgepilot/runs/<run>/traces/` — le même format, la même observabilité.
-Le prompt de Claude Code (`plan`, `review`) passe par stdin, car le noyau
-limite chaque argument à 128 Ko. Le prompt reste masqué à `<prompt>`.
+Le prompt part par `-p`, seule entrée que le CLI Cursor accepte ; les corps
+volumineux — plan, feedback, bundle — passent donc par référence via
+`.forge-exchange/`, jamais recopiés dans `argv`. Le prompt reste masqué à
+`<prompt>` dans toute trace.
+
+Ce que chaque invocation a coûté est conservé sous
+`.forgepilot/runs/<run>/usage/`, une enveloppe par appel, sans le JSON métier.
+`forgepilot status` en rend le total par rôle. Les compteurs sont ceux que le
+fournisseur a nommés : un champ absent reste absent, un coût inconnu n'est
+jamais compté comme nul.
 
 ## Politique effective R0 / R1 / R2
 
@@ -180,7 +192,7 @@ quatre délais distincts de chaque risque. `doctor` et les aperçus impriment sa
 valeur effective avant tout agent.
 
 Le risque demandé est un plancher. Le classement des chemins peut uniquement
-l'élever. Après le plan Claude, ForgePilot reclasse aussi
+l'élever. Après le plan, ForgePilot reclasse aussi
 `files_allowed_to_change` avant de démarrer Cursor. Une politique absente,
 invalide ou incompatible bloque `doctor`, `start` et `resume`.
 
@@ -216,8 +228,9 @@ Cursor et refuse tout dépassement de taille sans troncature.
 - un cron quotidien de lecture / mesure / proposition est autorisé
   (`hermes/crons/`) ; **aucun cron ne fusionne** ;
 - aucune fusion automatique ;
-- le plan et la revue Claude Code sont en lecture seule (`--permission-mode
-  plan`, outils `Read,Glob,Grep`, MCP et commandes personnalisées désactivés) ;
+- le plan, la relecture de brief et la revue de PR sont en lecture seule
+  (`agent --mode ask`) ; seul l'exécutant écrit, et seulement dans son
+  worktree ;
 - Cursor ne travaille que dans un worktree propre ;
 - Unity est en veille (ADR-0016) : un lot CityLab / Unity se refuse ;
 - un contrôle absent bloque la fusion ;
