@@ -9,17 +9,45 @@
     ".venv/bin/python -c \"import ast, pathlib; t=ast.parse(pathlib.Path('sim/engine.py').read_text(encoding='utf-8')); g=[n.name for n in ast.walk(t) if isinstance(n, ast.FunctionDef) for c in ast.walk(n) if isinstance(c, ast.Global)]; a={n.attr for n in ast.walk(t) if isinstance(n, ast.Attribute)}; print('global', g); print('saison', a & {'SENSIBILITE_SAISON', 'JOUR_SOLSTICE_ETE', 'DUREE_JOUR_EQUINOXE_H'})\"",
     "git diff --name-only 9df4917b8e3a4c804c9263eac5973912a8a77092 -- sim/tests/test_survie.py sim/snapshot_export.py sim/world.py sim/model.py sim/aggregation.py sim/MODELE.md data/world-1400.json brief.md eval-rubric.md"
   ],
-  "must_differ_from_git": [
+  "files": [
     {
-      "path": "deliverables/pre-edit/cli_ticks365_seed0.json",
-      "git_ref": "9df4917b8e3a4c804c9263eac5973912a8a77092",
-      "replay_command": ".venv/bin/python -m sim --ticks 365 --seed 0 --json",
-      "compare_fields": [
-        "population_arrivee",
-        "cellules_affamees",
-        "kg_transportes",
-        "stock_kg_arrivee"
-      ]
+      "path": "../../../../sim/engine.py",
+      "must_differ_from_git": "9df4917b8e3a4c804c9263eac5973912a8a77092:sim/engine.py"
+    },
+    {
+      "path": "../../../../sim/constants.py",
+      "must_differ_from_git": "9df4917b8e3a4c804c9263eac5973912a8a77092:sim/constants.py"
+    },
+    {
+      "path": "../../../../sim/__main__.py",
+      "must_differ_from_git": "9df4917b8e3a4c804c9263eac5973912a8a77092:sim/__main__.py"
+    },
+    {
+      "path": "../../../../sim/tests/test_monde.py",
+      "must_differ_from_git": "9df4917b8e3a4c804c9263eac5973912a8a77092:sim/tests/test_monde.py"
+    },
+    {
+      "path": "deliverables/pre-edit/cli_ticks365_seed0.json"
+    },
+    {
+      "path": "deliverables/pre-edit/gisements_utilisee.json"
+    },
+    {
+      "path": "deliverables/cli_ticks365_seed0_apres_run1.json",
+      "must_differ_from": "deliverables/pre-edit/cli_ticks365_seed0.json"
+    },
+    {
+      "path": "deliverables/cli_ticks365_seed0_apres_run2.json",
+      "must_differ_from": "deliverables/pre-edit/cli_ticks365_seed0.json"
+    },
+    {
+      "path": "deliverables/measure_035.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/manifest.json"
     }
   ],
   "counters": [

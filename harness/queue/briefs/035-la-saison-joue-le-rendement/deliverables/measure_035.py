@@ -33,6 +33,41 @@ NOMS_SAISON_INTERDITS = {
 }
 
 
+def files_pour_la_porte() -> list[dict[str, str]]:
+    """Schéma lu par harness/verdict_audit.py — files[].must_differ_from_git."""
+    return [
+        {
+            "path": "../../../../sim/engine.py",
+            "must_differ_from_git": f"{BASE_REF}:sim/engine.py",
+        },
+        {
+            "path": "../../../../sim/constants.py",
+            "must_differ_from_git": f"{BASE_REF}:sim/constants.py",
+        },
+        {
+            "path": "../../../../sim/__main__.py",
+            "must_differ_from_git": f"{BASE_REF}:sim/__main__.py",
+        },
+        {
+            "path": "../../../../sim/tests/test_monde.py",
+            "must_differ_from_git": f"{BASE_REF}:sim/tests/test_monde.py",
+        },
+        {"path": "deliverables/pre-edit/cli_ticks365_seed0.json"},
+        {"path": "deliverables/pre-edit/gisements_utilisee.json"},
+        {
+            "path": "deliverables/cli_ticks365_seed0_apres_run1.json",
+            "must_differ_from": "deliverables/pre-edit/cli_ticks365_seed0.json",
+        },
+        {
+            "path": "deliverables/cli_ticks365_seed0_apres_run2.json",
+            "must_differ_from": "deliverables/pre-edit/cli_ticks365_seed0.json",
+        },
+        {"path": "deliverables/measure_035.py"},
+        {"path": "deliverables/generator-log.md"},
+        {"path": "deliverables/manifest.json"},
+    ]
+
+
 def report(name: str, value: object, denominator: str) -> None:
     ROWS.append((name, value, denominator))
 
@@ -439,6 +474,8 @@ def main() -> int:
             }
             for name, value, denom in ROWS
         ]
+        manifest["files"] = files_pour_la_porte()
+        manifest.pop("must_differ_from_git", None)
         manifest_path.write_text(
             json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",

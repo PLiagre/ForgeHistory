@@ -32,6 +32,16 @@ La sonde déclarait `climat.utilisee_par_le_moteur == false`.
 - 76 tests `sim/tests/` verts ; `noms_de_constantes_saison_dans_engine=0`.
 - Sortie CLI 365 ticks déterministe et différente du SHA de base sur 3 champs dérivés.
 
+## Correctif — manifeste lu par la porte
+
+La relecture a trouvé un échantillon vide : `must_differ_from_git` était un
+tableau maison, hors du schéma `files[].must_differ_from_git` que
+`harness/verdict_audit.py` lit. `captures_differ_when_should` passait sans
+comparer aucune paire.
+
+Le manifeste déclare maintenant `files` comme les lots 033/034 : sources
+produit contre le SHA de base, sorties CLI d'après contre l'archive d'avant.
+
 ## Limites
 
 - Les appelants sans `numero_tick` (sonde, `test_survie`) emploient le facteur saisonnier
