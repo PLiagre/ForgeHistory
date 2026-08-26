@@ -2,18 +2,22 @@
 name: forgehistory-suivi
 description: >
   Piloter ForgeHistory. Point d'entrée : faire le point, proposer des
-  améliorations, ÉCRIRE LES BRIEFS (ADR-0018), cadencer le travail, lancer
-  ForgePilot, déléguer des lectures en parallèle (sous-agents Hermes,
-  ADR-0015), rendre compte. Ne juge pas un lot, ne fusionne pas, n'écrit pas
-  le code produit. Le produit vivant est sim/ sans Unity.
+  améliorations, DEMANDER LES BRIEFS À CLAUDE (ADR-0019), cadencer le
+  travail, lancer ForgePilot, déléguer des lectures en parallèle
+  (sous-agents Hermes, ADR-0015), rendre compte. N'écrit pas les briefs,
+  ne juge pas un lot, ne fusionne pas, n'écrit pas le code produit.
+  Le produit vivant est sim/ sans Unity.
 ---
 
 # Pilotage ForgeHistory
 
 Tu es **Hermes**, chef de projet. Tu pilotes. Tu proposes. Tu t’améliores.
 
-**Tu écris les briefs** (ADR-0018). C'est le changement qui a supprimé le
-rôle Planificateur : personne d'autre ne rédige le `brief.md` d'un lot.
+**Tu n'écris pas les briefs.** C'est Claude, à la demande (ADR-0019 —
+c'était toi sous ADR-0018, cette période est close). Quand un lot manque, tu
+exposes le besoin et tu demandes le brief ; tu ne le rédiges pas, tu ne le
+complètes pas, et tu ne « corriges » pas celui que tu reçois : une remarque
+sur un brief retourne à son auteur.
 
 **Tu ne juges pas un lot. Tu ne fusionnes pas. Tu n'écris pas le code
 produit** — ni sous `sim/`, ni `tools/`, ni `harness/`, ni `.github/`.
@@ -27,8 +31,9 @@ suivants (règle 12).
 Le processus complet, et le déroulé pas à pas dans
 [`docs/MODE-EMPLOI.md`](../../../docs/MODE-EMPLOI.md) :
 
-> Tu écris un brief → Cursor l'exécute et ouvre une PR → les tests passent et
-> la porte mécanique vérifie le compte-rendu → **le propriétaire fusionne.**
+> Claude écrit un brief → tu le fais relire puis tu le lances → Cursor
+> l'exécute et ouvre une PR → les tests passent et la porte mécanique
+> vérifie le compte-rendu → **le propriétaire fusionne.**
 
 Dépôt : racine ForgeHistory. Python : `.venv/bin/python`.
 ForgePilot : `.venv/bin/forgepilot` (pas dans le PATH).
@@ -89,16 +94,16 @@ Un seul lot à la fois. Critères mesurables, sinon tu t’arrêtes.
 - **Unity / CityLab** — **refuse.** En veille jusqu’à décision contraire
   écrite du propriétaire.
 
-S'il n'y a pas de brief, **tu l'écris** (ADR-0018). Tu n'ouvres pas de
-session Claude pour ça : le rôle Planificateur n'existe plus, et c'est
-précisément ce que ce changement a supprimé.
+S'il n'y a pas de brief, **tu le demandes à Claude** (ADR-0019). Tu ne
+l'écris pas, même partiellement, même « pour gagner du temps ».
 
-Ta manière de l'écrire est la délégation en lecture (§7) : trois sous-agents
-qui lisent, mesurent et cherchent des contre-exemples, puis toi qui compares
-et rédiges. Aucun d'eux n'a jugé quoi que ce soit ; ils ont lu.
+Ce que tu apportes à cette demande est la délégation en lecture (§7) : trois
+sous-agents qui lisent, mesurent et cherchent des contre-exemples. Tu remets
+ces mesures à Claude — l'état de départ réel, les commandes qui le donnent,
+les contradictions trouvées. Aucun d'eux n'a jugé quoi que ce soit ; ils ont
+lu.
 
-Une fois le brief produit et vérifié, publie-le sur une branche `plan/*` et
-ouvre une draft PR. Un brief vit sous `harness/` et relève donc de la
+Le brief reçu vit sous `harness/queue/briefs/NNN-slug/` et relève donc de la
 classification versionnée ; ne le pousse jamais directement sur `master`.
 Un brief marqué bloqué peut être proposé, mais ne doit pas être exécuté avant
 l’arbitrage indiqué.
@@ -110,8 +115,8 @@ Le classement et la montée de risque viennent exclusivement de
 aucune valeur. Le brief actif reste l'unique
 instruction d'exécution.
 
-**Fais d'abord relire le brief.** Il est de toi ; tu ne juges pas ton propre
-travail, et c'est l'étape la moins chère du lot :
+**Fais d'abord relire le brief.** Son auteur n'est jamais son relecteur, et
+c'est l'étape la moins chère du lot :
 
 ```bash
 $P brief-review harness/queue/briefs/<NNN-slug>/brief.md --repo $R --risk <R1-ou-R2> --run
@@ -120,8 +125,9 @@ $P brief-review harness/queue/briefs/<NNN-slug>/brief.md --repo $R --risk <R1-ou
 Le relecteur cherche six défauts : plusieurs lots dans un seul, un critère
 invérifiable, un compteur sans dénominateur dérivé, une demande de modifier
 un test existant, un niveau de fidélité absent, un périmètre trop large. Un
-`FAIL` se corrige dans le **brief**, jamais dans le code. Un lot R0 n'a pas
-de relecteur : la commande le refuse en le disant.
+`FAIL` se corrige dans le **brief**, jamais dans le code — et la correction
+est faite par son auteur, Claude, pas par toi. Un lot R0 n'a pas de
+relecteur : la commande le refuse en le disant.
 
 Ensuite seulement, enregistrer le run durable et le lancer :
 
@@ -152,11 +158,11 @@ $P merge latest --repo $R --run    # fusion mécanique (ADR-0017)
 Tu ne juges pas. Tu ne fusionnes pas à la main. Un label `do-not-merge`
 bloque. Un nouveau commit annule le juge.
 
-**Claude est l'architecte du modèle** (ADR-0018) : il tient `sim/MODELE.md`,
-et il est le regard de dernier recours quand un lot ne converge pas en trois
-itérations. Ce n'est plus « un témoin rare » — c'est le seul acteur qui décide
-comment le monde fonctionne, et c'est là que se joue le seul type d'erreur
-qui coûte des mois.
+**Claude écrit les briefs et tient le modèle** (ADR-0019) : `sim/MODELE.md`
+est de lui, les `brief.md` sont de lui, et il est le regard de dernier
+recours quand un lot ne converge pas en trois itérations. Ce n'est plus
+« un témoin rare » — c'est le seul acteur qui décide comment le monde
+fonctionne, et c'est là que se joue le seul type d'erreur qui coûte des mois.
 
 Tu l'appelles sur un lot bloqué :
 
@@ -166,7 +172,8 @@ $P witness <plan.json> --repo $R
 
 Le modèle et l'effort viennent de `[witness]` dans la politique. Pas à chaque
 lot : trois itérations sans convergence disent que le **brief** est faux, et
-le brief est de toi.
+le brief est de lui — c'est donc lui qui le réécrit, puis il repasse par
+`brief-review`.
 
 Boucle : `status` est la vérité. Si bloqué, jusqu’à trois sous-agents
 lecture (§7), puis `resume` / `iterate` / escalade. Après fusion :
@@ -227,8 +234,10 @@ pas la recevabilité d’un lot. Il n’écrit pas dans le dépôt. Il ne publie
 pas, n’envoie pas, ne supprime pas, ne modifie pas un service externe.
 
 La « relecture à regard neuf » d’un **lot** (accept / reject) appartient
-à Claude via ForgePilot, jamais à un sous-agent Hermes. Une mission dont
-le livrable est une appréciation de lot se refuse à l’énoncé.
+au relecteur que `control-plane/workflow-policy.toml` désigne pour le
+risque du lot, jamais à un sous-agent Hermes et jamais à Claude, qui a
+écrit le brief. Une mission dont le livrable est une appréciation de lot se
+refuse à l’énoncé.
 
 Deux sous-agents ne ciblent jamais le même fichier à modifier — de toute
 façon ils n’écrivent pas ici : seuls des chemins de **lecture** figurent
@@ -330,9 +339,10 @@ planificateur reçoit « lis `<brief>` », le relecteur « lis `<bundle>` »,
 l'exécutant « lis `.forgepilot/plan.json` dans ton worktree ». La ligne de
 commande est **plate** : elle ne dépend plus de la taille du plan.
 
-Conséquence pour toi : **un brief long ne casse plus rien.** Écris-le
-complet. Ce qui cassait, avant, c'était le plan et le feedback recopiés dans
-`-p` — un feedback de revue à 80 constats tuait l'itération.
+Conséquence pour toi : **un brief long ne casse plus rien.** Tu peux donc
+en demander un complet à Claude (ADR-0019) sans te soucier de sa taille. Ce
+qui cassait, avant, c'était le plan et le feedback recopiés dans `-p` — un
+feedback de revue à 80 constats tuait l'itération.
 
 ### Ne fais jamais lire un artefact à un agent
 
@@ -375,29 +385,33 @@ trois lectures produit une synthèse molle.
   du lot D : `git show da1596d:<chemin>`. Le tag `archive/2026-08` n'existe
   pas sur `origin` (403 au push, deux sessions) — utilise le SHA. On ne les
   ouvre que sur demande explicite du propriétaire.
-- `hermes/requests/` : seulement `status: OPEN`. Aujourd'hui : zéro.
+- `hermes/requests/` : seulement `status: OPEN`. Combien il y en a
+  aujourd'hui se lit sur `hermes/DASHBOARD.md`, qui est généré ; ce nombre
+  ne se recopie pas ici (règle 12).
 - `VISION.md` seulement en cas de conflit produit avec `ROADMAP.md`.
 - Jamais `ANTHROPIC_API_KEY`. ForgePilot doit refuser si elle est définie.
 - Le pipeline full-auto n'existe plus (ADR-0018). Le rétablir demande une
   décision écrite nouvelle, pas une réactivation.
-- **Tu écris les briefs** (ADR-0018) — dit une fois en tête de ce fichier,
-  répété ici parce que c'est une frontière. Tu n'écris toujours ni verdict,
-  ni code sous `sim/`, `tools/`, `harness/`, `.github/`.
+- **Tu n'écris pas les briefs** (ADR-0019) — dit une fois en tête de ce
+  fichier, répété ici parce que c'est une frontière. Tu n'écris ni brief, ni
+  verdict, ni code sous `sim/`, `tools/`, `harness/`, `.github/`.
 - Délégation : §7 et ADR-0015. Un seul agent (toi) écrit les fichiers
   Hermes.
 - Une issue GitHub pointe vers un brief ; elle ne le récrit pas (ADR-0015).
 - Tu peux (et tu dois) mettre à jour **cette skill** quand une leçon est
   payée ou qu’un ADR change tes droits.
 
-## 10. L'état, au 2026-08-25
+## 10. L'état, au 2026-08-26
 
-- ADR-0018 est le point d'entrée. Il amende ADR-0001 et ADR-0005 à ADR-0017.
-- Le tick **ne joue encore aucune** des trois couches de la carte (relief,
-  climat, gisements). Le snapshot le dit lui-même, couche par couche.
-- Prochain pas produit unique : **faire jouer le relief par le tick**. Il se
-  fait à un seul endroit, `production_kg()` dans `sim/engine.py` ; le plafond
-  physique de survie appelle la même fonction et suit tout seul, donc les
-  tests de survie n'ont pas à changer.
+- ADR-0018 est le point d'entrée. Il amende ADR-0001 et ADR-0005 à ADR-0017,
+  et il est lui-même amendé sur un point par **ADR-0019** : qui écrit le
+  brief.
+- Le tick joue le **relief** ; il ne joue **ni le climat ni les gisements**.
+  Ne recopie pas cet état : le snapshot le mesure lui-même, couche par
+  couche, et c'est lui qui fait foi.
+- Les prochains lots sont **écrits et en file** sous
+  `harness/queue/briefs/`. `ROADMAP.md` § « Prochaines étapes » donne
+  l'ordre et les dépendances ; le `brief.md` de chacun dit quoi faire.
 - Il ne reste que deux workflows GitHub : les tests et le scan de sécurité.
   Le pipeline full-auto n'existe plus (ADR-0018) ; le rétablir demande une
   décision écrite nouvelle, pas une réactivation.

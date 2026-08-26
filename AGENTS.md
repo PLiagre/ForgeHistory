@@ -29,15 +29,15 @@ technique nécessaire s'explique en une phrase la première fois.
 
 | acteur | fait | ne fait pas |
 |---|---|---|
-| **Hermes** (Sol 5.6, VPS) | roadmap, suivi, **écrit les briefs**, lance Cursor, mesure, rend compte | ne code pas, ne fusionne pas, ne juge pas un lot |
+| **Hermes** (Sol 5.6, VPS) | roadmap, suivi, **demande le brief**, le fait relire, lance Cursor, mesure, rend compte | n'écrit pas de brief, ne code pas, ne fusionne pas, ne juge pas un lot |
 | **Cursor** (Grok 4.6 plan, Composer code) | exécute le brief, ouvre la PR, se relit dans une invocation neuve, itère jusqu'au vert | ne décide pas de ce qui est recevable |
-| **Claude** (à la demande) | architecte du modèle (`sim/MODELE.md`), regard de dernier recours quand un lot ne converge pas | n'a plus d'agent, plus de cron, plus de rôle dans le harnais |
+| **Claude** (à la demande) | **écrit les briefs** (ADR-0019), architecte du modèle (`sim/MODELE.md`), regard de dernier recours quand un lot ne converge pas | n'a plus d'agent, plus de cron, plus de rôle dans le harnais ; ne relit pas son propre brief, ne juge aucun lot |
 
 Le processus complet :
 
-> Hermes écrit un brief → Cursor l'exécute et ouvre une PR → les tests
-> passent et la porte mécanique vérifie le compte-rendu → le propriétaire
-> fusionne.
+> Claude écrit un brief → Hermes le fait relire puis le lance → Cursor
+> l'exécute et ouvre une PR → les tests passent et la porte mécanique
+> vérifie le compte-rendu → le propriétaire fusionne.
 
 Le déroulé pas à pas, avec les commandes exactes de chaque étape :
 [`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md). Ce fichier-ci dit les
@@ -45,7 +45,9 @@ Le déroulé pas à pas, avec les commandes exactes de chaque étape :
 paraphrase l'autre.
 
 **Celui qui produit ne prononce pas la recevabilité de son propre travail.**
-C'est la seule règle de rôle qui subsiste, et elle ne se contourne pas.
+C'est la seule règle de rôle qui subsiste, et elle ne se contourne pas. Elle
+vaut aussi pour le brief : celui qui l'écrit ne le relit pas. Le relecteur
+(`forgepilot brief-review`) et le juge du lot ne sont jamais Claude.
 
 ## Une seule source d'instruction
 
@@ -160,7 +162,7 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
 | `harness/` | la porte mécanique, et rien d'autre. Voir `harness/README.md`. |
 | `hermes/` | le pilotage : propositions, demandes, rapports, crons, tableau de bord. |
 | `control-plane/` | ForgePilot — l'outil qui lance un lot chez Cursor. |
-| `docs/adr/` | une décision structurelle = un ADR daté. **ADR-0018 est le point d'entrée.** |
+| `docs/adr/` | une décision structurelle = un ADR daté. **ADR-0018 est le point d'entrée**, amendé sur un point par ADR-0019 : qui écrit le brief. |
 
 ## Les archives
 

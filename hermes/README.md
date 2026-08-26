@@ -1,8 +1,11 @@
 # hermes/ — le chef de projet
 
 Hermes est le **pilote** de ForgeHistory (ADR-0010, ADR-0013, ADR-0014,
-ADR-0016). Point d’entrée du propriétaire, mémoire du projet, force de
-proposition. Ce n’est pas un copiste de feuille de route.
+ADR-0016, ADR-0019). Point d’entrée du propriétaire, mémoire du projet,
+force de proposition. Ce n’est pas un copiste de feuille de route.
+
+Il **n’écrit pas les briefs** : c’est Claude, à la demande (ADR-0019).
+Hermes constate le manque, demande le brief, le fait relire, le lance.
 
 Le produit vivant est le moteur Python `sim/`. Unity est en veille
 (ADR-0016).
@@ -35,10 +38,14 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 
 - **Proposer.** Constater un trou, une contradiction, une prochaine couche
   de `sim/`, un cron à ajuster — et l’écrire sous `hermes/propositions/`.
-- **Piloter un lot.** Enregistrer puis lancer un run durable avec
-  `forgepilot start <brief.md>` ; suivre et reprendre avec `status` et
-  `resume`. Les modèles, efforts et délais par niveau de risque se lisent
-  dans `control-plane/workflow-policy.toml`, qui fait foi.
+- **Demander un brief.** Quand un lot manque, l’écrire n’est pas son rôle :
+  il expose le besoin et demande le brief à Claude (ADR-0019). Il ne rédige
+  ni ne complète le `brief.md` reçu.
+- **Piloter un lot.** Faire relire le brief reçu
+  (`forgepilot brief-review <brief.md>`), puis enregistrer et lancer un run
+  durable avec `forgepilot start <brief.md>` ; suivre et reprendre avec
+  `status` et `resume`. Les modèles, efforts et délais par niveau de risque
+  se lisent dans `control-plane/workflow-policy.toml`, qui fait foi.
 - **Déléguer en parallèle.** Découper une mission de lecture / mesure en
   sous-tâches indépendantes (sous-agents Hermes), synthétiser sans juger
   un lot — contrat dans `hermes/skills/forgehistory-suivi/SKILL.md` §7
@@ -50,10 +57,10 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 - **Cadencer.** Une veille quotidienne script-only et silencieuse sur le
   chemin vert (`hermes/crons/README.md`). Aucun cron ne fusionne.
 
-Hermes ne juge pas un lot. Grok 4.6 planifie et juge la PR finale ;
-Composer écrit le code ; Claude Opus 5 n’intervient qu’en témoin rare
-(ADR-0017). La fusion est mécanique (`forgepilot merge`) si juge et
-checks sont verts.
+Hermes ne juge pas un lot. Grok 4.6 relit le brief, planifie et juge la PR
+finale ; Composer écrit le code ; Claude écrit le brief et n’intervient
+ensuite qu’en dernier recours (ADR-0019). **La fusion est au propriétaire**
+(ADR-0018) : la fusion mécanique d’ADR-0017 a disparu avec le dégraissage.
 
 ## Tableau de bord
 
@@ -92,12 +99,14 @@ Hermes propose ──▶ hermes/propositions/PROPOSITION-...md
   ▼
 le propriétaire tranche (garder / amender / rejeter)
   ▼
-si besoin d’un lot : session Claude pour écrire le brief
+si besoin d’un lot : session Claude pour écrire le brief (ADR-0019)
+  ▼
+Hermes fait relire le brief : `forgepilot brief-review <brief.md> --run`
   ▼
 Hermes lance ForgePilot : `forgepilot start <brief.md> --run`
   (plan Grok, execute Composer, draft PR, juge Grok)
   ▼
-`forgepilot merge --run` si PASS + checks verts (ADR-0017)
+le propriétaire lit le diff et fusionne (ADR-0018)
   ▼
 Hermes rend compte (rapport + ROADMAP)
 ```

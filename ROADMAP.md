@@ -14,8 +14,8 @@
 
 ## Le jeu — cinq couches, dans l'ordre
 
-Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au 2026-08-25,
-après le dégraissage (ADR-0018) :
+Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
+2026-08-26, après la fusion du lot 033 :
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
@@ -25,7 +25,7 @@ après le dégraissage (ADR-0018) :
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
 | 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencé | `sim/` |
 
-**Couche 1 — état vrai** (après le dégraissage ADR-0018, 2026-08-25)
+**Couche 1 — état vrai** (au 2026-08-26, après la fusion du lot 033)
 
 - La carte est **figée** : `data/world-1400.json`, un seul fichier lu par
   `sim/`. Elle porte 596 cellules, 1 364 arêtes d'adjacence, le relief en
@@ -33,8 +33,12 @@ après le dégraissage (ADR-0018) :
 - `tools/map/` (ex-`pipeline/geo/`) est l'outil qui fabrique la carte. Il
   est hors du chemin quotidien : on ne le ressort que pour refaire la carte.
 - `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot
-  `v0a-2`. Le tick **ne joue encore aucune des trois couches** (relief,
-  climat, gisements) : le snapshot le dit lui-même, couche par couche.
+  `v0a-2`. Le tick joue **le relief** depuis le lot 033 ; il ne joue
+  toujours **ni le climat ni les gisements**. Ce n'est pas une déclaration :
+  le snapshot le mesure, couche par couche, avec sa propre sonde.
+- Ce que le monde ne sait pas encore faire : naître (la population ne fait
+  que mourir), connaître la saison, porter autre chose que de la
+  nourriture, migrer.
 - `viewer/` : regard mince, preuve SVG.
 - Unity : archivé, au commit `da1596d` (le tag `archive/2026-08` n'a
   jamais pu être poussé — voir `AGENTS.md` § « Les archives »).
@@ -44,22 +48,24 @@ après le dégraissage (ADR-0018) :
 | Phase | Contenu | Statut |
 |---|---|---|
 | **F1** — Fondations monde | carte figée complète : littoral, cellules, adjacence, relief, climat, gisements | **terminée** |
-| **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — reste à faire jouer le relief et les gisements par le tick |
+| **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — relief joué ; restent le climat, les gisements, la natalité, les marchandises et la migration |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles | à venir |
 
-## Le workflow — trois acteurs (ADR-0018)
+## Le workflow — trois acteurs (ADR-0018, amendé par ADR-0019)
 
-> Hermes écrit un brief → Cursor l'exécute et ouvre une PR → les tests
-> passent et la porte mécanique vérifie le compte-rendu → le propriétaire
-> fusionne.
+> Claude écrit un brief → Hermes le fait relire puis le lance → Cursor
+> l'exécute et ouvre une PR → les tests passent et la porte mécanique
+> vérifie le compte-rendu → le propriétaire fusionne.
 
-- **Hermes** (Sol 5.6, VPS) : roadmap, suivi, **écrit les briefs**, lance
-  Cursor, mesure. Ne code pas, ne fusionne pas, ne juge pas.
+- **Hermes** (Sol 5.6, VPS) : roadmap, suivi, **demande le brief**, le fait
+  relire, lance Cursor, mesure. N'écrit pas de brief, ne code pas, ne
+  fusionne pas, ne juge pas.
 - **Cursor** (Grok 4.6 pour le plan, Composer pour le code) : exécute,
   ouvre la PR, se relit dans une invocation neuve.
-- **Claude** (à la demande) : architecte du modèle (`sim/MODELE.md`), et
-  regard de dernier recours quand un lot ne converge pas en trois
-  itérations. Hors du harnais, sans cron ni agent.
+- **Claude** (à la demande) : **écrit les briefs** (ADR-0019), architecte du
+  modèle (`sim/MODELE.md`), et regard de dernier recours quand un lot ne
+  converge pas en trois itérations. Hors du harnais, sans cron ni agent ; il
+  ne relit pas son propre brief et ne juge aucun lot.
 
 Règle de fond conservée : celui qui produit ne prononce pas la recevabilité
 de son propre travail.
@@ -73,16 +79,51 @@ d'états d'audit.
 
 ## Prochaines étapes (dans l'ordre)
 
-1. **Produit :** faire jouer le relief par le tick — le rendement d'une
-   cellule de montagne n'est pas celui d'une plaine. C'est le premier lot
-   qui rend la carte vivante plutôt que décorative. Il se fait à un seul
-   endroit, `production_kg()` dans `sim/engine.py` : le plafond physique de
-   survie appelle la même fonction et suit tout seul, donc les tests de
-   survie n'ont pas à changer. Déroulé complet dans
-   [`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
-2. **Puis :** les gisements consommés par l'économie.
-3. **Hermes :** cron quotidien de lecture et de mesure ; une proposition
-   seulement s'il y a un constat nouveau.
+Onze lots sont écrits et attendent sous `harness/queue/briefs/`. La liste
+ci-dessous est un **renvoi**, pas une instruction : ce qu'il faut faire pour
+un lot est dans son `brief.md`, et nulle part ailleurs.
+
+| # | lot | en une phrase |
+|---|---|---|
+| 034 | `moteur-sans-etat-cache` | le moteur cesse de porter un état global pendant le tick |
+| 035 | `la-saison-joue-le-rendement` | le tick connaît le jour de l'année ; le climat de la carte module la production |
+| 036 | `on-nait-aussi` | la population ne fait plus que mourir |
+| 037 | `le-stock-devient-un-panier` | le stock cesse d'être un seul nombre de nourriture |
+| 038 | `les-gisements-sortent-du-minerai` | les 27 gisements nommés produisent enfin quelque chose |
+| 039 | `le-commerce-porte-tout` | le commerce transporte une marchandise quelconque, pas seulement la nourriture |
+| 040 | `franchir-une-montagne-coute` | une arête de montagne ne transporte pas comme une arête de plaine |
+| 041 | `on-s-en-va-quand-on-a-faim` | des habitants quittent une cellule affamée pour une voisine en surplus |
+| 042 | `le-viewer-montre-ce-qui-joue` | le regard mince montre ce que le moteur joue vraiment |
+| 043 | `le-convoi-a-l-echelle-de-la-cellule` | le commerce cesse d'être mille fois trop petit pour les cellules |
+| 044 | `un-metier-le-mineur` | première division du travail : les mineurs ne labourent pas |
+
+Dépendances : 034 avant 035 · 037 avant 038, et 038 avant 039 · 038 avant
+044 · 040 avant 043 (le facteur de terrain se prouve plus simplement sur une
+capacité constante ; il multiplie ensuite la capacité dérivée) · 043 avant
+tout lot de couche 2. Seuls 036 et 041 sont indépendants une fois 034 passé.
+
+### Pourquoi il n'y a pas de lot « ville »
+
+Mesuré le 2026-08-26, avant d'écrire ces briefs : **aucun mécanisme du moteur
+ne concentre la population.** Ni la natalité, ni une migration de famine, ni
+une migration d'attraction ne font monter la densité de la cellule la plus
+dense au-dessus de celle de la médiane, à 365 comme à 1 000 ticks.
+
+La cause est chiffrable. Une cellule médiane compte environ 96 000 habitants
+et consomme près de 192 000 kg par tick ; une arête d'adjacence en transporte
+200. Le commerce est **962 fois trop petit** pour l'échelle des cellules :
+aucun endroit du monde ne peut être nourri par ses voisins, donc aucun endroit
+ne peut abriter plus de monde qu'il n'en nourrit lui-même.
+
+Une ville est précisément un endroit qui ne produit pas ce qu'il mange. Tant
+que ce rapport tient, un brief « le bourg est une agrégation dérivée » porterait
+sur un phénomène que le moteur ne peut pas produire, et son critère
+d'acceptation serait invérifiable. Le lot 043 est ce qui lève le blocage ; le
+bourg s'écrira après lui, sur une mesure et non sur une intention.
+
+Côté pilotage : cron quotidien de lecture et de mesure ; une proposition
+seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
+[`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
 
 ## Historique des révisions
 
@@ -110,3 +151,4 @@ d'états d'audit.
 | 2026-08-23 | hermes (correction factuelle après #130 et preuve VPS) | cache Copernicus complet vérifié `1110/1110` ; preuve Europe G6 verte et déterministe. Le relief est calculé mais reste `not_consumed` par `sim/`. Le prochain pas unique reste le brief 026. |
 | 2026-08-25 | claude (correction factuelle, ADR-0018) | dégraissage : trois acteurs, carte figée, phases F et prochaines étapes réécrites sur l'état réel |
 | 2026-08-25 | claude (**correction factuelle uniquement**, aucune décision nouvelle) | deux affirmations devenues fausses : le tag `archive/2026-08` n'existe pas sur `origin` (403 au push, deux sessions) — le commit `da1596d` le remplace ; et le prochain lot ne demande plus de re-dériver un modèle analytique de survie, celui-ci ayant été retiré au profit de trois propriétés mesurées. Renvoi ajouté vers `docs/MODE-EMPLOI.md`. |
+| 2026-08-26 | claude (décision propriétaire du 2026-08-26 — **ADR-0019**) | Claude écrit désormais tous les briefs, Hermes pilote et cesse de rédiger. Corrections factuelles jointes : le relief est joué par le tick depuis la fusion du lot 033 (PR #137) ; onze lots écrits et listés dans « Prochaines étapes » ; et la mesure qui explique pourquoi aucun lot « ville » n'est écrit |
