@@ -174,6 +174,45 @@ Après le troisième échec identique, le garde-fou a transitionné le run vers
 Aucune itération de code n'a été déclenchée : il n'existait aucun constat
 métier exploitable, seulement une réponse de protocole invalide.
 
+## Changement P0 antérieur — lu tardivement, utilisé réellement
+
+La PR [#138](https://github.com/PLiagre/ForgeHistory/pull/138), fusionnée dans
+`master` avant cette session au commit `8bc3ce0`, avait déjà corrigé le canal de
+transport vers les agents. Cette session a exécuté cette version de ForgePilot.
+
+Ce changement était donc **respecté mécaniquement** pendant le lot 034 :
+
+- plan, feedback et bundle passent par `.forge-exchange/`, pas par
+  `.forgepilot/` ;
+- la copie est relue et son empreinte SHA-256 est comparée après écriture ;
+- `.forge-exchange/` est git-ignoré et explicitement absent de
+  `.cursorignore` ;
+- `control-plane/tests/test_exchange_channel.py` vérifie cette propriété par
+  lecture des motifs et `fnmatch`, sans lancer Cursor ;
+- le bundle du relecteur est copié seul dans le canal ; l'invocation ne porte
+  plus `--add-dir` vers le dossier du run ;
+- `state.json`, les verdicts antérieurs et les conclusions du producteur
+  restent donc hors de la vue du relecteur.
+
+Preuve laissée par le run 034 : le worktree agent contient
+`.forge-exchange/plan.json` et `.forge-exchange/review-bundle.json`, tandis que
+`state.json` reste dans le dossier durable du run, hors du canal. Le relecteur a
+rendu une réponse métier assez structurée pour atteindre
+`validate_review()` ; il n'a pas signalé `material_unreadable`. Le blocage de
+cette session est donc postérieur au transport : c'est la forme du JSON de
+revue qui est refusée.
+
+Hermes n'avait cependant **pas relu ce changement avant le lancement**. Le
+commit était visible dans l'historique et ses tests ont été exécutés, mais
+`exchange.py`, l'invariant `fnmatch` et la suppression de `--add-dir` n'ont été
+inspectés qu'après la question du propriétaire. L'utilisation était correcte ;
+la compréhension explicite et le compte-rendu initial étaient incomplets.
+
+Une partie de la proposition reste également inachevée dans le code actuel :
+le canal n'est pas effacé en fin d'étape. Après l'arrêt du lot 034, le worktree
+conserve `.forge-exchange/.gitignore`, `plan.json` et `review-bundle.json`.
+Aucun appel de nettoyage du canal n'existe dans `control-plane/forgepilot/`.
+
 ## Cause racine mesurée
 
 ### Ce qui est établi
@@ -258,6 +297,19 @@ pour autoriser `Write` sur le seul brief.
 
 ## Correctifs recommandés
 
+### Ce qui existe déjà et ne doit pas être refait
+
+Le correctif du canal de transport de la PR #138 reste la bonne fondation. Il
+ne faut ni réintroduire `.forgepilot/` comme tuyau, ni rouvrir le dossier du run
+avec `--add-dir`, ni remplacer l'invariant mécanique par un test qui lance
+Cursor pour de vrai. Le test déterministe de `test_exchange_channel.py` protège
+la classe de défauts attendue et doit rester la preuve principale.
+
+Les traces brutes livrées par #138 couvrent les erreurs levées pendant
+`execute_invocation()`. Le défaut observé ici est plus tardif : l'invocation
+rend un résultat, puis `validate_review()` le refuse. Le correctif P0 ci-dessous
+étend donc cette observabilité ; il ne remplace pas le canal déjà livré.
+
 ### P0 — Débloquer une relecture sans contourner le juge
 
 1. **Contraindre la sortie du relecteur par un schéma JSON.** L'invocation doit
@@ -331,6 +383,23 @@ Après une première erreur de forme :
 Le garde-fou « trois échecs identiques » reste utile, mais il doit empêcher la
 répétition aveugle plutôt que simplement la compter.
 
+### P1 — Terminer le cycle de vie de `.forge-exchange/`
+
+Chaque fichier de rôle doit être supprimé dans un `finally` à la fin de l'étape
+qui le consomme :
+
+- `plan.json` après l'invocation exécuteur ;
+- `feedback.json` après l'itération ;
+- `review-bundle.json` après l'invocation relecteur, succès ou échec.
+
+Le dossier peut être retiré lorsqu'il ne contient plus que sa garde
+`.gitignore`, ou recréé à la prochaine étape. Les preuves durables restent sous
+`.forgepilot/runs/` ; le canal n'est pas une archive.
+
+Le test est mécanique : appeler l'invocation avec un backend factice, terminer
+l'étape, puis vérifier que le fichier de rôle n'existe plus. Aucun appel réseau
+ni lancement réel de Cursor n'est nécessaire.
+
 ### P2 — Borner les permissions de rédaction de brief par chemin
 
 Pour Claude auteur d'un brief :
@@ -342,6 +411,10 @@ Pour Claude auteur d'un brief :
 - conserver la règle : Claude écrit, un autre acteur relit.
 
 ## Tests de non-régression à ajouter au plan de contrôle
+
+Tous les tests ci-dessous sont mécaniques avec backend factice ou fonctions
+pures. Aucun ne doit lancer Cursor réellement. L'invariant `fnmatch` de la PR
+#138 reste le contrôle du caractère visible du canal.
 
 1. `start` suivi exactement de `start --run` réussit ou la documentation ne
    propose plus cette séquence.
@@ -358,6 +431,9 @@ Pour Claude auteur d'un brief :
    pas un blocage produit ambigu.
 8. L'invocation de correction de brief peut remplacer le seul fichier autorisé
    avec `Write`, mais aucun autre chemin.
+9. Après une étape exécuteur, itération ou relecteur, le fichier de rôle
+   correspondant a disparu de `.forge-exchange/`, y compris si l'invocation ou
+   la validation échoue.
 
 ## Ordre de reprise recommandé
 
