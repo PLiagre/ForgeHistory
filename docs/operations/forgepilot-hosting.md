@@ -67,7 +67,8 @@ Dans les deux cas, Unity valide ensuite le commit Git exact produit.
 Le PC Windows devient un worker GitHub Actions auto-hébergé, sous un compte
 Windows dédié sans droits administrateur. Le runner communique vers GitHub en
 sortie ; aucun port domestique n'est exposé. Le contrat détaillé vit dans
-`docs/operations/unity-windows-worker.md`.
+[`pc-windows-worker.md`](pc-windows-worker.md) (ADR-0020). Unity reste
+archivé ; les labels `unity` et `local-llm` sont réservés, sans job.
 
 Quand le PC est éteint :
 

@@ -24,6 +24,12 @@ from .review import (
     validate_verdict_material,
 )
 from .state import load_state, run_state_path, status_snapshot
+from .workers import (
+    fetch_runner_payload,
+    format_workers,
+    refuse_if_absent,
+    workers_snapshot,
+)
 from .workflow import (
     chain_preview,
     create_worktree,
@@ -212,6 +218,26 @@ def parser() -> argparse.ArgumentParser:
     merge.add_argument("run_id", nargs="?", default="latest")
     merge.add_argument("--repo", type=_path, default=Path.cwd())
     merge.add_argument("--run", action="store_true")
+
+    workers = commands.add_parser(
+        "workers",
+        help="constater les runners auto-hébergés (lecture, pas de dispatch)",
+    )
+    workers.add_argument("--repo", type=_path, default=Path.cwd())
+    workers.add_argument(
+        "--require",
+        action="append",
+        default=[],
+        dest="required_labels",
+        metavar="LABEL",
+        help="capacité exigée (répétable) ; refuse s'il n'existe pas de runner online compatible",
+    )
+    workers.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="sortie JSON (constat machine)",
+    )
     return root
 
 
@@ -506,6 +532,17 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "merge":
             payload = merge_run(args.repo, args.run_id, apply=args.run)
             print(json.dumps(payload, indent=2, ensure_ascii=False))
+            return 0
+
+        if args.command == "workers":
+            payload = fetch_runner_payload(args.repo, settings.engine_repository)
+            snapshot = workers_snapshot(payload, args.required_labels)
+            snapshot["repository"] = settings.engine_repository
+            if args.as_json:
+                print(json.dumps(snapshot, indent=2, ensure_ascii=False))
+            else:
+                print(format_workers(snapshot))
+            refuse_if_absent(snapshot)
             return 0
     except (OSError, KeyError, ValueError, PilotError) as exc:
         print(f"REFUS : {exc}", file=sys.stderr)

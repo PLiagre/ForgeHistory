@@ -1,6 +1,7 @@
 name: tests
 
-# ADR-0018 : un seul workflow de tests, plus le scan de sécurité.
+# ADR-0018 : un workflow de tests, plus le scan de sécurité.
+# ADR-0020 ajoute worker-pc.yml (ping workflow_dispatch, runner Windows).
 # Les douze workflows précédents orchestraient des rôles supprimés
 # (full-auto, machine d'audit, bot de fusion, aiguillage de risque).
 #

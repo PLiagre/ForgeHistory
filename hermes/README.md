@@ -66,7 +66,8 @@ plus la file d'audits Cursor : cette boucle est historique. Régénération :
 
 Il n'y a plus de workflow GitHub de tableau de bord : les douze workflows
 sont passés à deux au dégraissage (ADR-0018), les tests et le scan de
-sécurité.
+sécurité. Un troisième, `worker-pc.yml`, est un ping `workflow_dispatch`
+vers le PC (ADR-0020) : ce n'est pas le retour du full-auto.
 
 ## Format
 

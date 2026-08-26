@@ -65,13 +65,20 @@ Claude Code doit être authentifié avec le compte Claude.ai Pro. Ne pas utilise
 chemins basculent vers la facturation API. ForgePilot utilise `claude -p` sans
 mode `--bare`, car le mode bare ignore l'authentification d'abonnement.
 
-## Unity
+## Worker PC (ADR-0020)
 
-Unity est archivé (ADR-0018) : `unity/` est sorti de l'arbre de travail, au
-commit `da1596d`. ForgePilot ne pilote rien du côté Unity, et le contrat de
-worker Windows qui était décrit ici a été supprimé avec le reste. Rouvrir ce
-sujet demande une décision, donc un ADR — pas la relecture d'un document
-disparu.
+Unity reste archivé (ADR-0018) : `unity/` au commit `da1596d`. Le PC
+Windows, quand il est allumé, est un runner GitHub auto-hébergé — pas un
+second ForgePilot. Constat lecture seule :
+
+```bash
+forgepilot workers --repo /srv/ForgeHistory
+forgepilot workers --repo /srv/ForgeHistory --require windows --json
+```
+
+Code 2 si aucun runner online compatible. ForgePilot ne dispatch pas :
+après un constat vert, `gh workflow run worker-pc.yml -f tache=ping`.
+Contrat : [`docs/operations/pc-windows-worker.md`](../docs/operations/pc-windows-worker.md).
 
 ## Chemin durable recommandé
 

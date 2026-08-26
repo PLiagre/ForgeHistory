@@ -19,6 +19,12 @@
 Et vous : **vous seul fusionnez.** C'est le seul geste que personne d'autre
 ne peut faire.
 
+Le PC Windows, allumé, est un **worker** GitHub, pas un second Hermes :
+`forgepilot workers --repo /srv/ForgeHistory` le constate ; s'il est éteint,
+la tâche machine est refusée et le VPS continue. Hermes Desktop se branche
+sur le Hermes du VPS ; le profil local n'écrit pas ForgeHistory. Détail :
+[operations/pc-windows-worker.md](operations/pc-windows-worker.md).
+
 La règle qui tient tout : **celui qui produit ne prononce pas la recevabilité
 de son propre travail.** Elle est tenue par deux choses mécaniques — la porte
 `harness/verdict_audit.py`, et la relecture Cursor dans une invocation neuve
