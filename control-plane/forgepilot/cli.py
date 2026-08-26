@@ -46,8 +46,23 @@ from .workflow import (
     publish,
     publish_preview,
     review_invocation,
+    usage_summary,
     brief_review_invocation,
 )
+
+
+UN_COUP_REFUSE = (
+    "Invocation directe désactivée : `{commande} --run` lance un agent hors de "
+    "la machine à états — sans run durable, sans compteur de plateau, sans "
+    "signature d'échec et sans vérifier que le brief a bien été relu. C'est la "
+    "forme d'appel qui a consommé le lot 035 sans rien livrer. Employer "
+    "`start --run` puis `resume`, qui conservent l'état, les verrous et les "
+    "preuves. Sans `--run`, cette commande reste un aperçu utile."
+)
+
+
+def _refuser_un_coup(commande: str) -> None:
+    raise PilotError(UN_COUP_REFUSE.format(commande=commande))
 
 
 def _path(value: str) -> Path:
@@ -285,6 +300,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "plan":
+            if args.run:
+                _refuser_un_coup("plan")
             invocation = plan_invocation(
                 settings,
                 args.repo,
@@ -293,33 +310,25 @@ def main(argv: list[str] | None = None) -> int:
                 effort=args.effort,
                 risk=args.risk or declared_risk(args.task),
             )
-            return _run_or_print(invocation, settings, args.repo, args.run)
+            return _run_or_print(invocation, settings, args.repo, False)
 
         if args.command == "execute":
             if args.effort:
                 raise PilotError(CURSOR_EFFORT_REFUSED)
-            base = args.base or settings.default_base_ref
-            if not args.run:
-                preview_worktree = args.repo / ".forgepilot" / "worktrees" / args.task_name
-                invocation = executor_invocation(
-                    settings, preview_worktree, args.plan, model=args.model, risk=args.risk
-                )
-                print(format_invocation(invocation))
-                return 0
-            worktree, branch = create_worktree(args.repo, args.task_name, base)
+            if args.run:
+                _refuser_un_coup("execute")
+            preview_worktree = args.repo / ".forgepilot" / "worktrees" / args.task_name
             invocation = executor_invocation(
-                settings, worktree, args.plan, model=args.model, risk=args.risk
+                settings, preview_worktree, args.plan, model=args.model, risk=args.risk
             )
-            result = execute_invocation(invocation, settings)
-            target = persist_result(args.repo, invocation.role, invocation, result)
-            print(f"Branche : {branch}")
-            print(f"Worktree : {worktree}")
-            print(f"Résultat : {target}")
+            print(format_invocation(invocation))
             return 0
 
         if args.command == "iterate":
             if args.effort:
                 raise PilotError(CURSOR_EFFORT_REFUSED)
+            if args.run:
+                _refuser_un_coup("iterate")
             worktree, branch, status = existing_worktree(args.repo, args.task_name)
             print(f"Branche : {branch}")
             print(f"Worktree : {worktree}")
@@ -333,19 +342,12 @@ def main(argv: list[str] | None = None) -> int:
                 feedback=args.feedback,
                 resume_session=args.session,
             )
-            if not args.run:
-                print(format_invocation(invocation))
-                return 0
-            if args.feedback is None:
-                raise PilotError(
-                    "Feedback structuré absent ; fournir --feedback pour une itération réelle."
-                )
-            result = execute_invocation(invocation, settings)
-            target = persist_result(args.repo, "executor", invocation, result)
-            print(f"Résultat : {target}")
+            print(format_invocation(invocation))
             return 0
 
         if args.command == "review":
+            if args.run:
+                _refuser_un_coup("review")
             base = args.base or settings.default_base_ref
             invocation = review_invocation(
                 settings,
@@ -357,7 +359,7 @@ def main(argv: list[str] | None = None) -> int:
                 risk=args.risk,
                 bundle_path=args.bundle,
             )
-            return _run_or_print(invocation, settings, args.repo, args.run)
+            return _run_or_print(invocation, settings, args.repo, False)
 
         if args.command == "publish":
             base_branch = args.base or settings.default_base_branch
@@ -468,7 +470,14 @@ def main(argv: list[str] | None = None) -> int:
             state_path = run_state_path(args.repo, args.run_id)
             print(
                 json.dumps(
-                    {"state_path": str(state_path), "state": status_snapshot(load_state(state_path))},
+                    {
+                        "state_path": str(state_path),
+                        "state": status_snapshot(load_state(state_path)),
+                        # Le coût du lot se lit au même endroit que son état :
+                        # une dépense qu'il faut aller chercher ailleurs n'est
+                        # pas surveillée.
+                        "usage": usage_summary(state_path.parent),
+                    },
                     indent=2,
                     ensure_ascii=False,
                 )
