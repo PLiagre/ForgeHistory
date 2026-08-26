@@ -3,7 +3,7 @@ author: hermes
 kind: rapport
 created_at: 2026-08-26T11:38:47Z
 concerns: lot-034-et-forgepilot
-status: BLOCKED
+status: REFLECTED_IN_ROADMAP
 ---
 # Rapport de session — lot 034 et enchaînement ForgePilot
 
@@ -446,7 +446,7 @@ pures. Aucun ne doit lancer Cursor réellement. L'invariant `fnmatch` de la PR
    propriétaire suivre le processus normal. Ne pas déduire un verdict des tests
    verts.
 
-## État de clôture
+## État de clôture de la session, avant décision du propriétaire
 
 - Brief relu avant code : oui.
 - Un seul lot produit lancé : oui, lot 034.
@@ -458,3 +458,15 @@ pures. Aucun ne doit lancer Cursor réellement. L'invariant `fnmatch` de la PR
 - Fusion : aucune.
 - Prochaine action honnête : corriger l'enchaînement ForgePilot, puis reprendre
   uniquement la revue du même candidat.
+
+## Mise à jour factuelle après clôture
+
+Le propriétaire a ensuite fusionné la correction du brief par la PR #141,
+puis le candidat du lot 034 par la PR #142 le 2026-08-26 à 11:45 UTC. Les
+sept contrôles GitHub liés au candidat étaient verts. Cette fusion est une
+décision du propriétaire ; elle ne transforme pas le blocage de protocole
+décrit plus haut en verdict produit rétrospectif.
+
+Le rapport a été publié par les PR #143 et #144. La correction séparée de
+l'enchaînement ForgePilot a été fusionnée par la PR #145. `ROADMAP.md` reflète
+désormais la fusion du lot 034 et nomme le lot 035 comme prochain pas unique.

@@ -4,7 +4,7 @@
 > main**. Régénérer avec `python hermes/dashboard.py`. Une vue
 > périmée reste périmée tant que personne ne la régénère.
 >
-> Générée le 2026-08-26 09:22 UTC.
+> Générée le 2026-08-26 12:24 UTC.
 
 ## En bref
 
@@ -16,7 +16,7 @@
 
 ## Ce qui attend le propriétaire
 
-- Trancher la demande `hermes\requests\DEMANDE-20260823-cout-du-lot-et-ceremonie-de-preuve.md` — Réduire le coût d'un lot : la cérémonie de preuve et les relances du pilote.
+- Trancher la demande `hermes/requests/DEMANDE-20260823-cout-du-lot-et-ceremonie-de-preuve.md` — Réduire le coût d'un lot : la cérémonie de preuve et les relances du pilote.
 
 ## Activité GitHub récente
 
