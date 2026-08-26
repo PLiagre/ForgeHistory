@@ -87,6 +87,10 @@ marchandise absente du panier n'est pas une marchandise à zéro.
   marchandises minières. La liste des couches proposées est **dérivée du
   snapshot chargé**, jamais écrite dans le code du visualiseur. Un snapshot sans
   marchandise minière ne propose pas de couche minière.
+- Les couches actuelles **déficit alimentaire**, **faim**, **insolation** et
+  **distance à la mer** sont **retirées**. Elles ne restent pas « en plus ».
+  Le visualiseur montre ce que le moteur joue (population, panier), pas les
+  déterminants de carte qu'il ne joue pas encore.
 - La **preuve SVG** rend la couche demandée, avec la même échelle de valeurs et
   les mêmes trois états visuels qu'aujourd'hui.
 - Le jour de l'année, s'il est dans le document, est affiché tel quel. Absent, il
@@ -114,8 +118,10 @@ Fichiers produit autorisés :
 - `sim/snapshot_export.py` ;
 - `sim/constants.py`, uniquement pour la version du schéma ;
 - `viewer/snapshot_loader.py`, `viewer/svg_proof.py`, `viewer/server.py`,
-  `viewer/__main__.py`, `viewer/static/app.js`, `viewer/static/index.html`,
-  `viewer/static/style.css` ;
+  `viewer/__main__.py`, `viewer/static/app.js`, `viewer/static/index.html` ;
+- `viewer/static/style.css`, **uniquement** si le choix de couche l'exige
+  (une classe ou un sélecteur sans lequel la couche demandée ne se distingue
+  pas). Pas de relookage.
 - `viewer/tests/test_viewer_v0b.py`, uniquement pour **ajouter** les cas qui
   protègent ces règles visibles ; les assertions déjà présentes restent
   inchangées, sauf celles qui nomment la version du schéma ou l'ancien champ de
@@ -141,7 +147,9 @@ Deux choses changent de nom pour les contrôles existants : la version du schém
 et le chemin d'accès au stock de nourriture d'une cellule photographiée. Pour
 chaque ligne modifiée, la ligne d'origine à laquelle on applique **la seule
 substitution du nom ou du chemin** doit être identique à la ligne d'arrivée.
-Aucune valeur attendue, aucun seuil, aucun nom de test ne change. Le mesureur
+Aucune valeur attendue, aucun seuil, aucun nom de test ne change. Ce n'est
+pas une calibration : c'est la substitution d'un attribut ou d'un chemin,
+à l'identique. Le mesureur
 compte les lignes qui violent cette règle ; ce compte doit être **nul**.
 
 ## Conditions de succès
@@ -176,7 +184,9 @@ notion côté moteur dans une copie en mémoire.
 
 La liste des couches proposées est dérivée du document chargé : la population,
 la nourriture, et une couche par marchandise minière **réellement présente**.
-Un document sans marchandise minière n'en propose aucune.
+Un document sans marchandise minière n'en propose aucune. Les identifiants
+`food_deficit_kg`, `hunger_ticks`, `insolation` et `dist_sea` n'apparaissent
+plus dans la liste proposée.
 
 Aucun nom de marchandise n'apparaît en dur dans `viewer/`. Un contrôle le
 vérifie sur les sources du paquet, avec un nombre de fichiers dérivé du

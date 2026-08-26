@@ -20,6 +20,10 @@ touche pas aux arêtes maritimes.
 ce lot fait dépendre du relief. Si cette section a changé depuis la rédaction
 de ce brief, le relire avant de le lancer.
 
+`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
+citée après fusion est une dette de l'architecte du modèle (Claude), pas de
+l'exécutant.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est
@@ -73,6 +77,43 @@ très mal et produit mal, et rien ne garantit que les deux échelles coïncident
 Elles portent un commentaire disant qu'il s'agit d'ordres de grandeur plausibles
 de niveau 2.
 
+**Motif 033 — constantes invisibles pour le monde d'épreuve.**
+`_MondeEpreuve` n'a pas de carte, donc pas de relief. Un nom
+`FACTEUR_TRANSPORT_PLAINE` (ou l'une des quatre autres classes) écrit dans
+`sim/engine.py` entrerait dans le dénominateur de
+`test_chaque_constante_du_moteur_change_le_monde` et n'y bougerait rien.
+
+Donc : les cinq facteurs de transport ne sont **pas** lus par leur nom dans
+`sim/engine.py`. Ils vivent dans `sim/constants.py` et le moteur les
+consulte via une **table relue à chaque appel**, le même motif que
+`facteurs_production_par_relief()` du lot 033 :
+
+```
+def facteurs_transport_par_relief() -> dict[str, float]:
+    return {
+        "plaine": FACTEUR_TRANSPORT_PLAINE,
+        "colline": FACTEUR_TRANSPORT_COLLINE,
+        "marais": FACTEUR_TRANSPORT_MARAIS,
+        "montagne": FACTEUR_TRANSPORT_MONTAGNE,
+        "haute_montagne": FACTEUR_TRANSPORT_HAUTE_MONTAGNE,
+    }
+```
+
+Interdit dans `engine.py` : `_constantes.FACTEUR_TRANSPORT_PLAINE` et les
+quatre autres. Autorisé : `_constantes.facteurs_transport_par_relief()`.
+
+**Sans carte, la capacité reste inchangée.** `_MondeEpreuve` n'a pas
+`world.carte` (absent ou vide). Dans ce cas, le facteur de terrain vaut 1 :
+la capacité d'une arête est la capacité de base, exactement comme aujourd'hui.
+C'est le même repli que le lot 033 pour la production : « sans carte, le
+chemin unitaire historique reste inchangé ». Ce n'est pas un repli vers
+`plaine` sur un monde chargé.
+
+**Sur un monde chargé** (`world.carte` non vide) : une classe de relief
+absente ou inconnue sur une arête entre deux cellules du monde lève, avec
+les deux `cell_id` et la valeur. Pas de facteur neutre, pas de crash du
+monde d'épreuve.
+
 **Composition avec une capacité de base dérivée.** Ce lot multiplie la capacité
 de base par un facteur de terrain, quelle que soit la façon dont cette base est
 obtenue. Si le lot 043 est déjà fusionné, la base n'est plus la constante plate
@@ -95,9 +136,10 @@ montagnes cesse de secourir ses voisines aussi facilement ; une plaine continue
 de faire circuler ses surplus. La géographie devient une contrainte logistique
 au lieu d'un décor, et personne n'a codé « les montagnes isolent ».
 
-**Une classe de relief inconnue sur une arête est une donnée invalide** : lever
-une erreur qui nomme les deux `cell_id` et la valeur fautive. Ne pas deviner, ne
-pas rabattre silencieusement vers `plaine`.
+**Une classe de relief inconnue ou absente sur une arête d'un monde chargé**
+est une donnée invalide : lever, avec les deux `cell_id` et la valeur. Ne
+pas deviner, ne pas rabattre vers `plaine`. Sans carte, voir plus haut :
+facteur 1, capacité de base inchangée.
 
 ## Source de vérité et raccord au moteur
 
@@ -190,11 +232,17 @@ Une vérification supplémentaire est faite à un horizon cinq fois plus long qu
 celui du contrôle existant, pour montrer que l'effet se stabilise au lieu de
 s'aggraver indéfiniment.
 
-### SC6 — Le refus de l'inconnu
+### SC6 — Le refus de l'inconnu, sur un monde chargé
 
-Une carte en mémoire dont la classe de relief d'une cellule reliée par une arête
-est remplacée par une valeur inconnue provoque l'erreur explicite exigée, avec
-les deux `cell_id` et la valeur. Aucun repli silencieux n'est admis.
+Une **carte en mémoire** dont la classe de relief d'une cellule reliée par une
+arête est remplacée par une valeur inconnue provoque l'erreur explicite
+exigée, avec les deux `cell_id` et la valeur. Aucun repli silencieux n'est
+admis. Ce contrôle se joue sur un monde **chargé** (`world.carte` non vide),
+pas sur `_MondeEpreuve`.
+
+Un tick sur un monde sans carte — le monde d'épreuve de
+`test_write_coverage.py`, ou un `World` construit sans `carte` — **ne lève
+pas**. La capacité reste la capacité de base.
 
 ### SC7 — Les invariants existants restent intacts
 
@@ -207,7 +255,9 @@ les deux `cell_id` et la valeur. Aucun repli silencieux n'est admis.
   `test_aucune_constante_terminale` et `test_no_hardcoded_numeric_literals`
   restent verts ;
 - aucune instruction `global` n'apparaît dans `sim/engine.py` ;
-- il n'y a toujours qu'un seul maillon commerce dans `sim/`.
+- il n'y a toujours qu'un seul maillon commerce dans `sim/` ;
+- aucun nom `FACTEUR_TRANSPORT_*` n'apparaît comme attribut lu dans
+  `sim/engine.py` — le motif 033 tient.
 
 ## Compteurs exigés
 
@@ -227,12 +277,14 @@ porte aucun résultat en dur.
 | `ecart_de_masse_micro_monde` | somme des stocks avant et après le maillon | nombre de cellules réellement sommées |
 | `reliefs_inconnus_refuses` | mutations en mémoire vers une valeur absente de l'ensemble dérivé | nombre de mutations réellement exécutées |
 | `fraction_survie_horizon_long` | monde réel joué à cinq fois l'horizon du contrôle existant | population de départ réellement mesurée |
+| `noms_de_constantes_transport_dans_engine` | parcours de l'arbre syntaxique de `sim/engine.py` | nombre de noms du motif 033 réellement cherchés |
 | `tests_sim_verts` | collecte pytest après changement | nombre de tests collectés |
 
 `ecart_de_masse_micro_monde` doit valoir **0**, et ce zéro est une mesure réelle.
 La sentinelle « non calculé » du projet est `-1`, jamais `0`.
 `kg_transportes_apres` doit être strictement inférieur à `kg_transportes_avant`,
 et `fraction_survie_horizon_long` strictement positive.
+`noms_de_constantes_transport_dans_engine` doit valoir **0**.
 
 ## Livrables et porte mécanique
 
@@ -249,6 +301,7 @@ SHA de base, pas une copie `.orig` fabriquée après coup.
 
 ## Hors périmètre
 
+- `sim/MODELE.md` (dette de l'architecte après fusion) ;
 - le transport maritime, les arêtes terre–mer, les ports, les fleuves ;
 - la longueur d'une arête, déjà présente dans la carte mais laissée de côté ici ;
 - les routes, les ponts, l'investissement dans une infrastructure ;

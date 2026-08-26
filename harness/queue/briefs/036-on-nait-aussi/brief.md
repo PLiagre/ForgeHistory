@@ -17,12 +17,22 @@ peut prospérer.
 Ce lot ne fait pas migrer les habitants, ne crée aucune marchandise nouvelle et
 ne touche ni au commerce, ni à la mortalité.
 
+## Dépendance
+
+**Ce lot suppose le lot 034 fusionné.** Il ajoute un maillon au tick. Si
+`sim/engine.py` contient encore une instruction `global`, ce lot est
+**bloqué**, pas à adapter.
+
 ## Fondement dans le modèle
 
 `sim/MODELE.md`, § « Le déficit alimentaire et la mortalité » et § « Le report
 de la fraction de mortalité » — la formule dont ce lot est le symétrique, et la
 raison du report de fraction. Si l'une de ces sections a changé depuis la
 rédaction de ce brief, le relire avant de le lancer.
+
+`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
+citée après fusion est une dette de l'architecte du modèle (Claude), pas de
+l'exécutant.
 
 ## État de départ mesuré
 
@@ -73,6 +83,28 @@ population  += naissances
 | constante | valeur | ce que c'est |
 |---|---:|---|
 | `NAISSANCES_PAR_HABITANT_PAR_TICK` | 0.0002 | naissances par habitant et par tick, **sur les seuls ticks rassasiés** — niveau 2 |
+
+**Motif 033 — constantes invisibles pour le monde d'épreuve.**
+`_MondeEpreuve` de `sim/tests/test_write_coverage.py` n'a aucune cellule
+rassasiée sans dette : la natalité n'y joue pas. Un nom
+`NAISSANCES_PAR_HABITANT_PAR_TICK` écrit dans `sim/engine.py` entrerait dans
+le dénominateur de `test_chaque_constante_du_moteur_change_le_monde` et n'y
+bougerait rien.
+
+Donc : cette constante n'est **pas** lue par son nom dans `sim/engine.py`.
+Elle vit dans `sim/constants.py`. Le moteur consulte le taux via une
+**fonction relue à chaque appel**, le même motif que
+`facteurs_production_par_relief()` du lot 033 :
+
+```
+def naissances_par_habitant_par_tick() -> float:
+    return NAISSANCES_PAR_HABITANT_PAR_TICK
+```
+
+Interdit dans `engine.py` : `_constantes.NAISSANCES_PAR_HABITANT_PAR_TICK`.
+Autorisé : `_constantes.naissances_par_habitant_par_tick()`.
+`test_aucune_constante_terminale` continue de voir le nom : la fonction le
+lit.
 
 Le taux est **conditionnel** : il ne s'applique pas tous les jours, mais
 seulement les jours où la cellule a mangé son content. Son effet annuel réel est
@@ -220,7 +252,9 @@ et relue ; aucun nombre du présent brief n'est recopié.
 - deux exécutions de `.venv/bin/python -m sim --ticks 365 --seed 0 --json` sont
   strictement identiques, et différentes de la référence rejouée sur le SHA de
   base ;
-- aucune instruction `global` n'apparaît dans `sim/engine.py`.
+- aucune instruction `global` n'apparaît dans `sim/engine.py` ;
+- le nom `NAISSANCES_PAR_HABITANT_PAR_TICK` n'apparaît pas comme attribut lu
+  dans `sim/engine.py` — le motif 033 tient.
 
 ## Compteurs exigés
 
@@ -239,6 +273,7 @@ porte aucun résultat en dur.
 | `fraction_survie_taux_double` | idem, constante doublée en mémoire | population de départ réellement mesurée |
 | `plafond_derive` | `production_moyenne_kg_par_tick` sur le monde chargé | ration du monde de départ, mesurée |
 | `champs_cli_modifies` | comparaison avec la sortie de base rejouée et archivée avant édition | nombre de champs dérivés réellement comparés |
+| `noms_de_constantes_natalite_dans_engine` | parcours de l'arbre syntaxique de `sim/engine.py` | nombre de noms du motif 033 réellement cherchés |
 | `tests_sim_verts` | collecte pytest après changement | nombre de tests collectés |
 
 `sites_d_augmentation_de_population` doit valoir **1**.
@@ -246,6 +281,7 @@ porte aucun résultat en dur.
 réelle : le mesureur a joué les ticks et compté. La sentinelle « non calculé »
 du projet est `-1`, jamais `0`. Les trois fractions de survie doivent être
 strictement ordonnées, sans quoi SC6 n'est pas démontré.
+`noms_de_constantes_natalite_dans_engine` doit valoir **0**.
 
 ## Livrables et porte mécanique
 
@@ -262,6 +298,7 @@ SHA de base, pas une copie `.orig` fabriquée après coup.
 
 ## Hors périmètre
 
+- `sim/MODELE.md` (dette de l'architecte après fusion) ;
 - la migration, le vieillissement, les familles, les âges, le sexe ;
 - les marchandises autres que la nourriture, les gisements, le climat ;
 - toute modification des règles de mortalité, de faim, de commerce ou de

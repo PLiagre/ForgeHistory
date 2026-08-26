@@ -19,8 +19,9 @@ ville, et ne touche ni à la production, ni au commerce, ni à la mortalité.
 
 ## Dépendance
 
-Aucune dépendance dure. Ce lot peut être lancé dès que le lot 034 est fusionné,
-sans attendre les lots 035 à 040.
+**Ce lot suppose le lot 034 fusionné.** Il ajoute un maillon au tick. Si
+`sim/engine.py` contient encore une instruction `global`, ce lot est
+**bloqué**, pas à adapter. Il n'attend pas les lots 035 à 040.
 
 ## Fondement dans le modèle
 
@@ -28,6 +29,10 @@ sans attendre les lots 035 à 040.
 la cause du départ — et § « Le report de la fraction de mortalité », dont ce
 lot reprend le mécanisme. Si l'une de ces sections a changé depuis la rédaction
 de ce brief, le relire avant de le lancer.
+
+`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
+citée après fusion est une dette de l'architecte du modèle (Claude), pas de
+l'exécutant.
 
 ## État de départ mesuré
 
@@ -101,10 +106,11 @@ renvoie pas ailleurs le même tick.
 ne change de cellule avec eux. C'est une simplification assumée, déclarée ici, et
 non un oubli ; un lot ultérieur pourra leur donner un baluchon.
 
-**5. La place dans la chaîne : à la fin.** Après la natalité. Une cellule est
-d'abord nourrie, affamée, décimée et repeuplée, puis ceux qui restent décident de
-partir. L'ordre du tick devient : extraction et production → commerce →
-consommation → faim → mortalité → natalité → **migration**.
+**5. La place dans la chaîne : à la fin.** Après la mortalité, et après la
+natalité **si ce maillon existe**. Une cellule est d'abord nourrie, affamée,
+décimée, éventuellement repeuplée, puis ceux qui restent décident de partir.
+L'ordre du tick devient : extraction et production → commerce → consommation
+→ faim → mortalité → natalité (si présente) → **migration**.
 
 ## Source de vérité et raccord au moteur
 
@@ -272,6 +278,7 @@ SHA de base, pas une copie `.orig` fabriquée après coup.
 
 ## Hors périmètre
 
+- `sim/MODELE.md` (dette de l'architecte après fusion) ;
 - emporter des biens, un stock ou une dette en migrant ;
 - la distance parcourue, la durée du voyage, la mortalité en route ;
 - l'attachement au sol, la culture, la langue, la famille ;
