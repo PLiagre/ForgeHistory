@@ -432,3 +432,153 @@ def test_tick_refuse_relief_absent():
     with pytest.raises(ReliefInvalideError, match=f"cell_id={cid}") as exc:
         tick(world, random.Random(0))
     assert "relief=None" in str(exc.value)
+
+
+# --- brief 034 : moteur sans état de module pour la carte ---
+
+
+def test_aucune_instruction_global_dans_le_moteur():
+    """SC1 — Aucune fonction de sim/engine.py ne déclare global."""
+    import ast
+
+    engine_path = pathlib.Path(__file__).resolve().parents[1] / "engine.py"
+    source = engine_path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+
+    fonctions: list[str] = []
+    fautives: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            fonctions.append(node.name)
+            for child in ast.walk(node):
+                if isinstance(child, ast.Global):
+                    fautives.append(node.name)
+
+    n_fonctions = len(fonctions)
+    n_global = len(set(fautives))
+    print(f"fonctions_moteur_inspectees={n_fonctions}")
+    print(f"fonctions_avec_global={n_global}")
+    if fautives:
+        print(f"fonctions_fautives={sorted(set(fautives))}")
+
+    assert fonctions, "module sans fonction : échantillon insuffisant"
+    assert not fautives, (
+        f"instructions global interdites dans : {sorted(set(fautives))}"
+    )
+
+
+def _cartes_par_classe_relief_pour_cellule(carte_originale: dict, cell_id: int) -> dict[str, dict]:
+    """Une carte en mémoire par classe de relief présente dans la carte figée."""
+    classes: dict[str, int] = {}
+    for raw in carte_originale.values():
+        relief = raw.get("relief")
+        if relief and relief not in classes:
+            classes[relief] = cell_id
+    assert len(classes) >= 2, "échantillon insuffisant : moins de deux classes de relief"
+    cartes: dict[str, dict] = {}
+    for cls in sorted(classes):
+        carte_x = {cid: dict(entree) for cid, entree in carte_originale.items()}
+        entree = dict(carte_x[cell_id])
+        entree["relief"] = cls
+        carte_x[cell_id] = entree
+        cartes[cls] = carte_x
+    return cartes
+
+
+def test_production_du_tick_kg_modulée_par_le_relief():
+    """SC2a — Seule la carte change ; le rapport suit les facteurs nominaux."""
+    from sim import constants as _k
+    from sim.engine import production_du_tick_kg
+
+    world = World.charger(0)
+    cell_id = next(iter(world.cells))
+    cell = world.cells[cell_id]
+    surface_commune = 10.0
+    rendement = 1.0
+    cell.area_km2 = surface_commune
+
+    cartes = _cartes_par_classe_relief_pour_cellule(world.carte, cell_id)
+    facteurs = _k.facteurs_production_par_relief()
+    ref_cls = "plaine"
+    assert ref_cls in cartes
+
+    productions: dict[str, float] = {}
+    appels = 0
+    for cls, carte_x in sorted(cartes.items()):
+        productions[cls] = production_du_tick_kg(cell, rendement, carte_x)
+        appels += 1
+
+    ref_prod = productions[ref_cls]
+    ratios_ok = 0
+    for cls in sorted(cartes):
+        if cls == ref_cls:
+            continue
+        ratio = productions[cls] / ref_prod
+        attendu = facteurs[cls] / facteurs[ref_cls]
+        assert ratio == attendu, (
+            f"classe {cls}: ratio {ratio} != facteur nominal {attendu}"
+        )
+        ratios_ok += 1
+
+    print(f"cartes_comparees_sc2={len(cartes)}")
+    print(f"appels_production_du_tick={appels}")
+    print(f"ratios_conformes_au_facteur_nominal={ratios_ok}")
+
+
+def test_production_du_tick_kg_appels_consecutifs_identiques():
+    """SC2b — Mêmes arguments, même flottant ; aucun état de module posé."""
+    from sim import engine
+    from sim.engine import production_du_tick_kg
+
+    world = World.charger(0)
+    cell_id = next(iter(world.cells))
+    cell = world.cells[cell_id]
+    rendement = 1.0
+    cartes = _cartes_par_classe_relief_pour_cellule(world.carte, cell_id)
+
+    appels_repetes_stables = 0
+    for carte_x in cartes.values():
+        assert engine._carte_du_tick is None
+        premier = production_du_tick_kg(cell, rendement, carte_x)
+        assert engine._carte_du_tick is None
+        second = production_du_tick_kg(cell, rendement, carte_x)
+        assert premier == second
+        appels_repetes_stables += 1
+
+    assert engine._carte_du_tick is None
+    print(f"appels_repetes_stables={appels_repetes_stables}")
+
+
+def test_tick_ne_pose_pas_carte_dans_le_module():
+    """SC2c — Pendant un tick réel, _carte_du_tick reste None à chaque lecture."""
+    import random
+
+    from sim import engine
+    from sim.engine import tick
+
+    class CarteInstrumentee(dict):
+        def __init__(self, data: dict) -> None:
+            super().__init__(data)
+            self.lectures: list[object] = []
+
+        def get(self, key, default=None):
+            self.lectures.append(engine._carte_du_tick)
+            return super().get(key, default)
+
+        def __getitem__(self, key):
+            self.lectures.append(engine._carte_du_tick)
+            return super().__getitem__(key)
+
+    world = World.charger(0)
+    world.carte = CarteInstrumentee(dict(world.carte))
+    tick(world, random.Random(0))
+
+    lectures = len(world.carte.lectures)
+    non_none = sum(1 for valeur in world.carte.lectures if valeur is not None)
+    print(f"lectures_de_carte_pendant_le_tick={lectures}")
+    print(f"lectures_voyant_un_etat_de_module={non_none}")
+
+    assert lectures > 0, "zéro lecture : absence de mesure"
+    assert non_none == 0, (
+        f"{non_none} lectures ont vu un état de module au lieu de None"
+    )

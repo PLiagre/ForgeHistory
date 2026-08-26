@@ -63,6 +63,18 @@ def _facteur_relief_pour_cellule(cell: Cell, carte: dict) -> float:
     return facteurs[relief]
 
 
+def production_du_tick_kg(cell: Cell, yield_factor: float, carte: dict) -> float:
+    """
+    Production alimentaire d'une cellule pendant un tick, avec relief lu
+    depuis la carte passée en argument (brief 034).
+
+    Délègue les kilogrammes à production_kg() — deux arguments, par le nom
+    de module — puis applique le facteur de relief une seule fois.
+    """
+    base = production_kg(cell, yield_factor)
+    return base * _facteur_relief_pour_cellule(cell, carte)
+
+
 def production_kg(cell: Cell, yield_factor: float) -> float:
     """
     Ce qu'une cellule produit en un tick pour un rendement donné.
@@ -95,16 +107,19 @@ def production_moyenne_kg_par_tick(world) -> float:
     (`sim/tests/test_survie.py`). Elle n'est jamais lue par le tick.
     """
     rendement_moyen = _constantes.rendement_moyen_courant()
-    global _carte_du_tick
-    ancienne = _carte_du_tick
-    _carte_du_tick = world.carte if world.carte else None
-    try:
-        return sum(production_kg(cell, rendement_moyen) for cell in world.cells.values())
-    finally:
-        _carte_du_tick = ancienne
+    if not world.carte:
+        return sum(
+            production_kg(cell, rendement_moyen) for cell in world.cells.values()
+        )
+    return sum(
+        production_du_tick_kg(cell, rendement_moyen, world.carte)
+        for cell in world.cells.values()
+    )
 
 
-def _apply_production(cell: Cell, rng: random.Random) -> None:
+def _apply_production(
+    cell: Cell, rng: random.Random, carte: dict | None = None
+) -> None:
     """
     Maillon 1 — Production.
     Calcule la nourriture produite avec un facteur de rendement aléatoire
@@ -112,7 +127,10 @@ def _apply_production(cell: Cell, rng: random.Random) -> None:
     Traite la sentinelle -1 comme un stock initial nul.
     """
     yield_factor = rng.uniform(_constantes.RNG_YIELD_LOW, _constantes.RNG_YIELD_HIGH)
-    food_produced = production_kg(cell, yield_factor)
+    if carte:
+        food_produced = production_du_tick_kg(cell, yield_factor, carte)
+    else:
+        food_produced = production_kg(cell, yield_factor)
     current = cell.food_stock_kg if cell.food_stock_kg >= 0 else 0.0
     cell.food_stock_kg = current + food_produced
 
@@ -360,20 +378,15 @@ def tick(world, rng: random.Random) -> float:
     pendant ce tick (kg).
     """
     total_transported = [0.0]
-    global _carte_du_tick
-    ancienne_carte = _carte_du_tick
-    _carte_du_tick = world.carte if getattr(world, "carte", None) else None
-    try:
-        for cell in world.cells.values():
-            _apply_production(cell, rng)
+    carte = world.carte if getattr(world, "carte", None) else None
+    for cell in world.cells.values():
+        _apply_production(cell, rng, carte)
 
-        _apply_commerce(world, total_transported)
+    _apply_commerce(world, total_transported)
 
-        for cell in world.cells.values():
-            penurie_kg = _apply_consumption(cell)
-            _update_hunger(cell, penurie_kg)
-            _apply_mortality(cell)
-    finally:
-        _carte_du_tick = ancienne_carte
+    for cell in world.cells.values():
+        penurie_kg = _apply_consumption(cell)
+        _update_hunger(cell, penurie_kg)
+        _apply_mortality(cell)
 
     return total_transported[0]
