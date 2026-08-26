@@ -20,14 +20,20 @@
 | [0016](0016-sim-sans-unity-hermes-pilote-et-propose.md) | `sim/` sans Unity est le produit vivant ; Hermes pilote et propose | accepted | 2026-08-20 |
 | [0017](0017-grok-juge-claude-temoin-fusion-mecanique.md) | Grok juge la PR, Claude Opus 5 témoin rare, fusion mécanique | accepted | 2026-08-23 |
 | [0018](0018-degraissage-trois-acteurs-et-carte-figee.md) | Le dégraissage — trois acteurs, carte figée, vraisemblable plutôt que véridique | accepted | 2026-08-25 |
+| [0019](0019-claude-ecrit-les-briefs-hermes-pilote.md) | Claude écrit les briefs, Hermes pilote — amende ADR-0018 § 1 | accepted | 2026-08-26 |
 | [0020](0020-pc-worker-opportuniste.md) | Le PC Windows est un worker opportuniste (GitHub Actions), pas un second chef | proposed | 2026-08-26 |
 
 ## Lecture
 
 **ADR-0018 est le point d'entrée.** Il amende ADR-0001, ADR-0002 et
 ADR-0005 à ADR-0017 : là où l'un d'eux contredit ADR-0018, c'est ADR-0018
-qui vaut. **ADR-0020** (proposed) amende ADR-0013 sur le worker Windows
-seulement : il ne change ni les trois acteurs ni la fusion.
+qui vaut.
+
+**ADR-0019 amende ADR-0018 sur un seul point** : le `brief.md` est écrit par
+Claude, pas par Hermes. Partout ailleurs, ADR-0018 reste tel quel.
+
+**ADR-0020** (proposed) amende ADR-0013 sur le worker Windows seulement :
+il ne change ni les trois acteurs ni la fusion.
 
 Les ADR périmés par le dégraissage — parce qu'ils décrivent un code ou une
 organisation qui n'existent plus — sont conservés comme mémoire du projet,
@@ -41,10 +47,10 @@ mais ne sont plus à lire au démarrage :
 | 0006, 0007 | le pipeline full-auto est supprimé |
 | 0008, 0009 | le backend Codex est supprimé |
 | 0010, 0011, 0013, 0014, 0015 | la chaîne à quatre acteurs est remplacée par les trois acteurs d'ADR-0018 |
-| 0016 | reste vrai sauf sur un point : Hermes écrit désormais les briefs |
+| 0016 | reste vrai ; sa phrase « Claude écrit le brief » redevient exacte avec ADR-0019 |
 | 0017 | reste vrai sur la répartition des modèles ; la fusion mécanique automatique disparaît |
 
 Restent pleinement en vigueur : **ADR-0003** (la cellule est la clé spatiale
 unique, la province est dérivée), **ADR-0004** (l'origine du code Unity, en
-veille) et **ADR-0018**. **ADR-0020** (proposed) s'y ajoute pour le PC
-worker, sans rouvrir Unity.
+veille), **ADR-0018** et **ADR-0019**. **ADR-0020** (proposed) s'y ajoute
+pour le PC worker, sans rouvrir Unity.

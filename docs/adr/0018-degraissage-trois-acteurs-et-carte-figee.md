@@ -4,6 +4,13 @@
 **Status**: accepted
 **Deciders**: le propriétaire (décision du 2026-08-25), Claude (rédaction)
 
+> **§ 1 amendé par [ADR-0019](0019-claude-ecrit-les-briefs-hermes-pilote.md)
+> (2026-08-26) : c'est Claude qui écrit le `brief.md`, pas Hermes.** Tout le
+> reste de cette décision reste en vigueur. Le tableau des acteurs et la
+> phrase-processus ci-dessous sont conservés tels qu'ils ont été décidés le
+> 2026-08-25 — un ADR n'est pas réécrit après coup — mais ils ne décrivent
+> plus qui rédige.
+
 Amende ADR-0001, ADR-0002, ADR-0005 à ADR-0017. Ne remplace pas VISION.md,
 ni les trois principes non négociables, ni la règle « celui qui produit ne
 prononce pas la recevabilité de son propre travail ».

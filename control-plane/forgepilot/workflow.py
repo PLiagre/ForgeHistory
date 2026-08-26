@@ -317,7 +317,8 @@ def brief_review_invocation(
 
     Ce n'est pas un jugement de lot : personne n'a encore produit quoi que ce
     soit. La règle « celui qui produit ne prononce pas la recevabilité de son
-    propre travail » est respectée — Hermes écrit le brief, un autre le lit.
+    propre travail » est respectée — Claude écrit le brief (ADR-0019), un
+    autre le lit.
     """
     backend = _role_backend(settings, risk, "reviewer")
     if backend == "none":

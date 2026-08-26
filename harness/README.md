@@ -2,9 +2,9 @@
 
 Ce qui reste après ADR-0018 : **la porte mécanique**, et rien d'autre.
 
-Le harnais n'orchestre plus personne. Hermes écrit les briefs, Cursor les
-exécute, le propriétaire fusionne. Le harnais sert à une seule chose :
-refuser un compte-rendu qui se contredit lui-même.
+Le harnais n'orchestre plus personne. Claude écrit les briefs (ADR-0019),
+Hermes les lance, Cursor les exécute, le propriétaire fusionne. Le harnais
+sert à une seule chose : refuser un compte-rendu qui se contredit lui-même.
 
 ## Contenu
 
