@@ -19,6 +19,12 @@ deux cents. **Le commerce est mille fois trop petit pour l'échelle des cellules
 Ce lot ne change ni les règles d'allocation du commerce, ni la production, ni la
 consommation, et ne crée aucune marchandise.
 
+## Dépendance
+
+**Ce lot se lance après le lot 040.** Le facteur de terrain se prouve plus
+simplement sur une capacité constante ; il multiplie ensuite la capacité
+dérivée. Si 040 n'est pas fusionné, ce lot est **bloqué**, pas à adapter.
+
 ## Pourquoi c'est le lot qui ouvre la couche 2
 
 Une ville est un endroit qui **ne produit pas ce qu'il mange**. Tant qu'une
@@ -43,6 +49,10 @@ qui montre que le commerce est de trois ordres de grandeur trop petit — et
 § « Le commerce entre cellules », qui porte la capacité que ce lot remplace. Si
 l'une de ces sections a changé depuis la rédaction de ce brief, le relire avant
 de le lancer.
+
+`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
+citée après fusion est une dette de l'architecte du modèle (Claude), pas de
+l'exécutant.
 
 ## État de départ mesuré
 
@@ -104,6 +114,16 @@ silencieusement vers une longueur par défaut. Une longueur nulle, en revanche,
 est **valide** : deux cellules qui ne se touchent qu'en un point ne laissent rien
 passer, et ce zéro est une mesure.
 
+Ce refus vaut partout, y compris sur un micro-monde. Pour que
+`test_write_coverage.py` — hors assertions, hors périmètre de calibration —
+ne crashe pas : les deux arêtes de `_MondeEpreuve.adjacency` n'ont
+aujourd'hui **pas** de `shared_length_m`. Ce lot **ajoute** cette clé à ces
+arêtes, et rien d'autre dans ce fichier. La valeur est une longueur
+strictement positive, identique sur les deux arêtes, **lue** du premier
+littéral `shared_length_m` déjà présent dans `sim/tests/test_commerce.py` —
+pas inventée, pas calibrée après mesure. Aucune assertion de
+`test_write_coverage.py` ne change.
+
 ## Source de vérité et raccord au moteur
 
 La longueur vient **uniquement** de l'arête de `world.adjacency`, telle que la
@@ -126,7 +146,10 @@ Fichiers produit autorisés :
   protègent cette règle visible, et pour la substitution du nom de la constante
   supprimée selon la règle ci-dessous ;
 - `sim/tests/test_survie.py`, **uniquement** pour la même substitution de nom, si
-  ce fichier importe la constante supprimée.
+  ce fichier importe la constante supprimée ;
+- `sim/tests/test_write_coverage.py`, **uniquement** pour ajouter `shared_length_m`
+  aux arêtes de `_MondeEpreuve.adjacency`, selon la règle ci-dessous. Aucune
+  assertion de ce fichier ne change.
 
 Livrables du lot autorisés :
 
@@ -154,6 +177,21 @@ règle ; ce compte doit être **nul**.
 Un contrôle dont la valeur attendue dépendait de la capacité plate doit tirer sa
 nouvelle valeur de la **même expression que le moteur**, jamais d'un nombre
 recopié après avoir vu la mesure.
+
+### La règle d'ajout de `shared_length_m` au monde d'épreuve
+
+`_MondeEpreuve.adjacency` dans `sim/tests/test_write_coverage.py` reçoit la
+clé `shared_length_m` sur chaque arête. Pour chaque ligne modifiée de ce
+fichier, la ligne d'origine à laquelle on applique **la seule addition de
+cette clé** doit être identique à la ligne d'arrivée. Aucune valeur
+attendue, aucun seuil, aucun nom de test, aucune assertion ne change. Le
+mesureur compte les lignes qui violent cette règle ; ce compte doit être
+**nul**.
+
+Sans cet ajout, le refus de la longueur absente ferait crasher
+`test_chaque_constante_du_moteur_change_le_monde`, que ce lot n'a pas le
+droit de recalibrer. Ce n'est pas une calibration : c'est la même clé que
+la carte porte déjà sur toutes les arêtes terre–terre.
 
 ## Conditions de succès
 
@@ -265,7 +303,8 @@ porte aucun résultat en dur.
 | `ticks_survecus_cellule_sans_production_capacite_plate` | même micro-monde, constante remplacée en mémoire | même borne |
 | `ecart_de_masse_micro_monde` | somme des stocks avant et après le maillon | nombre de cellules réellement sommées |
 | `longueurs_invalides_refusees` | mutations en mémoire retirant ou corrompant une longueur | nombre de mutations réellement exécutées |
-| `lignes_de_test_hors_substitution` | diff des fichiers de test contre le SHA de base | nombre de lignes du diff réellement examinées |
+| `aretes_monde_epreuve_avec_longueur` | arêtes de `_MondeEpreuve.adjacency` portant `shared_length_m` après changement | nombre d'arêtes du fixture |
+| `lignes_de_test_hors_substitution` | diff des fichiers de test contre le SHA de base, hors l'ajout de clé au fixture | nombre de lignes du diff réellement examinées |
 | `tests_collectes_avant` | collecte pytest sur le SHA de base | nombre de fichiers de test collectés |
 | `tests_collectes_apres` | collecte pytest après changement | nombre de fichiers de test collectés |
 
@@ -277,6 +316,7 @@ projet est `-1`, jamais `0`.
 Le rapport de `kg_transportes_apres` sur `kg_transportes_avant` doit atteindre
 `rapport_de_capacite_attendu`. `ticks_survecus_cellule_sans_production` doit être
 strictement supérieur à sa contrepartie à capacité plate.
+`aretes_monde_epreuve_avec_longueur` doit égaler le nombre d'arêtes du fixture.
 
 ## Livrables et porte mécanique
 
@@ -293,6 +333,7 @@ SHA de base, pas une copie `.orig` fabriquée après coup.
 
 ## Hors périmètre
 
+- `sim/MODELE.md` (dette de l'architecte après fusion) ;
 - les routes, les ponts, les ports, les fleuves et tout investissement dans une
   infrastructure ;
 - le transport maritime et les arêtes terre–mer ;

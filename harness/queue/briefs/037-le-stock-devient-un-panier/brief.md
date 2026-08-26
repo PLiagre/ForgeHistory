@@ -96,8 +96,15 @@ où d'autres marchandises existeront, un autre lot décidera comment les
 photographier.
 
 La sérialisation canonique `World.to_dict()`, qui sert au déterminisme et à la
-sonde des couches, conserve la même forme et les mêmes clés qu'aujourd'hui.
-C'est ce qui rend SC2 vérifiable au bit près.
+sonde des couches, **porte le panier** : chaque cellule y expose ses stocks,
+marchandise par marchandise. Les clés historiques restent (population, stock
+de nourriture lu dans le panier, faim, dette, remainder) ; le panier s'ajoute.
+Ce n'est pas une seconde base spatiale : c'est l'état de la cellule.
+
+SC2 ne se joue pas sur `to_dict`. Il se joue sur la CLI et le snapshot, qui
+restent **byte-identiques**. Geler les clés de `to_dict` rendrait invisible
+toute marchandise autre que la nourriture, et le lot 038 ne pourrait pas
+prouver que la sonde voit les gisements.
 
 ## Périmètre d'écriture
 
@@ -195,6 +202,11 @@ demande aucune ligne de code supplémentaire.
 C'est la seule chose que ce lot ajoute au monde, et elle n'est encore utilisée
 par personne : c'est ce qui permet aux lots 038 et 039 d'exister.
 
+`World.to_dict()` d'un monde amorcé **porte le panier** de chaque cellule. Une
+marchandise absente du snapshot et de la CLI y figure dès qu'elle est écrite
+via l'accès nommé. L'empreinte interne n'est pas gelée : seules la CLI et le
+snapshot le sont (SC2).
+
 ### SC6 — Les invariants existants restent intacts
 
 - `.venv/bin/python -m pytest sim/tests/ viewer/tests/ -q` est vert ;
@@ -220,6 +232,7 @@ porte aucun résultat en dur.
 | `acces_directs_au_panier_hors_modele` | parcours de l'arbre syntaxique après changement | `modules_sim_parcourus` |
 | `champs_cli_identiques` | comparaison des sorties CLI archivées et d'après | nombre de champs réellement présents dans la sortie |
 | `cles_snapshot_identiques` | comparaison des documents snapshot archivé et d'après | nombre de clés réellement présentes dans le document |
+| `cellules_to_dict_avec_panier` | `World.to_dict()` d'un monde amorcé, cellules portant un panier | nombre de cellules réellement chargées |
 | `lignes_de_test_modifiees` | diff des fichiers de test contre le SHA de base | nombre de lignes du diff réellement examinées |
 | `lignes_de_test_hors_substitution` | mêmes lignes, règle de substitution appliquée | `lignes_de_test_modifiees` |
 | `tests_collectes_avant` | collecte pytest sur le SHA de base | nombre de fichiers de test collectés |
@@ -231,7 +244,8 @@ mesures réelles : le mesureur a parcouru et compté. La sentinelle « non
 calculé » du projet est `-1`, jamais `0`.
 `references_au_champ_supprime_avant` doit être strictement positif, sans quoi le
 rouge n'a pas été prouvé. `tests_collectes_apres` ne peut pas être inférieur à
-`tests_collectes_avant`.
+`tests_collectes_avant`. `cellules_to_dict_avec_panier` doit égaler le nombre
+de cellules réellement chargées.
 
 ## Livrables et porte mécanique
 
@@ -248,7 +262,8 @@ avant/après passent par la référence Git du SHA de base, pas par une copie
 
 Attention : `sim/model.py` et `sim/engine.py` doivent **différer** du SHA de
 base, tandis que la sortie CLI et le snapshot doivent lui être **identiques**.
-Ce sont les deux faits que le lot a à prouver ensemble.
+`World.to_dict()` **diffère** : il porte le panier. Ce n'est pas une violation
+de SC2.
 
 ## Hors périmètre
 
