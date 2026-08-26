@@ -8,13 +8,13 @@
 
 ---
 
-## Les trois acteurs, et surtout ce qu'ils ne font pas
+## Les acteurs, et surtout ce qu'ils ne font pas
 
 | acteur | où il tourne | il fait | **il ne fait pas** |
 |---|---|---|---|
-| **Hermes** | VPS | demande le `brief.md` à Claude, le fait relire, lance ForgePilot, mesure, rend compte | **il n'écrit pas le brief, ne code pas, ne fusionne pas, et ne dit jamais si un lot est recevable** |
+| **Hermes** | VPS | reçoit le `brief.md`, le fait relire, lance ForgePilot, mesure, rend compte ; si le brief manque, remet les faits au propriétaire | **il n'écrit pas le brief, ne code pas, ne fusionne pas, ne dit jamais si un lot est recevable et ne lance jamais Claude/Anthropic** |
 | **Cursor** | VPS, lancé par ForgePilot | exécute le brief, ouvre la PR, se relit dans une invocation neuve, itère jusqu'au vert | **il ne décide pas de ce qui est recevable — même sur son propre travail** |
-| **Claude** | à la demande, hors du harnais | **écrit le `brief.md`** (ADR-0019) ; tient `sim/MODELE.md` ; regard de dernier recours quand un lot ne converge pas | **il ne relit pas son propre brief, ne juge aucun lot, et n'a ni agent ni cron dans le pilotage quotidien** |
+| **Claude manuel** | seulement quand vous le lancez | peut écrire ou amender un `brief.md`, tenir `sim/MODELE.md` ou produire une revue consultative | **aucun agent, cron, backend ou témoin Hermes/ForgePilot ne le lance** |
 
 Et vous : **vous seul fusionnez.** C'est le seul geste que personne d'autre
 ne peut faire.
@@ -37,7 +37,7 @@ qui n'a pas vu le code s'écrire.
 | # | qui | machine | commande exacte | ce qui sort |
 |---|---|---|---|---|
 | 1 | **vous** | n'importe où | dire à Hermes ce que vous voulez | rien encore |
-| 2 | **Claude** | à la demande, hors du harnais | *(il rédige)* | `harness/queue/briefs/NNN-slug/brief.md` |
+| 2 | **vous** | hors du harnais | fournir le brief ; vous pouvez utiliser Claude manuellement | `harness/queue/briefs/NNN-slug/brief.md` |
 | 3 | Hermes | VPS | `forgepilot brief-review harness/queue/briefs/NNN-slug/brief.md --repo /srv/ForgeHistory --run` | un verdict sur le **brief**, avant tout code |
 | 4 | **vous** | — | **vous lisez le brief et son verdict** | votre accord, ou une correction |
 | 5 | Hermes | VPS | `forgepilot doctor --repo /srv/ForgeHistory --check-auth` | « poste de pilotage sain » |
@@ -57,8 +57,8 @@ quatrième : ajuster un contrôle après avoir vu une mesure est une calibration
 déguisée. Sans cette étape, ces défauts se découvraient par l'échec du code,
 après jusqu'à deux heures de travail.
 
-Elle n'est pas facultative parce que le brief vient de Claude : **l'auteur
-d'un brief n'est jamais son relecteur.** C'est la même règle que pour le code,
+Elle n'est pas facultative quelle que soit l'origine du brief : **l'auteur d'un
+brief n'est jamais son relecteur automatique.** C'est la même règle que pour le code,
 appliquée un cran plus tôt.
 
 Un lot purement documentaire (R0) n'a pas de relecteur : la commande le
@@ -68,7 +68,7 @@ refuse en le disant, au lieu de lancer un agent pour rien.
 
 ```text
 harness/queue/briefs/NNN-slug/
-├── brief.md          ← écrit par Claude. LA seule source d'instruction du lot.
+├── brief.md          ← fourni par le propriétaire. LA seule source d'instruction du lot.
 ├── eval-rubric.md    ← les critères, écrits AVANT les livrables
 ├── verdict.md        ← le compte-rendu, écrit à la fin
 └── deliverables/
@@ -104,18 +104,12 @@ Le reste tourne sans vous.
 
 ## Quand ça coince
 
-**Le lot ne converge pas en trois itérations.**
-Arrêtez de relancer : trois échecs disent que le brief est faux, pas que
-l'exécutant est mauvais. Appelez Claude — c'est lui qui a écrit le brief et
-qui tient le modèle (`forgepilot witness latest --repo /srv/ForgeHistory`, ou
-directement).
-
-Il n'a que **deux réponses possibles**, et c'est ADR-0019 qui les lui impose :
-*le brief est faux, en voici la réécriture*, ou *je ne peux pas trancher,
-c'est à vous*. Il ne peut pas répondre « le brief est bon, relancez » — ce
-serait déclarer recevable son propre travail. Si vous recevez cette
-réponse-là, refusez-la. Un brief réécrit repasse par `brief-review`, comme le
-premier.
+**Le lot ne progresse plus après deux itérations.**
+Arrêtez de relancer : le brief doit être relu. Hermes conserve les preuves et
+vous remet le dossier. Vous choisissez ensuite : corriger le brief, demander
+une revue manuelle (éventuellement avec Claude lancé par vous), abandonner ou
+trancher. Il n'existe plus de commande `forgepilot witness`. Tout brief réécrit
+repasse par `brief-review`.
 
 **La CI est rouge.**
 Regardez *quel* travail. `sim-tests` rouge = le jeu est cassé, c'est le lot.
@@ -156,8 +150,9 @@ forgepilot recover-review latest --repo /srv/ForgeHistory --run
 Ce n'est pas à eux de trancher, et surtout pas à celui qui a produit le code.
 L'ordre est : la porte mécanique d'abord (elle est déterministe, elle ne
 discute pas) ; puis la règle d'AGENTS.md, s'il y en a une qui couvre le cas ;
-puis vous. Si le désaccord porte sur **comment le monde fonctionne**, c'est
-`sim/MODELE.md`, donc Claude. Si personne ne peut trancher sans vous, la
+puis vous. Si le désaccord porte sur **comment le monde fonctionne**, consultez
+`sim/MODELE.md` et tranchez ; vous pouvez demander une revue Claude manuelle.
+Si personne ne peut trancher sans vous, la
 bonne réponse d'Hermes est d'exposer le blocage — pas de fabriquer une
 décision.
 
@@ -178,7 +173,8 @@ produit plus comme une plaine. Déroulé tel qu'il s'est passé.
 **1. Vous** — « le relief est dans la carte mais le tick l'ignore,
 occupe-t'en. »
 
-**2. Claude** écrit `harness/queue/briefs/033-relief-dans-le-rendement/brief.md`.
+**2. Le propriétaire a fourni** `harness/queue/briefs/033-relief-dans-le-rendement/brief.md`
+(historiquement écrit avec Claude manuel).
 Le brief dit, au minimum :
 - ce qui change : `production_kg()` dans `sim/engine.py`, et **rien d'autre**
   dans le moteur ;

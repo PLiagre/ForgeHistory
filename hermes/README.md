@@ -1,11 +1,12 @@
 # hermes/ — le chef de projet
 
-Hermes est le **pilote** de ForgeHistory (ADR-0010, ADR-0013, ADR-0014,
-ADR-0016, ADR-0019). Point d’entrée du propriétaire, mémoire du projet,
+Hermes est le **pilote** de ForgeHistory (ADR-0010, ADR-0016, ADR-0021).
+Point d’entrée du propriétaire, mémoire du projet,
 force de proposition. Ce n’est pas un copiste de feuille de route.
 
-Il **n’écrit pas les briefs** : c’est Claude, à la demande (ADR-0019).
-Hermes constate le manque, demande le brief, le fait relire, le lance.
+Il **n’écrit pas les briefs** et **ne lance jamais Claude/Anthropic**. Si un
+brief manque, Hermes mesure le besoin et remet le dossier au propriétaire.
+Celui-ci peut fournir un brief, notamment après un usage manuel de Claude.
 
 Le produit vivant est le moteur Python `sim/`. Unity est en veille
 (ADR-0016).
@@ -38,9 +39,9 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 
 - **Proposer.** Constater un trou, une contradiction, une prochaine couche
   de `sim/`, un cron à ajuster — et l’écrire sous `hermes/propositions/`.
-- **Demander un brief.** Quand un lot manque, l’écrire n’est pas son rôle :
-  il expose le besoin et demande le brief à Claude (ADR-0019). Il ne rédige
-  ni ne complète le `brief.md` reçu.
+- **Préparer une demande de brief.** Quand un lot manque, il mesure l’état,
+  expose le besoin et remet le dossier au propriétaire (`OWNER_INPUT_REQUIRED`).
+  Il ne rédige ni ne complète le `brief.md` et ne lance aucun fournisseur.
 - **Piloter un lot.** Faire relire le brief reçu
   (`forgepilot brief-review <brief.md>`), puis enregistrer et lancer un run
   durable avec `forgepilot start <brief.md>` ; suivre et reprendre avec
@@ -57,9 +58,9 @@ Jamais dans le dépôt : `~/.hermes` (sessions, mémoire, clés).
 - **Cadencer.** Une veille quotidienne script-only et silencieuse sur le
   chemin vert (`hermes/crons/README.md`). Aucun cron ne fusionne.
 
-Hermes ne juge pas un lot. Grok 4.6 relit le brief, planifie et juge la PR
-finale ; Composer écrit le code ; Claude écrit le brief et n’intervient
-ensuite qu’en dernier recours (ADR-0019). **La fusion est au propriétaire**
+Hermes ne juge pas un lot. Le relecteur et le planificateur Cursor désignés par
+la politique lisent ; Composer écrit le code. Claude n'intervient que si le
+propriétaire le lance manuellement (ADR-0021). **La fusion est au propriétaire**
 (ADR-0018) : la fusion mécanique d’ADR-0017 a disparu avec le dégraissage.
 
 ## Tableau de bord
@@ -84,7 +85,7 @@ author: hermes
 kind: rapport | demande | proposition
 created_at: 2026-08-20T10:00:00Z
 concerns: <phase Fn, brief NNN, ou "projet">
-status: OPEN | HANDED_TO_CTO | REFLECTED_IN_ROADMAP | CLOSED
+status: OPEN | OWNER_INPUT_REQUIRED | REFLECTED_IN_ROADMAP | CLOSED
 ---
 # titre
 
@@ -100,7 +101,8 @@ Hermes propose ──▶ hermes/propositions/PROPOSITION-...md
   ▼
 le propriétaire tranche (garder / amender / rejeter)
   ▼
-si besoin d’un lot : session Claude pour écrire le brief (ADR-0019)
+si besoin d’un lot : Hermes remet les faits au propriétaire
+  (le propriétaire peut produire le brief avec Claude manuel)
   ▼
 Hermes fait relire le brief : `forgepilot brief-review <brief.md> --run`
   ▼

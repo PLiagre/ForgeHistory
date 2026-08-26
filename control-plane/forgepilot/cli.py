@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 import sys
 
@@ -48,7 +47,6 @@ from .workflow import (
     publish_preview,
     review_invocation,
     brief_review_invocation,
-    witness_invocation,
 )
 
 
@@ -217,15 +215,6 @@ def parser() -> argparse.ArgumentParser:
     brief_review.add_argument("--risk", choices=("R0", "R1", "R2"))
     brief_review.add_argument("--run", action="store_true")
 
-    witness = commands.add_parser(
-        "witness",
-        help="témoin Claude Opus 5 hors chemin quotidien (ADR-0017)",
-    )
-    witness.add_argument("plan", type=_path)
-    witness.add_argument("--repo", type=_path, default=Path.cwd())
-    witness.add_argument("--base")
-    witness.add_argument("--bundle", type=_path)
-    witness.add_argument("--run", action="store_true")
 
     merge = commands.add_parser(
         "merge",
@@ -272,9 +261,6 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings = load_settings(args.config, args.policy)
         if args.command == "doctor":
-            if os.environ.get("ANTHROPIC_API_KEY"):
-                print("REFUS : ANTHROPIC_API_KEY est défini ; le pilote doit utiliser l'abonnement Claude Pro.")
-                return 2
             missing = list(missing_binaries(settings))
             branch = git(args.repo, "branch", "--show-current")
             print(f"Projet : {settings.project_id}")
@@ -291,12 +277,11 @@ def main(argv: list[str] | None = None) -> int:
             print("Binaires : OK")
             if args.check_auth:
                 for command in (
-                    [settings.claude_binary, "auth", "status"],
                     [settings.cursor_binary, "status"],
                     ["gh", "auth", "status"],
                 ):
                     run_command(command, cwd=args.repo, timeout_seconds=60)
-                print("Authentifications Claude Code, Cursor et GitHub : OK")
+                print("Authentifications Cursor et GitHub : OK")
             return 0
 
         if args.command == "plan":
@@ -572,16 +557,6 @@ def main(argv: list[str] | None = None) -> int:
             )
             return _run_or_print(invocation, settings, args.repo, args.run)
 
-        if args.command == "witness":
-            base = args.base or settings.default_base_ref
-            invocation = witness_invocation(
-                settings,
-                args.repo,
-                args.plan,
-                base,
-                bundle_path=args.bundle,
-            )
-            return _run_or_print(invocation, settings, args.repo, args.run)
 
         if args.command == "merge":
             payload = merge_run(args.repo, args.run_id, apply=args.run)

@@ -115,8 +115,8 @@ def generer(
     out.append("- **Prochain pas produit** : un seul, dans [ROADMAP.md](../ROADMAP.md).")
     out.append(f"- **Pilotage ouvert** : {len(demandes)} demande(s), "
                f"{len(propositions)} proposition(s).")
-    out.append("- **Trois acteurs** (ADR-0018, amendé par ADR-0019) : Claude écrit les")
-    out.append("  briefs et tient le modèle, Hermes pilote et mesure, Cursor exécute.")
+    out.append("- **Rôles** (ADR-0021) : Claude reste manuel pour le propriétaire ;")
+    out.append("  Hermes pilote sans l'invoquer ; Cursor planifie, exécute et relit.")
     out.append("")
 
     out.append("## Ce qui attend le propriétaire")

@@ -16,10 +16,10 @@ ROLE_NAMES = ("planner", "executor", "reviewer")
 TIMEOUT_NAMES = ("planner", "executor", "reviewer", "proof")
 TEST_PROFILES = ("fast", "pr", "certify")
 BACKENDS = {
-    "planner": {"claude", "cursor", "none"},
+    "planner": {"cursor", "none"},
     "executor": {"cursor", "none"},
-    "reviewer": {"claude", "cursor", "none"},
-    "witness": {"claude", "none"},
+    "reviewer": {"cursor", "none"},
+    "witness": {"none"},
 }
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 GROK_EFFORTS = ("low", "medium", "high", "xhigh")
@@ -245,7 +245,7 @@ def load_policy(path: Path | str | None = None) -> WorkflowPolicy:
 
     witness_raw = raw.get("witness")
     if witness_raw is None:
-        witness = PolicyRole(backend="claude", model="claude-opus-5", effort="high")
+        witness = PolicyRole(backend="none")
     else:
         witness = _load_role("witness", "witness", witness_raw)
 

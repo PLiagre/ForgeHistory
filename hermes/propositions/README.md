@@ -10,7 +10,8 @@ Ce n’est pas une file de briefs. Une proposition n’instruit personne.
   demander ensuite. Pas de conditions de succès d’exécutant, pas de
   consigne de code.
 - Si un brief existe déjà, **pointer** vers lui. Ne pas le recopier.
-- Statuts : `OPEN` (à trancher) → `HANDED_TO_CTO` (brief demandé) →
+- Statuts : `OPEN` (à trancher) → `OWNER_INPUT_REQUIRED` (brief ou décision
+  demandé au propriétaire) →
   `REFLECTED_IN_ROADMAP` ou `CLOSED`.
 - Au boot, Hermes ne lit que `status: OPEN`. Zéro OPEN = rien n'attend.
   Au plus une proposition OPEN à la fois.

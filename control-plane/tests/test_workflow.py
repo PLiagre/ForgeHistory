@@ -15,7 +15,6 @@ from forgepilot.config import Settings
 from forgepilot.policy import load_policy
 from forgepilot.process import PilotError
 from forgepilot.workflow import (
-    READ_ONLY_CLAUDE_TOOLS,
     brief_review_invocation,
     create_worktree,
     executor_invocation,
@@ -33,9 +32,7 @@ SETTINGS = Settings(
     city_repository="owner/city",
     default_base_ref="origin/main",
     default_base_branch="main",
-    claude_binary="claude",
     cursor_binary="agent",
-    claude_model="",
     cursor_model="auto",
     timeout_seconds=30,
 )
@@ -49,11 +46,15 @@ def _argument_size_bound() -> int:
 
 
 class WorkflowTests(unittest.TestCase):
-    def test_doctor_refuses_anthropic_api_billing(self):
-        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "must-not-be-used"}, clear=False):
-            self.assertEqual(2, main(["doctor"]))
+    def test_doctor_does_not_consult_anthropic_api_billing(self):
+        out = io.StringIO()
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "manual-only"}, clear=False), patch(
+            "forgepilot.cli.missing_binaries", return_value=[]
+        ), patch("forgepilot.cli.git", return_value="master"), patch("sys.stdout", out):
+            self.assertEqual(0, main(["doctor"]))
+        self.assertNotIn("ANTHROPIC", out.getvalue())
 
-    def test_claude_code_is_read_only(self):
+    def test_planner_uses_cursor_in_read_mode(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             task = root / "task.md"
@@ -61,16 +62,13 @@ class WorkflowTests(unittest.TestCase):
             invocation = plan_invocation(SETTINGS, root, task)
 
         self.assertEqual("planner", invocation.role)
-        self.assertEqual("claude", invocation.argv[0])
+        self.assertEqual("cursor", invocation.backend)
+        self.assertEqual("agent", invocation.argv[0])
         self.assertEqual({}, invocation.environment)
-        self.assertIn("--safe-mode", invocation.argv)
-        self.assertIn("--no-session-persistence", invocation.argv)
-        permission_index = invocation.argv.index("--permission-mode")
-        self.assertEqual("plan", invocation.argv[permission_index + 1])
-        tools_index = invocation.argv.index("--tools")
-        self.assertEqual(READ_ONLY_CLAUDE_TOOLS, invocation.argv[tools_index + 1])
-        self.assertNotIn("Edit", invocation.argv[tools_index + 1])
-        self.assertNotIn("Bash", invocation.argv[tools_index + 1])
+        mode_index = invocation.argv.index("--mode")
+        self.assertEqual("ask", invocation.argv[mode_index + 1])
+        self.assertIn("--trust", invocation.argv)
+        self.assertNotIn("--force", invocation.argv)
 
     def test_cursor_is_only_executor_and_uses_sandbox(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -139,8 +137,12 @@ class WorkflowTests(unittest.TestCase):
             root = Path(tmp)
             plan = root / "plan.json"
             plan.write_text('{"task":"mesure overflow"}', encoding="utf-8")
-            with patch("forgepilot.workflow.git", return_value=synthetic):
-                invocation = review_invocation(SETTINGS, root, plan, "origin/master")
+            bundle = root / ".forgepilot" / "runs" / "x" / "review-bundle.json"
+            bundle.parent.mkdir(parents=True)
+            bundle.write_text(synthetic, encoding="utf-8")
+            invocation = review_invocation(
+                SETTINGS, root, plan, "origin/master", bundle_path=bundle
+            )
 
         max_arg = max(len(a.encode()) for a in invocation.argv)
         self.assertLess(max_arg, bound)
@@ -174,9 +176,8 @@ class WorkflowTests(unittest.TestCase):
                 ligne = subprocess.list2cmdline(list(invocation.argv))
                 return len(ligne.encode("utf-16-le")) // 2 + 1
 
-            # Politique chargée et risque R1 : c'est le chemin Cursor, celui
-            # qui met le prompt dans argv. Sans elle le test emprunterait le
-            # chemin Claude, qui passe par stdin et ne prouverait rien.
+            # Politique chargée et risque R1 : c'est le chemin Cursor et il
+            # doit passer le corps par référence, jamais dans argv.
             settings = replace(SETTINGS, policy=load_policy())
 
             brief.write_text("# brief court\n", encoding="utf-8")
@@ -419,8 +420,7 @@ class WorkflowTests(unittest.TestCase):
             sandbox_index = argv.index("--sandbox")
             self.assertEqual("enabled", argv[sandbox_index + 1])
 
-    def test_claude_flags_order_unchanged_after_dash_p(self):
-        """SC2 : ordre exact des drapeaux Claude après -p (identique à 75b3dd0)."""
+    def test_cursor_read_flags_follow_the_prompt(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             task = root / "task.md"
@@ -429,18 +429,14 @@ class WorkflowTests(unittest.TestCase):
 
         p_index = invocation.argv.index("-p")
         expected = [
+            invocation.prompt,
+            "--mode",
+            "ask",
+            "--trust",
+            "--workspace",
+            str(root),
             "--output-format",
             "json",
-            "--permission-mode",
-            "plan",
-            "--tools",
-            READ_ONLY_CLAUDE_TOOLS,
-            "--disallowedTools",
-            "mcp__*",
-            "--safe-mode",
-            "--disable-slash-commands",
-            "--no-chrome",
-            "--no-session-persistence",
         ]
         self.assertEqual(list(invocation.argv[p_index + 1 : p_index + 1 + len(expected)]), expected)
 
@@ -471,9 +467,8 @@ class WorkflowTests(unittest.TestCase):
         p_index = payload["argv"].index("-p")
         # Réfutable : sans startswith("--"), l'élément suivant -p devient
         # "<prompt>" et --output-format disparaît de argv.
-        self.assertEqual("--output-format", payload["argv"][p_index + 1])
-        self.assertEqual("json", payload["argv"][p_index + 2])
-        self.assertNotIn("<prompt>", payload["argv"])
+        self.assertEqual("<prompt>", payload["argv"][p_index + 1])
+        self.assertEqual("--mode", payload["argv"][p_index + 2])
         self.assertEqual("<prompt>", payload.get("prompt"))
 
     # --- additions brief 023 (modèle / effort par rôle) -------------------
@@ -496,15 +491,14 @@ class WorkflowTests(unittest.TestCase):
             'default_base_branch = "main"\n'
             "\n"
             "[tools]\n"
-            'claude_binary = "claude"\n'
             'cursor_binary = "agent"\n'
             f"{tools}"
             'timeout_seconds = 30\n'
             f"{roles}"
         )
 
-    def test_settings_ten_fields_still_constructible(self):
-        """D2 / D7 : Settings reste constructible avec exactement dix champs.
+    def test_settings_eight_fields_still_constructible(self):
+        """Settings reste constructible avec les seuls champs actifs.
 
         Jamais rouge sur le code d'avant : la garde D2 vérifie une propriété
         déjà vraie avant le lot (champ `roles` à défaut). Documenté ici pour
@@ -516,16 +510,13 @@ class WorkflowTests(unittest.TestCase):
             "o/c",
             "origin/main",
             "main",
-            "claude",
             "agent",
-            "",
             "auto",
             30,
         )
         self.assertEqual({}, getattr(settings, "roles", {}))
-        self.assertEqual("", settings.claude_model)
 
-    def test_two_claude_roles_can_carry_distinct_models(self):
+    def test_two_cursor_read_roles_can_carry_distinct_models(self):
         """D7.1 : plan et review portent deux --model différents."""
         from forgepilot.config import load_settings
 
@@ -534,7 +525,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    tools='cursor_model = "auto"\n',
                     roles=(
                         "\n[roles.planner]\n"
                         'model = "model-planner-test-a"\n'
@@ -569,7 +560,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = "tools-fallback"\ncursor_model = "auto"\n',
+                    tools='cursor_model = "auto"\n',
                     roles=(
                         "\n[roles.planner]\n"
                         'model = "roles-planner"\n'
@@ -630,7 +621,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    tools='cursor_model = "auto"\n',
                     roles=(
                         "\n[roles.executor]\n"
                         'model = "composer-test"\n'
@@ -650,7 +641,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    tools='cursor_model = "auto"\n',
                     roles='\n[roles.zorglub]\nmodel = "x"\n',
                 ),
             )
@@ -661,7 +652,7 @@ class WorkflowTests(unittest.TestCase):
             self.assertIn("reviewer", message)
             self.assertIn("executor", message)
 
-    def test_effort_transmitted_to_both_claude_roles(self):
+    def test_effort_is_recorded_for_both_cursor_read_roles(self):
         from forgepilot.config import load_settings
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -669,7 +660,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    tools='cursor_model = "auto"\n',
                     roles=(
                         "\n[roles.planner]\n"
                         'model = "m-plan"\n'
@@ -688,8 +679,10 @@ class WorkflowTests(unittest.TestCase):
             plan_inv = plan_invocation(settings, root, task)
             with patch("forgepilot.workflow.git", return_value="d"):
                 review_inv = review_invocation(settings, root, plan, "origin/main")
-        self.assertEqual("xhigh", plan_inv.argv[plan_inv.argv.index("--effort") + 1])
-        self.assertEqual("low", review_inv.argv[review_inv.argv.index("--effort") + 1])
+        self.assertEqual("xhigh", plan_inv.effort)
+        self.assertEqual("low", review_inv.effort)
+        self.assertNotIn("--effort", plan_inv.argv)
+        self.assertNotIn("--effort", review_inv.argv)
 
     def test_all_five_effort_levels_accepted_sixth_refused(self):
         from forgepilot.config import EFFORT_LEVELS, load_settings
@@ -700,7 +693,7 @@ class WorkflowTests(unittest.TestCase):
                 cfg = self._write_config(
                     root,
                     self._base_toml(
-                        tools='claude_model = ""\ncursor_model = "auto"\n',
+                        tools='cursor_model = "auto"\n',
                         roles=(
                             f"\n[roles.planner]\nmodel = \"m\"\neffort = \"{level}\"\n"
                         ),
@@ -711,7 +704,7 @@ class WorkflowTests(unittest.TestCase):
             bad = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    tools='cursor_model = "auto"\n',
                     roles='\n[roles.planner]\nmodel = "m"\neffort = "ultra"\n',
                 ),
             )
@@ -750,7 +743,7 @@ class WorkflowTests(unittest.TestCase):
             self.assertIn("invalide", message.lower())
             self.assertIn("ultra", message)
 
-    def test_role_beats_tools_claude_model(self):
+    def test_role_beats_tools_cursor_model(self):
         from forgepilot.config import load_settings
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -758,7 +751,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = "from-tools"\ncursor_model = "auto"\n',
+                    tools='cursor_model = "from-tools"\n',
                     roles='\n[roles.planner]\nmodel = "from-roles"\neffort = "medium"\n',
                 ),
             )
@@ -771,7 +764,7 @@ class WorkflowTests(unittest.TestCase):
             )
 
     def test_fallback_to_tools_without_roles(self):
-        """Sans [roles.*], comportement identique à avant (repli [tools])."""
+        """Sans [roles.*], les rôles automatiques se replient sur Cursor."""
         from forgepilot.config import load_settings
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -779,7 +772,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = "tools-only-model"\ncursor_model = "auto"\n',
+                    tools='cursor_model = "tools-only-model"\n',
                 ),
             )
             settings = load_settings(cfg)
@@ -806,7 +799,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    tools='cursor_model = ""\n',
                 ),
             )
             settings = load_settings(cfg)
@@ -823,7 +816,7 @@ class WorkflowTests(unittest.TestCase):
             cfg = self._write_config(
                 root,
                 self._base_toml(
-                    tools='claude_model = ""\ncursor_model = "auto"\n',
+                    tools='cursor_model = "auto"\n',
                     roles=(
                         "\n[roles.planner]\n"
                         'model = "preview-model"\n'
@@ -853,10 +846,8 @@ class WorkflowTests(unittest.TestCase):
             "o/c",
             "origin/main",
             "main",
-            "claude",
             "agent",
             "tools-model",
-            "auto",
             30,
             roles={"planner": RoleSettings(model="roles-model", effort="medium")},
         )
@@ -871,10 +862,8 @@ class WorkflowTests(unittest.TestCase):
             "o/c",
             "origin/main",
             "main",
-            "claude",
             "agent",
             "tools-model",
-            "auto",
             30,
         )
         fallback = resolve_role(bare, "planner")
@@ -959,30 +948,6 @@ class ChainTests(unittest.TestCase):
                 code = main(["enchaine", str(task), "--repo", str(repo)])
             self.assertEqual(2, code)
             self.assertIn("vide", err.getvalue().lower())
-
-    def test_run_refuses_anthropic_api_key_before_agents(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
-            task = repo / "task.md"
-            task.write_text("Faire une chose.\n", encoding="utf-8")
-            err = io.StringIO()
-            with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "must-not-be-used"}, clear=False):
-                with patch(
-                    "forgepilot.workflow.execute_invocation",
-                    side_effect=AssertionError("execute_invocation appelé"),
-                ):
-                    with patch("sys.stderr", err):
-                        code = main(
-                            [
-                                "enchaine",
-                                str(task),
-                                "--repo",
-                                str(repo),
-                                "--run",
-                            ]
-                        )
-            self.assertEqual(2, code)
-            self.assertIn("ANTHROPIC_API_KEY", err.getvalue())
 
     def test_run_delegates_to_durable_controller_never_merge(self):
         with tempfile.TemporaryDirectory() as tmp:

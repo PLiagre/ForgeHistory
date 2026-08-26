@@ -121,8 +121,9 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual("nous_portal", policy.controller.provider)
         self.assertFalse(policy.controller.can_review)
         self.assertEqual("openai/gpt-5.4", policy.controller.model)
-        self.assertEqual("claude-opus-5", policy.witness.model)
-        self.assertEqual("high", policy.witness.effort)
+        self.assertEqual("none", policy.witness.backend)
+        self.assertEqual("", policy.witness.model)
+        self.assertEqual("", policy.witness.effort)
         self.assertEqual("cursor", policy.risks["R1"].roles["planner"].backend)
         self.assertEqual("cursor-grok-4.6", policy.risks["R1"].roles["planner"].model)
         self.assertEqual("xhigh", policy.risks["R1"].roles["reviewer"].effort)
@@ -1225,18 +1226,15 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual(2, final["iteration"]["plateau_count"])
             self.assertEqual(3, reviews)
 
-            # ADR-0018 : Claude est le regard de dernier recours quand un lot
-            # ne converge pas. Le détecteur existait depuis toujours ; il
-            # s'arrêtait sur « arrêt honnête du lot » sans dire à personne
-            # quoi faire, et le lot attendait qu'on le remarque. Un arrêt qui
-            # ne nomme pas la sortie de secours n'est pas une passation.
+            # Aucun agent automatique ne relance un lot qui plafonne. Le
+            # message doit remettre explicitement le dossier au propriétaire.
             erreur = str(final.get("error") or "")
             print(f"message d'arret : {erreur}")
             self.assertIn(
-                "witness",
+                "propriétaire",
                 erreur,
-                "L'arrêt pour non-convergence ne nomme pas le regard de "
-                f"dernier recours : {erreur!r}",
+                "L'arrêt pour non-convergence ne remet pas le dossier au "
+                f"propriétaire : {erreur!r}",
             )
             self.assertIn(
                 "BRIEF",

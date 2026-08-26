@@ -4,15 +4,15 @@
 > main**. Régénérer avec `python hermes/dashboard.py`. Une vue
 > périmée reste périmée tant que personne ne la régénère.
 >
-> Générée le 2026-08-26 12:24 UTC.
+> Générée le 2026-08-26 14:03 UTC.
 
 ## En bref
 
 - **Produit** : `sim/` (`python -m sim`) + `viewer/` mince.
 - **Prochain pas produit** : un seul, dans [ROADMAP.md](../ROADMAP.md).
 - **Pilotage ouvert** : 1 demande(s), 0 proposition(s).
-- **Trois acteurs** (ADR-0018, amendé par ADR-0019) : Claude écrit les
-  briefs et tient le modèle, Hermes pilote et mesure, Cursor exécute.
+- **Rôles** (ADR-0021) : Claude reste manuel pour le propriétaire ;
+  Hermes pilote sans l'invoquer ; Cursor planifie, exécute et relit.
 
 ## Ce qui attend le propriétaire
 

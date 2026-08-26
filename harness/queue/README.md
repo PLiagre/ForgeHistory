@@ -2,8 +2,9 @@
 
 Un dossier par lot : `briefs/NNN-<slug>/`, contenant au moins `brief.md`.
 
-**Claude écrit les briefs** (ADR-0019 — c'était Hermes sous ADR-0018).
-Hermes les fait relire et les lance ; Cursor les exécute. Le `brief.md` est
+Le propriétaire fournit les briefs ; il peut les écrire avec Claude utilisé
+manuellement (ADR-0021). Hermes ne lance jamais Claude. Il fait relire les
+briefs reçus et les lance ; Cursor les exécute. Le `brief.md` est
 la seule source d'instruction du lot : aucun autre document ne le
 paraphrase, et son auteur n'est jamais son relecteur.
 

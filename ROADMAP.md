@@ -52,21 +52,22 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — relief joué ; restent le climat, les gisements, la natalité, les marchandises et la migration |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles | à venir |
 
-## Le workflow — trois acteurs (ADR-0018, amendé par ADR-0019)
+## Le workflow — Claude manuel, jamais orchestré (ADR-0021)
 
-> Claude écrit un brief → Hermes le fait relire puis le lance → Cursor
+> Le propriétaire fournit un brief, éventuellement écrit avec Claude manuel →
+> Hermes le fait relire puis le lance → Cursor
 > l'exécute et ouvre une PR → les tests passent et la porte mécanique
 > vérifie le compte-rendu → le propriétaire fusionne.
 
-- **Hermes** (Sol 5.6, VPS) : roadmap, suivi, **demande le brief**, le fait
-  relire, lance Cursor, mesure. N'écrit pas de brief, ne code pas, ne
-  fusionne pas, ne juge pas.
+- **Hermes** (Sol 5.6, VPS) : roadmap, suivi, mesure le besoin, remet au
+  propriétaire tout brief manquant, fait relire les briefs fournis et lance
+  Cursor. N'écrit pas de brief, ne code pas, ne fusionne pas, ne juge pas et
+  ne lance jamais Claude/Anthropic.
 - **Cursor** (Grok 4.6 pour le plan, Composer pour le code) : exécute,
   ouvre la PR, se relit dans une invocation neuve.
-- **Claude** (à la demande) : **écrit les briefs** (ADR-0019), architecte du
-  modèle (`sim/MODELE.md`), et regard de dernier recours quand un lot ne
-  converge pas en trois itérations. Hors du harnais, sans cron ni agent ; il
-  ne relit pas son propre brief et ne juge aucun lot.
+- **Claude manuel** : le propriétaire peut l'utiliser directement pour écrire
+  un brief, tenir `sim/MODELE.md` ou demander une revue consultative. Aucun
+  backend, cron, agent ou témoin Hermes/ForgePilot ne l'invoque.
 
 Règle de fond conservée : celui qui produit ne prononce pas la recevabilité
 de son propre travail.
@@ -154,3 +155,4 @@ seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
 | 2026-08-26 | claude (décision propriétaire du 2026-08-26 — **ADR-0019**) | Claude écrit désormais tous les briefs, Hermes pilote et cesse de rédiger. Corrections factuelles jointes : le relief est joué par le tick depuis la fusion du lot 033 (PR #137) ; onze lots écrits et listés dans « Prochaines étapes » ; et la mesure qui explique pourquoi aucun lot « ville » n'est écrit |
 | 2026-08-26 | cursor (correction factuelle, ADR-0020 proposed) | un troisième workflow GitHub : ping worker PC en `workflow_dispatch` seulement ; ce n'est pas le retour du full-auto |
 | 2026-08-26 | hermes (correction factuelle après fusion #142) | lot 034 fusionné : le moteur ne porte plus d'état global caché pendant le tick ; prochain lot unique 035 |
+| 2026-08-26 | hermes (décision explicite du propriétaire — ADR-0021) | Claude reste disponible manuellement pour les briefs et revues, mais sort de toute orchestration Hermes/ForgePilot ; aucun backend, témoin, cron, skill ou sous-agent Hermes ne peut l'invoquer |

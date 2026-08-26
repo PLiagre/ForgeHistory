@@ -39,9 +39,7 @@ class Settings:
     city_repository: str
     default_base_ref: str
     default_base_branch: str
-    claude_binary: str
     cursor_binary: str
-    claude_model: str
     cursor_model: str
     timeout_seconds: int
     roles: dict[str, RoleSettings] = field(default_factory=dict)
@@ -97,9 +95,7 @@ def load_settings(
         city_repository=str(project["city_repository"]),
         default_base_ref=str(project["default_base_ref"]),
         default_base_branch=str(project["default_base_branch"]),
-        claude_binary=str(tools.get("claude_binary", "claude")),
         cursor_binary=str(tools.get("cursor_binary", "agent")),
-        claude_model=str(tools.get("claude_model", "")),
         cursor_model=str(tools.get("cursor_model", "auto")),
         timeout_seconds=int(tools.get("timeout_seconds", 1800)),
         roles=roles,

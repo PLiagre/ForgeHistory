@@ -28,14 +28,10 @@ from .protocol import (
 from .publication import enforce_allowed_paths, stage_explicit_paths, working_tree_paths
 
 
-READ_ONLY_CLAUDE_TOOLS = "Read,Glob,Grep"
 CHAIN_STEPS = ("plan", "execute", "publish", "review")
 PROPOSITION_REFUSED = (
     "Une proposition Hermes n'est pas une instruction. "
     "Passer un brief (harness/queue/briefs/.../brief.md) ou un fichier de tâche."
-)
-API_KEY_REFUSED = (
-    "ANTHROPIC_API_KEY est défini ; le pilote doit utiliser l'abonnement Claude Pro."
 )
 CONTROLLER_SECRET_ENV = re.compile(
     r"(?:discord|github|^gh_|api[_-]?key|access[_-]?token|secret|password|authorization)",
@@ -83,11 +79,6 @@ def default_task_name(task: Path) -> str:
     return _slug(task.stem)
 
 
-def assert_not_api_billing() -> None:
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        raise PilotError(API_KEY_REFUSED)
-
-
 def assert_task_is_instruction(task: Path) -> None:
     """Refuse une proposition Hermes : ce n'est pas un brief."""
     parts = [part.lower() for part in task.parts]
@@ -113,8 +104,6 @@ def resolve_role(
         resolved_model = model
     elif role_cfg.model:
         resolved_model = role_cfg.model
-    elif role in ("planner", "reviewer"):
-        resolved_model = settings.claude_model
     else:
         resolved_model = settings.cursor_model
 
@@ -133,15 +122,10 @@ def _role_backend(
     settings: Settings,
     risk: str | None,
     role: str,
-    *,
-    policy_exempt: bool = False,
 ) -> str:
-    if settings.policy is not None and risk is None and not policy_exempt:
-        # Une politique chargée et aucun risque : le repli historique
-        # ci-dessous renvoyait « claude » en silence, et `workflow-policy.toml`
-        # ne décidait plus rien. C'est ainsi que `forgepilot review` appelait
-        # Claude alors que la politique R1 nomme Cursor — un fournisseur choisi
-        # par un défaut oublié, pas par la règle. Refuser est la seule réponse
+    if settings.policy is not None and risk is None:
+        # Une politique chargée et aucun risque ne doit jamais contourner
+        # l'affectation explicite des rôles. Refuser est la seule réponse
         # honnête : le risque se déclare (`--risk`) ou se dérive du brief.
         raise PilotError(
             f"Aucun risque déclaré pour le rôle {role} alors qu'une politique "
@@ -149,7 +133,7 @@ def _role_backend(
             "ou déclarer `Risque : R…` dans le brief."
         )
     if risk is None or settings.policy is None:
-        return "cursor" if role == "executor" else "claude"
+        return "cursor"
     return settings.policy.profile(risk).roles[role].backend
 
 
@@ -215,37 +199,6 @@ def _cursor_read_argv(
     return argv
 
 
-def _claude_argv(
-    settings: Settings,
-    role: str,
-    model: str | None = None,
-    effort: str | None = None,
-    risk: str | None = None,
-) -> list[str]:
-    argv = [
-        settings.claude_binary,
-        "-p",
-        "--output-format",
-        "json",
-        "--permission-mode",
-        "plan",
-        "--tools",
-        READ_ONLY_CLAUDE_TOOLS,
-        "--disallowedTools",
-        "mcp__*",
-        "--safe-mode",
-        "--disable-slash-commands",
-        "--no-chrome",
-        "--no-session-persistence",
-    ]
-    resolved = resolve_role(settings, role, model=model, effort=effort, risk=risk)
-    if resolved.model:
-        argv.extend(["--model", resolved.model])
-    if resolved.effort:
-        argv.extend(["--effort", resolved.effort])
-    return argv
-
-
 def plan_invocation(
     settings: Settings,
     repo: Path,
@@ -286,18 +239,7 @@ def plan_invocation(
             effort=resolved.effort or None,
             backend="cursor",
         )
-    prompt = _read_prompt("planner.md").replace("{{TASK}}", task_body)
-    argv = _claude_argv(settings, "planner", model=model, effort=effort, risk=risk)
-    return Invocation(
-        "planner",
-        tuple(argv),
-        str(repo),
-        {},
-        prompt,
-        model=resolved.model or None,
-        effort=resolved.effort or None,
-        backend="claude",
-    )
+    raise PilotError(f"Backend de planification automatique interdit : {backend!r}.")
 
 
 def brief_review_invocation(
@@ -323,8 +265,8 @@ def brief_review_invocation(
 
     Ce n'est pas un jugement de lot : personne n'a encore produit quoi que ce
     soit. La règle « celui qui produit ne prononce pas la recevabilité de son
-    propre travail » est respectée — Claude écrit le brief (ADR-0019), un
-    autre le lit.
+    propre travail » est respectée : l'auteur manuel du brief n'est jamais
+    son relecteur automatique.
     """
     backend = _role_backend(settings, risk, "reviewer")
     if backend == "none":
@@ -359,18 +301,7 @@ def brief_review_invocation(
             backend="cursor",
         )
 
-    prompt = _read_prompt("brief-reviewer.md").replace("{{BRIEF}}", _task_text(brief))
-    argv = _claude_argv(settings, "reviewer", model=model, effort=effort, risk=risk)
-    return Invocation(
-        "brief-reviewer",
-        tuple(argv),
-        str(repo),
-        {},
-        prompt,
-        model=resolved.model or None,
-        effort=resolved.effort or None,
-        backend="claude",
-    )
+    raise PilotError(f"Backend de relecture automatique interdit : {backend!r}.")
 
 
 def _stage_review_schema(repo: Path, *, near: Path | None = None) -> str:
@@ -413,10 +344,9 @@ def review_invocation(
     effort: str | None = None,
     risk: str | None = None,
     bundle_path: Path | None = None,
-    policy_exempt: bool = False,
     schema_retry: bool = False,
 ) -> Invocation:
-    backend = _role_backend(settings, risk, "reviewer", policy_exempt=policy_exempt)
+    backend = _role_backend(settings, risk, "reviewer")
     if backend == "none":
         raise PilotError("Aucun relecteur n'est configuré pour ce risque.")
     resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
@@ -491,56 +421,7 @@ def review_invocation(
             effort=resolved.effort or None,
             backend="cursor",
         )
-    argv = _claude_argv(settings, "reviewer", model=model, effort=effort, risk=risk)
-    return Invocation(
-        "reviewer",
-        tuple(argv),
-        str(repo),
-        {},
-        prompt,
-        model=resolved.model or None,
-        effort=resolved.effort or None,
-        backend="claude",
-    )
-
-
-def witness_invocation(
-    settings: Settings,
-    repo: Path,
-    plan: Path,
-    base: str,
-    *,
-    bundle_path: Path | None = None,
-) -> Invocation:
-    """Témoin Claude hors chemin quotidien (ADR-0017)."""
-    if settings.policy is None:
-        raise PilotError("Politique absente ; le témoin Claude n'est pas configurable.")
-    witness = settings.policy.witness
-    if witness.backend != "claude":
-        raise PilotError("Le témoin doit rester Claude (ADR-0017).")
-    review = review_invocation(
-        settings,
-        repo,
-        plan,
-        base,
-        model=witness.model,
-        effort=witness.effort,
-        bundle_path=bundle_path,
-        risk=None,
-        # ADR-0017 : le témoin est nommé par [witness], pas par le profil
-        # de risque. C'est la seule exemption, et elle est explicite.
-        policy_exempt=True,
-    )
-    return Invocation(
-        "witness",
-        review.argv,
-        review.cwd,
-        review.environment,
-        review.prompt,
-        model=witness.model or None,
-        effort=witness.effort or None,
-        backend="claude",
-    )
+    raise PilotError(f"Backend de revue automatique interdit : {backend!r}.")
 
 
 def _stage_reference(worktree: Path, source: Path, nom: str) -> str:
@@ -690,12 +571,6 @@ def _stream_argv(invocation: Invocation) -> tuple[str, ...]:
         index = argv.index("--output-format") + 1
         if index < len(argv):
             argv[index] = "stream-json"
-    if (
-        invocation.backend == "claude"
-        and invocation.role in {"planner", "reviewer", "witness"}
-        and "--verbose" not in argv
-    ):
-        argv.append("--verbose")
     return tuple(argv)
 
 
@@ -909,7 +784,7 @@ def format_invocation(invocation: Invocation) -> str:
 
 
 def missing_binaries(settings: Settings) -> Iterable[str]:
-    for name in ("git", "gh", settings.claude_binary, settings.cursor_binary):
+    for name in ("git", "gh", settings.cursor_binary):
         try:
             resolve_binary(name)
         except PilotError:
@@ -1068,7 +943,6 @@ def run_chain(
 
     # Corps historique conservé temporairement pour compatibilité de lecture ;
     # il est intentionnellement inaccessible depuis le CLI et cette API.
-    assert_not_api_billing()
     assert_task_is_instruction(task)
     _task_text(task)
     if effort:
