@@ -18,9 +18,12 @@ l'agriculture.
 
 ## Dépendance
 
-**Ce lot suppose le lot 037 fusionné.** Sans panier de marchandises, il faudrait
-inventer un champ de cas particulier par ressource. Si `Cell` ne porte pas
-encore de panier, ce lot est bloqué, pas à adapter.
+**Ce lot suppose le lot 037 fusionné, avec un `World.to_dict()` qui porte le
+panier.** Sans panier de marchandises, il faudrait inventer un champ de cas
+particulier par ressource. Sans panier dans `to_dict()`, la sonde des couches
+ne verrait pas l'extraction (l'empreinte ignore alors tout stock autre que la
+nourriture) et SC4 serait infaisable. Si `Cell` ne porte pas encore de panier,
+ou si `to_dict()` ne l'expose pas, ce lot est bloqué, pas à adapter.
 
 ## Fondement dans le modèle
 
@@ -28,6 +31,10 @@ encore de panier, ce lot est bloqué, pas à adapter.
 que la couche gisements n'est pas consommée. Aucune section ne décrit encore
 l'extraction : ce lot est le premier à en poser une. Si cette section a changé
 depuis la rédaction de ce brief, le relire avant de le lancer.
+
+`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
+citée après fusion est une dette de l'architecte du modèle (Claude), pas de
+l'exécutant.
 
 ## État de départ mesuré
 
@@ -83,6 +90,39 @@ Ces constantes vivent dans `sim/constants.py`, avec un commentaire disant qu'il
 s'agit d'ordres de grandeur plausibles de niveau 2. Aucun nombre de réglage
 n'est écrit dans une fonction du moteur.
 
+**Motif 033 — constantes invisibles pour le monde d'épreuve.**
+`_MondeEpreuve` de `sim/tests/test_write_coverage.py` n'a ni carte ni gisement.
+`test_chaque_constante_du_moteur_change_le_monde` ne dérive son dénominateur
+que des noms d'attributs **présents dans** `sim/engine.py`. Un nom de constante
+d'extraction écrit dans `engine.py` y figurerait, ne bougerait pas l'empreinte
+(nourriture, population, faim, dette), et le contrôle — hors périmètre —
+rougirait.
+
+Donc : les constantes de ce lot (`EXTRACTION_KG_PAR_HABITANT_PAR_TICK`,
+`FACTEUR_RICHESSE_MAJEURE`, `FACTEUR_RICHESSE_NOTABLE`,
+`FACTEUR_RICHESSE_MINEURE`) ne sont **pas** lues par leur nom dans
+`sim/engine.py`. Elles vivent dans `sim/constants.py` et le moteur les
+consulte via une **table relue à chaque appel**, le même motif que
+`facteurs_production_par_relief()` du lot 033 :
+
+```
+def facteurs_richesse_extraction() -> dict[str, float]:
+    return {
+        "majeure": FACTEUR_RICHESSE_MAJEURE,
+        "notable": FACTEUR_RICHESSE_NOTABLE,
+        "mineure": FACTEUR_RICHESSE_MINEURE,
+    }
+```
+
+Le débit se calcule en appelant cette table, et le kilogramme par habitant
+passe de même par une fonction de `constants.py` qui relit
+`EXTRACTION_KG_PAR_HABITANT_PAR_TICK` à chaque appel. Interdit dans
+`engine.py` : `_constantes.FACTEUR_RICHESSE_MAJEURE` ou
+`_constantes.EXTRACTION_KG_PAR_HABITANT_PAR_TICK`. Autorisé :
+`_constantes.facteurs_richesse_extraction()` et l'équivalent pour le débit.
+`test_aucune_constante_terminale` continue de voir ces noms : la table les
+lit.
+
 **La dépendance à la population n'est pas décorative** : c'est elle qui fait
 qu'une cellule qui meurt de faim cesse d'extraire, sans qu'aucune règle ne le
 dise. Le minerai a une origine physique — des gens qui creusent — et non un
@@ -93,11 +133,23 @@ ressource.** Une cellule qui porterait deux gisements de fer produit la somme de
 deux ; une cellule qui porterait fer et sel range les deux séparément dans son
 panier. Rien ne se mélange, rien ne s'écrase.
 
-**Une richesse inconnue est une donnée invalide** : lever une erreur qui nomme le
-`cell_id`, l'identifiant du gisement et la valeur fautive. Ne pas deviner, ne
-pas rabattre silencieusement vers `notable`. Une ressource inconnue, en revanche,
-est **normale** : c'est simplement une marchandise de plus, et le panier
-l'accepte sans code nouveau — c'est ce que le lot 037 a rendu possible.
+**Une richesse présente et hors des trois classes est une donnée invalide** :
+lever une erreur qui nomme le `cell_id`, l'identifiant du gisement et la
+valeur fautive. Ne pas deviner, ne pas rabattre silencieusement vers
+`notable`.
+
+**Un gisement sans clé `ressource` ou sans clé `richesse` n'est pas un
+gisement** : l'ignorer, ne pas lever. C'est le cas de l'enregistrement que
+la sonde de `sim/snapshot_export.py` substitue
+(`{"nature": "sonde", "classe": "sonde"}`). Lever dessus ferait exploser
+`build_snapshot_document`, que ce lot n'a pas le droit de modifier. La sonde
+voit quand même l'extraction : elle **remplace** la liste des vrais gisements,
+donc le panier du monde altéré ne contient plus les ressources de la carte, et
+`to_dict()` — qui porte le panier depuis le 037 — diffère.
+
+Une ressource inconnue, en revanche, est **normale** : c'est simplement une
+marchandise de plus, et le panier l'accepte sans code nouveau — c'est ce que
+le lot 037 a rendu possible.
 
 ## Source de vérité et raccord au moteur
 
@@ -177,6 +229,12 @@ Après le changement, `build_snapshot_document(World.charger(0), 0, 0)` rend
 `sim/snapshot_export.py` soit modifié et sans qu'aucune déclaration manuelle
 soit ajoutée ou retournée.
 
+C'est faisable parce que `to_dict()` porte le panier : extraire du minerai
+change l'empreinte même si la nourriture ne bouge pas (SC5). La sonde
+substitue un enregistrement sans `ressource` ni `richesse`, ignoré (SC6) ;
+les vrais gisements disparaissent du monde altéré, le panier diffère, la
+sonde passe à vrai.
+
 L'état des deux autres couches est celui que la sonde mesure au moment du lot ;
 ce brief ne demande de le changer ni dans un sens ni dans l'autre.
 
@@ -195,13 +253,20 @@ C'est le contrôle qui empêche la faute la plus coûteuse de ce lot : une
 marchandise nouvelle qui se retrouverait comptée comme de la nourriture ferait
 disparaître les famines sans que rien ne rougisse.
 
-### SC6 — Le refus de l'invalide
+### SC6 — Le refus de l'invalide, et l'ignorance de l'incomplet
 
 Une carte en mémoire dont la `richesse` d'un gisement est remplacée par une
-valeur inconnue provoque l'erreur explicite exigée, avec le `cell_id`,
-l'identifiant du gisement et la valeur. Une carte dont la `ressource` d'un
-gisement est remplacée par un nom inconnu, en revanche, **ne provoque aucune
-erreur** : la marchandise correspondante apparaît simplement dans le panier.
+valeur inconnue — la clé est **présente**, la valeur hors des trois classes —
+provoque l'erreur explicite exigée, avec le `cell_id`, l'identifiant du
+gisement et la valeur.
+
+Une carte dont un gisement **n'a plus** la clé `ressource` ou la clé
+`richesse` **ne provoque aucune erreur** : cet enregistrement est ignoré, les
+autres gisements de la même cellule s'extraient normalement.
+
+Une carte dont la `ressource` d'un gisement est remplacée par un nom inconnu
+**ne provoque aucune erreur** : la marchandise correspondante apparaît
+simplement dans le panier.
 
 ### SC7 — Les invariants existants restent intacts
 
@@ -216,7 +281,11 @@ erreur** : la marchandise correspondante apparaît simplement dans le panier.
 - deux exécutions de `.venv/bin/python -m sim --ticks 365 --seed 0 --json` sont
   strictement identiques entre elles ;
 - aucune instruction `global` n'apparaît dans `sim/engine.py` ;
-- la formule de production alimentaire reste unique et inchangée.
+- la formule de production alimentaire reste unique et inchangée ;
+- aucun des noms `EXTRACTION_KG_PAR_HABITANT_PAR_TICK`,
+  `FACTEUR_RICHESSE_MAJEURE`, `FACTEUR_RICHESSE_NOTABLE`,
+  `FACTEUR_RICHESSE_MINEURE` n'apparaît comme attribut lu dans
+  `sim/engine.py` — le motif 033 tient.
 
 ## Compteurs exigés
 
@@ -235,7 +304,9 @@ porte aucun résultat en dur.
 | `extraction_population_nulle` | cellule minière à population nulle, un tick joué | nombre de ticks réellement joués |
 | `cellules_dont_la_nourriture_a_change` | comparaison cellule par cellule avec le monde rejoué sur le SHA de base | nombre de cellules réellement chargées |
 | `richesses_inconnues_refusees` | mutations en mémoire vers une richesse absente de l'ensemble dérivé | nombre de mutations réellement exécutées |
+| `gisements_incomplets_ignores` | mutations en mémoire retirant `ressource` ou `richesse` ; ticks joués sans erreur | nombre de mutations réellement exécutées |
 | `ressources_inconnues_acceptees` | mutations en mémoire vers une ressource absente de l'ensemble dérivé | nombre de mutations réellement exécutées |
+| `noms_de_constantes_extraction_dans_engine` | parcours de l'arbre syntaxique de `sim/engine.py` | nombre de noms du motif 033 réellement cherchés |
 | `couches_consommees_par_tick` | sonde existante du snapshot | nombre de couches déclarées dans le snapshot |
 | `tests_sim_verts` | collecte pytest après changement | nombre de tests collectés |
 
@@ -244,6 +315,9 @@ valoir **0**, et ces zéros sont des mesures réelles. La sentinelle « non
 calculé » du projet est `-1`, jamais `0`.
 `cellules_extractrices_apres_un_tick` doit égaler `cellules_avec_gisement_carte`,
 et `ressources_distinctes_extraites` doit égaler `ressources_distinctes_carte`.
+`noms_de_constantes_extraction_dans_engine` doit valoir **0**.
+`gisements_incomplets_ignores` doit égaler le nombre de mutations réellement
+exécutées : chacune a été ignorée, aucune n'a levé.
 
 ## Livrables et porte mécanique
 
@@ -260,6 +334,7 @@ avant/après passent par la référence Git du SHA de base, pas par une copie
 
 ## Hors périmètre
 
+- `sim/MODELE.md` (dette de l'architecte après fusion) ;
 - le transport, la vente, le prix, la transformation ou la consommation du
   minerai ;
 - l'épuisement d'un gisement, la profondeur, la qualité du filon ;

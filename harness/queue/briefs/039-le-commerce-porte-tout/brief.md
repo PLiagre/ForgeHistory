@@ -51,6 +51,10 @@ plus.
 généralise sans en changer aucune. Si cette section a changé depuis la
 rédaction de ce brief, le relire avant de le lancer.
 
+`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
+citée après fusion est une dette de l'architecte du modèle (Claude), pas de
+l'exécutant.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est
@@ -88,6 +92,19 @@ nourriture » remplacé par « la marchandise » :
 4. chaque transfert est borné par la capacité de l'arête ;
 5. le total reçu par une cellule est écrêté à son besoin, l'excédent restant
    chez la source.
+
+**La capacité d'une arête est un plafond unique du tick, partagé entre
+toutes les marchandises.** Un kilogramme de nourriture et un kilogramme
+de minerai empruntent la même arête : ils se partagent les mêmes
+kilogrammes de capacité, ils ne les dupliquent pas. L'ordre dans lequel
+les marchandises sont jouées est stable et dérivé de leur nom ; chaque
+transfert consomme de la capacité restante de l'arête pour ce tick. Quand
+une seule marchandise circule — c'est le cas aujourd'hui — le plafond
+coïncide avec celui d'hier, et SC1 tient au bit près.
+
+Ce n'est pas un détail d'implémentation : c'est le principe 3. Deux
+marchandises qui auraient chacune le plafond entier téléporteraient une
+deuxième route.
 
 L'invariant conservé, et le plus important : **le maillon commerce ne touche
 jamais à la dette alimentaire.** Il ne modifie que des stocks.
@@ -171,6 +188,14 @@ habitant. Elle circule alors entre cellules adjacentes selon les cinq règles,
 C'est la démonstration que la généralisation est réelle et pas seulement
 renommée.
 
+Sur le même micro-monde, l'arête a une capacité connue, et les besoins des
+deux marchandises, additionnés, la dépassent. La somme des deux transferts
+sur cette arête est **égale** à cette capacité, jamais supérieure. Le rouge
+correspondant : allouer le plafond entier à chaque marchandise produit une
+somme égale à deux fois la capacité, et le contrôle échoue.
+
+Ce critère est fixé avant l'exécution. Il ne se calibre pas après mesure.
+
 ### SC4 — Une marchandise que personne ne consomme ne bouge pas
 
 Sur le monde réel, après un nombre de ticks dérivé, la quantité totale de chaque
@@ -225,6 +250,7 @@ porte aucun résultat en dur.
 | `champs_cli_identiques` | comparaison des sorties CLI archivées et d'après | nombre de champs réellement présents dans la sortie |
 | `kg_mineraux_ayant_change_de_cellule` | monde réel joué, extraction cumulée comparée aux stocks | nombre de cellules minières réellement mesurées |
 | `ecart_de_masse_par_marchandise` | somme des stocks avant et après le maillon, sur le micro-monde | nombre de marchandises réellement jouées |
+| `somme_transferts_sur_arete_partagee` | micro-monde SC3, deux marchandises dont les besoins additionnés dépassent la capacité | capacité de l'arête, lue du moteur |
 | `modifications_de_dette_par_le_commerce` | micro-monde instrumenté sur le maillon | nombre d'appels au maillon réellement joués |
 | `ordres_d_insertion_essayes` | micro-monde de SC3 joué dans deux ordres | nombre d'ordres réellement essayés |
 | `tests_collectes_avant` | collecte pytest sur le SHA de base | nombre de fichiers de test collectés |
@@ -237,6 +263,8 @@ porte aucun résultat en dur.
 des mesures réelles. La sentinelle « non calculé » du projet est `-1`, jamais
 `0`. `occurrences_nourriture_dans_le_maillon_avant` doit être strictement
 positif, sans quoi le rouge n'a pas été prouvé.
+`somme_transferts_sur_arete_partagee` doit égaler la capacité de l'arête, pas
+la dépasser.
 
 ## Livrables et porte mécanique
 
@@ -256,6 +284,7 @@ sortie CLI doit lui être **identique**.
 
 ## Hors périmètre
 
+- `sim/MODELE.md` (dette de l'architecte après fusion) ;
 - faire consommer une marchandise autre que la nourriture ;
 - la capacité des arêtes, le coût du transport, le relief sur les routes ;
 - le prix, le marché, la monnaie, le troc ;

@@ -26,6 +26,10 @@ que ce lot atténue — et § « Ce qui dit que le monde vit », qui explique po
 le plafond de survie suit tout seul. Si l'une de ces sections a changé depuis la
 rédaction de ce brief, le relire avant de le lancer.
 
+`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
+citée après fusion est une dette de l'architecte du modèle (Claude), pas de
+l'exécutant.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est
@@ -69,6 +73,27 @@ Les facteurs de richesse sont ceux, déjà nommés, que le lot 038 a introduits 
 un gisement majeur occupe plus de bras qu'un mineur, et il rend plus. Ils ne
 sont **pas** dupliqués.
 
+**Motif 033 — constantes invisibles pour le monde d'épreuve.**
+`_MondeEpreuve` n'a pas de gisement. Un nom `PART_MINIERE_PAR_GISEMENT` ou
+`PART_MINIERE_MAXIMALE` écrit dans `sim/engine.py` entrerait dans le
+dénominateur de `test_chaque_constante_du_moteur_change_le_monde` et n'y
+bougerait rien.
+
+Donc : ces deux constantes ne sont **pas** lues par leur nom dans
+`sim/engine.py`. Elles vivent dans `sim/constants.py`. Le moteur consulte
+la part minière via **une seule fonction** de ce module, relue à chaque
+appel, le même motif que `facteurs_production_par_relief()` :
+
+```
+def part_miniere_de(gisements, facteurs_richesse) -> float:
+    ...  # relit PART_MINIERE_PAR_GISEMENT et PART_MINIERE_MAXIMALE
+```
+
+Interdit dans `engine.py` : `_constantes.PART_MINIERE_PAR_GISEMENT` ou
+`_constantes.PART_MINIERE_MAXIMALE`. Autorisé : `_constantes.part_miniere_de(...)`.
+Les facteurs de richesse restent ceux du 038, via la même table, sans
+second jeu.
+
 **Le plafond est un invariant, pas un réglage de confort** : sans lui, une
 cellule chargée de gisements majeurs verrait toute sa population descendre à la
 mine et mourir de faim au-dessus d'un filon d'argent. Ce n'est pas invraisemblable
@@ -91,12 +116,12 @@ calcule désormais sur la **part minière** de cette population. Le même giseme
 sur une cellule deux fois plus peuplée, rend deux fois plus — c'était déjà vrai
 — mais il rend maintenant ce que ses mineurs, et eux seuls, produisent.
 
-**Ce que cette règle produit sans être écrite.** Une cellule à gisement majeur
-devient un endroit qui produit beaucoup de métal et pas assez de grain : elle
-dépend de ses voisines pour manger. C'est la première fois qu'un endroit du
-monde a besoin des autres pour exister — et c'est de cela qu'une ville est
-faite. Aucune règle ne dit « les villes minières importent leur nourriture » :
-cela sort du fait que les mineurs ne labourent pas.
+**Ce que cette règle produit sans être écrite.** Une cellule à gisement
+cultive moins. Sa production agricole baisse ; sa dette alimentaire monte
+si la ration ne suit pas. Aucune règle ne dit « les villes minières
+importent leur nourriture ». Le commerce à capacité plate peut rester trop
+petit pour les nourrir : ce lot **ne mesure pas un flux**. Il mesure la
+production et la dette. Le lot 043 n'est pas requis.
 
 ## Source de vérité et raccord au moteur
 
@@ -180,15 +205,22 @@ Une cellule dont la part minière serait nulle n'extrait rien. Ce zéro est une
 **mesure réelle** : le maillon a été joué et a compté zéro. La sentinelle « non
 calculé » du projet est `-1`, jamais `0`.
 
-### SC6 — La cellule minière devient dépendante
+### SC6 — Les cellules minières produisent moins et s'endettent plus
 
-Sur le monde réel joué à un horizon dérivé, la quantité de nourriture reçue par
-le commerce par les cellules porteuses de gisement est **strictement supérieure**
-à celle rejouée sur le SHA de base par la même commande. La mesure de base est
-archivée avant l'édition et relue ; aucun nombre du présent brief n'est recopié.
+Sur le monde réel joué à un horizon dérivé, pour l'ensemble des cellules que
+la carte déclare porteuses d'au moins un gisement :
 
-C'est le fait que ce lot achète, et il est mesuré, pas raconté : un endroit du
-monde vit maintenant en partie de ce que les autres lui apportent.
+- la somme de leurs productions agricoles est **strictement inférieure** à
+  celle rejouée sur le SHA de base ;
+- la somme de leurs `food_deficit_kg` est **strictement supérieure** à celle
+  rejouée sur le SHA de base.
+
+Les deux mesures de base sont archivées avant l'édition et relues. Aucun
+nombre du présent brief n'est recopié. On ne mesure **pas** les kilogrammes
+reçus par le commerce.
+
+**Le rouge est prouvé avant la correction** : sur le SHA de base, les deux
+écarts sont nuls.
 
 ### SC7 — Le plafond de survie reste dérivé, et il tient
 
@@ -209,6 +241,8 @@ montrer que l'effet se stabilise.
   restent verts ;
 - les facteurs de richesse du lot 038 ne sont pas dupliqués : un contrôle échoue
   si un second jeu de facteurs apparaît ;
+- aucun des noms `PART_MINIERE_PAR_GISEMENT`, `PART_MINIERE_MAXIMALE` n'apparaît
+  comme attribut lu dans `sim/engine.py` — le motif 033 tient ;
 - deux exécutions de `.venv/bin/python -m sim --ticks 365 --seed 0 --json` sont
   strictement identiques entre elles, et différentes de la référence rejouée sur
   le SHA de base ;
@@ -231,8 +265,11 @@ porte aucun résultat en dur.
 | `formules_de_production_agricole` | même parcours | nombre de modules réellement parcourus |
 | `jeux_de_facteurs_de_richesse` | même parcours | nombre de modules réellement parcourus |
 | `extraction_part_miniere_nulle` | cellule dont la part minière est nulle, un tick joué | nombre de ticks réellement joués |
-| `nourriture_recue_par_les_minieres_avant` | monde réel rejoué sur le SHA de base | nombre de cellules minières réellement mesurées |
-| `nourriture_recue_par_les_minieres_apres` | même mesure après changement | nombre de cellules minières réellement mesurées |
+| `production_agricole_minieres_avant` | monde réel rejoué sur le SHA de base, cellules porteuses | nombre de cellules minières réellement mesurées |
+| `production_agricole_minieres_apres` | même mesure après changement | nombre de cellules minières réellement mesurées |
+| `dette_alimentaire_minieres_avant` | monde réel rejoué sur le SHA de base, `food_deficit_kg` des porteuses | nombre de cellules minières réellement mesurées |
+| `dette_alimentaire_minieres_apres` | même mesure après changement | nombre de cellules minières réellement mesurées |
+| `noms_de_constantes_part_miniere_dans_engine` | parcours de l'arbre syntaxique de `sim/engine.py` | nombre de noms du motif 033 réellement cherchés |
 | `fraction_survie_horizon_long` | monde réel joué à cinq fois l'horizon du contrôle existant | population de départ réellement mesurée |
 | `tests_sim_verts` | collecte pytest après changement | nombre de tests collectés |
 
@@ -241,6 +278,11 @@ porte aucun résultat en dur.
 `extraction_part_miniere_nulle` doit valoir **0**, et ce zéro est une mesure
 réelle. La sentinelle « non calculé » du projet est `-1`, jamais `0`.
 `fraction_survie_horizon_long` doit être strictement positive.
+`production_agricole_minieres_apres` doit être strictement inférieure à
+`production_agricole_minieres_avant`.
+`dette_alimentaire_minieres_apres` doit être strictement supérieure à
+`dette_alimentaire_minieres_avant`.
+`noms_de_constantes_part_miniere_dans_engine` doit valoir **0**.
 
 ## Livrables et porte mécanique
 
@@ -257,6 +299,7 @@ SHA de base, pas une copie `.orig` fabriquée après coup.
 
 ## Hors périmètre
 
+- `sim/MODELE.md` (dette de l'architecte après fusion) ;
 - tout métier autre que le mineur ;
 - le salaire, le prix, le marché, la propriété, la classe sociale ;
 - la transformation du minerai, la fonte, l'artisanat ;

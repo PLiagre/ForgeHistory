@@ -30,6 +30,10 @@ qui mesure que le climat n'est pas consommé et dit ce que la sonde ne peut pas
 voir. Si l'une de ces deux sections a changé depuis la rédaction de ce brief,
 le relire avant de le lancer.
 
+`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
+citée après fusion est une dette de l'architecte du modèle (Claude), pas de
+l'exécutant.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est
@@ -100,6 +104,34 @@ facteur_saison = max(0, 1 + SENSIBILITE_SAISON × (duree_jour_h - DUREE_JOUR_EQU
 Ces constantes vivent dans `sim/constants.py`, avec un commentaire disant qu'il
 s'agit d'ordres de grandeur plausibles de niveau 2. Aucun nombre de réglage
 n'est écrit dans une fonction du moteur.
+
+**Motif 033 — constantes invisibles pour le monde d'épreuve.**
+`_MondeEpreuve` de `sim/tests/test_write_coverage.py` n'a pas de carte, donc
+pas de climat. `test_chaque_constante_du_moteur_change_le_monde` ne dérive
+son dénominateur que des noms d'attributs **présents dans** `sim/engine.py`.
+Un nom `SENSIBILITE_SAISON`, `JOUR_SOLSTICE_ETE` ou `DUREE_JOUR_EQUINOXE_H`
+écrit dans `engine.py` y figurerait, ne bougerait pas l'empreinte, et le
+contrôle — hors périmètre — rougirait.
+
+Donc : ces trois constantes ne sont **pas** lues par leur nom dans
+`sim/engine.py`. Elles vivent dans `sim/constants.py`. Le moteur consulte le
+facteur saisonnier via une **fonction relue à chaque appel**, le même motif
+que `facteurs_production_par_relief()` du lot 033 :
+
+```
+def facteur_saison(duree_jour_h) -> float:
+    # relit SENSIBILITE_SAISON et DUREE_JOUR_EQUINOXE_H
+    ...
+def duree_jour_h(jour, ete_h, hiver_h) -> float:
+    # relit JOUR_SOLSTICE_ETE et CALENDAR_DAYS_PER_YEAR
+    ...
+```
+
+Interdit dans `engine.py` : `_constantes.SENSIBILITE_SAISON`,
+`_constantes.JOUR_SOLSTICE_ETE`, `_constantes.DUREE_JOUR_EQUINOXE_H`.
+Autorisé : `_constantes.facteur_saison(...)` et `_constantes.duree_jour_h(...)`.
+`test_aucune_constante_terminale` continue de voir ces noms : les fonctions
+les lisent.
 
 **Ce que cette forme produit, et pourquoi elle a été choisie.** L'écart est pris
 par rapport à une durée de référence **absolue**, pas par rapport à la moyenne
@@ -261,7 +293,10 @@ recopie aucun nombre du présent brief.
   `test_aucune_constante_terminale` et `test_no_hardcoded_numeric_literals`
   restent verts ;
 - aucune deuxième formule de production alimentaire n'apparaît dans `sim/` ;
-- aucune instruction `global` ne réapparaît dans `sim/engine.py`.
+- aucune instruction `global` ne réapparaît dans `sim/engine.py` ;
+- aucun des noms `SENSIBILITE_SAISON`, `JOUR_SOLSTICE_ETE`,
+  `DUREE_JOUR_EQUINOXE_H` n'apparaît comme attribut lu dans `sim/engine.py`
+  — le motif 033 tient.
 
 ## Compteurs exigés
 
@@ -280,12 +315,14 @@ porte aucun résultat en dur.
 | `ecart_relatif_somme_annuelle` | somme des productions saisonnières contre somme au facteur moyen | nombre de cellules réellement sommées |
 | `sorties_cli_deterministes` | deux exécutions à 365 ticks, graine 0 | nombre d'exécutions réellement lancées |
 | `champs_cli_modifies` | comparaison avec la sortie de base rejouée et archivée avant édition | nombre de champs dérivés réellement comparés |
+| `noms_de_constantes_saison_dans_engine` | parcours de l'arbre syntaxique de `sim/engine.py` | nombre de noms du motif 033 réellement cherchés |
 | `tests_sim_verts` | collecte pytest après changement | nombre de tests collectés |
 
 Aucun compteur d'affirmation réelle ne prend `-1` comme résultat final. Un zéro
 mesuré reste possible seulement si la condition correspondante l'autorise ; il
 ne remplace jamais « non calculé ». `ecart_ete_hiver_avant` doit être nul et
 `ecart_ete_hiver_apres` non nul : c'est la preuve du rouge puis du vert.
+`noms_de_constantes_saison_dans_engine` doit valoir **0**.
 
 ## Livrables et porte mécanique
 
@@ -302,6 +339,7 @@ SHA de base, pas une copie `.orig` fabriquée après coup.
 
 ## Hors périmètre
 
+- `sim/MODELE.md` (dette de l'architecte après fusion) ;
 - les gisements, la pluie, la température, la continentalité, le littoral, la
   distance à la mer ;
 - la natalité, la migration, les marchandises autres que la nourriture ;
