@@ -12,9 +12,9 @@
 
 | acteur | où il tourne | il fait | **il ne fait pas** |
 |---|---|---|---|
-| **Hermes** | VPS | écrit le `brief.md`, lance ForgePilot, mesure, rend compte | **il ne code pas, ne fusionne pas, et ne dit jamais si un lot est recevable** |
+| **Hermes** | VPS | demande le `brief.md` à Claude, le fait relire, lance ForgePilot, mesure, rend compte | **il n'écrit pas le brief, ne code pas, ne fusionne pas, et ne dit jamais si un lot est recevable** |
 | **Cursor** | VPS, lancé par ForgePilot | exécute le brief, ouvre la PR, se relit dans une invocation neuve, itère jusqu'au vert | **il ne décide pas de ce qui est recevable — même sur son propre travail** |
-| **Claude** | à la demande, hors du harnais | tient `sim/MODELE.md` ; regard de dernier recours quand un lot ne converge pas | **il n'a plus d'agent, plus de cron, plus de rôle dans le pilotage quotidien** |
+| **Claude** | à la demande, hors du harnais | **écrit le `brief.md`** (ADR-0019) ; tient `sim/MODELE.md` ; regard de dernier recours quand un lot ne converge pas | **il ne relit pas son propre brief, ne juge aucun lot, et n'a ni agent ni cron dans le pilotage quotidien** |
 
 Et vous : **vous seul fusionnez.** C'est le seul geste que personne d'autre
 ne peut faire.
@@ -31,7 +31,7 @@ qui n'a pas vu le code s'écrire.
 | # | qui | machine | commande exacte | ce qui sort |
 |---|---|---|---|---|
 | 1 | **vous** | n'importe où | dire à Hermes ce que vous voulez | rien encore |
-| 2 | Hermes | VPS | *(il rédige)* | `harness/queue/briefs/NNN-slug/brief.md` |
+| 2 | **Claude** | à la demande, hors du harnais | *(il rédige)* | `harness/queue/briefs/NNN-slug/brief.md` |
 | 3 | Hermes | VPS | `forgepilot brief-review harness/queue/briefs/NNN-slug/brief.md --repo /srv/ForgeHistory --run` | un verdict sur le **brief**, avant tout code |
 | 4 | **vous** | — | **vous lisez le brief et son verdict** | votre accord, ou une correction |
 | 5 | Hermes | VPS | `forgepilot doctor --repo /srv/ForgeHistory --check-auth` | « poste de pilotage sain » |
@@ -51,6 +51,10 @@ quatrième : ajuster un contrôle après avoir vu une mesure est une calibration
 déguisée. Sans cette étape, ces défauts se découvraient par l'échec du code,
 après jusqu'à deux heures de travail.
 
+Elle n'est pas facultative parce que le brief vient de Claude : **l'auteur
+d'un brief n'est jamais son relecteur.** C'est la même règle que pour le code,
+appliquée un cran plus tôt.
+
 Un lot purement documentaire (R0) n'a pas de relecteur : la commande le
 refuse en le disant, au lieu de lancer un agent pour rien.
 
@@ -58,7 +62,7 @@ refuse en le disant, au lieu de lancer un agent pour rien.
 
 ```text
 harness/queue/briefs/NNN-slug/
-├── brief.md          ← écrit par Hermes. LA seule source d'instruction du lot.
+├── brief.md          ← écrit par Claude. LA seule source d'instruction du lot.
 ├── eval-rubric.md    ← les critères, écrits AVANT les livrables
 ├── verdict.md        ← le compte-rendu, écrit à la fin
 └── deliverables/
@@ -96,10 +100,10 @@ Le reste tourne sans vous.
 
 **Le lot ne converge pas en trois itérations.**
 Arrêtez de relancer : trois échecs disent que le brief est faux, pas que
-l'exécutant est mauvais. Appelez Claude sur le modèle
-(`forgepilot witness latest --repo /srv/ForgeHistory`, ou directement).
-Puis Hermes réécrit le brief. Un quatrième essai sur le même brief ne
-change rien.
+l'exécutant est mauvais. Appelez Claude — c'est lui qui a écrit le brief et
+qui tient le modèle (`forgepilot witness latest --repo /srv/ForgeHistory`, ou
+directement). Il le réécrit, et le brief réécrit repasse par
+`brief-review`. Un quatrième essai sur le même brief ne change rien.
 
 **La CI est rouge.**
 Regardez *quel* travail. `sim-tests` rouge = le jeu est cassé, c'est le lot.
@@ -145,15 +149,16 @@ c'est du **niveau 2**, généré et jamais sourcé. **Ce n'est pas un défaut** 
 
 ---
 
-## Un exemple complet : le prochain lot réel
+## Un exemple complet : un lot réel, du début à la fin
 
-Le prochain pas de la ROADMAP est : **faire jouer le relief par le tick.**
-Une cellule de montagne ne doit pas produire comme une plaine. Déroulé.
+Le lot 033 — **faire jouer le relief par le tick** — est passé par les onze
+étapes et a été fusionné le 2026-08-25 (PR #137). Une cellule de montagne ne
+produit plus comme une plaine. Déroulé tel qu'il s'est passé.
 
-**1. Vous, à Hermes** — « le relief est dans la carte mais le tick l'ignore,
+**1. Vous** — « le relief est dans la carte mais le tick l'ignore,
 occupe-t'en. »
 
-**2. Hermes** écrit `harness/queue/briefs/033-relief-dans-le-rendement/brief.md`.
+**2. Claude** écrit `harness/queue/briefs/033-relief-dans-le-rendement/brief.md`.
 Le brief dit, au minimum :
 - ce qui change : `production_kg()` dans `sim/engine.py`, et **rien d'autre**
   dans le moteur ;
@@ -212,7 +217,7 @@ forgepilot verdict latest --repo /srv/ForgeHistory
   facteurs plausibles (plaine 1,0 · colline 0,8 · montagne 0,45 · haute
   montagne 0,15 · marais 0,5), à 20 ticks et graine 0 :
 
-  | | sans relief | avec relief |
+  | | sans relief (`448aa2a`) | avec relief (`8bc3ce0`) |
   |---|---|---|
   | population à l'arrivée | 66 649 442 | 58 660 996 |
   | cellules affamées | 3 | 219 |
@@ -222,7 +227,11 @@ forgepilot verdict latest --repo /srv/ForgeHistory
   rien fait. Si les cellules affamées ne bougent quasiment pas, les facteurs
   sont trop timides pour que la carte compte.
 
-Puis vous fusionnez.
+  Ces six nombres sont datés du 2026-08-26 et vieilliront : chaque lot qui
+  suit les déplace. Ils sont ici parce qu'ils portent les **deux SHA** qui
+  permettent de les rejouer, jamais comme une valeur à conserver (règle 12).
+
+Puis vous fusionnez. C'est ce qui s'est passé le 2026-08-25.
 
 ---
 

@@ -2,12 +2,13 @@
 
 Un dossier par lot : `briefs/NNN-<slug>/`, contenant au moins `brief.md`.
 
-**Hermes écrit les briefs** (ADR-0018). Cursor les exécute. Le `brief.md`
-est la seule source d'instruction du lot : aucun autre document ne le
-paraphrase.
+**Claude écrit les briefs** (ADR-0019 — c'était Hermes sous ADR-0018).
+Hermes les fait relire et les lance ; Cursor les exécute. Le `brief.md` est
+la seule source d'instruction du lot : aucun autre document ne le
+paraphrase, et son auteur n'est jamais son relecteur.
 
-La file est vide : les 33 briefs terminés (001 à 032) ont été archivés avec
-le dégraissage. Pour en relire un :
+Les 33 briefs terminés (001 à 032) ont été archivés avec le dégraissage, et
+le 033 est fusionné. Pour en relire un :
 
 ```bash
 git show da1596d:harness/queue/briefs/011-sim-monde-vivant-amorcage/brief.md

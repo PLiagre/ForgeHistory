@@ -4,19 +4,19 @@
 > main**. Régénérer avec `python hermes/dashboard.py`. Une vue
 > périmée reste périmée tant que personne ne la régénère.
 >
-> Générée le 2026-08-25 14:10 UTC.
+> Générée le 2026-08-26 08:19 UTC.
 
 ## En bref
 
 - **Produit** : `sim/` (`python -m sim`) + `viewer/` mince.
 - **Prochain pas produit** : un seul, dans [ROADMAP.md](../ROADMAP.md).
 - **Pilotage ouvert** : 1 demande(s), 0 proposition(s).
-- **Trois acteurs** (ADR-0018) : Hermes écrit les briefs, Cursor
-  exécute, Claude est architecte du modèle et regard de dernier recours.
+- **Trois acteurs** (ADR-0018, amendé par ADR-0019) : Claude écrit les
+  briefs et tient le modèle, Hermes pilote et mesure, Cursor exécute.
 
 ## Ce qui attend le propriétaire
 
-- Trancher la demande `hermes/requests/DEMANDE-20260823-cout-du-lot-et-ceremonie-de-preuve.md` — Réduire le coût d'un lot : la cérémonie de preuve et les relances du pilote.
+- Trancher la demande `hermes\requests\DEMANDE-20260823-cout-du-lot-et-ceremonie-de-preuve.md` — Réduire le coût d'un lot : la cérémonie de preuve et les relances du pilote.
 
 ## Activité GitHub récente
 
