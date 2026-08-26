@@ -29,6 +29,11 @@ En mode `delta-feedback`, vérifie explicitement la résolution de chaque consta
 du feedback antérieur. Une revue complète n'est demandée que lorsque le contexte
 annonce `full-approach-changed`.
 
+Le schéma JSON fermé de ta réponse est déposé à `{{REVIEW_SCHEMA}}`.
+`acceptance_criteria` est une liste d'objets `{criterion, status, evidence?}`,
+jamais une liste de chaînes ni un objet indexé. `checks_observed` de même
+avec la clé `check`. Ta réponse finale doit matcher ce schéma exactement.
+
 ## Bundle de revue
 
 {{REVIEW_BUNDLE}}

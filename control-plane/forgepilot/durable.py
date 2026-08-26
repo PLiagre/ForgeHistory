@@ -11,10 +11,11 @@ from typing import Iterable
 
 from .config import Settings
 from .policy import RISK_LEVELS, effective_risk
-from .process import PilotError, git, resolve_binary, run_command
+from .process import PilotError, ReviewProtocolError, git, resolve_binary, run_command
 from .protocol import (
     extract_session_id,
     findings_signatures,
+    is_agent_envelope,
     validate_executor,
     validate_plan,
     validate_review,
@@ -36,6 +37,7 @@ from .workflow import (
     assert_not_api_billing,
     assert_task_is_instruction,
     create_worktree,
+    default_task_name,
     execute_invocation,
     executor_invocation,
     existing_worktree,
@@ -70,6 +72,186 @@ def _profile_summary(settings: Settings, risk: str) -> dict[str, object]:
     }
 
 
+def _task_relative_path(repo: Path, task: Path) -> str:
+    try:
+        return task.resolve().relative_to(repo.resolve()).as_posix()
+    except ValueError as exc:
+        raise PilotError(
+            f"Le brief {task} doit vivre dans le dépôt {repo} pour être ancré dans une base Git."
+        ) from (exc)
+
+
+def _git_or_none(repo: Path, *args: str) -> str | None:
+    try:
+        value = git(repo, *args)
+    except PilotError:
+        return None
+    return value or None
+
+
+def _plan_refs_with_blob(repo: Path, relative: str, blob: str) -> list[str]:
+    listing = _git_or_none(
+        repo,
+        "for-each-ref",
+        "--format=%(refname:short)",
+        "refs/heads/plan",
+        "refs/remotes",
+    )
+    if not listing:
+        return []
+    matches: list[str] = []
+    for ref in listing.splitlines():
+        name = ref.strip()
+        if not name:
+            continue
+        short = name.split("/", 1)[-1] if name.startswith("origin/") else name
+        if not (name.startswith("plan/") or "/plan/" in name or short.startswith("plan/")):
+            continue
+        other = _git_or_none(repo, "rev-parse", f"{name}:{relative}")
+        if other == blob:
+            matches.append(name)
+    return matches
+
+
+def assert_brief_in_base(repo: Path, task: Path, base_ref: str) -> dict[str, str]:
+    """Refuse un lancement si le brief relu n'est pas dans base_ref, octet pour octet.
+
+    Le lot 034 a d'abord été créé contre origin/master alors que le brief
+    relu vivait sur plan/*. La garde est mécanique, avant CREATED.
+    """
+
+    relative = _task_relative_path(repo, task)
+    working_blob = git(repo, "hash-object", str(task))
+    base_blob = _git_or_none(repo, "rev-parse", f"{base_ref}:{relative}")
+    if base_blob == working_blob:
+        return {
+            "relative_path": relative,
+            "task_blob": working_blob,
+            "task_sha256": hashlib.sha256(task.read_bytes()).hexdigest(),
+        }
+    hints = _plan_refs_with_blob(repo, relative, working_blob)
+    if base_blob is None:
+        message = (
+            f"Le brief relu {relative} est absent de la base {base_ref}."
+        )
+    else:
+        message = (
+            f"Le brief relu {relative} du working tree diffère de {base_ref} "
+            f"(empreinte Git {working_blob[:12]} contre {base_blob[:12]})."
+        )
+    if hints:
+        message += (
+            f" La même empreinte vit dans {hints[0]} ; relancer avec --base {hints[0]}."
+        )
+    else:
+        message += (
+            " Passer --base vers la branche plan/* qui porte le brief relu, "
+            "ou fusionner cette branche avant le lancement."
+        )
+    raise PilotError(message)
+
+
+def _adoptable_created_run(
+    repo: Path,
+    task_name: str,
+    *,
+    task_sha256: str,
+    base_sha: str,
+) -> tuple[Path, dict[str, object]] | None:
+    runs_root = repo / ".forgepilot" / "runs"
+    if not runs_root.exists():
+        return None
+    for existing_path in sorted(runs_root.glob("*/state.json")):
+        existing = load_state(existing_path)
+        if existing.get("task_name") != task_name:
+            continue
+        if existing.get("step") in {"COMPLETE", "BLOCKED", "BLOCKED_TOOLING", "ERROR", "CANCELLED"}:
+            continue
+        if (
+            existing.get("step") == "CREATED"
+            and existing.get("task_sha256") == task_sha256
+            and existing.get("base_sha") == base_sha
+        ):
+            return existing_path, existing
+        raise PilotError(
+            f"Un lot actif porte déjà le nom {task_name!r} : {existing.get('run_id')}."
+        )
+    return None
+
+
+def preview_start(
+    settings: Settings,
+    repo: Path,
+    task: Path,
+    task_name: str,
+    *,
+    requested_risk: str | None = None,
+    changed_paths: Iterable[str] = (),
+    base_ref: str | None = None,
+    base_branch: str | None = None,
+    title: str | None = None,
+    allow_heavy: bool = False,
+) -> dict[str, object]:
+    """Aperçu de `start` : aucune écriture d'état, aucun agent."""
+
+    assert_not_api_billing()
+    assert_task_is_instruction(task)
+    if not task.is_file() or not task.read_text(encoding="utf-8").strip():
+        raise PilotError(f"Tâche introuvable ou vide : {task}")
+    if settings.policy is None:
+        raise PilotError("Politique de workflow absente ; start est refusé.")
+    requested = requested_risk or declared_risk(task) or "R1"
+    if requested not in RISK_LEVELS:
+        raise PilotError(f"Risque demandé invalide : {requested!r}")
+    path_hints = tuple(changed_paths)
+    effective, derived = effective_risk(settings.policy, requested, path_hints)
+    selected_base = base_ref or settings.default_base_ref
+    selected_branch = base_branch or settings.default_base_branch
+    base_sha = git(repo, "rev-parse", selected_base)
+    brief = assert_brief_in_base(repo, task, selected_base)
+    slug = default_task_name(task) if not task_name else task_name
+    continue_argv = [
+        "forgepilot",
+        "start",
+        str(task),
+        "--repo",
+        str(repo),
+        "--task-name",
+        slug,
+        "--base",
+        selected_base,
+        "--base-branch",
+        selected_branch,
+        "--run",
+    ]
+    return {
+        "command": "start",
+        "run": False,
+        "fusion": False,
+        "task_name": slug,
+        "task": str(task),
+        "task_sha256": brief["task_sha256"],
+        "task_blob": brief["task_blob"],
+        "task_relative": brief["relative_path"],
+        "base_ref": selected_base,
+        "base_sha": base_sha,
+        "base_branch": selected_branch,
+        "title": (title or slug).strip() or slug,
+        "allow_heavy": bool(allow_heavy),
+        "risk": {
+            "requested": requested,
+            "derived": derived,
+            "effective": effective,
+        },
+        "policy": settings.policy.summary(),
+        "continue_with": " ".join(continue_argv),
+        "note": (
+            "Aperçu seulement : aucun run n'est créé. "
+            "La commande continue_with crée le lot durable et le lance."
+        ),
+    }
+
+
 def register_run(
     settings: Settings,
     repo: Path,
@@ -101,17 +283,15 @@ def register_run(
         )
     selected_base = base_ref or settings.default_base_ref
     base_sha = git(repo, "rev-parse", selected_base)
-    runs_root = repo / ".forgepilot" / "runs"
-    if runs_root.exists():
-        for existing_path in runs_root.glob("*/state.json"):
-            existing = load_state(existing_path)
-            if (
-                existing.get("task_name") == task_name
-                and existing.get("step") not in {"COMPLETE", "BLOCKED", "ERROR", "CANCELLED"}
-            ):
-                raise PilotError(
-                    f"Un lot actif porte déjà le nom {task_name!r} : {existing.get('run_id')}."
-                )
+    brief = assert_brief_in_base(repo, task, selected_base)
+    adopted = _adoptable_created_run(
+        repo,
+        task_name,
+        task_sha256=brief["task_sha256"],
+        base_sha=base_sha,
+    )
+    if adopted is not None:
+        return adopted
     run_id = new_run_id(task_name)
     profile_summary = _profile_summary(settings, effective)
     state_path, state = create_state(
@@ -132,7 +312,9 @@ def register_run(
             "changed_path_hints": list(path_hints),
             "review_base_sha": base_sha,
             "allow_heavy": bool(allow_heavy),
-            "task_sha256": hashlib.sha256(task.read_bytes()).hexdigest(),
+            "task_sha256": brief["task_sha256"],
+            "task_blob": brief["task_blob"],
+            "task_relative": brief["relative_path"],
         },
     )
     return state_path, state
@@ -387,6 +569,132 @@ def recover_iteration_result(
         role=None,
         updates={"resume_from": None},
     )
+
+
+def _review_protocol_failure(state: dict[str, object]) -> dict[str, object] | None:
+    failures = state.get("failures")
+    if not isinstance(failures, dict):
+        return None
+    record = failures.get("REVIEWING")
+    if isinstance(record, dict) and record.get("failure_kind") == "review_protocol":
+        return record
+    return None
+
+
+def _assert_recoverable_review(state: dict[str, object]) -> dict[str, object]:
+    record = _review_protocol_failure(state)
+    if record is None:
+        raise PilotError(
+            "Récupération revue refusée : aucune erreur de protocole reviewer n'est enregistrée."
+        )
+    if state.get("step") == "BLOCKED_TOOLING":
+        return record
+    if state.get("step") == "ERROR" and state.get("resume_from") == "REVIEWING":
+        return record
+    raise PilotError(
+        "Récupération revue refusée : le run n'est pas bloqué sur un protocole reviewer. "
+        f"Étape actuelle : {state.get('step')}."
+    )
+
+
+def preview_recover_review(repo: Path, run_id: str) -> dict[str, object]:
+    """Aperçu : rejouer la revue du même SHA, sans agent."""
+
+    state_path = run_state_path(repo, run_id)
+    state = load_state(state_path)
+    record = _assert_recoverable_review(state)
+    candidate = state.get("candidate") if isinstance(state.get("candidate"), dict) else {}
+    head = state.get("head_sha") or candidate.get("head_sha")
+    return {
+        "command": "recover-review",
+        "run": False,
+        "run_id": state.get("run_id"),
+        "step": state.get("step"),
+        "failure_kind": record.get("failure_kind"),
+        "signature": record.get("signature"),
+        "consecutive": record.get("consecutive"),
+        "base_sha": state.get("base_sha"),
+        "head_sha": head,
+        "continue_with": (
+            f"forgepilot recover-review {state.get('run_id')} --repo {repo} --run"
+        ),
+        "note": (
+            "Rejoue uniquement la revue du SHA candidat. Ni plan, ni exécuteur, "
+            "ni tests. --result n'accepte qu'une enveloppe d'invocation agent."
+        ),
+    }
+
+
+def recover_review_result(
+    settings: Settings,
+    repo: Path,
+    run_id: str,
+    *,
+    result_path: Path | None = None,
+) -> dict[str, object]:
+    """Reprend uniquement la revue du SHA candidat déjà publié."""
+
+    state_path = run_state_path(repo, run_id)
+    state = load_state(state_path)
+    _assert_recoverable_review(state)
+    worktree = _state_worktree(repo, state)
+    candidate = _state_candidate(state)
+    _assert_candidate_identity(worktree, candidate)
+    head_sha = str(candidate["head_sha"])
+    expected = state.get("head_sha")
+    if expected and expected != head_sha:
+        raise PilotError(
+            f"Récupération revue refusée : l'état vise {expected}, HEAD vaut {head_sha}."
+        )
+    plan_path = _artifact_path(state_path, state, "plan")
+    if plan_path is None or not plan_path.is_file():
+        raise PilotError("Récupération revue refusée : plan durable absent.")
+    plan = validate_plan(json.loads(plan_path.read_text(encoding="utf-8")))
+    if result_path is not None:
+        try:
+            raw_result = json.loads(result_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError) as exc:
+            raise PilotError("Résultat de revue de récupération illisible.") from exc
+        if not is_agent_envelope(raw_result):
+            raise PilotError(
+                "Récupération revue refusée : JSON sans provenance d'invocation agent. "
+                "Fournir l'enveloppe brute (type=result), jamais un avis édité à la main."
+            )
+        write_normalized_json(
+            state_path.parent / "traces" / f"review-raw-{head_sha}.json",
+            raw_result,
+        )
+        try:
+            review = validate_review(
+                raw_result,
+                expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
+            )
+        except PilotError as exc:
+            raise ReviewProtocolError(str(exc)) from exc
+        bundle_path = _artifact_path(state_path, state, "review_bundle")
+        if bundle_path is None or not bundle_path.is_file():
+            raise PilotError("Récupération revue refusée : bundle de revue absent.")
+        _assert_review_material_was_readable(review, bundle_path)
+        write_normalized_json(
+            state_path.parent / f"review-output-{head_sha}.json",
+            review,
+        )
+        raw_kept = state_path.parent / "traces" / f"review-raw-{head_sha}.json"
+        if raw_kept.is_file():
+            raw_kept.unlink()
+    elif (state_path.parent / f"review-output-{head_sha}.json").is_file():
+        raise PilotError(
+            "Récupération revue refusée : une sortie reviewer est déjà archivée pour ce SHA ; "
+            "la relire avec resume, pas en recréant une invocation."
+        )
+    state = transition(
+        state_path,
+        state,
+        "PUBLISHED",
+        role=None,
+        updates={"resume_from": None, "active_role": None},
+    )
+    return resume_run(settings, repo, str(state["run_id"]))
 
 
 def continue_after_external_merge(
@@ -999,11 +1307,23 @@ def _review_current_head(
     state = _set_artifact(state_path, state, "review_bundle", bundle_path)
     state = transition(state_path, state, "REVIEWING", role="reviewer")
     output_path = state_path.parent / f"review-output-{head_sha}.json"
+    failures = state.get("failures")
+    reviewing_failure = (
+        failures.get("REVIEWING") if isinstance(failures, dict) else None
+    )
+    schema_retry = (
+        isinstance(reviewing_failure, dict)
+        and int(reviewing_failure.get("consecutive", 0)) >= 1
+        and reviewing_failure.get("failure_kind") == "review_protocol"
+    )
     if output_path.is_file():
-        review = validate_review(
-            json.loads(output_path.read_text(encoding="utf-8")),
-            expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
-        )
+        try:
+            review = validate_review(
+                json.loads(output_path.read_text(encoding="utf-8")),
+                expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
+            )
+        except PilotError as exc:
+            raise ReviewProtocolError(str(exc), raw=output_path.read_text(encoding="utf-8")) from exc
         _assert_review_material_was_readable(review, bundle_path)
     else:
         invocation = review_invocation(
@@ -1013,17 +1333,30 @@ def _review_current_head(
             review_base,
             risk=risk,
             bundle_path=bundle_path,
+            schema_retry=schema_retry,
         )
         result = _run_agent(
             invocation, settings, risk=risk, role="reviewer",
             trace_dir=state_path.parent,
         )
-        review = validate_review(
+        raw_trace = write_normalized_json(
+            state_path.parent / "traces" / f"review-raw-{head_sha}.json",
             result,
-            expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
-            forbidden_prompt=invocation.prompt,
+            forbidden_texts=(invocation.prompt or "",),
         )
+        try:
+            review = validate_review(
+                result,
+                expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
+                forbidden_prompt=invocation.prompt,
+            )
+        except PilotError as exc:
+            raise ReviewProtocolError(
+                str(exc),
+                raw=raw_trace.read_text(encoding="utf-8"),
+            ) from exc
         _assert_review_material_was_readable(review, bundle_path)
+        raw_trace.unlink(missing_ok=True)
         write_normalized_json(
             output_path,
             review,
@@ -1336,15 +1669,40 @@ def _record_step_failure(
     same = isinstance(previous, dict) and previous.get("signature") == signature
     consecutive = int(previous.get("consecutive", 0)) + 1 if same else 1
     total = int(previous.get("total", 0)) + 1 if isinstance(previous, dict) else 1
-    failures[step] = {
+    is_protocol = isinstance(error, ReviewProtocolError)
+    kind = "review_protocol" if is_protocol else "step"
+    record = {
         "signature": signature,
         "consecutive": consecutive,
         "total": total,
         "last_error": clean_error,
         "last_failed_at": state.get("updated_at"),
+        "failure_kind": kind,
+        "candidate_sha": state.get("head_sha"),
     }
+    if is_protocol:
+        record["recover_command"] = (
+            f"forgepilot recover-review {state.get('run_id')} --run"
+        )
+    failures[step] = record
     changed = save_state(state_path, changed)
-    if consecutive >= 3:
+    protocol_limit = 2
+    generic_limit = 3
+    if is_protocol and consecutive >= protocol_limit:
+        return transition(
+            state_path,
+            changed,
+            "BLOCKED_TOOLING",
+            error=(
+                f"Deux erreurs de protocole identiques à l'étape {step} ; "
+                "arrêt avant une troisième dépense identique. "
+                "Ce n'est pas un verdict produit. Reprendre uniquement la revue : "
+                f"forgepilot recover-review {state.get('run_id')} --run. "
+                f"Cause : {clean_error}"
+            ),
+            updates={"resume_from": None, "failure_kind": kind},
+        )
+    if not is_protocol and consecutive >= generic_limit:
         return transition(
             state_path,
             changed,
@@ -1360,7 +1718,7 @@ def _record_step_failure(
         changed,
         "ERROR",
         error=error,
-        updates={"resume_from": step},
+        updates={"resume_from": step, "failure_kind": kind},
     )
 
 
@@ -1427,7 +1785,7 @@ def _resume_run_locked(
         if not isinstance(resume_from, str):
             raise PilotError("État ERROR sans étape de reprise.")
         state = transition(state_path, state, resume_from, updates={"resume_from": None})
-    if state["step"] in {"COMPLETE", "BLOCKED", "CANCELLED"}:
+    if state["step"] in {"COMPLETE", "BLOCKED", "BLOCKED_TOOLING", "CANCELLED"}:
         return state
 
     try:

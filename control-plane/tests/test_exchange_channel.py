@@ -115,10 +115,13 @@ class BundleDuRelecteurTests(unittest.TestCase):
             copie = exchange_dir(racine) / "review-bundle.json"
             self.assertTrue(copie.is_file())
             self.assertTrue(copie.read_text(encoding="utf-8").startswith(marqueur))
+            self.assertTrue((exchange_dir(racine) / "review-schema.json").is_file())
 
         prompt = invocation.argv[invocation.argv.index("-p") + 1]
         self.assertIn(f"{EXCHANGE_DIRNAME}/review-bundle.json", prompt)
+        self.assertIn(f"{EXCHANGE_DIRNAME}/review-schema.json", prompt)
         self.assertIn("Lis intégralement", prompt)
+        self.assertNotIn("{{REVIEW_SCHEMA}}", prompt)
         self.assertNotIn(marqueur, prompt)
         self.assertNotIn("--add-dir", invocation.argv)
         self.assertNotIn(str(dossier_run), " ".join(invocation.argv))

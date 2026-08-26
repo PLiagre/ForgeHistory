@@ -138,7 +138,10 @@ un test existant, un niveau de fidélité absent, un périmètre trop large. Un
 est faite par son auteur, Claude, pas par toi. Un lot R0 n'a pas de
 relecteur : la commande le refuse en le disant.
 
-Ensuite seulement, enregistrer le run durable et le lancer :
+Ensuite seulement, l'aperçu puis le lancement. Sans `--run`, `start`
+n'écrit aucun état ; il imprime la commande de continuation. Le brief relu
+doit déjà vivre, même empreinte, dans `--base` (sinon le lancement est
+refusé avant `PLANNING`).
 
 ```bash
 P=.venv/bin/forgepilot
@@ -151,7 +154,10 @@ $P status latest --repo $R
 ```
 
 Après interruption, `$P resume latest --repo $R` reprend la première étape
-incomplète.
+incomplète. Si `status` montre `BLOCKED_TOOLING` ou
+`failure_kind: review_protocol`, ce n'est pas un verdict produit :
+`$P recover-review latest --repo $R --run` rejoue uniquement la revue du
+même SHA.
 Une proposition n'est pas un brief : la commande refuse
 `hermes/propositions/`.
 

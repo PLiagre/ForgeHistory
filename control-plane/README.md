@@ -95,10 +95,25 @@ forgepilot merge latest --repo /srv/ForgeHistory
 forgepilot merge latest --repo /srv/ForgeHistory --run
 ```
 
-Sans `--run`, `start` enregistre le lot sans lancer d'agent. Il imprime
-l'identifiant stable à réutiliser à la place de `latest`. `resume` repart de
-la première étape incomplète. Une étape est écrite dans l'état avant l'effet
-suivant ; une branche ou un worktree déjà créés sont récupérés, pas recréés.
+Sans `--run`, `start` est un aperçu : aucun état n'est écrit. Il imprime la
+commande exacte de continuation (`start … --run`). `start --run` crée ensuite
+le run durable et lance sa première étape. Un second `start --run` identique
+reprend un run `CREATED` de même empreinte ; un lot déjà actif (planification
+ou plus loin) est refusé. `resume` repart de la première étape incomplète.
+Une étape est écrite dans l'état avant l'effet suivant ; une branche ou un
+worktree déjà créés sont récupérés, pas recréés.
+
+Si la relecture finale échoue sur le contrat JSON, l'état est
+`ERROR` / `BLOCKED_TOOLING` (`failure_kind: review_protocol`), jamais un
+`BLOCKED` produit. Rejouer uniquement la revue du même SHA :
+
+```bash
+forgepilot recover-review <RUN_ID> --repo /srv/ForgeHistory
+forgepilot recover-review <RUN_ID> --repo /srv/ForgeHistory --run
+```
+
+`--result` n'accepte qu'une enveloppe brute d'invocation agent, jamais un
+JSON édité à la main.
 
 L'état atomique vit dans :
 
@@ -129,6 +144,7 @@ forgepilot execute /chemin/vers/plan.json --task-name fh-001 --repo /srv/ForgeHi
 forgepilot iterate /chemin/vers/plan.json --feedback /chemin/feedback.json --task-name fh-001 --repo /srv/ForgeHistory --risk R1 --run
 forgepilot publish --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --title "fh-001" --plan /chemin/plan.json --run
 forgepilot review /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master --risk R2 --run
+forgepilot recover-review <RUN_ID> --repo /srv/ForgeHistory --run
 forgepilot witness /chemin/vers/plan.json --repo /srv/ForgeHistory/.forgepilot/worktrees/fh-001 --base origin/master
 ```
 

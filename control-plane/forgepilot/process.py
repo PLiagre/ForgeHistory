@@ -28,6 +28,15 @@ class PilotError(RuntimeError):
         self.raw = raw
 
 
+class ReviewProtocolError(PilotError):
+    """Réponse reviewer reçue, puis refusée par le contrat JSON.
+
+    Ce n'est pas un verdict produit. Le lot 034 a fini `BLOCKED` — mot
+    réservé à une porte humaine — pour trois JSON invalides. Cette erreur
+    nomme le canal, pas le code.
+    """
+
+
 @dataclass(frozen=True)
 class CommandResult:
     argv: tuple[str, ...]

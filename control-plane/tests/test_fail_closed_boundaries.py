@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from forgepilot.process import PilotError, _process_group_options, run_command_stream
 from forgepilot.protocol import (
+    is_agent_envelope,
     validate_executor,
     validate_plan,
     validate_review,
@@ -211,6 +212,28 @@ class ProtocolFailClosedTests(unittest.TestCase):
             validate_review(valid_review(), expected_criteria=["autre critère"])
         with self.assertRaisesRegex(PilotError, "aucun constat"):
             validate_review(valid_review(verdict="FAIL"))
+        with self.assertRaisesRegex(PilotError, "liste non vide d'objets|doit être un objet"):
+            validate_review(valid_review(acceptance_criteria=["le comportement est prouvé"]))
+        with self.assertRaisesRegex(PilotError, "liste non vide d'objets"):
+            validate_review(
+                valid_review(
+                    acceptance_criteria={
+                        "0": {
+                            "criterion": "le comportement est prouvé",
+                            "status": "PASS",
+                        }
+                    }
+                )
+            )
+
+    def test_agent_envelope_is_required_for_review_recovery(self):
+        self.assertTrue(
+            is_agent_envelope(
+                {"type": "result", "session_id": "abc", "result": {"verdict": "PASS"}}
+            )
+        )
+        self.assertFalse(is_agent_envelope(valid_review()))
+        self.assertFalse(is_agent_envelope(["pas un objet"]))
 
     def test_executor_schema_is_closed_and_iteration_explicit(self):
         self.assertEqual("correction appliquée", validate_executor(valid_executor())["summary"])

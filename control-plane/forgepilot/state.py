@@ -17,7 +17,10 @@ from .process import PilotError
 
 
 STATE_SCHEMA_VERSION = 1
-TERMINAL_STEPS = {"COMPLETE", "BLOCKED", "ERROR", "CANCELLED"}
+TERMINAL_STEPS = {"COMPLETE", "BLOCKED", "BLOCKED_TOOLING", "ERROR", "CANCELLED"}
+# ERROR et BLOCKED_TOOLING sont des arrêts d'outil. BLOCKED sans
+# qualification reste réservé à une porte qui exige une décision humaine
+# sur le produit (lot 034 : trois JSON invalides avaient collé les deux).
 LOCK_HEARTBEAT_SECONDS = 5.0
 # Longueur minimale d'une valeur d'environnement pour qu'on la traite comme
 # un secret à masquer. En dessous, masquer fait plus de mal que de bien : une
@@ -246,8 +249,8 @@ def transition(
     failures = changed.get("failures")
     if (
         isinstance(failures, dict)
-        and previous not in {"ERROR", "BLOCKED"}
-        and step not in {"ERROR", "BLOCKED"}
+        and previous not in {"ERROR", "BLOCKED", "BLOCKED_TOOLING"}
+        and step not in {"ERROR", "BLOCKED", "BLOCKED_TOOLING"}
         and step != previous
     ):
         record = failures.get(previous)

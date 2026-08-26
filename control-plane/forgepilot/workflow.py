@@ -18,7 +18,13 @@ from .config import (
 from .exchange import stage_exchange
 from .policy import GROK_EFFORTS, effective_risk
 from .process import PilotError, git, resolve_binary, run_command, run_command_stream
-from .protocol import extract_session_id, validate_plan, write_normalized_json
+from .protocol import (
+    REVIEW_JSON_SCHEMA,
+    REVIEW_SCHEMA_RETRY_HINT,
+    extract_session_id,
+    validate_plan,
+    write_normalized_json,
+)
 from .publication import enforce_allowed_paths, stage_explicit_paths, working_tree_paths
 
 
@@ -367,6 +373,36 @@ def brief_review_invocation(
     )
 
 
+def _stage_review_schema(repo: Path, *, near: Path | None = None) -> str:
+    """Dépose le schéma JSON fermé dans le canal d'échange, jamais le prompt."""
+
+    source = (near.parent if near is not None else repo / ".forgepilot") / "review-schema.json"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text(
+        json.dumps(REVIEW_JSON_SCHEMA, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return stage_exchange(repo, source, "review-schema")
+
+
+def _review_prompt(
+    repo: Path,
+    bundle_body_or_reference: str,
+    *,
+    schema_near: Path | None = None,
+    schema_retry: bool = False,
+) -> str:
+    schema_path = _stage_review_schema(repo, near=schema_near)
+    prompt = (
+        _read_prompt("reviewer.md")
+        .replace("{{REVIEW_BUNDLE}}", bundle_body_or_reference)
+        .replace("{{REVIEW_SCHEMA}}", schema_path)
+    )
+    if schema_retry:
+        prompt = f"{prompt.rstrip()}\n\n{REVIEW_SCHEMA_RETRY_HINT}\n"
+    return prompt
+
+
 def review_invocation(
     settings: Settings,
     repo: Path,
@@ -378,12 +414,14 @@ def review_invocation(
     risk: str | None = None,
     bundle_path: Path | None = None,
     policy_exempt: bool = False,
+    schema_retry: bool = False,
 ) -> Invocation:
     backend = _role_backend(settings, risk, "reviewer", policy_exempt=policy_exempt)
     if backend == "none":
         raise PilotError("Aucun relecteur n'est configuré pour ce risque.")
     resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
     argv: list[str]
+    schema_near = bundle_path if bundle_path is not None else None
     if backend == "cursor" and bundle_path is not None:
         if not bundle_path.is_file():
             raise PilotError(f"Bundle de revue introuvable : {bundle_path}")
@@ -402,7 +440,12 @@ def review_invocation(
             "`blocked_reason` `material_unreadable` : une panne de transport "
             "n'est pas un jugement sur le produit."
         )
-        prompt = _read_prompt("reviewer.md").replace("{{REVIEW_BUNDLE}}", bundle_reference)
+        prompt = _review_prompt(
+            repo,
+            bundle_reference,
+            schema_near=schema_near,
+            schema_retry=schema_retry,
+        )
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
         argv = _cursor_read_argv(
             settings, repo, prompt, mode="ask", model=cursor_model
@@ -426,7 +469,12 @@ def review_invocation(
                 },
                 ensure_ascii=False,
             )
-        prompt = _read_prompt("reviewer.md").replace("{{REVIEW_BUNDLE}}", bundle_body)
+        prompt = _review_prompt(
+            repo,
+            bundle_body,
+            schema_near=schema_near,
+            schema_retry=schema_retry,
+        )
     if backend == "cursor":
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
         if bundle_path is None:
