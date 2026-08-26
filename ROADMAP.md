@@ -97,9 +97,10 @@ un lot est dans son `brief.md`, et nulle part ailleurs.
 | 043 | `le-convoi-a-l-echelle-de-la-cellule` | le commerce cesse d'être mille fois trop petit pour les cellules |
 | 044 | `un-metier-le-mineur` | première division du travail : les mineurs ne labourent pas |
 
-Dépendances : 034 avant 035 · 037 avant 038 et 039 · 038 avant 044 · 043
-avant tout lot de couche 2. Les lots 036, 040, 041 et 043 sont indépendants
-une fois 034 passé.
+Dépendances : 034 avant 035 · 037 avant 038, et 038 avant 039 · 038 avant
+044 · 040 avant 043 (le facteur de terrain se prouve plus simplement sur une
+capacité constante ; il multiplie ensuite la capacité dérivée) · 043 avant
+tout lot de couche 2. Seuls 036 et 041 sont indépendants une fois 034 passé.
 
 ### Pourquoi il n'y a pas de lot « ville »
 

@@ -22,6 +22,13 @@ ville, et ne touche ni à la production, ni au commerce, ni à la mortalité.
 Aucune dépendance dure. Ce lot peut être lancé dès que le lot 034 est fusionné,
 sans attendre les lots 035 à 040.
 
+## Fondement dans le modèle
+
+`sim/MODELE.md`, § « Ce que veut dire “affamée” » — la pénurie du tick, qui est
+la cause du départ — et § « Le report de la fraction de mortalité », dont ce
+lot reprend le mécanisme. Si l'une de ces sections a changé depuis la rédaction
+de ce brief, le relire avant de le lancer.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est

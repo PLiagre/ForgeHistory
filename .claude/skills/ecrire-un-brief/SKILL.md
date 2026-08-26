@@ -39,6 +39,24 @@ Elles viennent des six défauts que cherche le relecteur
 Et une sixième, sur le périmètre : **n'autorise en écriture que ce que le
 travail décrit exige.** Tout autre chemin est interdit, nommément.
 
+## Les deux règles que le relecteur ne vérifiera pas
+
+Elles viennent d'ADR-0019 § « Ce que la règle de rôle couvre », et personne
+d'autre que toi ne peut les tenir.
+
+**Cite la section de `sim/MODELE.md` dont le brief découle**, sous un titre
+`## Fondement dans le modèle`. Le relecteur lit le brief et *les fichiers qu'il
+cite* : c'est le seul moyen que l'affirmation de modèle entre dans son champ,
+puisque rien de mécanique ne relit `MODELE.md`. Un lot qui ne touche pas au
+monde le dit — « aucun fondement, ce lot ne change aucun nombre » — plutôt que
+d'inventer une section.
+
+**Devant un lot qui ne converge pas après trois itérations, tu n'as que deux
+réponses** : *le brief est faux, en voici la réécriture*, ou *je ne peux pas
+trancher, c'est au propriétaire*. Jamais « le brief est bon, relancez » : ce
+serait juger recevable ton propre travail. Un brief réécrit repasse par
+`brief-review`.
+
 ## Ce qui vieillit, et comment l'écrire
 
 Un brief écrit aujourd'hui peut être exécuté dans trois semaines, sur un moteur
@@ -116,6 +134,19 @@ Un brief passé par la porte et par le relecteur, à relire comme modèle :
 ```bash
 git show 09e36dc:harness/queue/briefs/033-relief-dans-le-rendement/brief.md
 ```
+
+## Quand tu écris plusieurs briefs d'affilée
+
+`brief-review` lit **un** brief isolément. Il ne verra jamais qu'un lot dépend
+d'un autre, que deux lots se réclament chacun « seul endroit » de la même
+chose, que l'un promet un état qu'aucun autre ne produit, ou que deux lots
+touchent la même grandeur sans dire comment ils se composent. Relis la série
+toi-même sur ces quatre points, et écris les dépendances dans `ROADMAP.md`,
+qui est le seul endroit où l'ordre est publié.
+
+Une dépendance s'écrit dans les deux sens : le lot amont dit ce qu'il ouvre,
+le lot aval dit ce qu'il suppose et se déclare **bloqué** — jamais « à
+adapter » — si ce n'est pas là.
 
 ## Après l'écriture
 

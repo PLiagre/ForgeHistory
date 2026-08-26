@@ -102,8 +102,14 @@ Le reste tourne sans vous.
 Arrêtez de relancer : trois échecs disent que le brief est faux, pas que
 l'exécutant est mauvais. Appelez Claude — c'est lui qui a écrit le brief et
 qui tient le modèle (`forgepilot witness latest --repo /srv/ForgeHistory`, ou
-directement). Il le réécrit, et le brief réécrit repasse par
-`brief-review`. Un quatrième essai sur le même brief ne change rien.
+directement).
+
+Il n'a que **deux réponses possibles**, et c'est ADR-0019 qui les lui impose :
+*le brief est faux, en voici la réécriture*, ou *je ne peux pas trancher,
+c'est à vous*. Il ne peut pas répondre « le brief est bon, relancez » — ce
+serait déclarer recevable son propre travail. Si vous recevez cette
+réponse-là, refusez-la. Un brief réécrit repasse par `brief-review`, comme le
+premier.
 
 **La CI est rouge.**
 Regardez *quel* travail. `sim-tests` rouge = le jeu est cassé, c'est le lot.

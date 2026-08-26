@@ -19,6 +19,13 @@ ni classe sociale, et ne fait pas circuler le minerai.
 
 **Ce lot suppose le lot 038 fusionné.** Sans extraction, il n'y a pas de mineur.
 
+## Fondement dans le modèle
+
+`sim/MODELE.md`, § « Le rendement agricole et sa variabilité » — la production
+que ce lot atténue — et § « Ce qui dit que le monde vit », qui explique pourquoi
+le plafond de survie suit tout seul. Si l'une de ces sections a changé depuis la
+rédaction de ce brief, le relire avant de le lancer.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est

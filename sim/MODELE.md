@@ -49,12 +49,13 @@ eu de constante à retourner, et personne ne peut la retourner sans que le
 moteur ait changé. C'était auparavant un triplet de booléens écrits à la main,
 et le test se contentait de figer leur valeur courante.
 
-**Attention pour qui fera jouer le climat.** La sonde altère une couche en
-**multipliant** ses valeurs numériques. Une formule climatique qui rapporterait
-une grandeur à la moyenne propre de la cellule serait invariante à cette
-multiplication : la sonde déclarerait le climat non consommé alors qu'il le
-serait. Un écart doit donc être pris par rapport à une référence **absolue**,
-pas par rapport à une moyenne qui suit l'altération.
+**Ce que la sonde ne peut pas voir.** Elle altère une couche en
+**multipliant** ses valeurs numériques. Elle est donc aveugle à toute lecture
+qui serait, elle aussi, invariante par multiplication — un rapport entre deux
+grandeurs de la même couche, par exemple, dont numérateur et dénominateur
+seraient altérés ensemble. C'est une limite de l'instrument, à connaître quand
+on lit son verdict : un `false` signifie « la sonde n'a rien vu », pas « le
+moteur ne lit rien ».
 
 Le monde ne sait pas non plus **naître** — aucun maillon n'augmente la
 population —, ni **migrer**, ni porter autre chose que de la nourriture : le

@@ -16,6 +16,12 @@ graine égale, le jeu doit rendre exactement les mêmes nombres avant et après.
 Ce lot ne fait jouer ni le climat, ni les gisements, et n'ajoute aucun maillon
 au tick.
 
+## Fondement dans le modèle
+
+**Aucun.** Ce lot ne découle d'aucune affirmation de `sim/MODELE.md` : il ne
+touche pas au monde, et l'identité du comportement est son seul critère. La
+forme du raccord interne au moteur n'est décrite nulle part ailleurs que ici.
+
 ## État de départ mesuré
 
 Sur `master` au SHA `8bc3ce03a25dc2452eab3eebf5bb49fd511b0ad1`.

@@ -33,12 +33,23 @@ généralisé n'en transportera pas un kilogramme.
 Ce n'est pas un manque du lot : c'est le résultat correct. Un minerai qui se
 déplacerait sans que personne ne le demande serait une règle de gameplay
 plaquée sur le monde — exactement ce que la philosophie du projet interdit. Le
-minerai s'entassera au carreau de la mine jusqu'à ce qu'un consommateur existe :
-c'est ce que les lots 044 et 045 apporteront, et le commerce les servira alors
-sans une ligne de plus.
+minerai s'entassera au carreau de la mine jusqu'à ce qu'un consommateur existe.
 
-Ce que ce lot achète, c'est précisément cela : **que ces lots-là n'aient rien à
-écrire dans le commerce.**
+**Aucun lot de la file actuelle ne crée ce consommateur.** Le lot 044 divise le
+travail entre champs et mine ; il ne fait rien consommer de minerai, et il le
+dit dans son propre hors-périmètre. Le premier consommateur viendra d'un brief
+ultérieur, qui n'est pas écrit.
+
+Ce que ce lot achète est donc borné, et c'est déjà beaucoup : **ce brief-là
+n'aura rien à écrire dans le commerce.** Il déclarera sa consommation à
+l'endroit unique prévu pour cela, et le maillon le servira sans une ligne de
+plus.
+
+## Fondement dans le modèle
+
+`sim/MODELE.md`, § « Le commerce entre cellules » — les cinq règles que ce lot
+généralise sans en changer aucune. Si cette section a changé depuis la
+rédaction de ce brief, le relire avant de le lancer.
 
 ## État de départ mesuré
 

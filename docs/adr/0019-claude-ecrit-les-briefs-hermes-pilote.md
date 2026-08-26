@@ -11,8 +11,8 @@ ADR-0018 reste le point d'entrée des ADR.
 
 ## Contexte
 
-ADR-0018 a donné la rédaction des briefs à Hermes. Deux constats, un mois plus
-tard.
+ADR-0018, du 2026-08-25, a donné la rédaction des briefs à Hermes. Deux
+constats, le lendemain.
 
 **Le dépôt ne l'a jamais suivi.** `hermes/README.md` dit encore, dans deux
 endroits que le dégraissage n'a pas touchés : « Hermes n'écrit **jamais** : […]
@@ -43,10 +43,14 @@ Le processus complet tient toujours en une ligne :
 > et ouvre une PR → les tests passent et la porte mécanique vérifie le
 > compte-rendu → le propriétaire fusionne.
 
-### Pourquoi la règle de rôle tient encore
+### Ce que la règle de rôle couvre, et les deux endroits où elle ne couvre pas
 
 **Celui qui produit ne prononce pas la recevabilité de son propre travail.**
-C'est la seule règle de rôle du dépôt, et ce changement ne l'entame pas :
+C'est la seule règle de rôle du dépôt. Ce changement en laisse l'essentiel
+intact, et laisse ouverts deux trous qu'il vaut mieux nommer que supposer
+fermés.
+
+**Ce qui reste couvert :**
 
 - le relecteur de brief est **Grok**, lancé par Hermes
   (`forgepilot brief-review`, prompt `control-plane/prompts/brief-reviewer.md`) ;
@@ -56,8 +60,36 @@ C'est la seule règle de rôle du dépôt, et ce changement ne l'entame pas :
   quoi, elle mesure ;
 - le propriétaire fusionne.
 
-Claude n'apparaît qu'une fois dans cette chaîne, à l'écriture. Il ne se relit
-pas, il ne se juge pas.
+**Premier trou — le diagnostic d'un lot qui ne converge pas.** Après trois
+itérations, quelqu'un doit dire pourquoi. Ce quelqu'un est Claude, qui a écrit
+le brief : il se prononce donc sur son propre travail. Le sens du verdict rend
+une moitié de ce pouvoir inoffensive — dire « mon brief était faux » n'est pas
+s'absoudre — mais l'autre moitié, « le brief est bon, relancez », l'est
+entièrement.
+
+Elle est donc **interdite**. Devant un lot qui ne converge pas, Claude n'a que
+deux réponses possibles : *le brief est faux, en voici la réécriture*, ou *je
+ne peux pas trancher, c'est au propriétaire*. Il ne demande jamais un
+quatrième essai sur le même brief. Un brief réécrit repasse par
+`brief-review`, comme le premier.
+
+**Second trou — `sim/MODELE.md` ne passe aucune porte.** Les briefs en sont
+découpés, et rien de mécanique ne le relit : ni la porte, ni le relecteur de
+brief, qui ne lit que le brief et les fichiers que celui-ci cite. Une erreur
+de modèle se propage donc à tous les lots suivants sans rougir nulle part.
+
+Faute de pouvoir fermer ce trou par un contrôle, deux bornes :
+
+1. **Un brief cite la section de `sim/MODELE.md` dont il découle.** Le
+   relecteur de brief lit les fichiers cités : l'affirmation de modèle entre
+   ainsi dans son champ, au lieu de rester derrière lui.
+2. **Un changement de `sim/MODELE.md` se nomme dans le message de commit**, en
+   disant ce qui devient faux et ce qui devient vrai. Le propriétaire est le
+   seul lecteur qu'ait ce fichier ; il faut donc qu'il sache quoi y relire.
+
+Ces deux trous existaient sous ADR-0018 : Hermes écrivait alors les briefs à
+partir d'un `sim/MODELE.md` qu'il ne tenait pas, et personne ne relisait
+celui-ci non plus. Ce changement ne les crée pas — il les écrit.
 
 ### Ce qui ne change pas
 
@@ -74,7 +106,8 @@ pas de place dans le harnais, et n'est appelé que quand on l'appelle.
 - **Contre** : laisse Hermes rédiger les instructions produit d'un modèle qu'il
   ne tient pas, et le fait traduire `sim/MODELE.md` à chaque lot.
 - **Pourquoi non** : la contradiction n'était pas une faute de frappe, c'était
-  le symptôme. Personne n'a suivi ADR-0018 sur ce point pendant un mois.
+  le symptôme. ADR-0018 a créé cette règle, et le dégraissage du même jour a
+  laissé `hermes/README.md` dire l'inverse : elle n'a jamais été appliquée.
 
 ### Faire écrire les briefs par Cursor
 - **Pour** : un acteur de moins dans la chaîne, aucune session à ouvrir.

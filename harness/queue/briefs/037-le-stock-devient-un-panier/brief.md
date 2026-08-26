@@ -31,6 +31,13 @@ Le faire maintenant coûte une réécriture mécanique à comportement figé. Le
 après le lot 038 coûte la même réécriture, plus le démêlage d'un cas
 particulier déjà écrit.
 
+## Fondement dans le modèle
+
+**Aucun mécanisme.** Ce lot ne découle d'aucune affirmation de `sim/MODELE.md`
+sur le fonctionnement du monde : il change la forme du stockage sans changer
+un seul nombre. La sentinelle qu'il doit préserver est décrite au § « Le
+déficit alimentaire et la mortalité ».
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est

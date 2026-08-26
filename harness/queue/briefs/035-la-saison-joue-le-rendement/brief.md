@@ -22,6 +22,14 @@ de contexte, le jour de l'année ; l'introduire tant que le moteur porte encore
 une variable de module reviendrait à en poser une seconde. Si `sim/engine.py`
 contient encore une instruction `global`, ce lot est bloqué, pas à adapter.
 
+## Fondement dans le modèle
+
+`sim/MODELE.md`, § « Le rendement agricole et sa variabilité » — la formule de
+production que ce lot module — et § « Ce que le moteur ne fait pas encore »,
+qui mesure que le climat n'est pas consommé et dit ce que la sonde ne peut pas
+voir. Si l'une de ces deux sections a changé depuis la rédaction de ce brief,
+le relire avant de le lancer.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est
@@ -194,12 +202,15 @@ obtenu en ajustant une constante après avoir vu la mesure.
 Après le changement, `build_snapshot_document(World.charger(0), 0, 0)` rend :
 
 - `couches.relief.utilisee_par_le_moteur == true` ;
-- `couches.climat.utilisee_par_le_moteur == true` ;
-- `couches.gisements.utilisee_par_le_moteur == false`.
+- `couches.climat.utilisee_par_le_moteur == true`.
 
-Ces trois valeurs restent celles de la sonde existante ; aucune déclaration
-manuelle n'est ajoutée ou retournée, et `sim/snapshot_export.py` n'est pas
-modifié.
+L'état de la couche **gisements** est celui que la sonde mesure au SHA de base,
+**inchangé** par ce lot — quel qu'il soit. Le mesureur le relève avant et après
+et vérifie l'égalité ; il ne le fixe pas à une valeur écrite ici. Le lot 038,
+s'il est fusionné d'abord, la rend consommée, et ce lot-ci n'a pas à le savoir.
+
+Ces valeurs restent celles de la sonde existante ; aucune déclaration manuelle
+n'est ajoutée ou retournée, et `sim/snapshot_export.py` n'est pas modifié.
 
 ### SC4 — Le plafond de survie reste dérivé du moteur
 

@@ -22,6 +22,13 @@ l'agriculture.
 inventer un champ de cas particulier par ressource. Si `Cell` ne porte pas
 encore de panier, ce lot est bloqué, pas à adapter.
 
+## Fondement dans le modèle
+
+`sim/MODELE.md`, § « Ce que le moteur ne fait pas encore » — la mesure qui dit
+que la couche gisements n'est pas consommée. Aucune section ne décrit encore
+l'extraction : ce lot est le premier à en poser une. Si cette section a changé
+depuis la rédaction de ce brief, le relire avant de le lancer.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est

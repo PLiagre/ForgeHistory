@@ -17,6 +17,13 @@ peut prospérer.
 Ce lot ne fait pas migrer les habitants, ne crée aucune marchandise nouvelle et
 ne touche ni au commerce, ni à la mortalité.
 
+## Fondement dans le modèle
+
+`sim/MODELE.md`, § « Le déficit alimentaire et la mortalité » et § « Le report
+de la fraction de mortalité » — la formule dont ce lot est le symétrique, et la
+raison du report de fraction. Si l'une de ces sections a changé depuis la
+rédaction de ce brief, le relire avant de le lancer.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est

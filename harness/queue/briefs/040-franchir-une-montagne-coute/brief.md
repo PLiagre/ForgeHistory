@@ -14,6 +14,12 @@ Ce lot ne touche ni à la production, ni à la consommation, ni aux règles
 d'allocation du commerce. Il ne fait circuler aucune marchandise nouvelle et ne
 touche pas aux arêtes maritimes.
 
+## Fondement dans le modèle
+
+`sim/MODELE.md`, § « Le commerce entre cellules » — la capacité par arête que
+ce lot fait dépendre du relief. Si cette section a changé depuis la rédaction
+de ce brief, le relire avant de le lancer.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est
@@ -29,7 +35,10 @@ Le SHA de base du lot est le `master` du jour où il est lancé ; le mesureur
 l'enregistre et compare contre lui.
 
 **Le fait qualitatif qui rend ce lot caduc** : si la capacité d'une arête dépend
-déjà de quelque chose que porte la carte, il n'y a rien à faire ici.
+déjà du **relief**, il n'y a rien à faire ici. Qu'elle dépende d'autre chose que
+porte la carte — la longueur de frontière partagée, par exemple — ne rend pas ce
+lot caduc : le facteur de terrain vient alors **multiplier** cette base, il ne
+la remplace pas.
 
 ## Règle du monde
 
@@ -63,6 +72,17 @@ production — un marais se traverse mal et produit mal, une montagne se travers
 très mal et produit mal, et rien ne garantit que les deux échelles coïncident.
 Elles portent un commentaire disant qu'il s'agit d'ordres de grandeur plausibles
 de niveau 2.
+
+**Composition avec une capacité de base dérivée.** Ce lot multiplie la capacité
+de base par un facteur de terrain, quelle que soit la façon dont cette base est
+obtenue. Si le lot 043 est déjà fusionné, la base n'est plus la constante plate
+mais le débit dérivé de la longueur de frontière : le facteur de terrain la
+multiplie, et la constante plate supprimée par 043 **n'est pas réintroduite**.
+L'ordre du produit ne change rien, et il n'existe toujours qu'un seul endroit où
+la capacité se calcule.
+
+L'ordre recommandé reste **040 avant 043** : ce lot est plus simple à prouver
+sur une base constante.
 
 **2. Rien d'autre ne change.** Les cinq règles du commerce — instantané pris
 avant tout mouvement, un kilogramme par arête et par tick, allocation

@@ -234,8 +234,10 @@ pas la recevabilité d’un lot. Il n’écrit pas dans le dépôt. Il ne publie
 pas, n’envoie pas, ne supprime pas, ne modifie pas un service externe.
 
 La « relecture à regard neuf » d’un **lot** (accept / reject) appartient
-à Claude via ForgePilot, jamais à un sous-agent Hermes. Une mission dont
-le livrable est une appréciation de lot se refuse à l’énoncé.
+au relecteur que `control-plane/workflow-policy.toml` désigne pour le
+risque du lot, jamais à un sous-agent Hermes et jamais à Claude, qui a
+écrit le brief. Une mission dont le livrable est une appréciation de lot se
+refuse à l’énoncé.
 
 Deux sous-agents ne ciblent jamais le même fichier à modifier — de toute
 façon ils n’écrivent pas ici : seuls des chemins de **lecture** figurent
@@ -337,9 +339,10 @@ planificateur reçoit « lis `<brief>` », le relecteur « lis `<bundle>` »,
 l'exécutant « lis `.forgepilot/plan.json` dans ton worktree ». La ligne de
 commande est **plate** : elle ne dépend plus de la taille du plan.
 
-Conséquence pour toi : **un brief long ne casse plus rien.** Écris-le
-complet. Ce qui cassait, avant, c'était le plan et le feedback recopiés dans
-`-p` — un feedback de revue à 80 constats tuait l'itération.
+Conséquence pour toi : **un brief long ne casse plus rien.** Tu peux donc
+en demander un complet à Claude (ADR-0019) sans te soucier de sa taille. Ce
+qui cassait, avant, c'était le plan et le feedback recopiés dans `-p` — un
+feedback de revue à 80 constats tuait l'itération.
 
 ### Ne fais jamais lire un artefact à un agent
 
@@ -382,7 +385,9 @@ trois lectures produit une synthèse molle.
   du lot D : `git show da1596d:<chemin>`. Le tag `archive/2026-08` n'existe
   pas sur `origin` (403 au push, deux sessions) — utilise le SHA. On ne les
   ouvre que sur demande explicite du propriétaire.
-- `hermes/requests/` : seulement `status: OPEN`. Aujourd'hui : zéro.
+- `hermes/requests/` : seulement `status: OPEN`. Combien il y en a
+  aujourd'hui se lit sur `hermes/DASHBOARD.md`, qui est généré ; ce nombre
+  ne se recopie pas ici (règle 12).
 - `VISION.md` seulement en cas de conflit produit avec `ROADMAP.md`.
 - Jamais `ANTHROPIC_API_KEY`. ForgePilot doit refuser si elle est définie.
 - Le pipeline full-auto n'existe plus (ADR-0018). Le rétablir demande une

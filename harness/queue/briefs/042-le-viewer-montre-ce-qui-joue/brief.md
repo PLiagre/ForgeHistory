@@ -23,6 +23,13 @@ donne une saison à afficher, mais ne l'exige pas : si le tick ne connaît pas
 encore le jour de l'année, la partie saison du lot est **retirée**, pas
 approximée.
 
+## Fondement dans le modèle
+
+**Aucun mécanisme.** Ce lot ne découle d'aucune affirmation de `sim/MODELE.md`
+sur le fonctionnement du monde : il photographie et il montre. La règle qui le
+gouverne est dans `AGENTS.md`, § « Les sept modes de défaillance », n° 4 : la
+présentation lit, elle ne décide jamais.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est

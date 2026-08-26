@@ -36,6 +36,14 @@ concentration.
 **Le brief « le bourg est une agrégation dérivée » ne peut donc pas être écrit
 avant celui-ci**, et il n'a pas été écrit.
 
+## Fondement dans le modèle
+
+`sim/MODELE.md`, § « Le mur qui sépare la couche 1 de la couche 2 » — la mesure
+qui montre que le commerce est de trois ordres de grandeur trop petit — et
+§ « Le commerce entre cellules », qui porte la capacité que ce lot remplace. Si
+l'une de ces sections a changé depuis la rédaction de ce brief, le relire avant
+de le lancer.
+
 ## État de départ mesuré
 
 Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est
