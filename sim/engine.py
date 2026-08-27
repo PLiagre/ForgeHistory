@@ -41,6 +41,10 @@ class ReliefInvalideError(ValueError):
 class ClimatInvalideError(ValueError):
     """Climat absent ou durée de solstice invalide sur une cellule du monde chargé."""
 
+
+class RichesseGisementInvalideError(ValueError):
+    """Classe de richesse absente ou inconnue sur un gisement de la carte."""
+
 # Le moteur lit TOUTES ses constantes réglables par le module `_constantes`,
 # jamais par `from sim.constants import ...`. Un nom importé par valeur est
 # figé au chargement : le remplacer en mémoire ne change alors rien au moteur,
@@ -185,6 +189,55 @@ def production_moyenne_kg_par_tick(world) -> float:
         _production_du_tick_kg_saison_moyenne(cell, rendement_moyen, world.carte)
         for cell in world.cells.values()
     )
+
+
+
+def _extraction_du_tick_kg(cell: Cell, carte: dict) -> dict[str, float]:
+    """
+    Kilogrammes extraits ce tick, regroupés par ressource.
+
+    Ignore les enregistrements sans clé ressource ou richesse (sonde snapshot).
+    Refuse une richesse présente mais hors des trois classes dérivées.
+    """
+    raw = carte.get(cell.cell_id)
+    if raw is None:
+        return {}
+    gisements = raw.get("gisements")
+    if not gisements:
+        return {}
+
+    facteurs = _constantes.facteurs_richesse_extraction()
+    debit_unitaire = _constantes.extraction_kg_par_habitant_par_tick()
+    par_ressource: dict[str, float] = {}
+
+    for gisement in gisements:
+        if not isinstance(gisement, dict):
+            continue
+        ressource = gisement.get("ressource")
+        richesse = gisement.get("richesse")
+        if ressource is None or richesse is None:
+            continue
+        if richesse not in facteurs:
+            gisement_id = gisement.get("id", gisement.get("nom", "?"))
+            raise RichesseGisementInvalideError(
+                f"cell_id={cell.cell_id} gisement={gisement_id!r} richesse={richesse!r}"
+            )
+        extraction = (
+            cell.population
+            * debit_unitaire
+            * facteurs[richesse]
+        )
+        par_ressource[ressource] = par_ressource.get(ressource, 0.0) + extraction
+
+    return par_ressource
+
+
+def _apply_extraction(cell: Cell, carte: dict) -> None:
+    """Maillon 0 — Extraction minière depuis la carte vers le panier de la cellule."""
+    for ressource, quantite in _extraction_du_tick_kg(cell, carte).items():
+        actuel = lire_stock_marchandise(cell, ressource)
+        base = actuel if actuel >= 0 else 0.0
+        ecrire_stock_marchandise(cell, ressource, base + quantite)
 
 
 def _apply_production(
@@ -484,6 +537,9 @@ def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
     """
     total_transported = [0.0]
     carte = world.carte if getattr(world, "carte", None) else None
+    if carte is not None:
+        for cell in world.cells.values():
+            _apply_extraction(cell, carte)
     if carte is None:
         for cell in world.cells.values():
             _apply_production(cell, rng, carte)
