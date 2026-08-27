@@ -113,6 +113,37 @@ def facteur_saison_moyen_annuel(ete_h: float, hiver_h: float) -> float:
     return total / annee
 
 
+# --- Extraction minière (brief 038, fidélité niveau 2) ---
+
+# Kilogrammes extraits par habitant et par tick sur un gisement notable ;
+# ordre de grandeur plausible niveau 2, jamais sourcé.
+EXTRACTION_KG_PAR_HABITANT_PAR_TICK = 0.02
+
+# Facteurs de débit par classe de richesse du gisement ; niveau 2.
+FACTEUR_RICHESSE_MAJEURE = 2.0
+FACTEUR_RICHESSE_NOTABLE = 1.0
+FACTEUR_RICHESSE_MINEURE = 0.4
+
+
+def extraction_kg_par_habitant_par_tick() -> float:
+    """Débit unitaire par habitant ; relu à chaque appel."""
+    return EXTRACTION_KG_PAR_HABITANT_PAR_TICK
+
+
+def facteurs_richesse_extraction() -> dict[str, float]:
+    """
+    Table des facteurs de débit par classe de richesse d'un gisement.
+
+    Relue les constantes nommées à chaque appel : un test de régime qui
+    remplace une constante en mémoire doit changer le moteur.
+    """
+    return {
+        "majeure": FACTEUR_RICHESSE_MAJEURE,
+        "notable": FACTEUR_RICHESSE_NOTABLE,
+        "mineure": FACTEUR_RICHESSE_MINEURE,
+    }
+
+
 # --- Relief dans le rendement (brief 033, fidélité niveau 2) ---
 
 # Facteurs de production par classe de relief : ordres de grandeur plausibles

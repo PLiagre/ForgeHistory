@@ -1,0 +1,147 @@
+{
+  "brief": "038-les-gisements-sortent-du-minerai",
+  "base_ref": "782ae0b87d0282e25d6ea6acd19226d41aaedb53",
+  "commands": [
+    "git rev-parse HEAD",
+    ".venv/bin/python -c \"from sim.world import World; from sim.engine import tick; import random; from sim.constants import MARCHANDISE_NOURRITURE; w=World.charger(0); tick(w, random.Random(0), 0); print(sum(1 for c in w.cells.values() if any(k!=MARCHANDISE_NOURRITURE for k in c.stocks)))\"",
+    ".venv/bin/python -c \"from sim.world import World; from sim.snapshot_export import build_snapshot_document; print(build_snapshot_document(World.charger(0),0,0)['couches'])\"",
+    ".venv/bin/python -m pytest sim/tests/ -q",
+    ".venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_le_moteur_ne_lie_aucune_constante_par_valeur sim/tests/test_write_coverage.py::test_chaque_constante_du_moteur_change_le_monde sim/tests/test_write_coverage.py::test_aucune_constante_terminale sim/tests/test_no_hardcoded.py -q",
+    ".venv/bin/python -m sim --ticks 365 --seed 0 --json",
+    ".venv/bin/python harness/queue/briefs/038-les-gisements-sortent-du-minerai/deliverables/measure_038.py",
+    "git diff --name-only"
+  ],
+  "files": [
+    {
+      "path": "../../../../sim/engine.py",
+      "must_differ_from_git": "782ae0b87d0282e25d6ea6acd19226d41aaedb53:sim/engine.py"
+    },
+    {
+      "path": "../../../../sim/constants.py",
+      "must_differ_from_git": "782ae0b87d0282e25d6ea6acd19226d41aaedb53:sim/constants.py"
+    },
+    {
+      "path": "../../../../sim/tests/test_monde.py",
+      "must_differ_from_git": "782ae0b87d0282e25d6ea6acd19226d41aaedb53:sim/tests/test_monde.py"
+    },
+    {
+      "path": "deliverables/pre-edit/cellules_extractrices_base.json"
+    },
+    {
+      "path": "deliverables/pre-edit/cli_ticks365_seed0.json"
+    },
+    {
+      "path": "deliverables/cli_ticks365_seed0_apres_run1.json"
+    },
+    {
+      "path": "deliverables/cli_ticks365_seed0_apres_run2.json"
+    },
+    {
+      "path": "deliverables/measure_038.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/manifest.json"
+    }
+  ],
+  "counters": [
+    {
+      "name": "cellules_avec_gisement_carte",
+      "value": 25,
+      "sample_size": 596,
+      "denominator": "nombre total de cellules réellement mesurées = 596"
+    },
+    {
+      "name": "gisements_declares",
+      "value": 27,
+      "sample_size": 25,
+      "denominator": "cellules_avec_gisement_carte = 25"
+    },
+    {
+      "name": "ressources_distinctes_carte",
+      "value": 10,
+      "sample_size": 27,
+      "denominator": "gisements_declares = 27"
+    },
+    {
+      "name": "classes_de_richesse_carte",
+      "value": 3,
+      "sample_size": 27,
+      "denominator": "gisements_declares = 27"
+    },
+    {
+      "name": "cellules_extractrices_apres_un_tick",
+      "value": 25,
+      "sample_size": 25,
+      "denominator": "cellules_avec_gisement_carte = 25"
+    },
+    {
+      "name": "ressources_distinctes_extraites",
+      "value": 10,
+      "sample_size": 10,
+      "denominator": "ressources_distinctes_carte = 10"
+    },
+    {
+      "name": "richesses_ordonnees",
+      "value": 1,
+      "sample_size": 3,
+      "denominator": "classes_de_richesse_carte = 3"
+    },
+    {
+      "name": "extraction_population_nulle",
+      "value": 0.0,
+      "sample_size": 1,
+      "denominator": "nombre de ticks réellement joués = 1"
+    },
+    {
+      "name": "cellules_dont_la_nourriture_a_change",
+      "value": 0,
+      "sample_size": 596,
+      "denominator": "nombre de cellules réellement chargées = 596"
+    },
+    {
+      "name": "richesses_inconnues_refusees",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "nombre de mutations réellement exécutées = 1"
+    },
+    {
+      "name": "gisements_incomplets_ignores",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "nombre de mutations réellement exécutées = 1"
+    },
+    {
+      "name": "ressources_inconnues_acceptees",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "nombre de mutations réellement exécutées = 1"
+    },
+    {
+      "name": "noms_de_constantes_extraction_dans_engine",
+      "value": 0,
+      "sample_size": 4,
+      "denominator": "nombre de noms du motif 033 réellement cherchés = 4"
+    },
+    {
+      "name": "couches_consommees_par_tick",
+      "value": 3,
+      "sample_size": 3,
+      "denominator": "nombre de couches déclarées dans le snapshot = 3"
+    },
+    {
+      "name": "sorties_cli_deterministes",
+      "value": 1,
+      "sample_size": 2,
+      "denominator": "exécutions lancées = 2"
+    },
+    {
+      "name": "tests_sim_verts",
+      "value": 86,
+      "sample_size": 86,
+      "denominator": "nombre de tests collectés = 86"
+    }
+  ]
+}

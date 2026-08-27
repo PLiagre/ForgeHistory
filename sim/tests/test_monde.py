@@ -822,3 +822,241 @@ def test_panier_deuxieme_marchandise_et_to_dict():
         1 for entree in monde_charge.to_dict()["cells"].values() if "stocks" in entree
     )
     assert cellules_avec_panier == len(monde_charge.cells)
+
+
+# --- Brief 038 : extraction minière ---
+
+
+def _agreger_gisements_carte(carte_doc: dict) -> tuple[int, set[str], set[str]]:
+    """Cellules porteuses, ressources et classes de richesse dérivées de la carte."""
+    cellules = 0
+    ressources: set[str] = set()
+    classes: set[str] = set()
+    for raw in carte_doc["cellules"]:
+        gisements = raw.get("gisements") or []
+        complets = [
+            g for g in gisements
+            if isinstance(g, dict) and g.get("ressource") is not None and g.get("richesse") is not None
+        ]
+        if complets:
+            cellules += 1
+            for g in complets:
+                ressources.add(g["ressource"])
+                classes.add(g["richesse"])
+    return cellules, ressources, classes
+
+
+def _ressources_minieres_panier(world) -> tuple[int, set[str]]:
+    """Cellules avec minerai et ensemble des ressources extraites."""
+    from sim.constants import MARCHANDISE_NOURRITURE
+
+    cellules = 0
+    ressources: set[str] = set()
+    for cell in world.cells.values():
+        mineraux = {k for k in cell.stocks if k != MARCHANDISE_NOURRITURE}
+        if mineraux:
+            cellules += 1
+            ressources |= mineraux
+    return cellules, ressources
+
+
+def test_chaque_gisement_produit_sa_ressource():
+    """SC1 — Panier minière aligné sur la carte après un tick."""
+    import random
+
+    from sim.engine import tick
+
+    carte = World.lire_carte()
+    attendu_cellules, attendu_ressources, _ = _agreger_gisements_carte(carte)
+    assert attendu_cellules > 0, "échantillon vide : aucune cellule avec gisement"
+
+    world = World.charger(0)
+    tick(world, random.Random(0), numero_tick=0)
+    mesure_cellules, mesure_ressources = _ressources_minieres_panier(world)
+
+    print(
+        f"cellules_extractrices={mesure_cellules} / carte={attendu_cellules} "
+        f"ressources={sorted(mesure_ressources)}"
+    )
+    assert mesure_cellules == attendu_cellules
+    assert mesure_ressources == attendu_ressources
+
+
+def test_richesse_ordre_les_debits():
+    """SC2 — majeure > notable > mineure à population et ressource égales."""
+    import copy
+    import random
+
+    from sim import constants as _k
+    from sim.engine import _extraction_du_tick_kg, tick
+
+    carte = World.lire_carte()
+    _, _, classes_carte = _agreger_gisements_carte(carte)
+    attendues = set(_k.facteurs_richesse_extraction())
+    assert classes_carte == attendues, (
+        f"classes carte {classes_carte} != classes dérivées {attendues}"
+    )
+
+    par_classe: dict[str, float] = {}
+    population = 1000
+    for raw in carte["cellules"]:
+        for g in raw.get("gisements") or []:
+            if not isinstance(g, dict):
+                continue
+            richesse = g.get("richesse")
+            if richesse in attendues and richesse not in par_classe:
+                cid = int(raw["cell_id"])
+                monde = World.charger(0)
+                cell = monde.cells[cid]
+                cell.population = population
+                par_classe[richesse] = _extraction_du_tick_kg(cell, monde.carte).get(
+                    g["ressource"], 0.0
+                )
+    assert set(par_classe) == attendues, f"classes manquantes dans l'échantillon : {par_classe}"
+
+    majeure = par_classe["majeure"]
+    notable = par_classe["notable"]
+    mineure = par_classe["mineure"]
+    print(f"debits majeure={majeure} notable={notable} mineure={mineure}")
+    assert majeure > notable > mineure
+
+
+def test_sans_bras_pas_de_minerai():
+    """SC3 — Population nulle : extraction mesurée à 0.0, pas la sentinelle -1."""
+    import random
+
+    from sim.engine import _extraction_du_tick_kg, tick
+
+    carte = World.lire_carte()
+    cid = next(
+        int(raw["cell_id"])
+        for raw in carte["cellules"]
+        if any(
+            isinstance(g, dict) and g.get("ressource") and g.get("richesse")
+            for g in (raw.get("gisements") or [])
+        )
+    )
+    world = World.charger(0)
+    cell = world.cells[cid]
+    cell.population = 0
+    ressource = next(
+        g["ressource"]
+        for g in world.carte[cid]["gisements"]
+        if isinstance(g, dict) and g.get("ressource") and g.get("richesse")
+    )
+    tick(world, random.Random(0))
+    extrait = _extraction_du_tick_kg(cell, world.carte).get(ressource, 0.0)
+    stock = cell.stocks.get(ressource, -1.0)
+    print(f"extraction_population_nulle={extrait} stock={stock}")
+    assert extrait == 0.0
+    assert stock == 0.0
+    assert stock != -1.0
+
+
+def test_minerai_ne_change_pas_la_nourriture():
+    """SC5 — Le stock alimentaire est identique avec ou sans gisement."""
+    import copy
+    import random
+
+    from sim.constants import MARCHANDISE_NOURRITURE
+    from sim.engine import tick
+
+    carte_avec = World.lire_carte()
+    carte_sans = copy.deepcopy(carte_avec)
+    for raw in carte_sans["cellules"]:
+        raw["gisements"] = []
+
+    rng_seed = 0
+    numero = 0
+    avec = World.charger(rng_seed, carte_doc=copy.deepcopy(carte_avec))
+    sans = World.charger(rng_seed, carte_doc=carte_sans)
+    tick(avec, random.Random(rng_seed), numero_tick=numero)
+    tick(sans, random.Random(rng_seed), numero_tick=numero)
+
+    changes = 0
+    for cid in avec.cells:
+        nourriture_avec = avec.cells[cid].stocks.get(MARCHANDISE_NOURRITURE, -1.0)
+        nourriture_sans = sans.cells[cid].stocks.get(MARCHANDISE_NOURRITURE, -1.0)
+        if nourriture_avec != nourriture_sans:
+            changes += 1
+    print(f"cellules_dont_la_nourriture_a_change={changes} / {len(avec.cells)}")
+    assert changes == 0
+
+
+def test_richesse_inconnue_refusee():
+    """SC6 — Richesse hors des trois classes : erreur nommée."""
+    import random
+
+    from sim.engine import RichesseGisementInvalideError, tick
+
+    world = World.charger(0)
+    cid = next(
+        int(raw["cell_id"])
+        for raw in world.carte.values()
+        if isinstance(raw, dict) and raw.get("gisements")
+    )
+    entree = dict(world.carte[cid])
+    gisements = [dict(g) for g in entree["gisements"]]
+    gisements[0]["richesse"] = "inconnue"
+    entree["gisements"] = gisements
+    world.carte[cid] = entree
+    gid = gisements[0].get("id", gisements[0].get("nom", "?"))
+
+    with pytest.raises(RichesseGisementInvalideError) as exc:
+        tick(world, random.Random(0), numero_tick=0)
+    msg = str(exc.value)
+    assert f"cell_id={cid}" in msg
+    assert str(gid) in msg or repr(gid).strip("'") in msg
+    assert "inconnue" in msg
+
+
+def test_gisement_incomplet_ignore():
+    """SC6 — Sans ressource ou richesse : ignoré, les autres extraient."""
+    import random
+
+    from sim.constants import MARCHANDISE_NOURRITURE
+    from sim.engine import tick
+
+    world = World.charger(0)
+    cid = next(
+        int(raw["cell_id"])
+        for raw in World.lire_carte()["cellules"]
+        if len([
+            g for g in (raw.get("gisements") or [])
+            if isinstance(g, dict) and g.get("ressource") and g.get("richesse")
+        ]) >= 2
+    )
+    entree = dict(world.carte[cid])
+    gisements = [dict(g) for g in entree["gisements"]]
+    complet = next(g for g in gisements if g.get("ressource") and g.get("richesse"))
+    ressource_attendue = complet["ressource"]
+    incomplet = dict(complet)
+    incomplet.pop("ressource", None)
+    entree["gisements"] = [incomplet, complet]
+    world.carte[cid] = entree
+
+    tick(world, random.Random(0), numero_tick=0)
+    assert ressource_attendue in world.cells[cid].stocks
+    assert world.cells[cid].stocks[ressource_attendue] > 0.0
+
+
+def test_ressource_inconnue_acceptee():
+    """SC6 — Ressource inédite : acceptée dans le panier."""
+    import random
+
+    from sim.engine import tick
+
+    world = World.charger(0)
+    cid = next(iter(world.cells))
+    entree = dict(world.carte[cid])
+    entree["gisements"] = [{
+        "id": "sonde-ressource",
+        "ressource": "mythrite",
+        "richesse": "notable",
+    }]
+    world.carte[cid] = entree
+    world.cells[cid].population = 100
+
+    tick(world, random.Random(0), numero_tick=0)
+    assert "mythrite" in world.cells[cid].stocks
+    assert world.cells[cid].stocks["mythrite"] > 0.0
