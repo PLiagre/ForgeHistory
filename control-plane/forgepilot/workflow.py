@@ -173,6 +173,7 @@ def _cursor_read_argv(
     *,
     mode: str,
     model: str,
+    add_dir: Path | None = None,
 ) -> list[str]:
     argv = [
         settings.cursor_binary,
@@ -186,6 +187,8 @@ def _cursor_read_argv(
         "--output-format",
         "json",
     ]
+    if add_dir is not None:
+        argv.extend(["--add-dir", str(add_dir)])
     if model:
         argv.extend(["--model", model])
     command_line = subprocess.list2cmdline(argv)

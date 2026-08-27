@@ -1363,7 +1363,7 @@ def _review_current_head(
     else:
         invocation = review_invocation(
             settings,
-            worktree,
+            repo,
             _artifact_path(state_path, state, "plan") or bundle_path,
             review_base,
             risk=risk,
@@ -1396,7 +1396,7 @@ def _review_current_head(
                 forbidden_texts=(invocation.prompt or "",),
             )
         finally:
-            _clear_exchange(worktree, "review-bundle", "review-schema")
+            _clear_exchange(repo, "review-bundle", "review-schema")
     material_path = archive_review_material(
         state_path.parent,
         base_sha=review_base,
