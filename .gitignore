@@ -62,3 +62,4 @@ hermes/propositions/.veille-etat.json
 
 # Sources geographiques retelechargeables (ADR-0018) — jamais versionnees.
 tools/map/sources/
+.venv
