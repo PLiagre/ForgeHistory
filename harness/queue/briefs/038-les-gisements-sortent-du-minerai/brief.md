@@ -218,9 +218,9 @@ Une cellule porteuse d'un gisement dont la population est nulle n'extrait rien.
 Ce zéro est une **mesure réelle** : le maillon a été joué et a compté zéro. La
 sentinelle « non calculé » du projet est `-1`, jamais `0`.
 
-Sur le monde réel joué longtemps, la quantité extraite par tick par une cellule
-minière affamée décroît quand sa population décroît. Aucune règle ne le dit :
-cela découle de la formule.
+Le mesureur vérifie : sur le monde réel, une cellule minière dont la population
+est nulle a une extraction nulle, et ce zéro est le résultat du maillon et non
+une absence de calcul.
 
 ### SC4 — La couche gisements devient réellement consommée
 
