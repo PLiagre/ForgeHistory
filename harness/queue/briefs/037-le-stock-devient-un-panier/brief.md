@@ -68,6 +68,7 @@ La forme :
 ```
 Cell.stocks : dict[str, float]        # marchandise → kilogrammes
 MARCHANDISE_NOURRITURE = "nourriture" # constante nommée, dans sim/constants.py
+MARCHANDISE_SONDE_037 = "__sonde_panier_037__" # clé-sonde SC5, nulle part ailleurs
 ```
 
 Deux accès nommés, et **seuls** ces deux-là, dans `sim/model.py` :
@@ -111,13 +112,13 @@ prouver que la sonde voit les gisements.
 Fichiers produit autorisés :
 
 - `sim/model.py` — le champ `stocks` et les deux accès nommés ;
-- `sim/constants.py` — la constante de nom de marchandise ;
+- `sim/constants.py` — les constantes de nom de marchandise (`MARCHANDISE_NOURRITURE`,
+  `MARCHANDISE_SONDE_037`) ;
 - `sim/engine.py`, `sim/world.py`, `sim/__main__.py`,
-  `sim/snapshot_export.py` — la substitution, et rien d'autre ;
-- `sim/tests/test_commerce.py`, `sim/tests/test_survie.py`,
-  `sim/tests/test_monde.py`, `sim/tests/test_determinisme.py`,
-  `sim/tests/test_write_coverage.py` — **la substitution seule**, selon la règle
-  ci-dessous.
+  `sim/snapshot_export.py` — la substitution vers les accès nommés, et rien
+  d'autre ;
+- `sim/tests/test_monde.py`, **en ajout seul** : le diff de ce fichier contre le
+  SHA de base ne contient aucune ligne supprimée. Voir la section suivante.
 
 Livrables du lot autorisés :
 
@@ -128,33 +129,45 @@ Livrables du lot autorisés :
   dossier `deliverables/`.
 
 Tout autre chemin est interdit. En particulier : ne modifier ni
+`sim/tests/test_commerce.py`, ni `sim/tests/test_survie.py`, ni
+`sim/tests/test_determinisme.py`, ni `sim/tests/test_write_coverage.py`, ni
 `sim/aggregation.py`, ni `viewer/`, ni la carte figée, ni l'outil de fabrication
 de la carte, ni ce brief, ni sa grille, ni un `verdict.md`.
 
-### La règle de substitution dans les tests, et pourquoi ce n'est pas une calibration
+### Aucun test existant n'est modifié
 
-Ce lot supprime un champ que soixante-six lignes de test nomment. Ces lignes
-doivent changer, sinon rien ne compile. C'est la seule modification de test
-autorisée, et elle est **mécanique**, donc vérifiable :
+C'est la contrainte la plus dure du lot. Elle se vérifie mécaniquement.
 
-> Pour chaque ligne modifiée d'un fichier de test, la ligne d'origine à laquelle
-> on applique la substitution du champ par l'accès nommé doit être **identique**
-> à la ligne d'arrivée.
+Les cinq fichiers de test qui nomment encore `food_stock_kg` ne perdent aucune
+ligne : `sim/tests/test_commerce.py`, `sim/tests/test_survie.py`,
+`sim/tests/test_determinisme.py` et `sim/tests/test_write_coverage.py` ont un
+diff vide ; le diff de `sim/tests/test_monde.py` ne contient **aucune** ligne
+supprimée — seulement des ajouts en fin de fichier.
 
-Le mesureur applique cette règle ligne à ligne au diff des fichiers de test et
-compte les lignes qui la violent. Ce compte doit être **nul**.
+Pour tenir cette contrainte sans tricher sur SC1, `sim/model.py` conserve un
+constructeur acceptant le kwarg `food_stock_kg=` et une propriété homonyme qui
+délègue aux deux accès nommés. Ce n'est **pas** un champ dataclass : `Cell`
+porte `stocks`, et SC1 interdit toujours la lecture ou l'écriture de
+`food_stock_kg` dans tout module de `sim/` hors tests — y compris
+`engine.py`, `world.py`, `snapshot_export.py` et `__main__.py`, qui passent
+exclusivement par les accès nommés (SC4).
 
-Aucune valeur attendue, aucune tolérance, aucun seuil, aucun nom de test ne
-change. Le défaut n° 4 que cherche le relecteur — desserrer un critère après
-avoir vu une mesure qui le dépasse — n'a pas lieu ici : aucun critère n'a
-échoué, et aucun ne change de valeur.
+Ce que ce lot **ajoute** à la fin de `sim/tests/test_monde.py`, et rien
+d'autre, ce sont les contrôles de SC3, SC4 et SC5. Le mesureur produit le diff
+de chaque fichier de test contre le SHA de base et compte les lignes
+supprimées ; ce compte doit valoir `0`. Un `0` mesuré sur un diff réellement
+lu, pas une absence de mesure.
+
+Réécrire un test déjà vert pour qu'il compile après le changement reviendrait à
+juger le nouveau raccord avec un contrôle calibré sur lui. C'est pour le laisser
+intact que la compatibilité de construction vit dans `sim/model.py` seule.
 
 ## Conditions de succès
 
 ### SC1 — Le champ a disparu et le panier existe
 
-`Cell` n'a plus de champ `food_stock_kg`. Il a un champ de type table, amorcé
-vide par défaut, et deux accès nommés dans `sim/model.py`.
+`Cell` n'a plus de **champ dataclass** `food_stock_kg`. Il a un champ de type
+table, amorcé vide par défaut, et deux accès nommés dans `sim/model.py`.
 
 Un contrôle parcourt l'arbre syntaxique des modules de `sim/` hors tests et
 échoue si un attribut `food_stock_kg` y est encore lu ou écrit. Le nombre de
@@ -183,21 +196,33 @@ Une seule différence fait échouer le lot.
 ### SC3 — La sentinelle survit à la traduction
 
 Une marchandise absente du panier se lit `-1.0`. Une marchandise présente à
-zéro se lit `0.0`. Un contrôle distingue les deux et échoue si l'un prend la
-valeur de l'autre — c'est la règle 8, et c'est le point où une migration bâclée
-transforme une absence en mesure.
+zéro se lit `0.0`. Un contrôle **ajouté** à la fin de `sim/tests/test_monde.py`
+distingue les deux et échoue si l'un prend la valeur de l'autre — c'est la
+règle 8, et c'est le point où une migration bâclée transforme une absence en
+mesure.
 
 ### SC4 — Personne ne contourne les accès nommés
 
 Aucun module de `sim/` hors `sim/model.py` n'indexe le dictionnaire de stocks
-directement. Un contrôle sur l'arbre syntaxique le vérifie, avec un nombre de
-modules dérivé du répertoire.
+directement. Un contrôle sur l'arbre syntaxique — **ajouté** en fin de
+`sim/tests/test_monde.py` et rejoué par le mesureur — le vérifie, avec un
+nombre de modules dérivé du répertoire.
 
-### SC5 — Le panier accepte une deuxième marchandise sans code nouveau
+### SC5 — Le panier accepte une deuxième marchandise
 
-Écrire puis relire une marchandise qui n'existe nulle part ailleurs dans le jeu
-fonctionne, n'affecte pas le stock de nourriture de la même cellule, et ne
-demande aucune ligne de code supplémentaire.
+Un contrôle **ajouté** à la fin de `sim/tests/test_monde.py` amorce une cellule
+avec `food_stock_kg=100.0`, lit le stock de nourriture via l'accès nommé, écrit
+`42.0` kg sous la clé `MARCHANDISE_SONDE_037` via l'accès nommé, relit
+`42.0`, vérifie que le stock de nourriture relu vaut encore `100.0`, et que
+`World.to_dict()` de ce monde expose, pour cette cellule, un panier contenant
+cette clé à `42.0`.
+
+Le mesureur rejoue la même séquence depuis
+`.venv/bin/python harness/queue/briefs/037-le-stock-devient-un-panier/deliverables/measure_037.py`
+et échoue si la valeur relue diffère de `42.0` ou si le stock de nourriture a
+bougé. La généricité du panier — pas de branchement sur une seule marchandise —
+est couverte par SC4 (`acces_directs_au_panier_hors_modele` vaut `0`) : un
+panier codé pour la seule nourriture y ajouterait du code hors `sim/model.py`.
 
 C'est la seule chose que ce lot ajoute au monde, et elle n'est encore utilisée
 par personne : c'est ce qui permet aux lots 038 et 039 d'exister.
@@ -211,13 +236,14 @@ snapshot le sont (SC2).
 
 - `.venv/bin/python -m pytest sim/tests/ viewer/tests/ -q` est vert ;
 - `test_all_dataclass_fields_have_write_and_read_sites` reste vert : le champ
-  ajouté a un site d'écriture et un site de lecture ;
-- aucune assertion de test n'a changé de valeur, de seuil ou de nom — le compte
-  de violations de la règle de substitution est nul ;
+  `stocks` ajouté a un site d'écriture et un site de lecture ;
+- les quatre fichiers de test hors `test_monde.py` sont byte-identiques au SHA
+  de base ; le diff de `test_monde.py` ne contient aucune ligne supprimée ;
 - `test_no_hardcoded_numeric_literals` reste vert ;
 - aucune instruction `global` n'apparaît dans `sim/engine.py` ;
-- le nombre de tests collectés dans `sim/tests/` est **au moins** celui du SHA
-  de base : aucun contrôle n'a été supprimé au passage.
+- le nombre de tests collectés dans `sim/tests/` est **strictement supérieur**
+  à celui du SHA de base : les contrôles ajoutés en fin de `test_monde.py` sont
+  comptés, aucun contrôle existant n'a été supprimé au passage.
 
 ## Compteurs exigés
 
@@ -233,19 +259,20 @@ porte aucun résultat en dur.
 | `champs_cli_identiques` | comparaison des sorties CLI archivées et d'après | nombre de champs réellement présents dans la sortie |
 | `cles_snapshot_identiques` | comparaison des documents snapshot archivé et d'après | nombre de clés réellement présentes dans le document |
 | `cellules_to_dict_avec_panier` | `World.to_dict()` d'un monde amorcé, cellules portant un panier | nombre de cellules réellement chargées |
-| `lignes_de_test_modifiees` | diff des fichiers de test contre le SHA de base | nombre de lignes du diff réellement examinées |
-| `lignes_de_test_hors_substitution` | mêmes lignes, règle de substitution appliquée | `lignes_de_test_modifiees` |
-| `tests_collectes_avant` | collecte pytest sur le SHA de base | nombre de fichiers de test collectés |
-| `tests_collectes_apres` | collecte pytest après changement | nombre de fichiers de test collectés |
+| `lignes_supprimees_test_monde` | diff de `sim/tests/test_monde.py` contre le SHA de base | nombre de lignes du diff réellement examinées |
+| `fichiers_test_inchanges` | diff byte à byte des quatre autres fichiers de test autorisés | `4` |
+| `tests_collectes_avant` | collecte pytest sur le SHA de base | nombre de tests réellement collectés |
+| `tests_collectes_apres` | collecte pytest après changement | nombre de tests réellement collectés |
 
 `references_au_champ_supprime_apres`, `acces_directs_au_panier_hors_modele` et
-`lignes_de_test_hors_substitution` doivent valoir **0**, et ces zéros sont des
+`lignes_supprimees_test_monde` doivent valoir **0**, et ces zéros sont des
 mesures réelles : le mesureur a parcouru et compté. La sentinelle « non
 calculé » du projet est `-1`, jamais `0`.
 `references_au_champ_supprime_avant` doit être strictement positif, sans quoi le
-rouge n'a pas été prouvé. `tests_collectes_apres` ne peut pas être inférieur à
-`tests_collectes_avant`. `cellules_to_dict_avec_panier` doit égaler le nombre
-de cellules réellement chargées.
+rouge n'a pas été prouvé. `fichiers_test_inchanges` doit valoir `4`.
+`tests_collectes_apres` doit être strictement supérieur à `tests_collectes_avant`.
+`cellules_to_dict_avec_panier` doit égaler le nombre de cellules réellement
+chargées.
 
 ## Livrables et porte mécanique
 
