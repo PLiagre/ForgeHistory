@@ -214,9 +214,12 @@ def _validate_observations(
     *,
     context: str,
     label_key: str,
+    allow_empty: bool = False,
 ) -> list[dict[str, str]]:
-    if not isinstance(value, list) or not value:
+    if not isinstance(value, list) or (not allow_empty and not value):
         raise PilotError(f"{context} doit être une liste non vide d'objets.")
+    if allow_empty and not value:
+        return []
     normalized: list[dict[str, str]] = []
     seen: set[str] = set()
     for index, item in enumerate(value):
@@ -335,15 +338,20 @@ def validate_review(
             )
         review["blocked_reason"] = blocked_reason
     material_unreadable = blocked_reason == "material_unreadable"
+    if material_unreadable:
+        review.setdefault("acceptance_criteria", [])
+        review.setdefault("checks_observed", [])
     criteria = _validate_observations(
         review["acceptance_criteria"],
         context="Revue.acceptance_criteria",
         label_key="criterion",
+        allow_empty=material_unreadable,
     )
     checks = _validate_observations(
         review["checks_observed"],
         context="Revue.checks_observed",
         label_key="check",
+        allow_empty=material_unreadable,
     )
     expected = list(expected_criteria) if expected_criteria is not None else None
     # Un relecteur qui n'a pas pu lire son bundle n'a pas pu y lire les
