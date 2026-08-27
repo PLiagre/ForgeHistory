@@ -836,9 +836,15 @@ def execute_invocation(
             if candidate.endswith("\n\n[REDACTED]"):
                 candidate = candidate[: -len("\n\n[REDACTED]")].rstrip()
             fence = "```json\n"
-            if candidate.endswith("\n```") and candidate.count(fence) == 1:
-                fence_index = candidate.index(fence)
-                candidate = candidate[fence_index + len(fence) : -len("\n```")].strip()
+            fence_count = candidate.count(fence)
+            if fence_count >= 1:
+                parts = candidate.split(fence, maxsplit=1)
+                after_fence = parts[1]
+                end_marker = after_fence.rfind("\n```")
+                if end_marker >= 0:
+                    candidate = after_fence[:end_marker].strip()
+                else:
+                    candidate = after_fence.strip()
             try:
                 payload = json.loads(candidate)
             except json.JSONDecodeError as exc:
