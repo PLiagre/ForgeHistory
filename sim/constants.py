@@ -170,6 +170,35 @@ def facteurs_production_par_relief() -> dict[str, float]:
         "marais": FACTEUR_RELIEF_MARAIS,
     }
 
+
+# --- Relief dans le transport (brief 040, fidélité niveau 2) ---
+
+# Facteurs de capacité de transport par classe de relief : ordres de grandeur
+# plausibles niveau 2, jamais sourcés historiquement — échelle distincte de
+# la production (un marais se traverse mal et produit mal, sans coïncidence
+# garantie entre les deux tables).
+FACTEUR_TRANSPORT_PLAINE = 1.00
+FACTEUR_TRANSPORT_COLLINE = 0.70
+FACTEUR_TRANSPORT_MARAIS = 0.40
+FACTEUR_TRANSPORT_MONTAGNE = 0.30
+FACTEUR_TRANSPORT_HAUTE_MONTAGNE = 0.10
+
+
+def facteurs_transport_par_relief() -> dict[str, float]:
+    """
+    Table des facteurs de capacité de transport par classe de relief.
+
+    Relue les constantes nommées à chaque appel : un test de régime qui
+    remplace une constante en mémoire doit changer le moteur.
+    """
+    return {
+        "plaine": FACTEUR_TRANSPORT_PLAINE,
+        "colline": FACTEUR_TRANSPORT_COLLINE,
+        "marais": FACTEUR_TRANSPORT_MARAIS,
+        "montagne": FACTEUR_TRANSPORT_MONTAGNE,
+        "haute_montagne": FACTEUR_TRANSPORT_HAUTE_MONTAGNE,
+    }
+
 # --- Variabilité de rendement (SC2 brief 012) ---
 
 # Le rendement de chaque cellule est multiplié par un facteur uniforme

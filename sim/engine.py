@@ -284,12 +284,54 @@ def _cle_arête(a_id: int, b_id: int) -> tuple[int, int]:
     return (min(a_id, b_id), max(a_id, b_id))
 
 
+def _facteur_transport_pour_cellule(cell_id: int, carte: dict) -> float:
+    """Lit world.carte[cell_id]["relief"] et refuse toute classe inconnue."""
+    raw = carte.get(cell_id)
+    if raw is None:
+        raise ReliefInvalideError(
+            f"cell_id={cell_id} relief=absent de world.carte"
+        )
+    relief = raw.get("relief")
+    if relief is None:
+        raise ReliefInvalideError(
+            f"cell_id={cell_id} relief=None"
+        )
+    facteurs = _constantes.facteurs_transport_par_relief()
+    if relief not in facteurs:
+        raise ReliefInvalideError(
+            f"cell_id={cell_id} relief={relief!r}"
+        )
+    return facteurs[relief]
+
+
+def _capacite_transport_arete_kg(world, a_id: int, b_id: int) -> float:
+    """
+    Capacité de transport d'une arête terrestre entre deux cellules du monde.
+
+    Sans carte : facteur de terrain 1, capacité de base inchangée.
+    Avec carte : goulot = min des facteurs de transport des deux reliefs.
+    """
+    base = _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+    carte = getattr(world, "carte", None)
+    if not carte:
+        return base
+    facteur = min(
+        _facteur_transport_pour_cellule(a_id, carte),
+        _facteur_transport_pour_cellule(b_id, carte),
+    )
+    return base * facteur
+
+
 def _initialiser_capacite_aretes(world) -> dict[tuple[int, int], float]:
     """Capacité restante par arête au début du maillon commerce (brief 039)."""
     capacite: dict[tuple[int, int], float] = {}
     for edge in world.adjacency:
-        cle = _cle_arête(edge["a"], edge["b"])
-        capacite[cle] = _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+        a_id = edge["a"]
+        b_id = edge["b"]
+        if a_id not in world.cells or b_id not in world.cells:
+            continue
+        cle = _cle_arête(a_id, b_id)
+        capacite[cle] = _capacite_transport_arete_kg(world, a_id, b_id)
     return capacite
 
 
@@ -378,7 +420,7 @@ def _apply_commerce(
 
         cle = _cle_arête(a_id, b_id)
         cap_arête = capacite_restante.get(
-            cle, _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+            cle, _capacite_transport_arete_kg(world, a_id, b_id)
         )
 
         surplus_a = _surplus(a_id)
@@ -448,7 +490,9 @@ def _apply_commerce(
         consomme_par_arête[cle] += transfer
 
     for cle, qty in consomme_par_arête.items():
-        restant = capacite_restante.get(cle, _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)
+        restant = capacite_restante.get(
+            cle, _capacite_transport_arete_kg(world, cle[0], cle[1])
+        )
         capacite_restante[cle] = max(0.0, restant - qty)
 
 
