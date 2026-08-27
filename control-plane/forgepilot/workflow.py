@@ -17,8 +17,17 @@ from .config import (
 )
 from .exchange import stage_exchange
 from .policy import GROK_EFFORTS, effective_risk
-from .process import PilotError, git, resolve_binary, run_command, run_command_stream
+from .process import (
+    PilotError,
+    ReviewProtocolError,
+    git,
+    resolve_binary,
+    run_command,
+    run_command_stream,
+)
 from .protocol import (
+    BRIEF_REVIEW_JSON_SCHEMA,
+    BRIEF_REVIEW_SCHEMA_RETRY_HINT,
     REVIEW_JSON_SCHEMA,
     REVIEW_SCHEMA_RETRY_HINT,
     extract_session_id,
@@ -253,6 +262,7 @@ def brief_review_invocation(
     model: str | None = None,
     effort: str | None = None,
     risk: str | None = None,
+    schema_retry: bool = False,
 ) -> Invocation:
     """
     Fait relire le BRIEF avant qu'un exécutant démarre.
@@ -291,6 +301,12 @@ def brief_review_invocation(
             "l'unique brief à relire ; ne le résume pas avant de juger."
         )
         prompt = _read_prompt("brief-reviewer.md").replace("{{BRIEF}}", corps)
+        prompt = (
+            f"{prompt.rstrip()}\n\n## Schéma JSON fermé\n\n"
+            f"{json.dumps(BRIEF_REVIEW_JSON_SCHEMA, ensure_ascii=False, sort_keys=True)}\n"
+        )
+        if schema_retry:
+            prompt = f"{prompt.rstrip()}\n\n{BRIEF_REVIEW_SCHEMA_RETRY_HINT}\n"
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
         argv = _cursor_read_argv(settings, repo, prompt, mode="ask", model=cursor_model)
         return Invocation(
@@ -790,9 +806,10 @@ def execute_invocation(
                 # horodaté de la trace rendrait chaque échec unique, et le
                 # garde-fou « trois fois la même panne » ne se déclencherait
                 # plus jamais. Le dossier suffit à retrouver le fichier.
-                raise PilotError(
-                    f"{exc} Sortie brute conservée sous {trace.parent.name}/."
-                ) from exc
+                message = f"{exc} Sortie brute conservée sous {trace.parent.name}/."
+                if isinstance(exc, ReviewProtocolError):
+                    raise ReviewProtocolError(message, route=exc.route) from exc
+                raise PilotError(message) from exc
             raise
     resolve_binary(invocation.argv[0])
     runner = run_command_stream if stream else run_command
@@ -851,7 +868,12 @@ def execute_invocation(
             try:
                 payload = json.loads(candidate)
             except json.JSONDecodeError as exc:
-                raise PilotError(
+                error_type = (
+                    ReviewProtocolError
+                    if invocation.role in {"reviewer", "brief-reviewer"}
+                    else PilotError
+                )
+                raise error_type(
                     "Cursor a réussi sans rendre le JSON métier attendu.",
                     raw=candidate,
                 ) from exc

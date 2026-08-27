@@ -104,6 +104,11 @@ Le relecteur automatique est celui de `workflow-policy.toml` et n'est jamais
 Claude. Il vérifie notamment : atomicité, critères mesurables, dénominateurs
 dérivés, tests existants, fidélité et périmètre.
 
+Le schéma de sortie fermé est fourni dans l'invocation. Si le fournisseur rend
+de la prose ou un objet non conforme, ForgePilot effectue une seule reprise
+structurée. Un second refus arrête la commande : ce n'est ni `PASS`, ni `FAIL`
+sur le brief, et aucun code ne part.
+
 - `PASS` : poursuivre.
 - `FAIL` : ne modifier aucun code. Hermes remet les constats au propriétaire.
   La correction du brief doit être fournie manuellement ; Hermes ne la rédige
@@ -121,6 +126,13 @@ $P status latest --repo $R
 L'aperçu ne doit écrire aucun état. Le lancement exige que le brief relu soit
 déjà présent, avec la même empreinte, dans la base.
 
+L'appel `start --run` dépasse couramment le délai d'un terminal interactif.
+Hermes le lance avec le mode arrière-plan et la notification de fin fournis
+par son hôte, puis suit le `RUN_ID` avec `status`. Il ne fixe jamais un délai
+du terminal plus court que le délai du rôle inscrit dans
+`control-plane/workflow-policy.toml`. Le caractère durable du run ne protège
+pas un processus enfant que le terminal tue.
+
 Après interruption :
 
 ```bash
@@ -130,6 +142,16 @@ $P resume latest --repo $R
 Pour un blocage de protocole de revue, utiliser uniquement la récupération
 prévue pour le même SHA. Ne pas recréer un lot ni rejouer un exécutant dont les
 écritures sont ambiguës.
+
+Après un `FAIL`, si une correction propriétaire existe déjà dans le worktree :
+
+```bash
+$P recover-iteration latest --repo $R --manual
+$P resume latest --repo $R
+```
+
+Cette commande ne juge pas la correction : elle la rattache au feedback, puis
+ForgePilot refait les contrôles et lance une nouvelle revue indépendante.
 
 Hermes suit spontanément processus, worktree, PR draft, CI, revue, verdict et
 blocage. Il rend compte à chaque transition significative.

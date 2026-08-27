@@ -18,8 +18,8 @@ from .durable import (
     resume_run,
 )
 from .merge import merge_run
-from .process import PilotError, git, run_command
-from .protocol import validate_plan
+from .process import PilotError, ReviewProtocolError, git, run_command
+from .protocol import validate_brief_review, validate_plan
 from .review import (
     comment_review_on_pr,
     render_verdict_material,
@@ -183,11 +183,26 @@ def parser() -> argparse.ArgumentParser:
 
     recover_iteration = commands.add_parser(
         "recover-iteration",
-        help="archiver une correction exécuteur retrouvée après invalidation du candidat",
+        help="rattacher au run une correction retrouvée ou faite manuellement après revue",
     )
     recover_iteration.add_argument("run_id")
     recover_iteration.add_argument("--repo", type=_path, default=Path.cwd())
-    recover_iteration.add_argument("--result", type=_path, required=True)
+    iteration_source = recover_iteration.add_mutually_exclusive_group(required=True)
+    iteration_source.add_argument(
+        "--result",
+        type=_path,
+        help="sortie exécuteur structurée retrouvée après une interruption",
+    )
+    iteration_source.add_argument(
+        "--manual",
+        action="store_true",
+        help="adopter les corrections manuelles présentes dans le worktree",
+    )
+    recover_iteration.add_argument(
+        "--approach-changed",
+        action="store_true",
+        help="forcer une revue complète de la correction manuelle",
+    )
 
     recover_review = commands.add_parser(
         "recover-review",
@@ -505,7 +520,15 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "recover-iteration":
-            state = recover_iteration_result(args.repo, args.run_id, args.result)
+            if args.approach_changed and not args.manual:
+                raise PilotError("--approach-changed exige --manual.")
+            state = recover_iteration_result(
+                args.repo,
+                args.run_id,
+                args.result,
+                manual=args.manual,
+                approach_changed=args.approach_changed,
+            )
             print(json.dumps(state, indent=2, ensure_ascii=False))
             return 0
 
@@ -556,15 +579,52 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "brief-review":
-            invocation = brief_review_invocation(
-                settings,
-                args.repo,
-                args.brief,
-                model=args.model,
-                effort=args.effort,
-                risk=args.risk,
-            )
-            return _run_or_print(invocation, settings, args.repo, args.run)
+            if not args.run:
+                invocation = brief_review_invocation(
+                    settings,
+                    args.repo,
+                    args.brief,
+                    model=args.model,
+                    effort=args.effort,
+                    risk=args.risk,
+                )
+                return _run_or_print(invocation, settings, args.repo, False)
+            last_protocol_error: ReviewProtocolError | None = None
+            for schema_retry in (False, True):
+                invocation = brief_review_invocation(
+                    settings,
+                    args.repo,
+                    args.brief,
+                    model=args.model,
+                    effort=args.effort,
+                    risk=args.risk,
+                    schema_retry=schema_retry,
+                )
+                try:
+                    result = execute_invocation(invocation, settings)
+                    try:
+                        review = validate_brief_review(
+                            result,
+                            forbidden_prompt=invocation.prompt,
+                        )
+                    except PilotError as exc:
+                        raise ReviewProtocolError(str(exc)) from exc
+                except ReviewProtocolError as exc:
+                    last_protocol_error = exc
+                    if not schema_retry:
+                        print(
+                            "Relecture de brief : contrat JSON refusé ; "
+                            "une reprise structurée unique est lancée.",
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        continue
+                    raise
+                target = persist_result(args.repo, invocation.role, invocation, review)
+                print(target)
+                return 0
+            assert last_protocol_error is not None
+            raise last_protocol_error
 
 
         if args.command == "merge":

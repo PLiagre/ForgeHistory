@@ -146,6 +146,18 @@ déjà publié, sans replanifier ni réexécuter :
 forgepilot recover-review latest --repo /srv/ForgeHistory --run
 ```
 
+Si le reviewer a rendu `FAIL` puis que le propriétaire a corrigé les constats
+dans le worktree, rattacher ces écritures au run au lieu d'en créer un neuf :
+
+```bash
+forgepilot recover-iteration latest --repo /srv/ForgeHistory --manual
+forgepilot resume latest --repo /srv/ForgeHistory
+```
+
+Cette reprise n'ouvre que depuis une correction attendue après revue. Elle
+contrôle le feedback, le SHA et le périmètre, puis refait les tests et la revue.
+Elle ne débloque jamais un verdict produit `BLOCKED`.
+
 Le message de blocage dit par quelle route la dernière réponse refusée est
 arrivée. Après un premier refus, la relance durcit déjà le contrat (schéma
 déposé, contre-exemple). Elle peut aussi changer de juge si la politique
