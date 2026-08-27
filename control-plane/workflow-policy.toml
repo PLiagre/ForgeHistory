@@ -1,6 +1,6 @@
 [policy]
 version = 1
-review_bundle_max_bytes = 262144
+review_bundle_max_bytes = 10485760
 
 [controller]
 backend = "hermes"
