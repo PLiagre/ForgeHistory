@@ -12,6 +12,14 @@ mortalité, et récupération physique du déficit alimentaire.
 
 import math
 
+# --- Marchandises (brief 037) ---
+
+# Première marchandise du panier ; seule entrée réellement simulée pour l'instant.
+MARCHANDISE_NOURRITURE = "nourriture"
+
+# Clé-sonde SC5 : prouve qu'une deuxième entrée peut coexister dans le panier.
+MARCHANDISE_SONDE_037 = "__sonde_panier_037__"
+
 # --- Base de temps unique (SC1 brief 012) ---
 
 # Durée d'un tick en jours (proxy paramétrique, voir MODELE.md).

@@ -17,9 +17,10 @@ import random
 import sys
 from pathlib import Path
 
-from sim.constants import DEFAULT_CLI_SEED, DEFAULT_CLI_TICKS
+from sim.constants import DEFAULT_CLI_SEED, DEFAULT_CLI_TICKS, MARCHANDISE_NOURRITURE
 from sim.engine import tick
 from sim.snapshot_export import SnapshotExportError, export_snapshot
+from sim.model import lire_stock_marchandise
 from sim.world import World
 
 # Code de sortie pour un argument refusé — hors corps de fonction (SC9).
@@ -30,13 +31,19 @@ def _simulate(ticks: int, seed: int) -> tuple[dict, World]:
     """Amorce le monde G3 et avance `ticks` pas. Retourne résumé + monde."""
     world = World.charger(rng_seed=seed)
     population_depart = sum(cell.population for cell in world.cells.values())
-    stock_depart = sum(cell.food_stock_kg for cell in world.cells.values())
+    stock_depart = sum(
+        lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE)
+        for cell in world.cells.values()
+    )
     rng = random.Random(seed)
     kg_transportes = 0.0
     for numero_tick in range(ticks):
         kg_transportes += tick(world, rng, numero_tick)
     population_arrivee = sum(cell.population for cell in world.cells.values())
-    stock_arrivee = sum(cell.food_stock_kg for cell in world.cells.values())
+    stock_arrivee = sum(
+        lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE)
+        for cell in world.cells.values()
+    )
     cellules_affamees = sum(
         1 for cell in world.cells.values() if cell.hunger_ticks > 0
     )
