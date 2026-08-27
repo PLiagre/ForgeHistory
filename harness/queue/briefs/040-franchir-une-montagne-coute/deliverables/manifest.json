@@ -1,0 +1,101 @@
+{
+  "brief": "040-franchir-une-montagne-coute",
+  "base_sha": "d544f21f5b115ce466cf1597aecdab9d46382135",
+  "head_sha": "08de77b",
+  "risk": "R1 (classé R2 effectif)",
+  "created_at": "2026-08-27T16:30:00Z",
+  "compteurs": {
+    "classes_relief_carte": {
+      "valeur": 5,
+      "denominateur": 5,
+      "statut": "OK",
+      "detail": "plaine, colline, marais, montagne, haute_montagne"
+    },
+    "aretes_entre_deux_cellules": {
+      "valeur": 917,
+      "denominateur": 917,
+      "statut": "OK"
+    },
+    "aretes_ignorees_hors_monde": {
+      "valeur": 447,
+      "denominateur": 1364,
+      "statut": "OK",
+      "detail": "arêtes terre-mer ignorées (hors périmètre)"
+    },
+    "aretes_par_facteur_limitant": {
+      "valeur": "plaine=297|colline=307|marais=6|montagne=239|haute_montagne=68",
+      "denominateur": 917,
+      "statut": "OK"
+    },
+    "classes_avec_capacite_effective": {
+      "valeur": 5,
+      "denominateur": 5,
+      "statut": "OK",
+      "detail": "SC1 — 1 passed"
+    },
+    "capacite_independante_du_sens": {
+      "valeur": 1,
+      "denominateur": 1,
+      "statut": "OK",
+      "detail": "SC2 — 1 passed"
+    },
+    "kg_transportes_avant": {
+      "valeur": 2377283.5250149695,
+      "denominateur": "master baseline",
+      "statut": "OK"
+    },
+    "kg_transportes_apres": {
+      "valeur": 1688630.5147319948,
+      "denominateur": "1 exécution",
+      "statut": "OK",
+      "detail": "strictement inférieur à avant (baisse 29%)"
+    },
+    "ecart_de_masse_micro_monde": {
+      "valeur": 0,
+      "denominateur": 596,
+      "statut": "OK",
+      "detail": "SC4 — test_conservation_masse_transport vert"
+    },
+    "reliefs_inconnus_refuses": {
+      "valeur": 1,
+      "denominateur": 1,
+      "statut": "OK",
+      "detail": "SC6 — 1 passed"
+    },
+    "fraction_survie_horizon_long": {
+      "valeur": 0.317062,
+      "denominateur": "pop_depart 66649511",
+      "statut": "OK",
+      "detail": "1825 ticks, strictement positive"
+    },
+    "noms_de_constantes_transport_dans_engine": {
+      "valeur": 0,
+      "denominateur": 0,
+      "statut": "OK",
+      "detail": "Motif 033 respecté — ast.visit trouve 0 attributs FACTEUR_TRANSPORT"
+    },
+    "tests_sim_verts": {
+      "valeur": 96,
+      "denominateur": 96,
+      "statut": "OK",
+      "detail": "96 passed in 308.91s"
+    }
+  },
+  "commandes": [
+    ".venv/bin/python -m sim --ticks 20 --seed 0 --json",
+    ".venv/bin/python -m sim --ticks 365 --seed 0 --json",
+    ".venv/bin/python -m sim --ticks 1825 --seed 0 --json",
+    ".venv/bin/python -m pytest sim/tests/test_commerce.py::test_cinq_facteurs_transport_suivent_ordre_strict -q --tb=line",
+    ".venv/bin/python -m pytest sim/tests/test_commerce.py::test_goulot_relief_min_commande_capacite -q --tb=line",
+    ".venv/bin/python -m pytest sim/tests/test_commerce.py::test_conservation_masse_transport -q --tb=line",
+    ".venv/bin/python -m pytest sim/tests/test_commerce.py::test_relief_inconnu_refuse_sur_monde_charge -q --tb=line",
+    ".venv/bin/python -m pytest sim/tests/test_commerce.py::test_sans_carte_capacite_transport_inchangee -q --tb=line",
+    ".venv/bin/python -m pytest sim/tests/ -q --tb=line",
+    ".venv/bin/python harness/queue/briefs/040-franchir-une-montagne-coute/deliverables/measure_040.py"
+  ],
+  "fichiers_modifies": [
+    "sim/constants.py",
+    "sim/engine.py",
+    "sim/tests/test_commerce.py"
+  ]
+}
