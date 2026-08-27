@@ -266,7 +266,9 @@ def mesurer_ecart_masse() -> int:
         somme_apres = sum(
             max(0.0, lire_stock_marchandise(c, marchandise)) for c in w.cells.values()
         )
-        if abs(somme_avant - somme_apres) > 1e-9:
+        # SC5 : égalité au bit près, sans tolérance — le commerce déplace,
+        # il ne crée ni ne détruit. Un seuil masquerait un écart réel.
+        if somme_avant != somme_apres:
             ecarts += 1
     report(
         "ecart_de_masse_par_marchandise",

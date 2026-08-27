@@ -707,6 +707,13 @@ def test_capacite_arete_partagee_entre_marchandises(monkeypatch):
     somme_transferts = delta_alim + delta_essai
     capacite = TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
 
+    # La généralisation est réelle : sans elle, sur le moteur de base, la
+    # marchandise d'essai ne circule pas (delta_essai == 0) et ce contrôle
+    # échoue. C'est le rouge prouvé avant correction (SC3).
+    assert delta_essai > 0, (
+        f"marchandise d'essai non transportée : delta_essai={delta_essai} ; "
+        f"la généralisation du commerce est absente"
+    )
     assert somme_transferts <= capacite + TOLERANCE, (
         f"somme_transferts_sur_arete_partagee={somme_transferts} > capacite={capacite}"
     )
@@ -744,9 +751,11 @@ def test_conservation_masse_par_marchandise(monkeypatch):
             max(0.0, lire_stock_marchandise(c, marchandise))
             for c in copie.cells.values()
         )
-        ecart = abs(somme_avant - somme_apres)
-        assert ecart <= TOLERANCE, (
-            f"ecart_de_masse pour {marchandise!r} = {ecart}"
+        # SC5 : identité au bit près, sans tolérance — le commerce déplace,
+        # il ne crée ni ne détruit. Aucun seuil n'absorbe un écart.
+        assert somme_apres == somme_avant, (
+            f"ecart_de_masse pour {marchandise!r} : "
+            f"avant={somme_avant!r} après={somme_apres!r}"
         )
 
 

@@ -6,6 +6,40 @@ Sur le SHA de base `476f78cfa266efcaa3c56b6103c0337d7785593a`, le contrôle AST
 du maillon `_apply_commerce` compte **5** occurrences de `MARCHANDISE_NOURRITURE`
 ou du littéral `"nourriture"`. Après généralisation : **0**.
 
+## Rouge prouvé (SC3)
+
+Deux preuves de rouge exécutées sur le micro-monde SC3 avant la relecture finale.
+
+**Rouge 1 — la marchandise d'essai ne circule pas sans généralisation.**
+Le contrôle `test_capacite_arete_partagee_entre_marchandises` est joué avec le
+`sim/engine.py` du SHA de base (seule la nourriture est transportée). Il échoue :
+
+```
+E AssertionError: marchandise d'essai non transportée : delta_essai=0.0 ;
+  la généralisation du commerce est absente
+E assert 0.0 > 0
+```
+
+Sur le moteur de base, `lire_stock_marchandise` de la marchandise d'essai vaut
+`-1` (sentinelle), le delta est nul : rien ne la transporte. C'est le rouge qui
+prouve que la généralisation est réelle et pas seulement un renommage.
+
+**Rouge 2 — allouer le plafond entier à chaque marchandise dépasse la capacité.**
+Avec un patch temporaire faisant repartir chaque marchandise de sa capacité
+complète (`_initialiser_capacite_aretes` appelé par marchandise au lieu de
+partager la capacité restante du tick), la somme des transferts dépasse la
+capacité et le contrôle échoue :
+
+```
+E AssertionError: somme_transferts_sur_arete_partagee=300.0 > capacite=200.0
+E assert 300.0 <= (200.0 + 1e-09)
+```
+
+Les besoins additionnés (200 kg de nourriture + 100 kg d'essai) ne peuvent pas
+tous traverser une arête de 200 kg : le partage du plafond est ce qui rend la
+somme égale à la capacité, jamais supérieure. Le patch est retiré et le moteur
+généralisé rejoue vert (13 tests commerce passent).
+
 ## Fichiers modifiés
 
 - `sim/engine.py` — maillon commerce joué par marchandise, capacité d'arête partagée ;
