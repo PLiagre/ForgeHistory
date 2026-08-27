@@ -1244,7 +1244,7 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                 f"changerait rien. Message : {erreur!r}",
             )
 
-    def test_iterate_run_refuses_missing_feedback(self):
+    def test_iterate_run_is_refused_outside_the_state_machine(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             self.git_repo(repo)
@@ -1274,7 +1274,11 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                     ]
                 )
             self.assertEqual(2, code)
-            self.assertIn("Feedback structuré absent", err.getvalue())
+            # Le refus ne porte plus sur le feedback manquant mais sur
+            # l'invocation elle-même : `iterate --run` lançait un exécutant
+            # hors de la machine à états. Le cas « feedback absent » est
+            # devenu inatteignable, ce qui est le but.
+            self.assertIn("Invocation directe désactivée", err.getvalue())
 
     def _invalid_review_strings(self) -> dict[str, object]:
         payload = valid_review("PASS")

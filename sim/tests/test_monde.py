@@ -584,3 +584,175 @@ def test_tick_ne_pose_pas_carte_dans_le_module():
     assert non_none == 0, (
         f"{non_none} lectures ont vu un état de module au lieu de None"
     )
+
+# --- brief 035 : saison dans le rendement ---
+
+
+def _cellules_par_amplitude_jour(carte: dict) -> tuple[int, int]:
+    """Cellules de plus grande et plus petite amplitude, dérivées de la carte."""
+    amplitudes: list[tuple[float, int]] = []
+    for raw in carte["cellules"]:
+        climat = raw.get("climat")
+        if not isinstance(climat, dict):
+            continue
+        ete = climat.get("duree_jour_solstice_ete_h")
+        hiver = climat.get("duree_jour_solstice_hiver_h")
+        if isinstance(ete, (int, float)) and isinstance(hiver, (int, float)):
+            if not isinstance(ete, bool) and not isinstance(hiver, bool):
+                amplitudes.append((abs(float(ete) - float(hiver)), int(raw["cell_id"])))
+    assert amplitudes, "échantillon vide : aucune cellule avec deux solstices"
+    amplitudes.sort()
+    return amplitudes[-1][1], amplitudes[0][1]
+
+
+def test_production_ete_differe_de_hiver_sur_amplitude_max():
+    """SC1 — À surface et rendement identiques, été ≠ hiver sur l'amplitude max."""
+    from sim import constants as _k
+    from sim.engine import production_du_tick_kg
+
+    carte = World.lire_carte()
+    cid_max, _ = _cellules_par_amplitude_jour(carte)
+    world = World.charger(0)
+    cell = world.cells[cid_max]
+    cell.area_km2 = 10.0
+    rendement = 1.0
+    jour_ete = _k.jour_solstice_ete()
+    jour_hiver = _k.jour_solstice_hiver()
+    prod_ete = production_du_tick_kg(cell, rendement, world.carte, jour=jour_ete)
+    prod_hiver = production_du_tick_kg(cell, rendement, world.carte, jour=jour_hiver)
+    ecart = abs(prod_ete - prod_hiver)
+    print(f"cellule_amplitude_max={cid_max} prod_ete={prod_ete} prod_hiver={prod_hiver}")
+    print(f"ecart_ete_hiver_apres={ecart}")
+    assert prod_ete != prod_hiver, (
+        "La production d'été et d'hiver sont identiques sur la cellule d'amplitude max."
+    )
+
+
+def test_le_nord_a_une_saison_plus_violente_que_le_sud():
+    """SC2 — Le rapport été/hiver est plus grand au nord qu'au sud."""
+    from sim import constants as _k
+    from sim.engine import production_du_tick_kg
+
+    carte = World.lire_carte()
+    cid_max, cid_min = _cellules_par_amplitude_jour(carte)
+    world = World.charger(0)
+    rendement = 1.0
+    jour_ete = _k.jour_solstice_ete()
+    jour_hiver = _k.jour_solstice_hiver()
+
+    def rapport(cid: int) -> float:
+        cell = world.cells[cid]
+        cell.area_km2 = 10.0
+        ete = production_du_tick_kg(cell, rendement, world.carte, jour=jour_ete)
+        hiver = production_du_tick_kg(cell, rendement, world.carte, jour=jour_hiver)
+        assert hiver > 0.0, "production hiver nulle : dénominateur invalide"
+        return ete / hiver
+
+    ratio_nord = rapport(cid_max)
+    ratio_sud = rapport(cid_min)
+    print(f"rapport_ete_hiver_nord={ratio_nord} rapport_ete_hiver_sud={ratio_sud}")
+    assert ratio_nord > ratio_sud, (
+        f"Le nord ({ratio_nord}) n'a pas une saison plus violente que le sud ({ratio_sud})."
+    )
+
+
+def test_plafond_survie_coherent_avec_facteur_saison_moyen():
+    """SC4 — production_moyenne_kg_par_tick emploie le facteur saisonnier moyen."""
+    from sim import constants as _k
+    from sim.engine import (
+        _lire_solstices,
+        _production_du_tick_kg_saison_moyenne,
+        production_moyenne_kg_par_tick,
+    )
+
+    world = World.charger(0)
+    rendement = _k.rendement_moyen_courant()
+    attendu = sum(
+        _production_du_tick_kg_saison_moyenne(cell, rendement, world.carte)
+        for cell in world.cells.values()
+    )
+    plafond = production_moyenne_kg_par_tick(world)
+    print(f"plafond={plafond} attendu={attendu}")
+    assert plafond == attendu
+
+    carte = World.lire_carte()
+    cid_max, _ = _cellules_par_amplitude_jour(carte)
+    ete_h, hiver_h = _lire_solstices(world.cells[cid_max], world.carte)
+    moyenne_calculee = _k.facteur_saison_moyen_annuel(ete_h, hiver_h)
+    facteur_ete = _k.facteur_saison(
+        _k.duree_jour_h(_k.jour_solstice_ete(), ete_h, hiver_h)
+    )
+    assert facteur_ete != moyenne_calculee, (
+        "Le facteur d'été coïncide avec la moyenne annuelle : le plafond pourrait "
+        "se contenter de la valeur 1 sans sommer les jours."
+    )
+    annee = _k.CALENDAR_DAYS_PER_YEAR
+    recomputee = sum(
+        _k.facteur_saison(_k.duree_jour_h(j, ete_h, hiver_h))
+        for j in range(annee)
+    ) / annee
+    assert abs(moyenne_calculee - recomputee) < 1e-9
+
+
+def test_somme_annuelle_saisonniere_egale_somme_au_facteur_moyen():
+    """SC5 — Sur une année, la saison redistribue sans créer ni détruire."""
+    from sim import constants as _k
+    from sim.engine import (
+        _production_du_tick_kg_saison_moyenne,
+        production_du_tick_kg,
+    )
+
+    world = World.charger(0)
+    cid = next(iter(world.cells))
+    cell = world.cells[cid]
+    cell.area_km2 = 10.0
+    rendement = 1.0
+    annee = _k.CALENDAR_DAYS_PER_YEAR
+    somme_saisonniere = 0.0
+    for numero_tick in range(annee):
+        jour = _k.jour_de_tick(numero_tick)
+        somme_saisonniere += production_du_tick_kg(
+            cell, rendement, world.carte, jour=jour
+        )
+    somme_moyenne = (
+        _production_du_tick_kg_saison_moyenne(cell, rendement, world.carte) * annee
+    )
+    ecart = abs(somme_saisonniere - somme_moyenne)
+    print(f"somme_saisonniere={somme_saisonniere} somme_moyenne={somme_moyenne}")
+    print(f"ecart_relatif_somme_annuelle={ecart}")
+    assert ecart < 1e-6 * max(somme_saisonniere, somme_moyenne, 1.0)
+
+
+@pytest.mark.parametrize(
+    "mutation, cle_attendue",
+    [
+        ("retirer_climat", "climat"),
+        ("ete_invalide", "duree_jour_solstice_ete_h"),
+        ("hiver_invalide", "duree_jour_solstice_hiver_h"),
+    ],
+)
+def test_tick_refuse_climat_incomplet(mutation: str, cle_attendue: str):
+    """SC6 — Climat absent ou solstice non numérique : erreur nommée."""
+    import random
+
+    from sim.engine import ClimatInvalideError, tick
+
+    world = World.charger(0)
+    cid = next(iter(world.cells))
+    entree = dict(world.carte[cid])
+    if mutation == "retirer_climat":
+        entree.pop("climat", None)
+    elif mutation == "ete_invalide":
+        climat = dict(entree.get("climat") or {})
+        climat["duree_jour_solstice_ete_h"] = "invalide"
+        entree["climat"] = climat
+    else:
+        climat = dict(entree.get("climat") or {})
+        climat["duree_jour_solstice_hiver_h"] = None
+        entree["climat"] = climat
+    world.carte[cid] = entree
+
+    with pytest.raises(ClimatInvalideError, match=f"cell_id={cid}") as exc:
+        tick(world, random.Random(0), numero_tick=0)
+    assert cle_attendue in str(exc.value)
+

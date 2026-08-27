@@ -40,6 +40,10 @@ _carte_du_tick: dict | None = None
 class ReliefInvalideError(ValueError):
     """Classe de relief absente ou inconnue sur une cellule du monde chargé."""
 
+
+class ClimatInvalideError(ValueError):
+    """Climat absent ou durée de solstice invalide sur une cellule du monde chargé."""
+
 # Le moteur lit TOUTES ses constantes réglables par le module `_constantes`,
 # jamais par `from sim.constants import ...`. Un nom importé par valeur est
 # figé au chargement : le remplacer en mémoire ne change alors rien au moteur,
@@ -66,16 +70,82 @@ def _facteur_relief_pour_cellule(cell: Cell, carte: dict) -> float:
     return facteurs[relief]
 
 
-def production_du_tick_kg(cell: Cell, yield_factor: float, carte: dict) -> float:
-    """
-    Production alimentaire d'une cellule pendant un tick, avec relief lu
-    depuis la carte passée en argument (brief 034).
+def _lire_solstices(cell: Cell, carte: dict) -> tuple[float, float]:
+    """Lit les deux durées de solstice depuis world.carte[cell_id]["climat"]."""
+    raw = carte.get(cell.cell_id)
+    if raw is None:
+        raise ClimatInvalideError(
+            f"cell_id={cell.cell_id} climat=absent de world.carte"
+        )
+    climat = raw.get("climat")
+    if climat is None:
+        raise ClimatInvalideError(
+            f"cell_id={cell.cell_id} climat=None"
+        )
+    cle_ete = "duree_jour_solstice_ete_h"
+    cle_hiver = "duree_jour_solstice_hiver_h"
+    ete_h = climat.get(cle_ete)
+    hiver_h = climat.get(cle_hiver)
+    if not isinstance(ete_h, (int, float)) or isinstance(ete_h, bool):
+        raise ClimatInvalideError(
+            f"cell_id={cell.cell_id} {cle_ete}={ete_h!r}"
+        )
+    if not isinstance(hiver_h, (int, float)) or isinstance(hiver_h, bool):
+        raise ClimatInvalideError(
+            f"cell_id={cell.cell_id} {cle_hiver}={hiver_h!r}"
+        )
+    return float(ete_h), float(hiver_h)
 
-    Délègue les kilogrammes à production_kg() — deux arguments, par le nom
-    de module — puis applique le facteur de relief une seule fois.
+
+def _facteur_saison_pour_cellule(cell: Cell, carte: dict, jour: int) -> float:
+    """Facteur saisonnier dérivé du climat de la cellule et du jour de l'année."""
+    ete_h, hiver_h = _lire_solstices(cell, carte)
+    duree = _constantes.duree_jour_h(jour, ete_h, hiver_h)
+    return _constantes.facteur_saison(duree)
+
+
+def _production_base_kg(cell: Cell, yield_factor: float) -> float:
+    """Noyau commun de l'unique formule de production alimentaire."""
+    return (
+        cell.area_km2
+        * _constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK
+        * yield_factor
+    )
+
+
+def production_du_tick_kg(
+    cell: Cell,
+    yield_factor: float,
+    carte: dict,
+    jour: int | None = None,
+) -> float:
     """
-    base = production_kg(cell, yield_factor)
-    return base * _facteur_relief_pour_cellule(cell, carte)
+    Production alimentaire d'une cellule pendant un tick, avec relief et saison
+    lus depuis la carte passée en argument (briefs 034 et 035).
+
+    `jour` facultatif : sans jour, seul le relief module la production (appels
+    historiques à trois arguments). Avec un jour explicite, le facteur saisonnier
+    s'ajoute — premier jour de l'année via `jour_de_tick(None)`.
+    """
+    base = _production_base_kg(cell, yield_factor)
+    relief = _facteur_relief_pour_cellule(cell, carte)
+    if jour is None:
+        return base * relief
+    return base * relief * _facteur_saison_pour_cellule(cell, carte, jour)
+
+
+def _production_du_tick_kg_saison_moyenne(
+    cell: Cell, yield_factor: float, carte: dict
+) -> float:
+    """Même formule que le tick, avec le facteur saisonnier moyen sur l'année."""
+    ete_h, hiver_h = _lire_solstices(cell, carte)
+    base = _production_base_kg(cell, yield_factor)
+    saison_moyenne = _constantes.facteur_saison_moyen_annuel(ete_h, hiver_h)
+    return (
+        base
+        * _facteur_relief_pour_cellule(cell, carte)
+        * saison_moyenne
+    )
 
 
 def production_kg(cell: Cell, yield_factor: float) -> float:
@@ -115,13 +185,16 @@ def production_moyenne_kg_par_tick(world) -> float:
             production_kg(cell, rendement_moyen) for cell in world.cells.values()
         )
     return sum(
-        production_du_tick_kg(cell, rendement_moyen, world.carte)
+        _production_du_tick_kg_saison_moyenne(cell, rendement_moyen, world.carte)
         for cell in world.cells.values()
     )
 
 
 def _apply_production(
-    cell: Cell, rng: random.Random, carte: dict | None = None
+    cell: Cell,
+    rng: random.Random,
+    carte: dict | None = None,
+    jour: int | None = None,
 ) -> None:
     """
     Maillon 1 — Production.
@@ -131,9 +204,25 @@ def _apply_production(
     """
     yield_factor = rng.uniform(_constantes.RNG_YIELD_LOW, _constantes.RNG_YIELD_HIGH)
     if carte:
-        food_produced = production_du_tick_kg(cell, yield_factor, carte)
+        food_produced = production_du_tick_kg(cell, yield_factor, carte, jour=jour)
     else:
         food_produced = production_kg(cell, yield_factor)
+    current = cell.food_stock_kg if cell.food_stock_kg >= 0 else 0.0
+    cell.food_stock_kg = current + food_produced
+
+
+def _apply_production_saison_moyenne(
+    cell: Cell, rng: random.Random, carte: dict
+) -> None:
+    """
+    Production avec le facteur saisonnier moyen annuel.
+
+    Chemin des appelants historiques qui n'indiquent pas de numéro de tick
+    (sonde des couches, test_survie) : la moyenne annuelle vaut 1 au niveau 2
+    et reproduit l'ancien régime de production.
+    """
+    yield_factor = rng.uniform(_constantes.RNG_YIELD_LOW, _constantes.RNG_YIELD_HIGH)
+    food_produced = _production_du_tick_kg_saison_moyenne(cell, yield_factor, carte)
     current = cell.food_stock_kg if cell.food_stock_kg >= 0 else 0.0
     cell.food_stock_kg = current + food_produced
 
@@ -376,7 +465,7 @@ def _apply_natalite(cell: Cell, penurie_kg: float) -> None:
         cell.natalite_remainder = remainder
 
 
-def tick(world, rng: random.Random) -> float:
+def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
     """
     Avance le monde d'un pas de temps.
 
@@ -396,8 +485,16 @@ def tick(world, rng: random.Random) -> float:
     """
     total_transported = [0.0]
     carte = world.carte if getattr(world, "carte", None) else None
-    for cell in world.cells.values():
-        _apply_production(cell, rng, carte)
+    if carte is None:
+        for cell in world.cells.values():
+            _apply_production(cell, rng, carte)
+    elif numero_tick is None:
+        for cell in world.cells.values():
+            _apply_production_saison_moyenne(cell, rng, carte)
+    else:
+        jour = _constantes.jour_de_tick(numero_tick)
+        for cell in world.cells.values():
+            _apply_production(cell, rng, carte, jour=jour)
 
     _apply_commerce(world, total_transported)
 

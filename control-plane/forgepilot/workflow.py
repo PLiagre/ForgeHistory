@@ -648,6 +648,115 @@ def persist_failure_trace(
     return cible
 
 
+USAGE_SCALARS = (bool, int, float, str)
+USAGE_TEXT_MAX = 200
+
+
+def _usage_scalars(source: object) -> dict[str, object]:
+    """Ne retient d'une enveloppe que ce qui se compte ou s'identifie."""
+    if not isinstance(source, dict):
+        return {}
+    retenu: dict[str, object] = {}
+    for key, value in source.items():
+        if isinstance(value, USAGE_SCALARS):
+            if isinstance(value, str) and len(value) > USAGE_TEXT_MAX:
+                continue
+            retenu[str(key)] = value
+        elif isinstance(value, dict):
+            imbrique = {
+                str(sous_cle): sous_valeur
+                for sous_cle, sous_valeur in value.items()
+                if isinstance(sous_valeur, USAGE_SCALARS)
+                and not (isinstance(sous_valeur, str) and len(sous_valeur) > USAGE_TEXT_MAX)
+            }
+            if imbrique:
+                retenu[str(key)] = imbrique
+    return retenu
+
+
+def persist_usage(
+    usage_dir: Path,
+    invocation: Invocation,
+    envelope: object,
+) -> Path | None:
+    """Conserve la comptabilité d'une invocation agent, sans son produit.
+
+    L'enveloppe `type: "result"` de Cursor porte la durée, l'identifiant de
+    requête et ce que le fournisseur dit de sa consommation. Elle était
+    dépouillée pour n'en garder que le JSON métier : le coût d'un lot n'était
+    donc mesurable nulle part. Le rapport du 26 août 2026 n'a pu chiffrer
+    l'incident 035 qu'a posteriori, et seulement parce que l'autre fournisseur
+    tenait ses propres journaux ; ForgePilot n'en tenait aucun.
+
+    `result` est retiré — `persist_result` l'archive déjà. Le reste est gardé
+    par filtrage de forme, pas par liste de noms : ce que le CLI ajoutera
+    demain sera conservé sans que ce code ait à le connaître. Une écriture
+    ratée ne casse jamais l'étape : la mesure n'est pas le produit.
+    """
+    comptable = _usage_scalars(
+        {key: value for key, value in envelope.items() if key != "result"}
+        if isinstance(envelope, dict)
+        else {}
+    )
+    if not comptable:
+        return None
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    payload = {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "role": invocation.role,
+        "backend": invocation.backend,
+        "model": invocation.model,
+        "effort": invocation.effort,
+        "envelope": comptable,
+    }
+    try:
+        dossier = Path(usage_dir) / "usage"
+        dossier.mkdir(parents=True, exist_ok=True)
+        cible = dossier / f"{stamp}-{invocation.role}.json"
+        cible.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        return None
+    return cible
+
+
+def usage_summary(run_dir: Path) -> dict[str, object]:
+    """Ce que le lot a coûté jusqu'ici, par rôle, d'après les enveloppes gardées.
+
+    Les compteurs sont ceux que le fournisseur a nommés : ForgePilot les
+    additionne sans les interpréter. Un champ absent reste absent — un coût
+    inconnu n'est pas un coût nul.
+    """
+    dossier = Path(run_dir) / "usage"
+    invocations: list[dict[str, object]] = []
+    for fichier in sorted(dossier.glob("*.json")) if dossier.is_dir() else ():
+        try:
+            invocations.append(json.loads(fichier.read_text(encoding="utf-8")))
+        except (OSError, json.JSONDecodeError):
+            continue
+    par_role: dict[str, dict[str, object]] = {}
+    for entree in invocations:
+        role = str(entree.get("role", "?"))
+        compte = par_role.setdefault(role, {"invocations": 0})
+        compte["invocations"] = int(compte["invocations"]) + 1  # type: ignore[arg-type]
+        enveloppe = entree.get("envelope")
+        if not isinstance(enveloppe, dict):
+            continue
+        for cle, valeur in enveloppe.items():
+            if isinstance(valeur, bool) or not isinstance(valeur, (int, float)):
+                continue
+            compte[cle] = (compte.get(cle) or 0) + valeur  # type: ignore[operator]
+        usage = enveloppe.get("usage")
+        if isinstance(usage, dict):
+            for cle, valeur in usage.items():
+                if isinstance(valeur, bool) or not isinstance(valeur, (int, float)):
+                    continue
+                compte[f"usage.{cle}"] = (compte.get(f"usage.{cle}") or 0) + valeur  # type: ignore[operator]
+    return {"invocations": len(invocations), "par_role": par_role}
+
+
 def execute_invocation(
     invocation: Invocation,
     settings: Settings,
@@ -657,6 +766,7 @@ def execute_invocation(
     stream: bool = False,
     on_event: Callable[[object], None] | None = None,
     trace_dir: Path | None = None,
+    usage_dir: Path | None = None,
 ) -> object:
     if trace_dir is not None:
         try:
@@ -667,6 +777,7 @@ def execute_invocation(
                 timeout_seconds=timeout_seconds,
                 stream=stream,
                 on_event=on_event,
+                usage_dir=usage_dir,
             )
         except PilotError as exc:
             trace = persist_failure_trace(trace_dir, invocation.role, invocation, exc)
@@ -713,6 +824,10 @@ def execute_invocation(
         and isinstance(payload, dict)
         and payload.get("type") == "result"
     ):
+        if usage_dir is not None:
+            # AVANT le dépouillement : passé cette ligne, `payload` n'est plus
+            # l'enveloppe du fournisseur mais le JSON métier de l'agent.
+            persist_usage(usage_dir, invocation, payload)
         if payload.get("is_error"):
             raise PilotError(f"Cursor a rendu une erreur : {payload.get('result', 'aucun détail')}")
         cursor_result = payload.get("result")
