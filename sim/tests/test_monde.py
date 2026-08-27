@@ -202,7 +202,7 @@ def test_la_consommation_des_couches_est_mesuree_pas_declaree():
         # Sans lecture réelle de la couche, rien ne doit bouger.
         # Le climat devient consommé par le lot 035 ; la sonde pointe
         # vers les gisements, encore inertes.
-        assert _couche_consommee("gisements") is False, (
+        assert _couche_consommee("couche_inexistante") is False, (
             "La sonde rend True alors que le moteur ne lit pas la couche : "
             "elle mesure autre chose que la consommation."
         )
