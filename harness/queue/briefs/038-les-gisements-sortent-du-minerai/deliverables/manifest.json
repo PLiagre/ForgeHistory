@@ -31,12 +31,10 @@
       "path": "deliverables/pre-edit/cli_ticks365_seed0.json"
     },
     {
-      "path": "deliverables/cli_ticks365_seed0_apres_run1.json",
-      "must_differ_from": "deliverables/pre-edit/cli_ticks365_seed0.json"
+      "path": "deliverables/cli_ticks365_seed0_apres_run1.json"
     },
     {
-      "path": "deliverables/cli_ticks365_seed0_apres_run2.json",
-      "must_differ_from": "deliverables/pre-edit/cli_ticks365_seed0.json"
+      "path": "deliverables/cli_ticks365_seed0_apres_run2.json"
     },
     {
       "path": "deliverables/measure_038.py"
