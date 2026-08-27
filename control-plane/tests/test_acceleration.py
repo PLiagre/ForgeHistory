@@ -96,6 +96,16 @@ def valid_executor(
     return payload
 
 
+def valid_brief_review() -> dict[str, object]:
+    return {
+        "verdict": "PASS",
+        "findings": [],
+        "lot_unique": True,
+        "criteres_verifiables": True,
+        "human_decision_required": True,
+    }
+
+
 class GitRepoMixin:
     def git_repo(self, root: Path) -> None:
         subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True)
@@ -576,6 +586,82 @@ class StreamTests(unittest.TestCase):
             )
             self.assertEqual(expected | {"session_id": "session-redacted"}, result)
 
+    def test_reviewer_prose_is_a_review_protocol_failure(self):
+        from forgepilot.process import ReviewProtocolError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            code = (
+                "import json; "
+                "print(json.dumps({'type':'result','subtype':'success','is_error':False,"
+                "'result':'Je conclus PASS sans rendre le JSON demandé.'}), flush=True)"
+            )
+            invocation = Invocation(
+                "reviewer", (sys.executable, "-c", code), tmp, {}, backend="cursor"
+            )
+            with self.assertRaises(ReviewProtocolError):
+                execute_invocation(
+                    invocation, load_settings(), timeout_seconds=10, stream=True
+                )
+
+    def test_review_protocol_failure_keeps_its_type_after_trace_archiving(self):
+        from forgepilot.process import ReviewProtocolError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            code = (
+                "import json; "
+                "print(json.dumps({'type':'result','subtype':'success','is_error':False,"
+                "'result':'Réponse textuelle sans objet métier.'}), flush=True)"
+            )
+            invocation = Invocation(
+                "reviewer", (sys.executable, "-c", code), tmp, {}, backend="cursor"
+            )
+            with self.assertRaises(ReviewProtocolError):
+                execute_invocation(
+                    invocation,
+                    load_settings(),
+                    timeout_seconds=10,
+                    stream=True,
+                    trace_dir=root,
+                )
+            self.assertEqual(1, len(list((root / "traces").glob("*-envelope.json"))))
+
+    def test_brief_review_retries_one_invalid_contract_with_closed_schema(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            brief = repo / "brief.md"
+            brief.write_text("**Risque : R1.**\nLot unique.\n", encoding="utf-8")
+            invocations: list[Invocation] = []
+
+            def fake_execute(invocation, settings):
+                invocations.append(invocation)
+                if len(invocations) == 1:
+                    return {"verdict": "PASS"}
+                return valid_brief_review()
+
+            with patch("forgepilot.cli.execute_invocation", side_effect=fake_execute), patch(
+                "forgepilot.cli.persist_result", return_value=repo / "result.json"
+            ) as persist, patch("sys.stdout", io.StringIO()), patch(
+                "sys.stderr", io.StringIO()
+            ):
+                code = main(
+                    [
+                        "brief-review",
+                        str(brief),
+                        "--repo",
+                        str(repo),
+                        "--risk",
+                        "R1",
+                        "--run",
+                    ]
+                )
+
+            self.assertEqual(0, code)
+            self.assertEqual(2, len(invocations))
+            self.assertIn("Schéma JSON fermé", invocations[0].prompt or "")
+            self.assertIn("réponse précédente", invocations[1].prompt or "")
+            self.assertEqual(valid_brief_review(), persist.call_args.args[-1])
+
 
 class ScopeAndReviewTests(unittest.TestCase, GitRepoMixin):
     def test_scope_rejects_one_unexpected_path(self):
@@ -915,7 +1001,15 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             )
             worktree, branch = create_worktree(repo, "recover-iteration", str(state["base_sha"]))
             base = str(state["base_sha"])
+            plan_path = state_path.parent / "plan.json"
+            plan_path.write_text(json.dumps(valid_plan()), encoding="utf-8")
+            feedback_path = state_path.parent / "feedback.json"
+            feedback_path.write_text(
+                json.dumps({"head_sha_reviewed": base, "findings": [{"id": "F1"}]}),
+                encoding="utf-8",
+            )
             state.update({
+                "artifacts": {"plan": "plan.json", "feedback": "feedback.json"},
                 "worktree": str(worktree),
                 "branch": branch,
                 "head_sha": base,
@@ -934,6 +1028,157 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual("ITERATED", final["step"])
             self.assertEqual(1, final["iteration"]["count"])
             self.assertTrue((state_path.parent / "executor-iteration-1.json").is_file())
+
+    def test_recover_iteration_adopts_manual_fix_after_review_without_new_run(self):
+        from forgepilot.durable import recover_iteration_result
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            state_path, state = register_run(
+                load_settings(), repo, task, "manual-iteration", base_ref="main", base_branch="main"
+            )
+            worktree, branch = create_worktree(repo, "manual-iteration", str(state["base_sha"]))
+            (worktree / "feature.txt").write_text("v1\n", encoding="utf-8")
+            subprocess.run(
+                ["git", "add", "feature.txt"], cwd=worktree, check=True, capture_output=True
+            )
+            subprocess.run(
+                ["git", "commit", "-m", "candidate"],
+                cwd=worktree,
+                check=True,
+                capture_output=True,
+            )
+            reviewed_head = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=worktree,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            plan_path = state_path.parent / "plan.json"
+            plan_path.write_text(json.dumps(valid_plan()), encoding="utf-8")
+            feedback_path = state_path.parent / "feedback.json"
+            feedback_path.write_text(
+                json.dumps({"head_sha_reviewed": reviewed_head, "findings": [{"id": "F1"}]}),
+                encoding="utf-8",
+            )
+            state.update({
+                "artifacts": {"plan": "plan.json", "feedback": "feedback.json"},
+                "worktree": str(worktree),
+                "branch": branch,
+                "head_sha": reviewed_head,
+                "step": "NEEDS_FIX",
+            })
+            save_state(state_path, state)
+            (worktree / "feature.txt").write_text("v2 corrigée\n", encoding="utf-8")
+
+            final = recover_iteration_result(
+                repo,
+                str(state["run_id"]),
+                None,
+                manual=True,
+                approach_changed=False,
+            )
+
+            self.assertEqual("ITERATED", final["step"])
+            self.assertEqual(1, final["iteration"]["count"])
+            self.assertTrue(final["iteration_active"])
+            self.assertEqual(reviewed_head, final["iteration_base_sha"])
+            self.assertEqual("manual", final["iteration_origin"])
+            self.assertIsNone(final["executor_session"])
+            self.assertTrue((state_path.parent / "manual-iteration-1.json").is_file())
+
+            patches = self._flow_patches(
+                lambda invocation, settings, *, risk, role, trace_dir=None: valid_review("PASS")
+            )
+            with patches[0], patches[1], patches[2], patches[3], patches[4]:
+                completed = resume_run(load_settings(), repo, str(state["run_id"]))
+
+            self.assertEqual("COMPLETE", completed["step"])
+            self.assertNotEqual(reviewed_head, completed["head_sha"])
+            self.assertEqual("delta-feedback", completed["review_mode"])
+
+    def test_recover_iteration_accepts_cursor_result_after_ambiguous_block(self):
+        from forgepilot.durable import recover_iteration_result
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            state_path, state = register_run(
+                load_settings(), repo, task, "ambiguous-iteration", base_ref="main", base_branch="main"
+            )
+            worktree, branch = create_worktree(repo, "ambiguous-iteration", str(state["base_sha"]))
+            reviewed_head = str(state["base_sha"])
+            (state_path.parent / "plan.json").write_text(
+                json.dumps(valid_plan()), encoding="utf-8"
+            )
+            (state_path.parent / "feedback.json").write_text(
+                json.dumps({"head_sha_reviewed": reviewed_head, "findings": [{"id": "F1"}]}),
+                encoding="utf-8",
+            )
+            state.update({
+                "artifacts": {"plan": "plan.json", "feedback": "feedback.json"},
+                "worktree": str(worktree),
+                "branch": branch,
+                "head_sha": reviewed_head,
+                "iteration_active": True,
+                "iteration_base_sha": reviewed_head,
+                "step": "BLOCKED",
+                "error": (
+                    "Reprise Cursor ambiguë : des écritures existent sans résultat final "
+                    "archivé ; elles ne sont pas rejouées automatiquement."
+                ),
+            })
+            save_state(state_path, state)
+            (worktree / "feature.txt").write_text("correction Cursor\n", encoding="utf-8")
+            recovered = repo / "iteration.json"
+            recovered.write_text(
+                json.dumps(valid_executor(approach_changed=False)), encoding="utf-8"
+            )
+
+            final = recover_iteration_result(repo, str(state["run_id"]), recovered)
+
+            self.assertEqual("ITERATED", final["step"])
+            self.assertEqual("cursor-recovered", final["iteration_origin"])
+            self.assertTrue((state_path.parent / "executor-iteration-1.json").is_file())
+
+    def test_manual_iteration_cannot_unblock_a_product_verdict(self):
+        from forgepilot.durable import recover_iteration_result
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            state_path, state = register_run(
+                load_settings(), repo, task, "product-blocked", base_ref="main", base_branch="main"
+            )
+            worktree, branch = create_worktree(repo, "product-blocked", str(state["base_sha"]))
+            state.update({
+                "worktree": str(worktree),
+                "branch": branch,
+                "head_sha": str(state["base_sha"]),
+                "step": "BLOCKED",
+                "error": "Le reviewer a déclaré le lot BLOCKED.",
+            })
+            save_state(state_path, state)
+            (worktree / "feature.txt").write_text("tentative\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(PilotError, "correction manuelle après revue"):
+                recover_iteration_result(
+                    repo,
+                    str(state["run_id"]),
+                    None,
+                    manual=True,
+                )
 
     def test_iterated_recovery_does_not_require_feedback_again(self):
         from forgepilot.durable import _iterate

@@ -566,41 +566,117 @@ def recover_executor_result(
 def recover_iteration_result(
     repo: Path,
     run_id: str,
-    result_path: Path,
+    result_path: Path | None,
+    *,
+    manual: bool = False,
+    approach_changed: bool = False,
 ) -> dict[str, object]:
-    """Archive une correction Cursor retrouvée après invalidation du candidat testé."""
+    """Rattache une correction retrouvée au run qui a produit son feedback.
+
+    Une correction manuelle n'est jamais présentée comme une sortie Cursor.
+    Elle repart néanmoins par la préparation du candidat, les tests, la
+    publication et une nouvelle revue indépendante du SHA corrigé.
+    """
 
     state_path = run_state_path(repo, run_id)
     state = load_state(state_path)
-    if (
-        state.get("step") != "ERROR"
-        or state.get("resume_from") != "PR_TESTING"
-        or not str(state.get("error", "")).startswith("Preuve périmée : le candidat Git a changé")
-    ):
-        raise PilotError(
-            "Récupération itération refusée : le run n'est pas en erreur de candidat périmé."
+    stale_candidate = (
+        state.get("step") == "ERROR"
+        and state.get("resume_from") == "PR_TESTING"
+        and str(state.get("error", "")).startswith(
+            "Preuve périmée : le candidat Git a changé"
         )
+    )
+    ambiguous_iteration = (
+        state.get("step") == "BLOCKED"
+        and state.get("iteration_active") is True
+        and str(state.get("error", "")).startswith(
+            "Reprise Cursor ambiguë : des écritures existent sans résultat final archivé"
+        )
+    )
+    manual_after_review = state.get("step") in {"NEEDS_FIX", "ITERATING"}
+    if manual:
+        if result_path is not None:
+            raise PilotError(
+                "Récupération itération refusée : choisir --manual ou --result, jamais les deux."
+            )
+        if not (manual_after_review or stale_candidate or ambiguous_iteration):
+            raise PilotError(
+                "Récupération itération refusée : le run n'attend pas une correction manuelle après revue."
+            )
+    elif result_path is None:
+        raise PilotError(
+            "Récupération itération refusée : fournir une sortie exécuteur ou déclarer --manual."
+        )
+    elif not (stale_candidate or ambiguous_iteration):
+        raise PilotError(
+            "Récupération itération refusée : le run n'est ni en erreur de candidat "
+            "périmé ni bloqué sur une correction Cursor ambiguë."
+        )
+
     worktree = _state_worktree(repo, state)
     if not _executor_effect_is_ambiguous(worktree, state.get("head_sha")):
-        raise PilotError("Récupération itération refusée : aucune correction Cursor à préserver.")
+        raise PilotError("Récupération itération refusée : aucune correction à préserver.")
+
+    feedback_path = _artifact_path(state_path, state, "feedback")
+    if feedback_path is None or not feedback_path.is_file():
+        raise PilotError("Récupération itération refusée : feedback structuré absent.")
+    feedback = json.loads(feedback_path.read_text(encoding="utf-8"))
+    reviewed_head = state.get("iteration_base_sha") or state.get("head_sha")
+    if feedback.get("head_sha_reviewed") != reviewed_head:
+        raise PilotError("Récupération itération refusée : feedback périmé.")
+
+    plan_path = _artifact_path(state_path, state, "plan")
+    if plan_path is None or not plan_path.is_file():
+        raise PilotError("Récupération itération refusée : plan durable absent.")
+    plan = validate_plan(json.loads(plan_path.read_text(encoding="utf-8")))
+    modified_paths = _candidate_paths(
+        worktree,
+        state,
+        plan["files_allowed_to_change"],  # type: ignore[arg-type]
+        update_only=True,
+    )
+
     iteration = deepcopy(state.get("iteration", {}))
     if not isinstance(iteration, dict):
         iteration = {}
     next_iteration = int(iteration.get("count", 0)) + 1
-    output_path = state_path.parent / f"executor-iteration-{next_iteration}.json"
+    output_path = state_path.parent / (
+        f"manual-iteration-{next_iteration}.json"
+        if manual
+        else f"executor-iteration-{next_iteration}.json"
+    )
     if output_path.exists():
         raise PilotError("Récupération itération refusée : résultat d'itération déjà archivé.")
-    try:
-        raw_result = json.loads(result_path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError) as exc:
-        raise PilotError("Résultat d'itération de récupération illisible.") from exc
-    result = validate_executor(raw_result, iteration=True)
-    write_normalized_json(output_path, result)
+    if manual:
+        result = {
+            "kind": "manual-iteration",
+            "head_sha_reviewed": reviewed_head,
+            "files_modified": modified_paths,
+            "approach_changed": approach_changed,
+        }
+        write_normalized_json(output_path, result)
+    else:
+        assert result_path is not None
+        try:
+            raw_result = json.loads(result_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError) as exc:
+            raise PilotError("Résultat d'itération de récupération illisible.") from exc
+        result = validate_executor(raw_result, iteration=True)
+        write_normalized_json(output_path, result)
+
     iteration["count"] = next_iteration
     state["iteration"] = iteration
     state["iteration_approach_changed"] = result["approach_changed"]
-    state["executor_session"] = extract_session_id(result) or state.get("executor_session")
-    state = _set_artifact(state_path, state, "executor", output_path)
+    state["iteration_active"] = True
+    state["iteration_base_sha"] = reviewed_head
+    state["iteration_origin"] = "manual" if manual else "cursor-recovered"
+    if manual:
+        state["executor_session"] = None
+        state = _set_artifact(state_path, state, "manual_iteration", output_path)
+    else:
+        state["executor_session"] = extract_session_id(result) or state.get("executor_session")
+        state = _set_artifact(state_path, state, "executor", output_path)
     return transition(
         state_path,
         state,
