@@ -193,6 +193,90 @@ class PolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(PilotError, "universel interdit"):
             validate_plan(valid_plan(allowed=["**"]))
 
+    def _policy_with(self, addition: str) -> str:
+        source = Path(__file__).parents[1] / "workflow-policy.toml"
+        return source.read_text(encoding="utf-8") + addition
+
+    def _load_written_policy(self, body: str):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "policy.toml"
+            path.write_text(body, encoding="utf-8")
+            return load_policy(path)
+
+    def test_authoritative_policy_declares_no_review_fallback_yet(self):
+        """La route de secours existe comme mécanisme, pas comme décision prise.
+
+        Nommer le second juge est un arbitrage du propriétaire : la
+        politique versionnée n'en déclare aucun, et la relance rejoue donc
+        la route nominale, comme avant. Ce test dit que l'absence est
+        voulue, pas oubliée — le jour où une route est déclarée, il tombe
+        et force à le constater.
+        """
+
+        policy = load_policy()
+        for name, profile in policy.risks.items():
+            self.assertIsNone(profile.review_fallback, name)
+            self.assertIsNone(policy.summary()["risks"][name]["review_fallback"])
+
+    def test_declared_review_fallback_is_loaded_and_summarised(self):
+        policy = self._load_written_policy(
+            self._policy_with(
+                '\n[risks.R1.review_fallback]\n'
+                'backend = "cursor"\n'
+                'model = "cursor-grok-4.6"\n'
+                'effort = "high"\n'
+            )
+        )
+        secours = policy.risks["R1"].review_fallback
+        assert secours is not None
+        self.assertEqual("cursor", secours.backend)
+        self.assertEqual("high", secours.effort)
+        self.assertEqual(
+            "high", policy.summary()["risks"]["R1"]["review_fallback"]["effort"]
+        )
+        self.assertIsNone(policy.risks["R2"].review_fallback)
+
+    def test_review_fallback_that_is_not_another_route_is_refused(self):
+        """Une route de secours identique rejouerait la condition qui a échoué."""
+
+        with self.assertRaisesRegex(PilotError, "route identique"):
+            self._load_written_policy(
+                self._policy_with(
+                    '\n[risks.R1.review_fallback]\n'
+                    'backend = "cursor"\n'
+                    'model = "cursor-grok-4.6"\n'
+                    'effort = "xhigh"\n'
+                )
+            )
+
+    def test_review_fallback_cannot_change_backend_or_omit_the_model(self):
+        with self.assertRaisesRegex(PilotError, "change de backend"):
+            self._load_written_policy(
+                self._policy_with(
+                    '\n[risks.R1.review_fallback]\n'
+                    'backend = "none"\n'
+                )
+            )
+        with self.assertRaisesRegex(PilotError, "doit nommer un modèle"):
+            self._load_written_policy(
+                self._policy_with(
+                    '\n[risks.R1.review_fallback]\n'
+                    'backend = "cursor"\n'
+                    'effort = "high"\n'
+                )
+            )
+
+    def test_review_fallback_without_a_reviewer_is_refused(self):
+        with self.assertRaisesRegex(PilotError, "aucun relecteur"):
+            self._load_written_policy(
+                self._policy_with(
+                    '\n[risks.R0.review_fallback]\n'
+                    'backend = "cursor"\n'
+                    'model = "cursor-grok-4.6"\n'
+                    'effort = "high"\n'
+                )
+            )
+
     def test_broad_glob_that_can_touch_governance_is_r2(self):
         policy = load_policy()
         self.assertEqual("R2", derive_risk(policy, ["docs/**"]))
@@ -1511,6 +1595,70 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertIn("recover-review", final["error"])
             self.assertGreaterEqual(len(prompts), 2)
             self.assertIn("Recommence à zéro", prompts[-1])
+            self.assertEqual("nominal", final["review_route"]["kind"])
+            self.assertFalse(final["review_route"]["fallback_declared"])
+            self.assertIn("aucune route de secours n'est déclarée", final["error"])
+
+    def test_schema_retry_takes_the_declared_fallback_route(self):
+        """La relance change de juge quand la politique en déclare un.
+
+        Le lot 034 a payé trois fois la même signature : même modèle, même
+        contrat, même refus. Le contrat est durci depuis. Ce test prouve
+        l'autre moitié : la seconde tentative part sur la route déclarée
+        par la politique, et l'état final nomme cette route.
+        """
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            politique = repo / "policy.toml"
+            politique.write_text(
+                (Path(__file__).parents[1] / "workflow-policy.toml").read_text(
+                    encoding="utf-8"
+                )
+                + '\n[risks.R1.review_fallback]\n'
+                'backend = "cursor"\n'
+                'model = "cursor-grok-4.6"\n'
+                'effort = "high"\n',
+                encoding="utf-8",
+            )
+            settings = load_settings(policy_path=politique)
+            task = repo / "task.md"
+            task.write_text("**Risque : R1.**\n", encoding="utf-8")
+            self.commit(repo, "task")
+            _, state = register_run(
+                settings, repo, task, "secours", base_ref="main", base_branch="main"
+            )
+            routes: list[str] = []
+
+            def fake_agent(invocation, settings_, *, risk, role, trace_dir=None):
+                if role == "planner":
+                    return valid_plan()
+                if role == "executor":
+                    (Path(invocation.cwd) / "feature.txt").write_text("v1\n", encoding="utf-8")
+                    return valid_executor()
+                routes.append(invocation.model or "")
+                return self._invalid_review_strings()
+
+            patches = self._flow_patches(fake_agent)
+            with patches[0], patches[1], patches[2], patches[3], patches[4]:
+                with self.assertRaises(PilotError):
+                    resume_run(settings, repo, str(state["run_id"]))
+                with self.assertRaises(PilotError):
+                    resume_run(settings, repo, str(state["run_id"]))
+                final = resume_run(settings, repo, str(state["run_id"]))
+
+            self.assertEqual(2, len(routes), routes)
+            self.assertEqual("cursor-grok-4.6-xhigh", routes[0])
+            self.assertEqual("cursor-grok-4.6-high", routes[1])
+            self.assertEqual("BLOCKED_TOOLING", final["step"])
+            self.assertEqual("fallback", final["review_route"]["kind"])
+            self.assertEqual("cursor-grok-4.6", final["review_route"]["model"])
+            self.assertEqual(
+                "fallback",
+                final["failures"]["REVIEWING"]["review_route"]["kind"],
+            )
+            self.assertIn("route de secours déclarée", final["error"])
 
     def test_recover_review_replays_only_review_on_the_same_sha(self):
         with tempfile.TemporaryDirectory() as tmp:

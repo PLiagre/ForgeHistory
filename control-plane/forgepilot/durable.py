@@ -499,6 +499,7 @@ def _trace_protocol_failure(
     error: PilotError,
     *,
     head_sha: str | None = None,
+    route: dict[str, object] | None = None,
 ) -> ReviewProtocolError:
     """Étend les traces #138 : l'invocation a réussi, le contrat JSON a refusé."""
 
@@ -509,6 +510,8 @@ def _trace_protocol_failure(
     )
     if protocol.raw is None:
         protocol.raw = _payload_as_raw(payload)
+    if route is not None and getattr(protocol, "route", None) is None:
+        protocol.route = route
     persist_failure_trace(
         trace_dir,
         invocation.role,
@@ -1351,6 +1354,20 @@ def _review_current_head(
         and int(reviewing_failure.get("consecutive", 0)) >= 1
         and reviewing_failure.get("failure_kind") == "review_protocol"
     )
+    # Durcir le contrat ne suffisait pas : la relance repartait sur la même
+    # route et rendait la même signature. La politique peut déclarer une
+    # autre route pour cette seconde tentative ; sans déclaration, la route
+    # nominale est rejouée et l'état final le dit.
+    profile = settings.policy.profile(risk)
+    declared_fallback = profile.review_fallback
+    fallback = declared_fallback if schema_retry else None
+    nominal = profile.roles["reviewer"]
+    route: dict[str, object] = {
+        "kind": "fallback" if fallback is not None else "nominal",
+        "model": (fallback or nominal).model,
+        "effort": (fallback or nominal).effort,
+        "fallback_declared": declared_fallback is not None,
+    }
     if output_path.is_file():
         try:
             review = validate_review(
@@ -1358,7 +1375,11 @@ def _review_current_head(
                 expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
             )
         except PilotError as exc:
-            raise ReviewProtocolError(str(exc), raw=output_path.read_text(encoding="utf-8")) from exc
+            raise ReviewProtocolError(
+                str(exc),
+                raw=output_path.read_text(encoding="utf-8"),
+                route=route,
+            ) from exc
         _assert_review_material_was_readable(review, bundle_path)
     else:
         invocation = review_invocation(
@@ -1369,6 +1390,8 @@ def _review_current_head(
             risk=risk,
             bundle_path=bundle_path,
             schema_retry=schema_retry,
+            model=fallback.model if fallback is not None else None,
+            effort=(fallback.effort or None) if fallback is not None else None,
         )
         try:
             result = _run_agent(
@@ -1388,6 +1411,7 @@ def _review_current_head(
                     result,
                     exc,
                     head_sha=head_sha,
+                    route=route,
                 ) from exc
             _assert_review_material_was_readable(review, bundle_path)
             write_normalized_json(
@@ -1680,6 +1704,33 @@ def _iterate(
     return _review_current_head(settings, repo, state_path, state, plan)
 
 
+def _route_sentence(route: object) -> str:
+    """Dit si la relance a changé de route, ou rejoué la même condition.
+
+    Sans cette phrase, `BLOCKED_TOOLING` ne distingue pas les deux cas, et
+    le propriétaire ne sait pas s'il lui reste une route à déclarer.
+    """
+
+    if not isinstance(route, dict):
+        return ""
+    model = str(route.get("model") or "non nommé")
+    effort = str(route.get("effort") or "")
+    if effort:
+        model = f"{model}, effort {effort}"
+    if route.get("kind") == "fallback":
+        return (
+            f"La relance a emprunté la route de secours déclarée ({model}) ; "
+            "la même signature est revenue. "
+        )
+    if route.get("fallback_declared"):
+        return f"La relance a rejoué la route nominale ({model}). "
+    return (
+        f"La relance a rejoué la route nominale ({model}) : aucune route de "
+        "secours n'est déclarée pour ce risque "
+        "([risks.<Rn>.review_fallback] dans workflow-policy.toml). "
+    )
+
+
 def _record_step_failure(
     state_path: Path,
     state: dict[str, object],
@@ -1709,6 +1760,9 @@ def _record_step_failure(
         "failure_kind": kind,
         "candidate_sha": state.get("head_sha"),
     }
+    route = getattr(error, "route", None)
+    if is_protocol and isinstance(route, dict):
+        record["review_route"] = dict(route)
     if is_protocol:
         record["recover_command"] = (
             f"forgepilot recover-review {state.get('run_id')} --run"
@@ -1725,11 +1779,16 @@ def _record_step_failure(
             error=(
                 f"Deux erreurs de protocole identiques à l'étape {step} ; "
                 "arrêt avant une troisième dépense identique. "
+                f"{_route_sentence(route)}"
                 "Ce n'est pas un verdict produit. Reprendre uniquement la revue : "
                 f"forgepilot recover-review {state.get('run_id')} --run. "
                 f"Cause : {clean_error}"
             ),
-            updates={"resume_from": None, "failure_kind": kind},
+            updates={
+                "resume_from": None,
+                "failure_kind": kind,
+                **({"review_route": dict(route)} if isinstance(route, dict) else {}),
+            },
         )
     if not is_protocol and consecutive >= generic_limit:
         return transition(
