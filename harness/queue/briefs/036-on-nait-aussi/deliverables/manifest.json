@@ -61,8 +61,8 @@
     {
       "name": "naissances_en_cellule_affamee",
       "value": 0,
-      "sample_size": 5000,
-      "denominator": "ticks joués = 5000"
+      "sample_size": 100,
+      "denominator": "ticks joués = 100"
     },
     {
       "name": "cellules_en_croissance_avant",
@@ -120,9 +120,9 @@
     },
     {
       "name": "tests_sim_verts",
-      "value": 75,
-      "sample_size": 75,
-      "denominator": "tests collectés = 75"
+      "value": 77,
+      "sample_size": 77,
+      "denominator": "tests collectés = 77"
     }
   ]
 }
