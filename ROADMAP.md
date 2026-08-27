@@ -15,7 +15,7 @@
 ## Le jeu — cinq couches, dans l'ordre
 
 Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
-2026-08-27, après la fusion du lot 035 :
+2026-08-27, après la fusion du lot 038 :
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
@@ -25,7 +25,7 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
 | 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencé | `sim/` |
 
-**Couche 1 — état vrai** (au 2026-08-27, après la fusion du lot 035)
+**Couche 1 — état vrai** (au 2026-08-27, après la fusion du lot 038)
 
 - La carte est **figée** : `data/world-1400.json`, un seul fichier lu par
   `sim/`. Elle porte 596 cellules, 1 364 arêtes d'adjacence, le relief en
@@ -33,15 +33,17 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 - `tools/map/` (ex-`pipeline/geo/`) est l'outil qui fabrique la carte. Il
   est hors du chemin quotidien : on ne le ressort que pour refaire la carte.
 - `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot
-  `v0a-2`. Depuis le lot 034, le tick reçoit la carte explicitement et ne
-  porte plus d'état global caché. Il joue **le relief** et, depuis le lot
-  035, **le climat** par la durée du jour ; il ne joue toujours **pas les
-  gisements**. Ce n'est pas une déclaration : le snapshot le mesure, couche
-  par couche, avec sa propre sonde — mesure refaite le 2026-08-27, relief
-  `True`, climat `True`, gisements `False`.
-- Ce que le monde ne sait pas encore faire : naître (la population ne fait
-  que mourir), sortir quoi que ce soit de ses gisements, porter autre chose
-  que de la nourriture, migrer.
+  `v0a-2`, panier de marchandises. Depuis le lot 034, le tick reçoit la carte
+  explicitement et ne porte plus d'état global caché. Il joue **le relief**,
+  **le climat** par la durée du jour, et depuis le lot 038, **les gisements**
+  — chaque gisement complet produit des kg de sa ressource dans le panier
+  (population × débit × facteur de richesse). C'est la première couche de la
+  carte qui entre dans le jeu après le climat. Mesure refaite le 2026-08-27 :
+  relief `True`, climat `True`, gisements `True` — les trois couches sont
+  consommées par le moteur.
+- Ce que le monde ne sait pas encore faire : naître (la population ne fait que
+  mourir), porter autre chose que de la nourriture dans le commerce, migrer,
+  fabriquer (le minerai extrait reste sur place).
 - `viewer/` : regard mince, preuve SVG.
 - Unity : archivé, au commit `da1596d` (le tag `archive/2026-08` n'a
   jamais pu être poussé — voir `AGENTS.md` § « Les archives »).
@@ -91,7 +93,7 @@ un lot est dans son `brief.md`, et nulle part ailleurs.
 |---|---|---|
 | 036 | `on-nait-aussi` | la population ne fait plus que mourir |
 | 037 | `le-stock-devient-un-panier` | le stock cesse d'être un seul nombre de nourriture |
-| 038 | `les-gisements-sortent-du-minerai` | les 27 gisements nommés produisent enfin quelque chose |
+| 038 | `les-gisements-sortent-du-minerai` | les 27 gisements nommés produisent enfin quelque chose ✓ |
 | 039 | `le-commerce-porte-tout` | le commerce transporte une marchandise quelconque, pas seulement la nourriture |
 | 040 | `franchir-une-montagne-coute` | une arête de montagne ne transporte pas comme une arête de plaine |
 | 041 | `on-s-en-va-quand-on-a-faim` | des habitants quittent une cellule affamée pour une voisine en surplus |
@@ -99,11 +101,11 @@ un lot est dans son `brief.md`, et nulle part ailleurs.
 | 043 | `le-convoi-a-l-echelle-de-la-cellule` | le commerce cesse d'être mille fois trop petit pour les cellules |
 | 044 | `un-metier-le-mineur` | première division du travail : les mineurs ne labourent pas |
 
-Dépendances restantes : 037 avant 038, et 038 avant 039 · 038 avant
-044 · 040 avant 043 (le facteur de terrain se prouve plus simplement sur une
-capacité constante ; il multiplie ensuite la capacité dérivée) · 043 avant
-tout lot de couche 2. Les lots 034 et 035 étant passés, 036 et 041 sont
-indépendants et 037 est le premier lot d'une chaîne (037 → 038 → 039 et 044).
+Dépendances restantes : 038 avant 039 · 038 avant 044 (toutes deux
+tenues). 040 avant 043 (le facteur de terrain se prouve plus simplement sur
+une capacité constante ; il multiplie ensuite la capacité dérivée) · 043
+avant tout lot de couche 2. Les lots 036 et 041 sont indépendants et
+039 est le prochain lot de la chaîne (039 → 043 → couche 2).
 
 ### Pourquoi il n'y a pas de lot « ville »
 
@@ -159,4 +161,4 @@ seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
 | 2026-08-26 | cursor (correction factuelle, ADR-0020 proposed) | un troisième workflow GitHub : ping worker PC en `workflow_dispatch` seulement ; ce n'est pas le retour du full-auto |
 | 2026-08-26 | hermes (correction factuelle après fusion #142) | lot 034 fusionné : le moteur ne porte plus d'état global caché pendant le tick ; prochain lot unique 035 |
 | 2026-08-26 | hermes (décision explicite du propriétaire — ADR-0021) | Claude reste disponible manuellement pour les briefs et revues, mais sort de toute orchestration Hermes/ForgePilot ; aucun backend, témoin, cron, skill ou sous-agent Hermes ne peut l'invoquer |
-| 2026-08-27 | claude (**correction factuelle uniquement**, aucune décision nouvelle) | lot 035 fusionné (PR #151) : le tick joue le climat par la durée du jour. Quatre affirmations devenues fausses corrigées — statut daté du lot 034, « ni le climat ni les gisements », F2 « restent le climat… », et le lot 035 encore listé comme à faire. Consommation des couches remesurée par la sonde du snapshot (relief `True`, climat `True`, gisements `False`) ; rapport commerce/consommation remesuré à 962 |
+| 2026-08-27 | hermes (correction factuelle après fusion #157 du lot 038) | lot 038 fusionné : le tick extrait les gisements de la carte — les trois couches sont consommées par le moteur (relief `True`, climat `True`, gisements `True`). 86 tests, 596 cellules, 27 gisements. Prochain lot 039 : le commerce porte toutes les marchandises. |
