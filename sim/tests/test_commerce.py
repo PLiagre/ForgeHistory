@@ -17,7 +17,12 @@ import pytest
 from sim.engine import _apply_commerce, _apply_consumption, _apply_production, tick
 from sim.model import Cell
 from sim.world import World
-from sim.constants import FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+from sim.constants import (
+    FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
+    MARCHANDISE_NOURRITURE,
+    TICK_DURATION_DAYS,
+    TRADE_CAPACITY_KG_PER_EDGE_PER_TICK,
+)
 from sim.engine import _apply_commerce
 TOLERANCE = 1e-9
 def _run_commerce_ecart(world: World) -> float:
@@ -572,3 +577,230 @@ def test_recepteur_pas_sur_livre():
         f"Receveur sur-livré : stock final {stock_r_final} ≠ 0. "
         "L'écrêtage côté receveur n'a pas borné le total reçu à son besoin."
     )
+
+# --- Brief 039 : commerce généralisé ---
+
+# Nom local au test : pas de constante moteur (brief 039, risque test_aucune_constante_terminale).
+_MARCHANDISE_ESSAI_SC3 = "__essai_commerce_039__"
+_CONSOMMATION_ESSAI_SC3 = 1.0 * TICK_DURATION_DAYS
+
+
+def _patch_consommation_essai(monkeypatch):
+    """Monkeypatch du seul accès nommé pour la marchandise d'essai SC3."""
+    from sim import constants as k
+
+    original = k.consommation_kg_par_habitant_par_tick
+
+    def _patched(marchandise: str) -> float:
+        if marchandise == _MARCHANDISE_ESSAI_SC3:
+            return _CONSOMMATION_ESSAI_SC3
+        return original(marchandise)
+
+    monkeypatch.setattr(k, "consommation_kg_par_habitant_par_tick", _patched)
+
+
+def test_maillon_commerce_sans_nom_nourriture():
+    """SC2 — L'AST du maillon commerce ne nomme plus la marchandise alimentaire."""
+    import ast
+    import pathlib
+
+    engine_file = pathlib.Path(__file__).parent.parent / "engine.py"
+    tree = ast.parse(engine_file.read_text(encoding="utf-8"), filename=str(engine_file))
+    fonctions = {
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("_apply_commerce")
+    }
+    assert fonctions, "maillon commerce introuvable"
+
+    occurrences = 0
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef) or node.name != "_apply_commerce":
+            continue
+        for sub in ast.walk(node):
+            if isinstance(sub, ast.Constant) and sub.value == "nourriture":
+                occurrences += 1
+            elif isinstance(sub, ast.Attribute) and sub.attr == "MARCHANDISE_NOURRITURE":
+                occurrences += 1
+    assert occurrences == 0, (
+        f"occurrences_nourriture_dans_le_maillon={occurrences} ; "
+        f"fonctions_du_maillon={len(fonctions)}"
+    )
+
+
+def _build_sc3_micro_monde() -> tuple[World, int, int]:
+    """Deux cellules adjacentes : source et receveuse pour deux marchandises."""
+    from sim.model import ecrire_stock_marchandise
+
+    pop = 50
+    source = Cell(
+        cell_id=201,
+        area_km2=0.0,
+        population=0,
+        stocks={MARCHANDISE_NOURRITURE: 200.0, _MARCHANDISE_ESSAI_SC3: 200.0},
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+    )
+    receveuse = Cell(
+        cell_id=202,
+        area_km2=0.0,
+        population=pop,
+        stocks={},
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+    )
+    adjacency = [{"a": 201, "b": 202, "kind": "land", "shared_length_m": 1000.0}]
+    return World(cells={201: source, 202: receveuse}, adjacency=adjacency), 201, 202
+
+
+def test_marchandise_essai_circule_sans_ligne_supplementaire(monkeypatch):
+    """SC3 — Une marchandise d'essai consommée circule via l'accès nommé seul."""
+    from sim.model import lire_stock_marchandise
+
+    _patch_consommation_essai(monkeypatch)
+    world, _src, rcv = _build_sc3_micro_monde()
+    stock_avant = lire_stock_marchandise(world.cells[rcv], _MARCHANDISE_ESSAI_SC3)
+    assert stock_avant == -1.0
+
+    _apply_commerce(world, [0.0])
+
+    stock_apres = lire_stock_marchandise(world.cells[rcv], _MARCHANDISE_ESSAI_SC3)
+    assert stock_apres > 0.0, (
+        "La marchandise d'essai n'a pas circulé sans ligne ajoutée au maillon."
+    )
+
+
+def test_capacite_arete_partagee_entre_marchandises(monkeypatch):
+    """SC3 — Sur une arête saturée, la somme des transferts égale la capacité lue."""
+    from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
+
+    _patch_consommation_essai(monkeypatch)
+    pop = 100
+    besoin_alim = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    besoin_essai = pop * _CONSOMMATION_ESSAI_SC3
+
+    source = Cell(
+        cell_id=301, area_km2=0.0, population=0,
+        stocks={MARCHANDISE_NOURRITURE: 500.0, _MARCHANDISE_ESSAI_SC3: 500.0},
+        hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    receveuse = Cell(
+        cell_id=302, area_km2=0.0, population=pop,
+        stocks={},
+        hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    adjacency = [{"a": 301, "b": 302, "kind": "land", "shared_length_m": 1000.0}]
+    world = World(cells={301: source, 302: receveuse}, adjacency=adjacency)
+
+    _apply_commerce(world, [0.0])
+
+    stock_alim_avant = 0.0
+    stock_essai_avant = 0.0
+    delta_alim = max(
+        0.0,
+        lire_stock_marchandise(world.cells[302], MARCHANDISE_NOURRITURE) - stock_alim_avant,
+    )
+    delta_essai = max(
+        0.0,
+        lire_stock_marchandise(world.cells[302], _MARCHANDISE_ESSAI_SC3) - stock_essai_avant,
+    )
+    somme_transferts = delta_alim + delta_essai
+    capacite = TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+
+    # La généralisation est réelle : sans elle, sur le moteur de base, la
+    # marchandise d'essai ne circule pas (delta_essai == 0) et ce contrôle
+    # échoue. C'est le rouge prouvé avant correction (SC3).
+    assert delta_essai > 0, (
+        f"marchandise d'essai non transportée : delta_essai={delta_essai} ; "
+        f"la généralisation du commerce est absente"
+    )
+    assert somme_transferts <= capacite + TOLERANCE, (
+        f"somme_transferts_sur_arete_partagee={somme_transferts} > capacite={capacite}"
+    )
+    assert abs(somme_transferts - capacite) <= TOLERANCE, (
+        f"somme_transferts={somme_transferts} != capacite={capacite} ; "
+        f"besoins additionnés={besoin_alim + besoin_essai}"
+    )
+
+
+def test_conservation_masse_par_marchandise(monkeypatch):
+    """SC5 — Le commerce déplace sans créer ni détruire, par marchandise."""
+    from sim.model import lire_stock_marchandise
+
+    _patch_consommation_essai(monkeypatch)
+    world, _, _ = _build_sc3_micro_monde()
+    for marchandise in (MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI_SC3):
+        somme_avant = sum(
+            max(0.0, lire_stock_marchandise(c, marchandise))
+            for c in world.cells.values()
+        )
+        copie = World(
+            cells={cid: Cell(
+                cell_id=c.cell_id,
+                area_km2=c.area_km2,
+                population=c.population,
+                stocks=dict(c.stocks),
+                hunger_ticks=c.hunger_ticks,
+                food_deficit_kg=c.food_deficit_kg,
+                mortality_remainder=c.mortality_remainder,
+            ) for cid, c in world.cells.items()},
+            adjacency=list(world.adjacency),
+        )
+        _apply_commerce(copie, [0.0])
+        somme_apres = sum(
+            max(0.0, lire_stock_marchandise(c, marchandise))
+            for c in copie.cells.values()
+        )
+        # SC5 : identité au bit près, sans tolérance — le commerce déplace,
+        # il ne crée ni ne détruit. Aucun seuil n'absorbe un écart.
+        assert somme_apres == somme_avant, (
+            f"ecart_de_masse pour {marchandise!r} : "
+            f"avant={somme_avant!r} après={somme_apres!r}"
+        )
+
+
+def test_commerce_ne_modifie_pas_food_deficit(monkeypatch):
+    """SC6 — Le maillon commerce ne touche jamais food_deficit_kg."""
+    _patch_consommation_essai(monkeypatch)
+    world, _, _ = _build_sc3_micro_monde()
+    deficits_avant = {cid: c.food_deficit_kg for cid, c in world.cells.items()}
+    _apply_commerce(world, [0.0])
+    for cid, avant in deficits_avant.items():
+        assert world.cells[cid].food_deficit_kg == avant, (
+            f"modification_de_dette cellule {cid}"
+        )
+
+
+def test_ordre_insertion_paniers_invariant(monkeypatch):
+    """SC7 — Deux ordres d'insertion des paniers donnent le même résultat."""
+    from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
+
+    _patch_consommation_essai(monkeypatch)
+
+    def _monde(ordre: list[str]) -> World:
+        pop = 40
+        a = Cell(
+            cell_id=401, area_km2=0.0, population=0,
+            stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+        )
+        b = Cell(
+            cell_id=402, area_km2=0.0, population=pop,
+            stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+        )
+        for cle in ordre:
+            ecrire_stock_marchandise(a, cle, 300.0)
+            ecrire_stock_marchandise(b, cle, 0.0)
+        adjacency = [{"a": 401, "b": 402, "kind": "land", "shared_length_m": 1000.0}]
+        return World(cells={401: a, 402: b}, adjacency=adjacency)
+
+    w1 = _monde([MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI_SC3])
+    w2 = _monde([_MARCHANDISE_ESSAI_SC3, MARCHANDISE_NOURRITURE])
+    _apply_commerce(w1, [0.0])
+    _apply_commerce(w2, [0.0])
+
+    for marchandise in (MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI_SC3):
+        s1 = lire_stock_marchandise(w1.cells[402], marchandise)
+        s2 = lire_stock_marchandise(w2.cells[402], marchandise)
+        assert abs(s1 - s2) <= TOLERANCE, (
+            f"ordre d'insertion change le résultat pour {marchandise!r}: {s1} vs {s2}"
+        )
