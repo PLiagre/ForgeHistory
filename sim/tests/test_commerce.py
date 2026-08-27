@@ -981,6 +981,8 @@ def test_relief_inconnu_refuse_sur_monde_charge():
     a_id, b_id = 9100, 9101
     world.carte[b_id]["relief"] = "relief_inexistant_040"
 
+    with pytest.raises(ReliefInvalideError, match=str(a_id)):
+        _apply_commerce(world, [0.0])
     with pytest.raises(ReliefInvalideError, match=str(b_id)):
         _apply_commerce(world, [0.0])
     with pytest.raises(ReliefInvalideError, match="relief_inexistant_040"):

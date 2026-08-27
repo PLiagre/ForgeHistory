@@ -16,7 +16,8 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parents[5]
 BRIEF_DIR = RACINE / "harness" / "queue" / "briefs" / "040-franchir-une-montagne-coute"
 DELIVERABLES = BRIEF_DIR / "deliverables"
-VENV_PY = str(RACINE / ".venv" / "bin" / "python")
+PRE_EDIT = DELIVERABLES / "pre-edit"
+VENV_PY = "/home/hermes/src/ForgeHistory/.venv/bin/python"
 
 os.chdir(RACINE)
 
@@ -29,12 +30,6 @@ def sh(args, timeout=600):
 sys.path.insert(0, str(RACINE))
 from sim.world import World
 from sim import constants as k
-from sim.engine import (
-    _cle_arête,
-    _facteur_transport_pour_cellule,
-    _apply_commerce,
-    _initialiser_capacite_aretes,
-)
 
 
 def compter() -> dict:
@@ -46,14 +41,12 @@ def compter() -> dict:
     c["classes_relief_carte"] = len(reliefs)
     c["classes_relief_carte_noms"] = ",".join(sorted(reliefs))
 
-    # ── aretes_entre_deux_cellules / aretes_ignorees_hors_monde ─────────────
+    # ── aretes ──────────────────────────────────────────────────────────────
     w = World.charger(0)
-    total = 0
-    dans_monde = 0
-    ignorees = 0
-    for edge in w.adjacency:
+    total = dans_monde = ignorees = 0
+    for e in w.adjacency:
         total += 1
-        if edge["a"] in w.cells and edge["b"] in w.cells:
+        if e["a"] in w.cells and e["b"] in w.cells:
             dans_monde += 1
         else:
             ignorees += 1
@@ -63,11 +56,11 @@ def compter() -> dict:
     # ── aretes_par_facteur_limitant ─────────────────────────────────────────
     facteurs = k.facteurs_transport_par_relief()
     combo = {}
-    for edge in w.adjacency:
-        if edge["a"] not in w.cells or edge["b"] not in w.cells:
+    for e in w.adjacency:
+        if e["a"] not in w.cells or e["b"] not in w.cells:
             continue
-        ra = w.carte.get(edge["a"], {}).get("relief", "")
-        rb = w.carte.get(edge["b"], {}).get("relief", "")
+        ra = w.carte.get(e["a"], {}).get("relief", "")
+        rb = w.carte.get(e["b"], {}).get("relief", "")
         fa = facteurs.get(ra, 99)
         fb = facteurs.get(rb, 99)
         fmin = min(fa, fb)
@@ -78,64 +71,91 @@ def compter() -> dict:
     )
     c["aretes_par_facteur_limitant_total"] = sum(combo.values())
 
-    # ── classes_avec_capacite_effective (SC1) ───────────────────────────────
-    r = sh([VENV_PY, "-m", "pytest", "sim/tests/test_commerce.py::test_cinq_facteurs_transport_suivent_ordre_strict",
+    # ── SC1 : cinq facteurs effectifs ───────────────────────────────────────
+    r = sh([VENV_PY, "-m", "pytest",
+            "sim/tests/test_commerce.py::test_cinq_facteurs_transport_suivent_ordre_strict",
             "-q", "--tb=line"])
     c["classes_avec_capacite_effective"] = 5 if "passed" in r.stdout and "failed" not in r.stdout else 0
     c["sc1_detail"] = r.stdout.strip()
 
-    # ── capacite_independante_du_sens (SC2) ─────────────────────────────────
-    r = sh([VENV_PY, "-m", "pytest", "sim/tests/test_commerce.py::test_goulot_relief_min_commande_capacite",
+    # ── SC2 : goulot relief min ─────────────────────────────────────────────
+    r = sh([VENV_PY, "-m", "pytest",
+            "sim/tests/test_commerce.py::test_goulot_relief_min_commande_capacite",
             "-q", "--tb=line"])
     c["capacite_independante_du_sens"] = 1 if "passed" in r.stdout and "failed" not in r.stdout else 0
-    c["sc2_detail"] = r.stdout.strip()
 
-    # ── kg_transportes_apres (SC3) ──────────────────────────────────────────
-    r = sh([VENV_PY, "-m", "sim", "--ticks", "365", "--seed", "0", "--json"], timeout=120)
-    apres = json.loads(r.stdout)
-    c["kg_transportes_apres"] = apres["kg_transportes"]
-    c["population_arrivee_apres"] = apres["population_arrivee"]
-    c["population_depart_apres"] = apres["population_depart"]
+    # ── SC3 : kg_transportes — archive + deux exécutions + inégalité ────────
+    # Rejouer la même archive baseline du SHA de base
+    if PRE_EDIT.exists():
+        arch = PRE_EDIT / "baseline_ticks365_seed0.json"
+        if arch.exists():
+            with open(arch) as f:
+                base = json.load(f)
+            c["kg_transportes_avant"] = base["kg_transportes"]
+        else:
+            c["kg_transportes_avant"] = -1
+    else:
+        c["kg_transportes_avant"] = -1
 
-    # ── ecart_de_masse_micro_monde (SC4) ────────────────────────────────────
-    r = sh([VENV_PY, "-m", "pytest", "sim/tests/test_commerce.py::test_conservation_masse_transport",
+    # Deux exécutions post-changement pour vérifier le déterminisme
+    r1 = sh([VENV_PY, "-m", "sim", "--ticks", "365", "--seed", "0", "--json"], timeout=120)
+    apres1 = json.loads(r1.stdout)
+    r2 = sh([VENV_PY, "-m", "sim", "--ticks", "365", "--seed", "0", "--json"], timeout=120)
+    apres2 = json.loads(r2.stdout)
+
+    c["kg_transportes_apres_run1"] = apres1["kg_transportes"]
+    c["kg_transportes_apres_run2"] = apres2["kg_transportes"]
+    c["deux_cli_365_identiques"] = (
+        apres1["kg_transportes"] == apres2["kg_transportes"]
+        and apres1["population_arrivee"] == apres2["population_arrivee"]
+    )
+    c["kg_transportes_apres"] = apres1["kg_transportes"]
+    c["population_arrivee_apres"] = apres1["population_arrivee"]
+    c["population_depart_apres"] = apres1["population_depart"]
+
+    # ── SC4 : masse conservee ───────────────────────────────────────────────
+    r = sh([VENV_PY, "-m", "pytest",
+            "sim/tests/test_commerce.py::test_conservation_masse_transport",
             "-q", "--tb=line"])
     c["ecart_de_masse_micro_monde"] = 0 if "passed" in r.stdout and "failed" not in r.stdout else -1
-    c["sc4_detail"] = r.stdout.strip()
 
-    # ── reliefs_inconnus_refuses (SC6) ──────────────────────────────────────
-    r = sh([VENV_PY, "-m", "pytest", "sim/tests/test_commerce.py::test_relief_inconnu_refuse_sur_monde_charge",
+    # ── SC6 : relief inconnu refusé ─────────────────────────────────────────
+    r = sh([VENV_PY, "-m", "pytest",
+            "sim/tests/test_commerce.py::test_relief_inconnu_refuse_sur_monde_charge",
             "-q", "--tb=line"])
     c["reliefs_inconnus_refuses"] = 1 if "passed" in r.stdout and "failed" not in r.stdout else 0
-    c["sc6_detail"] = r.stdout.strip()
+    r = sh([VENV_PY, "-m", "pytest",
+            "sim/tests/test_commerce.py::test_sans_carte_capacite_transport_inchangee",
+            "-q", "--tb=line"])
+    c["sans_carte_capacite_inchangee"] = 1 if "passed" in r.stdout and "failed" not in r.stdout else 0
 
-    # ── noms_de_constantes_transport_dans_engine (motif 033) ────────────────
+    # ── noms de constantes transport dans engine (motif 033) ─────────────────
     import ast
     with open(RACINE / "sim" / "engine.py") as f:
         tree = ast.parse(f.read())
-    found = False
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Attribute) and "FACTEUR_TRANSPORT" in node.attr:
-            found = True
-            break
+    found = any(
+        isinstance(n, ast.Attribute) and "FACTEUR_TRANSPORT" in n.attr
+        for n in ast.walk(tree)
+    )
     c["noms_de_constantes_transport_dans_engine"] = 0 if not found else 99
 
     # ── tests_sim_verts ─────────────────────────────────────────────────────
     r = sh([VENV_PY, "-m", "pytest", "sim/tests/", "-q", "--tb=line"], timeout=360)
-    # Dernière ligne = "N passed in ..."
     lines = r.stdout.strip().split("\n")
-    last_line = lines[-1] if lines else ""
-    if "passed" in last_line and "failed" not in r.stdout:
-        parts = last_line.split()
+    last = lines[-1] if lines else ""
+    if "passed" in last and "failed" not in r.stdout:
+        parts = last.split()
         n = int(parts[0]) if parts[0].isdigit() else int(parts[-3])
     else:
         n = -1
     c["tests_sim_verts"] = n
+    c["tests_detail"] = r.stdout.strip()
 
-    # ── fraction_survie_horizon_long (SC5) ──────────────────────────────────
-    r = sh([VENV_PY, "-m", "sim", "--ticks", "1825", "--seed", "0", "--json"], timeout=300)
+    # ── SC5 : horizon long 5 × N_TICKS_OBSERVES (1000 ticks) ────────────────
+    r = sh([VENV_PY, "-m", "sim", "--ticks", "1000", "--seed", "0", "--json"], timeout=300)
     long = json.loads(r.stdout)
     c["fraction_survie_horizon_long"] = long["population_arrivee"] / max(long["population_depart"], 1)
+    c["population_1000ticks"] = long["population_arrivee"]
 
     return c
 
@@ -154,12 +174,18 @@ def verifier(c) -> list[str]:
         e.append(f"ecart_de_masse_micro_monde={c.get('ecart_de_masse_micro_monde')} != 0")
     if c.get("reliefs_inconnus_refuses", 0) != 1:
         e.append(f"reliefs_inconnus_refuses={c.get('reliefs_inconnus_refuses')} != 1")
+    if c.get("sans_carte_capacite_inchangee", 0) != 1:
+        e.append(f"sans_carte_capacite_inchangee={c.get('sans_carte_capacite_inchangee')} != 1")
     if c.get("noms_de_constantes_transport_dans_engine", 99) != 0:
         e.append(f"noms_de_constantes_transport_dans_engine={c.get('noms_de_constantes_transport_dans_engine')} != 0")
     if c.get("tests_sim_verts", -1) < 95:
         e.append(f"tests_sim_verts={c.get('tests_sim_verts')} < 95")
     if c.get("fraction_survie_horizon_long", 0) <= 0:
         e.append(f"fraction_survie_horizon_long={c.get('fraction_survie_horizon_long')} <= 0")
+    if c.get("deux_cli_365_identiques") is False:
+        e.append("deux_cli_365_identiques=False (les deux exécutions post-changement diffèrent)")
+    if c.get("kg_transportes_avant", -1) > 0 and c.get("kg_transportes_apres", 0) >= c.get("kg_transportes_avant", 0):
+        e.append(f"kg_transportes_apres ({c.get('kg_transportes_apres')}) >= kg_transportes_avant ({c.get('kg_transportes_avant')})")
     return e
 
 

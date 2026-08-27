@@ -18,6 +18,22 @@ Risque : R1 (classé R2 effectif par le planificateur).
   intégration dans `_initialiser_capacite_aretes()` et `_apply_commerce()`
 - `sim/tests/test_commerce.py` : 4 nouveaux tests (SC1, SC2, SC6 avec/sans carte)
 
+## Rouge prouvé (SC1 — avant correction, SHA `d544f21`)
+
+Sur le code de base (master), le micro-monde SC1 — une source en plaine approvisionne
+5 voisines identiques par 5 arêtes de relief différent — donne **strictement le même
+transfert** pour les 5 classes :
+
+```
+plaine           stock=200.000000
+colline          stock=200.000000
+marais           stock=200.000000
+montagne         stock=200.000000
+haute_montagne   stock=200.000000
+```
+
+✅ **5 transferts égaux** — la capacité constante ne distingue pas les reliefs.
+
 ## Planification
 
 Planificateur : Cursor Grok 4.6 xhigh — 222s. Plan classé R2 effectif.
@@ -27,19 +43,21 @@ Worktree préparé, branche `agent/040-franchir-une-montagne-coute`.
 
 Exécuteur : Cursor Composer 2.5 — code écrit, 3 fichiers, 285 insertions, 4 suppressions.
 L'exécuteur a rendu le code mais pas le JSON métier attendu (problème connu,
-cf. lot 035). Récupération manuelle.
+cf. lot 035). Récupération manuelle via `recover-executor`.
 
-## Corrections appliquées (après exécuteur)
+## Corrections appliquées (après relecture Grok — itération 1)
 
-Deux bugs dans les tests écrits par l'exécuteur :
+**F1 (P1) — Exception SC6 sans les deux cell_id.** `_facteur_transport_pour_cellule` levait
+un seul `cell_id`. Correction : dans `_capacite_transport_arete_kg`, l'exception est capturée
+et relancée avec `f"arête ({a_id},{b_id}) : {e}"`.
 
-1. **`_transfert_vers`** appelait `_apply_commerce(w, [0.0], MARCHANDISE_NOURRITURE)` sans
-   `capacite_restante` → None → crash. Correction : initialiser `cap` via
-   `_initialiser_capacite_aretes(w)` avant l'appel.
+**F2 (P1) — Test SC6 incomplet.** Le test n'asserte pas les deux `cell_id`. Correction :
+ajout de `with pytest.raises(ReliefInvalideError, match=str(a_id))`.
 
-2. **Test SC6** — le premier `pytest.raises` attendait le pattern `str(a_id)` (9100) mais
-   le code lève le relief invalide sur le cell_id de la cellule modifiée (9101).
-   Correction : retirer l'assertion redondante sur `a_id`.
+**F3+F4 (P1, P2) — Mesureur.** Ne relit pas d'archive, vérifie pas l'inégalité `kg_transportes`,
+horizon 1825 au lieu de 1000. Correction : réécriture complète.
+
+**F5 (P2) — Rouge non cité.** Absent du generator-log. Maintenant présent ci-dessus.
 
 ## Tests
 
@@ -72,18 +90,20 @@ Deux bugs dans les tests écrits par l'exécuteur :
 # kg_transportes = 2377283.5
 ```
 
-### État après lot (branche `agent/040-franchir-une-montagne-coute`, SHA `08de77b`)
+### État après lot (branche `agent/040-franchir-une-montagne-coute`)
 
 ```bash
 .venv/bin/python -m sim --ticks 365 --seed 0 --json
 # kg_transportes = 1688630.5  (baisse de 29%)
 ```
 
-### Horizon long (SC5)
+Deux exécutions post-changement identiques (déterminisme vérifié).
+
+### Horizon long SC5 (5 × 200 = 1000 ticks)
 
 ```bash
-.venv/bin/python -m sim --ticks 1825 --seed 0 --json
-# population_arrivee = 21132004 / population_depart = 66649511
+.venv/bin/python -m sim --ticks 1000 --seed 0 --json
+# population_arrivee = 21135472 / population_depart = 66649511
 # fraction_survie = 0.317  (strictement positive)
 ```
 
@@ -99,10 +119,12 @@ Deux bugs dans les tests écrits par l'exécuteur :
 | `capacite_independante_du_sens` | 1 | ✅ |
 | `kg_transportes_avant` | 2377283.5 | ✅ |
 | `kg_transportes_apres` | 1688630.5 | ✅ (strictement inférieur) |
+| `deux_cli_365_identiques` | True | ✅ |
 | `ecart_de_masse_micro_monde` | 0 | ✅ |
 | `reliefs_inconnus_refuses` | 1 | ✅ |
 | `fraction_survie_horizon_long` | 0.317 | ✅ (positive) |
 | `noms_de_constantes_transport_dans_engine` | 0 | ✅ (motif 033) |
+| `tests_sim_verts` | 96 | ✅ |
 
 ## Limites
 

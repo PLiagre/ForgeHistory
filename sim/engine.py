@@ -315,10 +315,14 @@ def _capacite_transport_arete_kg(world, a_id: int, b_id: int) -> float:
     carte = getattr(world, "carte", None)
     if not carte:
         return base
-    facteur = min(
-        _facteur_transport_pour_cellule(a_id, carte),
-        _facteur_transport_pour_cellule(b_id, carte),
-    )
+    try:
+        fa = _facteur_transport_pour_cellule(a_id, carte)
+        fb = _facteur_transport_pour_cellule(b_id, carte)
+    except ReliefInvalideError as e:
+        raise ReliefInvalideError(
+            f"arête ({a_id},{b_id}) : {e}"
+        ) from e
+    facteur = min(fa, fb)
     return base * facteur
 
 
