@@ -15,7 +15,7 @@
 ## Le jeu — cinq couches, dans l'ordre
 
 Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
-2026-08-26, après la fusion du lot 034 :
+2026-08-27, après la fusion du lot 035 :
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
@@ -25,7 +25,7 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
 | 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencé | `sim/` |
 
-**Couche 1 — état vrai** (au 2026-08-26, après la fusion du lot 034)
+**Couche 1 — état vrai** (au 2026-08-27, après la fusion du lot 035)
 
 - La carte est **figée** : `data/world-1400.json`, un seul fichier lu par
   `sim/`. Elle porte 596 cellules, 1 364 arêtes d'adjacence, le relief en
@@ -34,12 +34,14 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
   est hors du chemin quotidien : on ne le ressort que pour refaire la carte.
 - `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot
   `v0a-2`. Depuis le lot 034, le tick reçoit la carte explicitement et ne
-  porte plus d'état global caché. Il joue **le relief** ; il ne joue toujours
-  **ni le climat ni les gisements**. Ce n'est pas une déclaration : le
-  snapshot le mesure, couche par couche, avec sa propre sonde.
+  porte plus d'état global caché. Il joue **le relief** et, depuis le lot
+  035, **le climat** par la durée du jour ; il ne joue toujours **pas les
+  gisements**. Ce n'est pas une déclaration : le snapshot le mesure, couche
+  par couche, avec sa propre sonde — mesure refaite le 2026-08-27, relief
+  `True`, climat `True`, gisements `False`.
 - Ce que le monde ne sait pas encore faire : naître (la population ne fait
-  que mourir), connaître la saison, porter autre chose que de la
-  nourriture, migrer.
+  que mourir), sortir quoi que ce soit de ses gisements, porter autre chose
+  que de la nourriture, migrer.
 - `viewer/` : regard mince, preuve SVG.
 - Unity : archivé, au commit `da1596d` (le tag `archive/2026-08` n'a
   jamais pu être poussé — voir `AGENTS.md` § « Les archives »).
@@ -49,7 +51,7 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | Phase | Contenu | Statut |
 |---|---|---|
 | **F1** — Fondations monde | carte figée complète : littoral, cellules, adjacence, relief, climat, gisements | **terminée** |
-| **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — relief joué ; restent le climat, les gisements, la natalité, les marchandises et la migration |
+| **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — relief et saison joués ; restent les gisements, la natalité, les marchandises et la migration |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles | à venir |
 
 ## Le workflow — Claude manuel, jamais orchestré (ADR-0021)
@@ -81,13 +83,12 @@ pipeline full-auto, plus de bot de fusion, plus de machine d'états d'audit.
 
 ## Prochaines étapes (dans l'ordre)
 
-Dix lots écrits attendent sous `harness/queue/briefs/`. La liste
+Neuf lots écrits attendent sous `harness/queue/briefs/`. La liste
 ci-dessous est un **renvoi**, pas une instruction : ce qu'il faut faire pour
 un lot est dans son `brief.md`, et nulle part ailleurs.
 
 | # | lot | en une phrase |
 |---|---|---|
-| 035 | `la-saison-joue-le-rendement` | le tick connaît le jour de l'année ; le climat de la carte module la production |
 | 036 | `on-nait-aussi` | la population ne fait plus que mourir |
 | 037 | `le-stock-devient-un-panier` | le stock cesse d'être un seul nombre de nourriture |
 | 038 | `les-gisements-sortent-du-minerai` | les 27 gisements nommés produisent enfin quelque chose |
@@ -101,14 +102,16 @@ un lot est dans son `brief.md`, et nulle part ailleurs.
 Dépendances restantes : 037 avant 038, et 038 avant 039 · 038 avant
 044 · 040 avant 043 (le facteur de terrain se prouve plus simplement sur une
 capacité constante ; il multiplie ensuite la capacité dérivée) · 043 avant
-tout lot de couche 2. Le lot 034 étant passé, 036 et 041 sont indépendants.
+tout lot de couche 2. Les lots 034 et 035 étant passés, 036 et 041 sont
+indépendants et 037 est le premier lot d'une chaîne (037 → 038 → 039 et 044).
 
 ### Pourquoi il n'y a pas de lot « ville »
 
-Mesuré le 2026-08-26, avant d'écrire ces briefs : **aucun mécanisme du moteur
-ne concentre la population.** Ni la natalité, ni une migration de famine, ni
-une migration d'attraction ne font monter la densité de la cellule la plus
-dense au-dessus de celle de la médiane, à 365 comme à 1 000 ticks.
+Mesuré le 2026-08-26, avant d'écrire ces briefs, et toujours vrai au
+2026-08-27 : **aucun mécanisme du moteur ne concentre la population.** Ni la
+natalité, ni une migration de famine, ni une migration d'attraction ne font
+monter la densité de la cellule la plus dense au-dessus de celle de la
+médiane, à 365 comme à 1 000 ticks.
 
 La cause est chiffrable. Une cellule médiane compte environ 96 000 habitants
 et consomme près de 192 000 kg par tick ; une arête d'adjacence en transporte
@@ -156,3 +159,4 @@ seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
 | 2026-08-26 | cursor (correction factuelle, ADR-0020 proposed) | un troisième workflow GitHub : ping worker PC en `workflow_dispatch` seulement ; ce n'est pas le retour du full-auto |
 | 2026-08-26 | hermes (correction factuelle après fusion #142) | lot 034 fusionné : le moteur ne porte plus d'état global caché pendant le tick ; prochain lot unique 035 |
 | 2026-08-26 | hermes (décision explicite du propriétaire — ADR-0021) | Claude reste disponible manuellement pour les briefs et revues, mais sort de toute orchestration Hermes/ForgePilot ; aucun backend, témoin, cron, skill ou sous-agent Hermes ne peut l'invoquer |
+| 2026-08-27 | claude (**correction factuelle uniquement**, aucune décision nouvelle) | lot 035 fusionné (PR #151) : le tick joue le climat par la durée du jour. Quatre affirmations devenues fausses corrigées — statut daté du lot 034, « ni le climat ni les gisements », F2 « restent le climat… », et le lot 035 encore listé comme à faire. Consommation des couches remesurée par la sonde du snapshot (relief `True`, climat `True`, gisements `False`) ; rapport commerce/consommation remesuré à 962 |
