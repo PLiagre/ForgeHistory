@@ -260,7 +260,7 @@ porte aucun résultat en dur.
 | `cles_snapshot_identiques` | comparaison des documents snapshot archivé et d'après | nombre de clés réellement présentes dans le document |
 | `cellules_to_dict_avec_panier` | `World.to_dict()` d'un monde amorcé, cellules portant un panier | nombre de cellules réellement chargées |
 | `lignes_supprimees_test_monde` | diff de `sim/tests/test_monde.py` contre le SHA de base | nombre de lignes du diff réellement examinées |
-| `fichiers_test_inchanges` | diff byte à byte des quatre autres fichiers de test autorisés | `4` |
+| `fichiers_test_inchanges` | diff byte à byte des fichiers de `sim/tests/` qui nomment `food_stock_kg`, hors `test_monde.py` | nombre de fichiers réellement trouvés par le parcours |
 | `tests_collectes_avant` | collecte pytest sur le SHA de base | nombre de tests réellement collectés |
 | `tests_collectes_apres` | collecte pytest après changement | nombre de tests réellement collectés |
 
@@ -269,7 +269,7 @@ porte aucun résultat en dur.
 mesures réelles : le mesureur a parcouru et compté. La sentinelle « non
 calculé » du projet est `-1`, jamais `0`.
 `references_au_champ_supprime_avant` doit être strictement positif, sans quoi le
-rouge n'a pas été prouvé. `fichiers_test_inchanges` doit valoir `4`.
+rouge n'a pas été prouvé. `fichiers_test_inchanges` doit égaler le nombre de fichiers réellement trouvés par le parcours.
 `tests_collectes_apres` doit être strictement supérieur à `tests_collectes_avant`.
 `cellules_to_dict_avec_panier` doit égaler le nombre de cellules réellement
 chargées.
