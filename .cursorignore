@@ -37,7 +37,7 @@ __pycache__/
 .pytest_cache/
 .forgepilot/
 
-# NE JAMAIS ajouter `.forge-exchange/` ici. C'est le canal par lequel
+# NE JAMAIS ajouter `forge-exchange/` ici. C'est le canal par lequel
 # ForgePilot tend un fichier à un agent : le rendre invisible rendrait le
 # bundle de revue et le plan illisibles à ceux qui doivent les lire, sans
 # qu'aucune erreur ne le dise. `.forgepilot/` ci-dessus a exactement produit

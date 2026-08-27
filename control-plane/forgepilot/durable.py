@@ -1286,7 +1286,7 @@ def _assert_review_material_was_readable(
     raise PilotError(
         "Le relecteur n'a pas pu lire son matériel de revue "
         f"({bundle_path.name}) ; aucun verdict produit n'a été rendu. "
-        "Vérifier le canal d'échange (`.forge-exchange/`, jamais cursor-ignoré) "
+        "Vérifier le canal d'échange (forge-exchange/, jamais cursor-ignoré) "
         "puis relancer la revue sur le même SHA."
     )
 

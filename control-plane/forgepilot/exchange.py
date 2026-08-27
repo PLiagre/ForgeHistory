@@ -25,7 +25,7 @@ from pathlib import Path
 from .process import PilotError
 
 
-EXCHANGE_DIRNAME = ".forge-exchange"
+EXCHANGE_DIRNAME = "forge-exchange"
 
 
 def exchange_dir(root: Path) -> Path:

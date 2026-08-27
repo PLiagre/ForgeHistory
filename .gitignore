@@ -44,7 +44,7 @@ harness/pipeline/demo/output/
 # cursor-ignoré — sinon le fichier existe et reste hors de portée de celui à
 # qui on le tend. `control-plane/tests/test_exchange_channel.py` tient les
 # deux conditions ensemble.
-.forge-exchange/
+forge-exchange/
 
 # Métadonnées de build régénérées par `pip install -e ./control-plane`
 # (installation locale du pilote, voir control-plane/README.md) : jamais
