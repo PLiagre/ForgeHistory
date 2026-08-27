@@ -55,3 +55,21 @@ grep -n 'global \|natalit\|naissance' sim/engine.py
 - `sim/MODELE.md`, `snapshot_export.py` et `test_monde.py` hors périmètre :
   `natalite_remainder` n'y figure pas encore.
 - Le mesureur utilise le `.venv` du dépôt parent si absent dans le worktree.
+
+## Correctif SC2 (relecture PR 152)
+
+Le contrôle `test_cellule_affamee_ne_gagne_pas_habitants` passait un tick
+complet : la mortalité vidait la cellule avant qu'un remainder
+inconditionnel n'atteigne 1. L'assertion `remainder_max == cell.natalite_remainder`
+comparait le max au dernier état du même objet. Les deux gardaient le test
+vert si `_apply_natalite` ignorait la faim.
+
+Le maillon est maintenant appelé **directement** avec une pénurie dérivée
+(`population × ration`), sur la borne `ceil(1 / (population × taux))` qui
+suffirait à naître si la porte était ouverte. Un cas frère ferme la porte
+sur une dette non nulle à pénurie nulle. Un cas `ration exacte` exige que
+la porte s'ouvre sur `penurie_kg == 0` même si le stock restant est nul.
+
+Le mesureur `naissances_en_cellule_affamee` suit le même protocole isolé :
+le zéro est une mesure qui deviendrait un entier positif si la natalité
+ignorait la pénurie.

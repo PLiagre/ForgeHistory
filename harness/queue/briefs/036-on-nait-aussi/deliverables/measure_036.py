@@ -154,11 +154,17 @@ def mesurer_ticks_premiere_naissance() -> tuple[int, int]:
 
 
 def mesurer_naissances_cellule_affamee() -> tuple[int, int]:
+    """Naissances si le maillon voit une pénurie — hors mortalité.
+
+    Un tick complet vide la cellule avant qu'un remainder inconditionnel
+    n'atteigne 1 : le zéro ne mesurerait alors rien. La borne est celle
+    qui suffirait à naître si la porte était ouverte.
+    """
     sys.path.insert(0, str(REPO))
     from sim import constants as c
-    from sim.engine import tick
+    from sim.constants import FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    from sim.engine import _apply_natalite
     from sim.model import Cell
-    from sim.world import World
 
     population = 50
     cell = Cell(
@@ -171,16 +177,15 @@ def mesurer_naissances_cellule_affamee() -> tuple[int, int]:
         mortality_remainder=0.0,
         natalite_remainder=0.0,
     )
-    world = World(cells={1: cell}, adjacency=[])
     rate = c.naissances_par_habitant_par_tick()
-    horizon = math.ceil(1.0 / rate)
-    rng = random.Random(0)
+    borne = math.ceil(1.0 / (rate * population))
+    penurie = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
     naissances = 0
     pop_init = population
-    for _ in range(horizon):
-        tick(world, rng)
-        naissances = max(0, world.cells[1].population - pop_init)
-    return naissances, horizon
+    for _ in range(borne):
+        _apply_natalite(cell, penurie)
+        naissances = max(naissances, max(0, cell.population - pop_init))
+    return naissances, borne
 
 
 def mesurer_cellules_en_croissance(

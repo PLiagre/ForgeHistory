@@ -33,6 +33,7 @@ from sim.constants import (
 from sim.engine import (
     _apply_consumption,
     _apply_mortality,
+    _apply_natalite,
     _apply_production,
     _update_hunger,
     production_moyenne_kg_par_tick,
@@ -736,10 +737,16 @@ def test_cellule_rassasiee_gagne_habitants():
 
 def test_cellule_affamee_ne_gagne_pas_habitants():
     """
-    SC2 — En pénurie (consommation > stock), population et natalite_remainder
-    n'augmentent jamais sur le même horizon.
+    SC2 — La faim ferme la natalité, elle ne la ralentit pas.
+
+    Le maillon est appelé directement : un tick complet tue la cellule
+    avant qu'un remainder inconditionnel n'atteigne 1, et le contrôle
+    passerait en silence (règle 4). La borne est le nombre de ticks
+    rassasiés qui suffirait à naître — dérivée du taux et de la
+    population, jamais écrite en dur.
     """
     population = 50
+    remainder_init = 0.0
     cell = Cell(
         cell_id=1,
         area_km2=0.0,
@@ -748,28 +755,93 @@ def test_cellule_affamee_ne_gagne_pas_habitants():
         hunger_ticks=0,
         food_deficit_kg=0.0,
         mortality_remainder=0.0,
+        natalite_remainder=remainder_init,
+    )
+    rate = constantes.naissances_par_habitant_par_tick()
+    borne = math.ceil(1.0 / (rate * population))
+    penurie_kg = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    remainder_max = remainder_init
+    for _ in range(borne):
+        _apply_natalite(cell, penurie_kg)
+        remainder_max = max(remainder_max, cell.natalite_remainder)
+    print(
+        f"pop = {cell.population}, remainder_init = {remainder_init}, "
+        f"remainder_max = {remainder_max}, borne = {borne}"
+    )
+    assert cell.population == population, (
+        f"Naissance en pénurie : population={cell.population}, "
+        f"départ={population}."
+    )
+    assert remainder_max == remainder_init, (
+        "natalite_remainder a progressé alors que la cellule était affamée."
+    )
+
+
+def test_dette_alimentaire_ferme_la_natalite():
+    """
+    SC2 — Une dette alimentaire nulle est exigée, pas seulement une
+    pénurie nulle ce tick. Sinon la faim d'hier n'empêcherait pas
+    de naître aujourd'hui.
+    """
+    population = 50
+    remainder_init = 0.0
+    cell = Cell(
+        cell_id=1,
+        area_km2=0.0,
+        population=population,
+        food_stock_kg=0.0,
+        hunger_ticks=0,
+        food_deficit_kg=population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
+        mortality_remainder=0.0,
+        natalite_remainder=remainder_init,
+    )
+    rate = constantes.naissances_par_habitant_par_tick()
+    borne = math.ceil(1.0 / (rate * population))
+    remainder_max = remainder_init
+    for _ in range(borne):
+        _apply_natalite(cell, 0.0)
+        remainder_max = max(remainder_max, cell.natalite_remainder)
+    print(
+        f"dette : pop = {cell.population}, remainder_max = {remainder_max}, "
+        f"borne = {borne}"
+    )
+    assert cell.population == population
+    assert remainder_max == remainder_init, (
+        "natalite_remainder a progressé malgré une dette alimentaire."
+    )
+
+
+def test_ration_exacte_ouvre_la_natalite():
+    """
+    SC2 — La porte se lit sur la pénurie du tick, pas sur un stock
+    restant. Une cellule qui mange pile sa ration (pénurie nulle,
+    garde-manger vide, dette nulle) accumule une fraction de natalité.
+    """
+    population = 100
+    besoin = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    cell = Cell(
+        cell_id=1,
+        area_km2=0.0,
+        population=population,
+        food_stock_kg=besoin,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        mortality_remainder=0.0,
         natalite_remainder=0.0,
     )
     world = World(cells={1: cell}, adjacency=[])
-    rate = constantes.naissances_par_habitant_par_tick()
-    horizon = math.ceil(1.0 / rate)
-    rng = random.Random(0)
-    pop_max = population
-    remainder_max = cell.natalite_remainder
-    for _ in range(horizon):
-        tick(world, rng)
-        c = world.cells[1]
-        pop_max = max(pop_max, c.population)
-        remainder_max = max(remainder_max, c.natalite_remainder)
+    tick(world, random.Random(0))
+    c = world.cells[1]
     print(
-        f"pop_max = {pop_max}, remainder_max = {remainder_max}, "
-        f"horizon = {horizon}"
+        f"stock = {c.food_stock_kg}, deficit = {c.food_deficit_kg}, "
+        f"remainder = {c.natalite_remainder}"
     )
-    assert pop_max == population, (
-        f"La population a augmenté en pénurie : max={pop_max}, départ={population}."
-    )
-    assert remainder_max == cell.natalite_remainder, (
-        "natalite_remainder a progressé alors que la cellule était affamée."
+    assert c.food_stock_kg == 0.0
+    assert c.food_deficit_kg == 0.0
+    assert c.natalite_remainder > 0.0, (
+        "Une cellule qui a mangé pile sa ration doit accumuler une "
+        "fraction de natalité. La porte se lit sur la pénurie, pas "
+        "sur le garde-manger."
     )
 
 
