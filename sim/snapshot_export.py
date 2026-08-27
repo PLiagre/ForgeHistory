@@ -26,7 +26,12 @@ from sim.aggregation import (
     identifiant_de_province_de_cellule,
     nom_de_province_de_cellule,
 )
-from sim.constants import SNAPSHOT_FLOAT_DECIMALS, SNAPSHOT_SCHEMA_VERSION
+from sim.constants import (
+    MARCHANDISE_NOURRITURE,
+    SNAPSHOT_FLOAT_DECIMALS,
+    SNAPSHOT_SCHEMA_VERSION,
+)
+from sim.model import lire_stock_marchandise
 from sim.world import CARTE_PATH, CARTE_RELATIVE, World
 
 _HASH_CHUNK_BYTES = 1024 * 1024
@@ -196,7 +201,7 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
                 "centroid": centroid,
                 "climat": raw.get("climat"),
                 "food_deficit_kg": cell.food_deficit_kg,
-                "food_stock_kg": cell.food_stock_kg,
+                "food_stock_kg": lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE),
                 "geometry": raw["geometry"],
                 "gisements": raw.get("gisements", []),
                 "hunger_ticks": cell.hunger_ticks,

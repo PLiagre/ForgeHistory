@@ -756,3 +756,69 @@ def test_tick_refuse_climat_incomplet(mutation: str, cle_attendue: str):
         tick(world, random.Random(0), numero_tick=0)
     assert cle_attendue in str(exc.value)
 
+# --- Brief 037 : panier de marchandises (SC3, SC4, SC5) ---
+
+
+def test_sentinelle_panier_absent_vs_zero():
+    """SC3 — Absent → -1.0 ; présent à zéro → 0.0 ; les deux ne se confondent pas."""
+    from sim.constants import MARCHANDISE_NOURRITURE
+    from sim.model import Cell, ecrire_stock_marchandise, lire_stock_marchandise
+
+    vide = Cell(cell_id=1, area_km2=1.0, population=1)
+    assert lire_stock_marchandise(vide, MARCHANDISE_NOURRITURE) == -1.0
+
+    a_zero = Cell(cell_id=2, area_km2=1.0, population=1)
+    ecrire_stock_marchandise(a_zero, MARCHANDISE_NOURRITURE, 0.0)
+    assert lire_stock_marchandise(a_zero, MARCHANDISE_NOURRITURE) == 0.0
+
+    assert -1.0 != 0.0
+
+
+def test_acces_directs_au_panier_hors_modele():
+    """SC4 — Aucun module de sim/ hors model.py n'indexe stocks directement."""
+    import ast
+    import pathlib
+
+    sim_dir = pathlib.Path(__file__).parent.parent
+    modules_parcourus = 0
+    acces_directs = 0
+    for fichier in sorted(sim_dir.rglob("*.py")):
+        rel = fichier.relative_to(sim_dir)
+        if "tests" in rel.parts or rel.name == "model.py":
+            continue
+        modules_parcourus += 1
+        tree = ast.parse(fichier.read_text(encoding="utf-8"), filename=str(fichier))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and node.attr == "stocks":
+                acces_directs += 1
+            elif isinstance(node, ast.Subscript) and isinstance(node.value, ast.Attribute):
+                if node.value.attr == "stocks":
+                    acces_directs += 1
+    assert modules_parcourus > 0
+    assert acces_directs == 0, (
+        f"acces_directs_au_panier_hors_modele={acces_directs} ; "
+        f"modules_sim_parcourus={modules_parcourus}"
+    )
+
+
+def test_panier_deuxieme_marchandise_et_to_dict():
+    """SC5 — Deuxième marchandise dans le panier ; World.to_dict() l'expose."""
+    from sim.constants import MARCHANDISE_NOURRITURE, MARCHANDISE_SONDE_037
+    from sim.model import Cell, ecrire_stock_marchandise, lire_stock_marchandise
+    from sim.world import World
+
+    cell = Cell(cell_id=99, area_km2=1.0, population=10, food_stock_kg=100.0)
+    assert lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE) == 100.0
+    ecrire_stock_marchandise(cell, MARCHANDISE_SONDE_037, 42.0)
+    assert lire_stock_marchandise(cell, MARCHANDISE_SONDE_037) == 42.0
+    assert lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE) == 100.0
+
+    world = World(cells={99: cell}, adjacency=[])
+    doc = world.to_dict()
+    assert doc["cells"]["99"]["stocks"][MARCHANDISE_SONDE_037] == 42.0
+
+    monde_charge = World.charger(0)
+    cellules_avec_panier = sum(
+        1 for entree in monde_charge.to_dict()["cells"].values() if "stocks" in entree
+    )
+    assert cellules_avec_panier == len(monde_charge.cells)

@@ -14,10 +14,11 @@ from sim.constants import (
     FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
     INITIAL_FOOD_RESERVE_TICKS,
     INITIAL_POPULATION_PER_KM2,
+    MARCHANDISE_NOURRITURE,
     SEED_POPULATION_VARIATION_HIGH,
     SEED_POPULATION_VARIATION_LOW,
 )
-from sim.model import Cell
+from sim.model import Cell, cellule_vers_dict
 
 # Racine du dépôt : deux niveaux au-dessus du paquet sim/
 _REPO_ROOT = pathlib.Path(__file__).parent.parent
@@ -102,11 +103,12 @@ class World:
             area = raw["area_km2"]
             pop = _seed_population(area, rng)
             stock = _seed_food_stock(pop)
+            stocks_init = {MARCHANDISE_NOURRITURE: stock}
             cell = Cell(
                 cell_id=cid,
                 area_km2=area,
                 population=pop,
-                food_stock_kg=stock,
+                stocks=stocks_init,
                 hunger_ticks=0,
                 food_deficit_kg=0.0,
                 # Monde amorcé : aucune fraction de mort en attente.
@@ -125,15 +127,7 @@ class World:
         """
         return {
             "cells": {
-                str(cid): {
-                    "cell_id": c.cell_id,
-                    "area_km2": c.area_km2,
-                    "population": c.population,
-                    "food_stock_kg": c.food_stock_kg,
-                    "hunger_ticks": c.hunger_ticks,
-                    "food_deficit_kg": c.food_deficit_kg,
-                    "mortality_remainder": c.mortality_remainder,
-                }
+                str(cid): cellule_vers_dict(c)
                 for cid, c in sorted(self.cells.items())
             }
         }

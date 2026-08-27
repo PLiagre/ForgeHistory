@@ -28,7 +28,7 @@ import random
 from collections import defaultdict
 
 from sim import constants as _constantes
-from sim.model import Cell
+from sim.model import Cell, ecrire_stock_marchandise, lire_stock_marchandise
 
 # Carte lue pendant un tick sur un monde chargé ; None hors tick ou sans carte.
 _carte_du_tick: dict | None = None
@@ -204,8 +204,9 @@ def _apply_production(
         food_produced = production_du_tick_kg(cell, yield_factor, carte, jour=jour)
     else:
         food_produced = production_kg(cell, yield_factor)
-    current = cell.food_stock_kg if cell.food_stock_kg >= 0 else 0.0
-    cell.food_stock_kg = current + food_produced
+    current = lire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE)
+    current = current if current >= 0 else 0.0
+    ecrire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE, current + food_produced)
 
 
 def _apply_production_saison_moyenne(
@@ -220,8 +221,9 @@ def _apply_production_saison_moyenne(
     """
     yield_factor = rng.uniform(_constantes.RNG_YIELD_LOW, _constantes.RNG_YIELD_HIGH)
     food_produced = _production_du_tick_kg_saison_moyenne(cell, yield_factor, carte)
-    current = cell.food_stock_kg if cell.food_stock_kg >= 0 else 0.0
-    cell.food_stock_kg = current + food_produced
+    current = lire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE)
+    current = current if current >= 0 else 0.0
+    ecrire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE, current + food_produced)
 
 
 def _apply_commerce(world, total_transported: list) -> None:
@@ -244,13 +246,13 @@ def _apply_commerce(world, total_transported: list) -> None:
       receveur reçoit une part proportionnelle à son besoin.
     - Le transfert par arête est borné par TRADE_CAPACITY_KG_PER_EDGE_PER_TICK.
 
-    Conservation stricte : seul food_stock_kg est modifié. food_deficit_kg
+    Conservation stricte : seul le stock de nourriture est modifié. food_deficit_kg
     n'est jamais touché par ce maillon (SC1 brief 013).
     `total_transported` est une liste à un élément (accumulateur mutable).
     """
     # Passe 1a : snapshot immuable des stocks et populations
     snapshot_stock = {
-        cid: max(0.0, cell.food_stock_kg)
+        cid: max(0.0, lire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE))
         for cid, cell in world.cells.items()
     }
     snapshot_pop = {cid: cell.population for cid, cell in world.cells.items()}
@@ -333,8 +335,18 @@ def _apply_commerce(world, total_transported: list) -> None:
 
     # Passe 2 : appliquer tous les transferts (jamais food_deficit_kg)
     for source_id, receiver_id, transfer in final_transfers:
-        world.cells[source_id].food_stock_kg -= transfer
-        world.cells[receiver_id].food_stock_kg += transfer
+        source_cell = world.cells[source_id]
+        receiver_cell = world.cells[receiver_id]
+        source_stock = lire_stock_marchandise(source_cell, _constantes.MARCHANDISE_NOURRITURE)
+        source_eff = source_stock if source_stock >= 0 else 0.0
+        ecrire_stock_marchandise(
+            source_cell, _constantes.MARCHANDISE_NOURRITURE, source_eff - transfer
+        )
+        receiver_stock = lire_stock_marchandise(receiver_cell, _constantes.MARCHANDISE_NOURRITURE)
+        receiver_eff = receiver_stock if receiver_stock >= 0 else 0.0
+        ecrire_stock_marchandise(
+            receiver_cell, _constantes.MARCHANDISE_NOURRITURE, receiver_eff + transfer
+        )
         total_transported[0] += transfer
 
 
@@ -342,7 +354,7 @@ def _apply_consumption(cell: Cell) -> float:
     """
     Maillon 3 — Consommation (brief 013 SC1 ; brief 017 SC4+SC5).
 
-    Lit food_stock_kg (après commerce), soustrait la consommation, et retourne
+    Lit le stock de nourriture (après commerce), soustrait la consommation, et retourne
     la pénurie du tick en kg (0.0 s'il n'y a pas eu de manque). Cette valeur
     de retour est le critère causal de la faim : c'est elle, et non un stock
     vide, qui dit qu'une cellule a MANQUÉ de nourriture ce tick (SC4).
@@ -364,7 +376,9 @@ def _apply_consumption(cell: Cell) -> float:
           du tick est retournée.
     """
     tick_need = cell.population * _constantes.FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-    remaining = cell.food_stock_kg - tick_need
+    stock = lire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE)
+    stock_eff = stock if stock >= 0 else 0.0
+    remaining = stock_eff - tick_need
     prev_deficit = cell.food_deficit_kg if cell.food_deficit_kg > 0 else 0.0
 
     if remaining >= 0.0:
@@ -379,12 +393,14 @@ def _apply_consumption(cell: Cell) -> float:
         # calcul flottant — et l'effacer serait faire disparaître des
         # kilogrammes sans contrepartie (principe 3).
         cell.food_deficit_kg = prev_deficit - remboursement
-        cell.food_stock_kg = remaining - remboursement
+        ecrire_stock_marchandise(
+            cell, _constantes.MARCHANDISE_NOURRITURE, remaining - remboursement
+        )
         return 0.0
 
     shortage = -remaining
     cell.food_deficit_kg = prev_deficit + shortage
-    cell.food_stock_kg = 0.0
+    ecrire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE, 0.0)
     return shortage
 
 

@@ -1,0 +1,12 @@
+sha_de_base=e5f843c27f3af03f929afb4415a522013742441b
+modules_sim_parcourus=8
+references_au_champ_supprime_avant=16
+references_au_champ_supprime_apres=0
+acces_directs_au_panier_hors_modele=0
+champs_cli_identiques=10
+cles_snapshot_identiques=8
+cellules_to_dict_avec_panier=596
+lignes_supprimees_test_monde=0
+fichiers_test_inchanges=4
+tests_collectes_apres=79
+tests_collectes_avant=76
