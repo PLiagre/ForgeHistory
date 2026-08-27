@@ -279,9 +279,58 @@ def _apply_production_saison_moyenne(
     ecrire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE, current + food_produced)
 
 
-def _apply_commerce(world, total_transported: list) -> None:
+def _cle_arête(a_id: int, b_id: int) -> tuple[int, int]:
+    """Clé non orientée d'une arête d'adjacence."""
+    return (min(a_id, b_id), max(a_id, b_id))
+
+
+def _initialiser_capacite_aretes(world) -> dict[tuple[int, int], float]:
+    """Capacité restante par arête au début du maillon commerce (brief 039)."""
+    capacite: dict[tuple[int, int], float] = {}
+    for edge in world.adjacency:
+        cle = _cle_arête(edge["a"], edge["b"])
+        capacite[cle] = _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+    return capacite
+
+
+def _marchandises_du_monde(world) -> list[str]:
+    """Marchandises jouées : clés de panier présentes, plus la ration alimentaire."""
+    noms: set[str] = {_constantes.MARCHANDISE_NOURRITURE}
+    if hasattr(world, "to_dict"):
+        for entree in world.to_dict()["cells"].values():
+            panier = entree.get("stocks") or {}
+            noms.update(panier)
+    else:
+        candidats: set[str] = {
+            _constantes.MARCHANDISE_NOURRITURE,
+            _constantes.MARCHANDISE_ESSAI_039,
+        }
+        carte = getattr(world, "carte", None) or {}
+        for entree in carte.values():
+            if not isinstance(entree, dict):
+                continue
+            for gisement in entree.get("gisements") or []:
+                if isinstance(gisement, dict) and gisement.get("ressource"):
+                    candidats.add(gisement["ressource"])
+        for cell in world.cells.values():
+            for nom in candidats:
+                if lire_stock_marchandise(cell, nom) >= 0:
+                    noms.add(nom)
+    return sorted(noms)
+
+
+def _apply_commerce(
+    world,
+    total_transported: list,
+    marchandise: str | None = None,
+    capacite_restante: dict[tuple[int, int], float] | None = None,
+) -> None:
     """
-    Maillon 2 — Commerce inter-cellules (brief 013, SC1+SC2).
+    Maillon 2 — Commerce inter-cellules (brief 013, SC1+SC2 ; brief 039).
+
+    Transporte la marchandise passée en paramètre. Sans paramètre de marchandise,
+    joue toutes les marchandises dérivées du monde dans un ordre stable, avec un
+    plafond d'arête partagé entre elles pour le tick.
 
     Calcul en deux passes sur snapshot pour garantir le transport atomique
     (un kg ne traverse au plus qu'une arête par tick) et l'invariance à
@@ -297,21 +346,30 @@ def _apply_commerce(world, total_transported: list) -> None:
     - Les demandes sont triées par cell_id croissant (ordre stable).
     - Si la somme des demandes dépasse le surplus de la source, chaque
       receveur reçoit une part proportionnelle à son besoin.
-    - Le transfert par arête est borné par TRADE_CAPACITY_KG_PER_EDGE_PER_TICK.
+    - Le transfert par arête est borné par la capacité restante de l'arête.
 
-    Conservation stricte : seul le stock de nourriture est modifié. food_deficit_kg
-    n'est jamais touché par ce maillon (SC1 brief 013).
+    Conservation stricte : seul le stock de la marchandise courante est modifié.
+    food_deficit_kg n'est jamais touché par ce maillon (SC1 brief 013).
     `total_transported` est une liste à un élément (accumulateur mutable).
     """
+    if marchandise is None:
+        if capacite_restante is None:
+            capacite_restante = _initialiser_capacite_aretes(world)
+        for nom in _marchandises_du_monde(world):
+            _apply_commerce(world, total_transported, nom, capacite_restante)
+        return
+
+    consommation_unitaire = _constantes.consommation_kg_par_habitant_par_tick(marchandise)
+
     # Passe 1a : snapshot immuable des stocks et populations
     snapshot_stock = {
-        cid: max(0.0, lire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE))
+        cid: max(0.0, lire_stock_marchandise(cell, marchandise))
         for cid, cell in world.cells.items()
     }
     snapshot_pop = {cid: cell.population for cid, cell in world.cells.items()}
 
     def _tick_consumption(cid: int) -> float:
-        return snapshot_pop[cid] * _constantes.FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+        return snapshot_pop[cid] * consommation_unitaire
 
     def _surplus(cid: int) -> float:
         return max(0.0, snapshot_stock[cid] - _tick_consumption(cid))
@@ -320,8 +378,7 @@ def _apply_commerce(world, total_transported: list) -> None:
         return max(0.0, _tick_consumption(cid) - snapshot_stock[cid])
 
     # Passe 1b : collecter les demandes par source, triées par cell_id receveur
-    # Chaque entrée : (source_id, receiver_id, demand_amount)
-    by_source: dict[int, list[tuple[int, float]]] = defaultdict(list)
+    by_source: dict[int, list[tuple[int, float, tuple[int, int]]]] = defaultdict(list)
 
     for edge in world.adjacency:
         a_id = edge["a"]
@@ -329,78 +386,81 @@ def _apply_commerce(world, total_transported: list) -> None:
         if a_id not in world.cells or b_id not in world.cells:
             continue
 
+        cle = _cle_arête(a_id, b_id)
+        cap_arête = capacite_restante.get(
+            cle, _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+        )
+
         surplus_a = _surplus(a_id)
         surplus_b = _surplus(b_id)
         need_a = _need(a_id)
         need_b = _need(b_id)
 
-        # Direction a→b : a a du surplus, b a un besoin
         if surplus_a > 0 and need_b > 0:
-            demand = min(need_b, _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)
-            by_source[a_id].append((b_id, demand))
+            demand = min(need_b, cap_arête)
+            by_source[a_id].append((b_id, demand, cle))
 
-        # Direction b→a : b a du surplus, a a un besoin
         elif surplus_b > 0 and need_a > 0:
-            demand = min(need_a, _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)
-            by_source[b_id].append((a_id, demand))
+            demand = min(need_a, cap_arête)
+            by_source[b_id].append((a_id, demand, cle))
 
-    # Passe 1c : allocation proportionnelle par source (tri stable par receiver cell_id)
-    transfers: list[tuple[int, int, float]] = []
+    transfers: list[tuple[int, int, float, tuple[int, int]]] = []
 
     for source_id in sorted(by_source.keys()):
         requests = sorted(by_source[source_id], key=lambda r: r[0])
         avail = _surplus(source_id)
-        total_req = sum(d for _, d in requests)
+        total_req = sum(d for _, d, _ in requests)
 
-        for receiver_id, demand in requests:
+        for receiver_id, demand, cle in requests:
             if total_req <= avail:
                 transfer = demand
             else:
-                # Allocation proportionnelle pour ne pas dépasser le surplus
                 transfer = avail * (demand / total_req)
                 transfer = min(transfer, demand)
             if transfer > 0:
-                transfers.append((source_id, receiver_id, transfer))
+                transfers.append((source_id, receiver_id, transfer, cle))
 
-    # Passe 1d : écrêtage côté receveur (N3 feedback 001, brief 013).
-    # Une cellule ne peut pas recevoir plus que son besoin snapshot même si
-    # plusieurs sources en surplus la visent simultanément.
-    # Conservation de la masse : l'excédent reste chez la source.
     snapshot_needs = {cid: _need(cid) for cid in world.cells}
-    by_receiver: dict[int, list[tuple[int, float]]] = defaultdict(list)
-    for src, rcv, qty in transfers:
-        by_receiver[rcv].append((src, qty))
+    by_receiver: dict[int, list[tuple[int, float, tuple[int, int]]]] = defaultdict(list)
+    for src, rcv, qty, cle in transfers:
+        by_receiver[rcv].append((src, qty, cle))
 
-    final_transfers: list[tuple[int, int, float]] = []
+    final_transfers: list[tuple[int, int, float, tuple[int, int]]] = []
     for rcv_id in sorted(by_receiver.keys()):
         incoming = by_receiver[rcv_id]
         need_r = snapshot_needs[rcv_id]
-        total_in = sum(qty for _, qty in incoming)
+        total_in = sum(qty for _, qty, _ in incoming)
         if total_in > need_r and total_in > 0.0:
             scale = need_r / total_in
-            for src_id, qty in incoming:
+            for src_id, qty, cle in incoming:
                 scaled = qty * scale
                 if scaled > 0.0:
-                    final_transfers.append((src_id, rcv_id, scaled))
+                    final_transfers.append((src_id, rcv_id, scaled, cle))
         else:
-            for src_id, qty in incoming:
-                final_transfers.append((src_id, rcv_id, qty))
+            for src_id, qty, cle in incoming:
+                final_transfers.append((src_id, rcv_id, qty, cle))
 
-    # Passe 2 : appliquer tous les transferts (jamais food_deficit_kg)
-    for source_id, receiver_id, transfer in final_transfers:
+    consomme_par_arête: dict[tuple[int, int], float] = defaultdict(float)
+    for source_id, receiver_id, transfer, cle in final_transfers:
         source_cell = world.cells[source_id]
         receiver_cell = world.cells[receiver_id]
-        source_stock = lire_stock_marchandise(source_cell, _constantes.MARCHANDISE_NOURRITURE)
+        source_stock = lire_stock_marchandise(source_cell, marchandise)
         source_eff = source_stock if source_stock >= 0 else 0.0
         ecrire_stock_marchandise(
-            source_cell, _constantes.MARCHANDISE_NOURRITURE, source_eff - transfer
+            source_cell, marchandise, source_eff - transfer
         )
-        receiver_stock = lire_stock_marchandise(receiver_cell, _constantes.MARCHANDISE_NOURRITURE)
+        receiver_stock = lire_stock_marchandise(receiver_cell, marchandise)
         receiver_eff = receiver_stock if receiver_stock >= 0 else 0.0
         ecrire_stock_marchandise(
-            receiver_cell, _constantes.MARCHANDISE_NOURRITURE, receiver_eff + transfer
+            receiver_cell, marchandise, receiver_eff + transfer
         )
         total_transported[0] += transfer
+        consomme_par_arête[cle] += transfer
+
+    for cle, qty in consomme_par_arête.items():
+        restant = capacite_restante.get(cle, _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK)
+        capacite_restante[cle] = max(0.0, restant - qty)
+
 
 
 def _apply_consumption(cell: Cell) -> float:

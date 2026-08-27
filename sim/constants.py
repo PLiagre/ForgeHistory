@@ -185,6 +185,25 @@ RNG_YIELD_HIGH = 1.5
 # Proxy : ration journalière médiévale ~2 kg × TICK_DURATION_DAYS.
 FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK = 2.0 * TICK_DURATION_DAYS
 
+# Marchandise d'essai SC3 brief 039 : consommation non nulle via l'accès nommé.
+MARCHANDISE_ESSAI_039 = "__essai_commerce_039__"
+CONSOMMATION_ESSAI_039_KG_PAR_HABITANT_PAR_TICK = 1.0 * TICK_DURATION_DAYS
+
+
+def consommation_kg_par_habitant_par_tick(marchandise: str) -> float:
+    """
+    Kilogrammes consommés par habitant et par tick pour une marchandise.
+
+    Seul lieu du moteur qui distingue une marchandise d'une autre pour la
+    consommation (brief 039). Relit les constantes nommées à chaque appel.
+    """
+    if marchandise == MARCHANDISE_NOURRITURE:
+        return FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    if marchandise == MARCHANDISE_ESSAI_039:
+        return CONSOMMATION_ESSAI_039_KG_PAR_HABITANT_PAR_TICK
+    return 0.0
+
+
 # --- Commerce inter-cellules (SC4 brief 012) ---
 
 # Capacité de transport maximale par arête d'adjacence et par tick (kg).
