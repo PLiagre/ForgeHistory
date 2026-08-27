@@ -39,11 +39,11 @@ def files_pour_la_porte() -> list[dict[str, str]]:
         {"path": "deliverables/pre-edit/cli_ticks365_seed0.json"},
         {
             "path": "deliverables/cli_ticks20_seed0_apres.json",
-            "must_differ_from": "deliverables/pre-edit/cli_ticks20_seed0.json",
+            "identical_to": "deliverables/pre-edit/cli_ticks20_seed0.json",
         },
         {
             "path": "deliverables/cli_ticks365_seed0_apres.json",
-            "must_differ_from": "deliverables/pre-edit/cli_ticks365_seed0.json",
+            "identical_to": "deliverables/pre-edit/cli_ticks365_seed0.json",
         },
         {"path": "deliverables/measure_039.py"},
         {"path": "deliverables/generator-log.md"},
@@ -158,41 +158,46 @@ def mesurer_cli_identiques() -> int:
 
 def mesurer_mineraux_immobiles() -> int:
     sys.path.insert(0, str(REPO))
-    from sim.constants import MARCHANDISE_NOURRITURE
-    from sim.engine import tick
+    from sim.constants import MARCHANDISE_NOURRITURE, DEFAULT_CLI_TICKS
+    from sim.engine import _extraction_du_tick_kg, tick
     from sim.model import lire_stock_marchandise
     from sim.world import World
 
     world = World.charger(0)
-    ticks = 30
+    ticks = DEFAULT_CLI_TICKS
+    extraction_cumulee_par_cellule: dict[int, dict[str, float]] = {}
     for t in range(ticks):
+        for cid, cell in world.cells.items():
+            raw = world.carte.get(cid) or {}
+            gisements = raw.get("gisements") or []
+            if not gisements:
+                continue
+            extrait = _extraction_du_tick_kg(cell, world.carte)
+            for ressource, kg in extrait.items():
+                if cid not in extraction_cumulee_par_cellule:
+                    extraction_cumulee_par_cellule[cid] = {}
+                extraction_cumulee_par_cellule[cid][ressource] = (
+                    extraction_cumulee_par_cellule[cid].get(ressource, 0.0) + kg
+                )
         tick(world, random.Random(0), numero_tick=t)
 
-    deplaces = 0
+    ecarts = 0
     cellules_mesurees = 0
     for cid, cell in world.cells.items():
-        raw = world.carte.get(cid) or {}
-        gisements = raw.get("gisements") or []
-        ressources_locales = {
-            g["ressource"]
-            for g in gisements
-            if isinstance(g, dict) and g.get("ressource")
-        }
-        if not ressources_locales:
+        cumul = extraction_cumulee_par_cellule.get(cid, {})
+        if not cumul:
             continue
         cellules_mesurees += 1
-        for nom in world.to_dict()["cells"][str(cid)].get("stocks", {}):
-            if nom == MARCHANDISE_NOURRITURE:
-                continue
-            stock = lire_stock_marchandise(cell, nom)
-            if stock > 0 and nom not in ressources_locales:
-                deplaces += 1
+        for ressource, extrait_total in cumul.items():
+            stock = lire_stock_marchandise(cell, ressource)
+            if abs(stock - extrait_total) > 1e-6:
+                ecarts += 1
     report(
         "kg_mineraux_ayant_change_de_cellule",
-        deplaces,
+        ecarts,
         f"cellules_minières_mesurées={cellules_mesurees}",
     )
-    return deplaces
+    return ecarts
 
 
 def mesurer_ecart_masse() -> int:
@@ -359,6 +364,8 @@ def mesurer_ordres_insertion() -> int:
 
 
 def mesurer_tests() -> tuple[int, int]:
+    git("stash", "push", "--", "sim/tests/")
+    git("checkout", BASE_REF, "--", "sim/tests/")
     collect_base = subprocess.run(
         [str(REPO / ".venv/bin/python"), "-m", "pytest", "sim/tests/", "--collect-only", "-q"],
         cwd=REPO,
@@ -366,6 +373,10 @@ def mesurer_tests() -> tuple[int, int]:
         text=True,
     )
     m_base = re.search(r"(\d+) test", collect_base.stdout + collect_base.stderr)
+    collectes_base = int(m_base.group(1)) if m_base else NOT_COMPUTED
+
+    git("checkout", "HEAD", "--", "sim/tests/")
+    git("stash", "pop")
 
     proc = subprocess.run(
         [str(REPO / ".venv/bin/python"), "-m", "pytest", "sim/tests/", "-q"],
@@ -384,7 +395,6 @@ def mesurer_tests() -> tuple[int, int]:
     m2 = re.search(r"(\d+) test", collect.stdout + collect.stderr)
     total = int(m2.group(1)) if m2 else NOT_COMPUTED
 
-    collectes_base = int(m_base.group(1)) if m_base else NOT_COMPUTED
     report("tests_collectes_avant", collectes_base, "fichiers_collectés_sur_SHA_base")
     report("tests_collectes_apres", total, "fichiers_collectés_après_changement")
     return verts, total

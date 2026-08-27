@@ -296,26 +296,18 @@ def _initialiser_capacite_aretes(world) -> dict[tuple[int, int], float]:
 def _marchandises_du_monde(world) -> list[str]:
     """Marchandises jouées : clés de panier présentes, plus la ration alimentaire."""
     noms: set[str] = {_constantes.MARCHANDISE_NOURRITURE}
-    if hasattr(world, "to_dict"):
-        for entree in world.to_dict()["cells"].values():
-            panier = entree.get("stocks") or {}
-            noms.update(panier)
-    else:
-        candidats: set[str] = {
-            _constantes.MARCHANDISE_NOURRITURE,
-            _constantes.MARCHANDISE_ESSAI_039,
-        }
-        carte = getattr(world, "carte", None) or {}
-        for entree in carte.values():
-            if not isinstance(entree, dict):
-                continue
-            for gisement in entree.get("gisements") or []:
-                if isinstance(gisement, dict) and gisement.get("ressource"):
-                    candidats.add(gisement["ressource"])
-        for cell in world.cells.values():
-            for nom in candidats:
-                if lire_stock_marchandise(cell, nom) >= 0:
-                    noms.add(nom)
+    for cell in world.cells.values():
+        noms.update(cell.stocks.keys())
+    carte = getattr(world, "carte", None) or {}
+    for entree in carte.values():
+        if not isinstance(entree, dict):
+            continue
+        for gisement in entree.get("gisements") or []:
+            if isinstance(gisement, dict) and gisement.get("ressource"):
+                noms.add(gisement["ressource"])
+    for cell in world.cells.values():
+        if hasattr(cell, "extraction_cumulee"):
+            noms.update(cell.extraction_cumulee.keys())
     return sorted(noms)
 
 
