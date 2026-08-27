@@ -615,6 +615,112 @@ def _apply_mortality(cell: Cell) -> None:
         cell.mortality_remainder = remainder
 
 
+def _apply_migration(world) -> None:
+    """
+    Maillon 6 — Migration de famine (brief 041).
+
+    Une fraction des habitants d'une cellule affamée (hunger_ticks > 0)
+    émigre vers les cellules voisines qui ont un surplus de nourriture.
+
+    Ils partent les mains vides, ne traversent qu'une arête par tick,
+    et se répartissent proportionnellement au surplus des destinations.
+
+    Le report de la fraction (migration_remainder) évite l'immobilité
+    par arrondi sur les petites populations (SC4).
+    La population totale est conservée (SC1).
+
+    Calcul en deux passes sur snapshot pour garantir l'invariance à
+    l'ordre des arêtes (principe du commerce, brief 013).
+    """
+    # Passe 1 : snapshot des populations et stocks
+    snapshot_pop = {cid: cell.population for cid, cell in world.cells.items()}
+    snapshot_stock = {
+        cid: max(0.0, lire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE))
+        for cid, cell in world.cells.items()
+    }
+
+    # Passe 2 : pour chaque cellule affamée, déterminer les départs
+    # Construire d'abord la liste des transferts, les appliquer ensuite
+    # pour garantir l'atomicité (snapshot).
+    transfers: list[tuple[int, int, int]] = []  # (source, dest, nb_personnes)
+
+    for cell in world.cells.values():
+        if cell.hunger_ticks <= 0 or cell.population <= 0:
+            continue
+
+        src_id = cell.cell_id
+        src_pop = snapshot_pop[src_id]
+
+        # Voisins avec surplus
+        destinations: list[tuple[int, float]] = []
+        for edge in world.adjacency:
+            a_id = edge["a"]
+            b_id = edge["b"]
+            if a_id not in world.cells or b_id not in world.cells:
+                continue
+
+            # Identifier le voisin
+            neighbor_id = b_id if a_id == src_id else a_id if b_id == src_id else None
+            if neighbor_id is None:
+                continue
+
+            surplus = snapshot_stock.get(neighbor_id, 0.0)
+            if surplus > 0.0:
+                destinations.append((neighbor_id, surplus))
+
+        if not destinations:
+            # Aucune destination : la fraction reste dans migration_remainder
+            continue
+
+        # Proportionnel au surplus des destinations
+        total_surplus = sum(s for _, s in destinations)
+
+        # Calcul des migrants bruts avec remainder
+        remainder = cell.migration_remainder if cell.migration_remainder >= 0.0 else 0.0
+        raw_migrants = src_pop * _constantes.FRACTION_MIGRANTE_PAR_TICK + remainder
+        total_migrants = int(raw_migrants)
+        reste = raw_migrants - total_migrants
+
+        if total_migrants <= 0:
+            # Pas assez de migrants : conserver le remainder brut pour le prochain tick
+            cell.migration_remainder = raw_migrants
+            continue
+
+        # Répartir les migrants entre les destinations
+        for nb_id, surplus in destinations:
+            if total_surplus <= 0.0:
+                break
+            part = int(total_migrants * surplus / total_surplus)
+            if part > 0:
+                transfers.append((src_id, nb_id, part))
+                # S'assurer que la destination avait bien une population initiale
+                # (on n'initialise pas à 0 par défaut)
+                if nb_id not in world.cells:
+                    continue
+
+        # Appliquer le reste au migration_remainder de la source
+        cell.migration_remainder = reste
+
+    # Passe 3 : appliquer les transferts sur les populations réelles
+    # On vérifie qu'aucune source ne donne plus que sa population effective
+    # (la source peut avoir perdu des gens via un transfert précédent dans
+    # cette même passe — on ajuste).
+    donnees: dict[int, int] = {}
+    recues: dict[int, int] = {}
+    for src, dst, nb in transfers:
+        donnees[src] = donnees.get(src, 0) + nb
+        recues[dst] = recues.get(dst, 0) + nb
+
+    for src_id, total in donnees.items():
+        src_cell = world.cells[src_id]
+        effectif = min(total, src_cell.population)
+        src_cell.population = max(0, src_cell.population - effectif)
+
+    for dst_id, total in recues.items():
+        dst_cell = world.cells[dst_id]
+        dst_cell.population = dst_cell.population + total
+
+
 def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
     """
     Avance le monde d'un pas de temps.
@@ -654,5 +760,7 @@ def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
         penurie_kg = _apply_consumption(cell)
         _update_hunger(cell, penurie_kg)
         _apply_mortality(cell)
+
+    _apply_migration(world)
 
     return total_transported[0]

@@ -286,8 +286,8 @@ class _MondeEpreuve:
 
         self.cells = {
             1: Cell(cell_id=1, area_km2=100.0, population=10,
-                    food_stock_kg=1000.0, hunger_ticks=0,
-                    food_deficit_kg=5000.0, mortality_remainder=0.0),
+                    food_stock_kg=10000.0, hunger_ticks=0,
+                    food_deficit_kg=2000.0, mortality_remainder=0.0),
             2: Cell(cell_id=2, area_km2=1.0, population=1000,
                     food_stock_kg=0.0, hunger_ticks=0,
                     food_deficit_kg=100000.0, mortality_remainder=0.5),
@@ -295,13 +295,14 @@ class _MondeEpreuve:
                     food_stock_kg=12.0, hunger_ticks=0,
                     food_deficit_kg=0.0, mortality_remainder=0.0),
         }
-        self.adjacency = [{"a": 1, "b": 2}, {"a": 1, "b": 3}]
+        self.adjacency = [{"a": 1, "b": 2}, {"a": 1, "b": 3}, {"a": 2, "b": 3}]
 
     def etat(self):
         """Empreinte exacte : `repr` d'un flottant, jamais un arrondi."""
         return [
             (c.cell_id, c.population, repr(c.food_stock_kg), c.hunger_ticks,
-             repr(c.food_deficit_kg), repr(c.mortality_remainder))
+             repr(c.food_deficit_kg), repr(c.mortality_remainder),
+             repr(c.migration_remainder))
             for c in sorted(self.cells.values(), key=lambda c: c.cell_id)
         ]
 

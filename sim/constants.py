@@ -260,6 +260,13 @@ SEED_POPULATION_VARIATION_HIGH = 1.1
 # calendaire (SC1 brief 012 — correction du nom trompeur constat P3-2).
 INITIAL_FOOD_RESERVE_TICKS = 5
 
+# --- Migration de famine (brief 041) ---
+
+# Fraction de la population d'une cellule affamée qui émigre par tick,
+# vers les cellules voisines en surplus alimentaire.
+# Proxy paramétrique niveau 2 : ordre de grandeur plausible, jamais sourcé.
+FRACTION_MIGRANTE_PAR_TICK = 0.01
+
 # --- Récupération physique du déficit alimentaire (SC5 brief 017) ---
 
 # Successeur nommé de DEFICIT_RECOVERY_RATE_PER_TICK (brief 013, supprimée).

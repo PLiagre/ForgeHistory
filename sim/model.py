@@ -63,6 +63,7 @@ def cellule_vers_dict(cell: "Cell") -> dict:
         "hunger_ticks": cell.hunger_ticks,
         "food_deficit_kg": cell.food_deficit_kg,
         "mortality_remainder": cell.mortality_remainder,
+        "migration_remainder": cell.migration_remainder,
         "stocks": dict(cell.stocks),
     }
 
@@ -80,6 +81,7 @@ class Cell(_NoBadSpatialField):
     hunger_ticks: int = field(default=-1)
     food_deficit_kg: float = field(default=-1.0)
     mortality_remainder: float = field(default=-1.0)
+    migration_remainder: float = field(default=-1.0)
 
     def __init__(
         self,
@@ -90,6 +92,7 @@ class Cell(_NoBadSpatialField):
         hunger_ticks: int = -1,
         food_deficit_kg: float = -1.0,
         mortality_remainder: float = -1.0,
+        migration_remainder: float = -1.0,
         food_stock_kg: float | None = None,
     ):
         self.cell_id = cell_id
@@ -99,6 +102,7 @@ class Cell(_NoBadSpatialField):
         self.hunger_ticks = hunger_ticks
         self.food_deficit_kg = food_deficit_kg
         self.mortality_remainder = mortality_remainder
+        self.migration_remainder = migration_remainder
         if food_stock_kg is not None and food_stock_kg >= 0:
             self.stocks = {MARCHANDISE_NOURRITURE: food_stock_kg}
         _NoBadSpatialField.__post_init__(self)

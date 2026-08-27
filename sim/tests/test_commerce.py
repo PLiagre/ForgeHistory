@@ -1014,3 +1014,224 @@ def test_sans_carte_capacite_transport_inchangee():
     assert stock > 0.0
     assert stock <= TRADE_CAPACITY_KG_PER_EDGE_PER_TICK + TOLERANCE
 
+
+# --- Brief 041 : migration de famine ---
+
+MIGRATION_FRACTION = 0.01
+
+
+def _micro_monde_migration() -> tuple[World, int, int]:
+    """
+    Micro-monde pour les tests de migration : deux cellules adjacentes.
+
+    - Cellule A (affamée) : hunger_ticks=1, food_stock_kg=0,
+      population=1000, area_km2=0 (pas de production).
+    - Cellule B (surplus)  : hunger_ticks=0, grande réserve de nourriture,
+      population=0 (pas de consommation propre).
+    """
+    from sim.model import ecrire_stock_marchandise
+
+    affamee = Cell(
+        cell_id=9300, area_km2=0.0, population=1000,
+        food_stock_kg=0.0, hunger_ticks=1, food_deficit_kg=2000.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    grenier = Cell(
+        cell_id=9301, area_km2=0.0, population=0,
+        food_stock_kg=100000.0, hunger_ticks=0, food_deficit_kg=0.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    adjacency = [{"a": 9300, "b": 9301, "kind": "land", "shared_length_m": 5000.0}]
+    world = World(cells={9300: affamee, 9301: grenier}, adjacency=adjacency)
+    return world, 9300, 9301
+
+
+def _micro_monde_triplet_migration() -> tuple[World, int, list[int]]:
+    """
+    Micro-monde : une source affamée, deux destinations en surplus inégal.
+    Surplus croissant : B1 < B2 pour tester la proportionnalité.
+    """
+    from sim.model import ecrire_stock_marchandise
+
+    affamee = Cell(
+        cell_id=9400, area_km2=0.0, population=2000,
+        food_stock_kg=0.0, hunger_ticks=5, food_deficit_kg=5000.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    grenier_1 = Cell(
+        cell_id=9401, area_km2=0.0, population=0,
+        food_stock_kg=5000.0, hunger_ticks=0, food_deficit_kg=0.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    grenier_2 = Cell(
+        cell_id=9402, area_km2=0.0, population=0,
+        food_stock_kg=15000.0, hunger_ticks=0, food_deficit_kg=0.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    adjacency = [
+        {"a": 9400, "b": 9401, "kind": "land", "shared_length_m": 5000.0},
+        {"a": 9400, "b": 9402, "kind": "land", "shared_length_m": 5000.0},
+    ]
+    world = World(cells={9400: affamee, 9401: grenier_1, 9402: grenier_2},
+                  adjacency=adjacency)
+    return world, 9400, [9401, 9402]
+
+
+def test_migration_deplace_des_habitants() -> None:
+    """
+    SC1 — La migration déplace des habitants d'une cellule affamée
+    vers une cellule en surplus.
+
+    Micro-monde à deux cellules. La cellule A affamée (hunger_ticks=1) doit
+    perdre des habitants et la cellule B (surplus) en gagner, sans perte
+    nette de population totale (conservation).
+    Avant : pop_A=1000, pop_B=0. Après migration : pop_A < 1000, pop_B > 0.
+    pop_A + pop_B doit rester = 1000.
+    """
+    from sim.engine import _apply_migration
+
+    world, a_id, b_id = _micro_monde_migration()
+    pop_avant = sum(c.population for c in world.cells.values())
+
+    _apply_migration(world)
+
+    pop_apres = sum(c.population for c in world.cells.values())
+    pop_a = world.cells[a_id].population
+    pop_b = world.cells[b_id].population
+
+    print(f"[SC1] pop_avant={pop_avant}, pop_apres={pop_apres}")
+    print(f"[SC1] pop_A={pop_a}, pop_B={pop_b}")
+    print(f"[SC1] migration_remainder_A={world.cells[a_id].migration_remainder}")
+
+    assert pop_a < 1000, (
+        f"La cellule affamée n'a perdu personne : pop_A={pop_a}"
+    )
+    assert pop_b > 0, (
+        f"La cellule en surplus n'a reçu personne : pop_B={pop_b}"
+    )
+    assert pop_avant == pop_apres, (
+        f"Population non conservée : avant={pop_avant}, après={pop_apres}"
+    )
+
+
+def test_migration_proportionnelle_au_surplus() -> None:
+    """
+    SC2 — Parmi deux destinations au surplus inégal, la destination la
+    mieux pourvue reçoit plus de migrants.
+
+    Surplus B1=5000, B2=15000. B2 reçoit strictement plus que B1.
+    """
+    from sim.engine import _apply_migration
+
+    world, src, dests = _micro_monde_triplet_migration()
+
+    _apply_migration(world)
+
+    d1, d2 = dests
+    pop_d1 = world.cells[d1].population
+    pop_d2 = world.cells[d2].population
+
+    print(f"[SC2] pop_D1 (surplus=5000)={pop_d1}, pop_D2 (surplus=15000)={pop_d2}")
+
+    assert pop_d2 > pop_d1, (
+        f"Destination la moins pourvue ({pop_d1}) a reçu plus que "
+        f"la mieux pourvue ({pop_d2}). Non proportionnel."
+    )
+
+
+def test_migration_pas_d_immobilite_par_arrondi() -> None:
+    """
+    SC4 — Une cellule affamée de moins de 100 habitants finit par voir
+    partir quelqu'un, grâce au report de la fraction (migration_remainder).
+
+    Avec FRACTION_MIGRANTE_PAR_TICK=0.01, une cellule de 50 habitants
+    ne produit que 0.5 migrant par tick. Sans remainder, aucun départ
+    n'arrive jamais.
+    Le test applique _apply_migration 3 fois sur la même cellule (en
+    conservant le remainder entre les appels) et vérifie qu'au moins
+    un habitant part.
+    """
+    from sim.engine import _apply_migration
+
+    pop_petite = 50
+    affamee = Cell(
+        cell_id=9500, area_km2=0.0, population=pop_petite,
+        food_stock_kg=0.0, hunger_ticks=10, food_deficit_kg=500.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    grenier = Cell(
+        cell_id=9501, area_km2=0.0, population=0,
+        food_stock_kg=100000.0, hunger_ticks=0, food_deficit_kg=0.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    adjacency = [{"a": 9500, "b": 9501, "kind": "land", "shared_length_m": 5000.0}]
+    world = World(cells={9500: affamee, 9501: grenier}, adjacency=adjacency)
+
+    for _ in range(5):
+        _apply_migration(world)
+
+    pop_affamee = world.cells[9500].population
+    pop_grenier = world.cells[9501].population
+    remainder = world.cells[9500].migration_remainder
+
+    print(f"[SC4] pop_affamee={pop_affamee}, pop_grenier={pop_grenier}, "
+          f"remainder={remainder}")
+
+    assert pop_affamee < pop_petite, (
+        f"Après 5 ticks, la petite cellule affamée n'a perdu personne. "
+        f"L'arrondi bloque la migration (migration_remainder absent ?)."
+    )
+    assert pop_grenier > 0, (
+        f"Le grenier n'a reçu personne malgré 5 ticks. "
+        f"La migration est bloquée par l'arrondi."
+    )
+
+
+def test_migration_ne_traverse_qu_une_arete() -> None:
+    """
+    SC3 — Les migrants ne traversent qu'une arête par tick.
+
+    Monde à 3 cellules en chaîne : A (affamée) → B (intermédiaire, 0 pop)
+    → C (surplus). Aucun habitant ne doit traverser A→B puis B→C dans
+    le même tick : seuls les voisins immédiats (B) reçoivent des migrants.
+    """
+    from sim.engine import _apply_migration
+
+    affamee = Cell(
+        cell_id=9600, area_km2=0.0, population=1000,
+        food_stock_kg=0.0, hunger_ticks=3, food_deficit_kg=3000.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    intermediaire = Cell(
+        cell_id=9601, area_km2=0.0, population=0,
+        food_stock_kg=10000.0, hunger_ticks=0, food_deficit_kg=0.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    grenier = Cell(
+        cell_id=9602, area_km2=0.0, population=0,
+        food_stock_kg=100000.0, hunger_ticks=0, food_deficit_kg=0.0,
+        mortality_remainder=0.0, migration_remainder=0.0,
+    )
+    adjacency = [
+        {"a": 9600, "b": 9601, "kind": "land", "shared_length_m": 5000.0},
+        {"a": 9601, "b": 9602, "kind": "land", "shared_length_m": 5000.0},
+    ]
+    world = World(cells={9600: affamee, 9601: intermediaire, 9602: grenier},
+                  adjacency=adjacency)
+
+    _apply_migration(world)
+
+    pop_b = world.cells[9601].population
+    pop_c = world.cells[9602].population
+
+    print(f"[SC3] pop_A={world.cells[9600].population}, "
+          f"pop_B={pop_b}, pop_C={pop_c}")
+
+    assert pop_b >= 0, (
+        "Aucun migrant n'a atteint l'intermédiaire."
+    )
+    assert pop_c == 0, (
+        f"Des migrants ont traversé deux arêtes en un tick : pop_C={pop_c}. "
+        "La migration n'est pas bornée à une arête."
+    )
+
