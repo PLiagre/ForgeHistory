@@ -114,6 +114,24 @@ forgepilot recover-review <RUN_ID> --repo /srv/ForgeHistory --run
 `--result` n'accepte qu'une enveloppe brute d'invocation agent, jamais un
 JSON édité à la main.
 
+La relance qui suit un premier refus de contrat ne rejoue pas la même
+condition : le schéma est déposé dans le canal d'échange et un contre-exemple
+est joint. Elle peut en plus changer de juge, si le profil de risque déclare
+une route de secours :
+
+```toml
+[risks.R1.review_fallback]
+backend = "cursor"          # on change de juge, pas de transport
+model = "cursor-grok-4.6"   # obligatoire, et différent de la route nominale
+effort = "high"
+```
+
+La déclaration est facultative et absente de la politique versionnée : sans
+elle, la relance repart sur la route nominale et s'arrête, comme avant, avant
+une troisième dépense identique. L'état final porte `review_route`
+(`kind`, `model`, `fallback_declared`) et le message de `BLOCKED_TOOLING` dit
+laquelle des deux situations s'est produite.
+
 L'état atomique vit dans :
 
 ```text

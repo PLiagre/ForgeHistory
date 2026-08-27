@@ -68,6 +68,7 @@ class RiskProfile:
     test_profile: str
     roles: dict[str, PolicyRole]
     timeouts: RoleTimeouts
+    review_fallback: PolicyRole | None = None
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,11 @@ class WorkflowPolicy:
                     "roles": {
                         role: asdict(value) for role, value in profile.roles.items()
                     },
+                    "review_fallback": (
+                        asdict(profile.review_fallback)
+                        if profile.review_fallback is not None
+                        else None
+                    ),
                 }
                 for name, profile in self.risks.items()
             },
@@ -137,31 +143,79 @@ def _positive_int(raw: object, field: str) -> int:
     return raw
 
 
-def _load_role(risk: str, name: str, raw: object) -> PolicyRole:
+def _load_role(risk: str, name: str, raw: object, *, label: str | None = None) -> PolicyRole:
+    shown = label or f"{risk}.{name}"
     if not isinstance(raw, dict):
         raise PilotError(f"Politique invalide : [risks.{risk}.roles.{name}] absent.")
     backend = raw.get("backend")
     if not isinstance(backend, str) or backend not in BACKENDS[name]:
         accepted = ", ".join(sorted(BACKENDS[name]))
         raise PilotError(
-            f"Backend incompatible pour {risk}.{name} : {backend!r} ; attendu {accepted}."
+            f"Backend incompatible pour {shown} : {backend!r} ; attendu {accepted}."
         )
     model = raw.get("model", "")
     effort = raw.get("effort", "")
     resume = raw.get("resume", False)
     if not isinstance(model, str) or not isinstance(effort, str) or not isinstance(resume, bool):
-        raise PilotError(f"Politique invalide : types incorrects pour {risk}.{name}.")
+        raise PilotError(f"Politique invalide : types incorrects pour {shown}.")
     if effort and effort not in EFFORT_LEVELS:
-        raise PilotError(f"Effort invalide {effort!r} pour {risk}.{name}.")
+        raise PilotError(f"Effort invalide {effort!r} pour {shown}.")
     if name == "executor" and effort:
         raise PilotError("Cursor ne possède pas de drapeau d'effort séparé.")
     if resume and not (name == "executor" and backend == "cursor"):
         raise PilotError(
-            f"Reprise incompatible pour {risk}.{name} : seul l'exécuteur Cursor la supporte."
+            f"Reprise incompatible pour {shown} : seul l'exécuteur Cursor la supporte."
         )
     if backend == "none" and (model or effort or resume):
-        raise PilotError(f"Le backend none de {risk}.{name} ne peut définir modèle, effort ou reprise.")
+        raise PilotError(f"Le backend none de {shown} ne peut définir modèle, effort ou reprise.")
     return PolicyRole(backend=backend, model=model, effort=effort, resume=resume)
+
+
+def _load_review_fallback(
+    risk: str, raw: object, reviewer: PolicyRole
+) -> PolicyRole | None:
+    """Route de relance du relecteur, après un refus du contrat JSON.
+
+    Le lot 034 a rejoué trois fois la même invocation contre la même
+    condition, et a payé trois fois la même signature d'échec. Le contrat
+    est depuis durci à la relance (schéma déposé, exemple contraire). Ce
+    qui manquait encore : une **autre** route, déclarée par la politique,
+    pour la seconde tentative.
+
+    Elle est facultative — sans déclaration, la relance rejoue la route
+    nominale et s'arrête comme aujourd'hui avant une troisième dépense.
+    Quand elle existe, elle doit être une vraie route : même transport
+    (on change de juge, pas de tuyau), modèle nommé, et différente de la
+    route nominale. Une route de secours identique n'en est pas une : elle
+    rejouerait la condition qu'elle est censée changer.
+    """
+
+    if raw is None:
+        return None
+    label = f"{risk}.review_fallback"
+    if reviewer.backend == "none":
+        raise PilotError(
+            f"Politique invalide : {label} déclarée alors qu'aucun relecteur "
+            f"n'est configuré pour {risk}."
+        )
+    fallback = _load_role(risk, "reviewer", raw, label=label)
+    if fallback.backend != reviewer.backend:
+        raise PilotError(
+            f"Politique invalide : {label} change de backend "
+            f"({fallback.backend!r} au lieu de {reviewer.backend!r}) ; "
+            "la relance change de juge, pas de transport."
+        )
+    if not fallback.model:
+        raise PilotError(
+            f"Politique invalide : {label} doit nommer un modèle ; sans lui "
+            "la relance rejoue la condition qui vient d'échouer."
+        )
+    if (fallback.model, fallback.effort) == (reviewer.model, reviewer.effort):
+        raise PilotError(
+            f"Politique invalide : {label} répète la route nominale de "
+            f"{risk} ; une route identique n'est pas une route de secours."
+        )
+    return fallback
 
 
 def load_policy(path: Path | str | None = None) -> WorkflowPolicy:
@@ -241,7 +295,10 @@ def load_policy(path: Path | str | None = None) -> WorkflowPolicy:
                 for name in TIMEOUT_NAMES
             }
         )
-        profiles[risk] = RiskProfile(risk, test_profile, roles, timeouts)
+        review_fallback = _load_review_fallback(
+            risk, profile_raw.get("review_fallback"), roles["reviewer"]
+        )
+        profiles[risk] = RiskProfile(risk, test_profile, roles, timeouts, review_fallback)
 
     witness_raw = raw.get("witness")
     if witness_raw is None:

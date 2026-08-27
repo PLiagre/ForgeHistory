@@ -470,3 +470,39 @@ décrit plus haut en verdict produit rétrospectif.
 Le rapport a été publié par les PR #143 et #144. La correction séparée de
 l'enchaînement ForgePilot a été fusionnée par la PR #145. `ROADMAP.md` reflète
 désormais la fusion du lot 034 et nomme le lot 035 comme prochain pas unique.
+
+## Solde des correctifs recommandés, au 2026-08-27
+
+Correction factuelle : la section « Correctifs recommandés » ci-dessus se
+lisait encore comme une liste ouverte. Elle ne l'est plus. État mesuré sur
+`master` au 2026-08-27, correctif par correctif.
+
+**Livrés** (PR #138, #145 et les correctifs de pilote qui ont suivi) :
+
+- schéma JSON imposé au relecteur et déposé dans le canal d'échange
+  (`_stage_review_schema`) ;
+- réponse caviardée archivée avant validation, avec son enveloppe
+  (`_trace_protocol_failure`, `traces/*-reviewer-*`) ;
+- `recover-review`, qui rejoue la revue seule sur le même SHA ;
+- `start` idempotent et aperçu sans écriture d'état ;
+- brief absent de `base_ref` refusé avant `PLANNING`
+  (`assert_brief_in_base`) ;
+- `BLOCKED_TOOLING` et `failure_kind` distincts d'un `BLOCKED` produit ;
+- arrêt avant une troisième dépense identique (`protocol_limit = 2`) ;
+- fichiers de rôle effacés du canal en fin d'étape, échec compris.
+
+**Livré ce jour** : la moitié manquante de « adapter la relance après un
+échec de schéma ». Le contrat était durci à la relance, mais la route ne
+changeait pas. La politique peut désormais déclarer
+`[risks.Rn.review_fallback]` ; la seconde tentative l'emprunte, et l'état
+final porte `review_route`. Aucune route n'est déclarée dans la politique
+versionnée : nommer un second juge est un arbitrage du propriétaire, et le
+message de blocage dit maintenant que ce levier existe et reste libre.
+
+**Sans objet depuis ADR-0021** : « borner les permissions de rédaction de
+brief par chemin ». Ce correctif visait une invocation Claude lancée par le
+pilote pour corriger un brief. ADR-0021 a supprimé cette invocation : ni
+Hermes ni ForgePilot ne lancent Claude, et `control-plane/tests/`
+`test_no_claude_runtime.py` le vérifie mécaniquement. Le test n° 8 de la
+liste de non-régression ci-dessus ne peut donc plus être écrit — il n'y a
+plus d'invocation à borner. Les huit autres existent.
