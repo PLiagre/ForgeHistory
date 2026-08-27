@@ -804,3 +804,213 @@ def test_ordre_insertion_paniers_invariant(monkeypatch):
         assert abs(s1 - s2) <= TOLERANCE, (
             f"ordre d'insertion change le résultat pour {marchandise!r}: {s1} vs {s2}"
         )
+
+# --- Brief 040 : capacité d'arête selon le relief ---
+
+def _classes_relief_depuis_carte() -> list[str]:
+    """Les cinq classes de relief dérivées de World.lire_carte()."""
+    from sim import constants as k
+
+    carte_doc = World.lire_carte()
+    reliefs = {
+        cell.get("relief")
+        for cell in carte_doc.get("cellules", [])
+        if cell.get("relief") is not None
+    }
+    attendues = set(k.facteurs_transport_par_relief())
+    manquantes = attendues - reliefs
+    assert not manquantes, f"classes de relief absentes de la carte : {sorted(manquantes)}"
+    return sorted(attendues, key=lambda r: k.facteurs_transport_par_relief()[r], reverse=True)
+
+
+def _build_micro_monde_relief_transport() -> tuple[World, int, dict[str, int]]:
+    """
+    Micro-monde SC1 : une source en plaine, une receveuse par classe de relief.
+    Retourne le monde, l'id source et le mapping relief → cell_id receveuse.
+    """
+    from sim.model import ecrire_stock_marchandise
+
+    classes = _classes_relief_depuis_carte()
+    source_id = 9000
+    pop = 100
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    stock_source = besoin * len(classes) * 10
+
+    carte: dict[int, dict] = {
+        source_id: {"cell_id": source_id, "relief": "plaine"},
+    }
+    cells = {
+        source_id: Cell(
+            cell_id=source_id,
+            area_km2=0.0,
+            population=0,
+            stocks={},
+            hunger_ticks=0,
+            food_deficit_kg=0.0,
+        ),
+    }
+    ecrire_stock_marchandise(cells[source_id], MARCHANDISE_NOURRITURE, stock_source)
+
+    receveuses: dict[str, int] = {}
+    adjacency: list[dict] = []
+    for idx, relief in enumerate(classes):
+        cid = source_id + idx + 1
+        receveuses[relief] = cid
+        carte[cid] = {"cell_id": cid, "relief": relief}
+        cells[cid] = Cell(
+            cell_id=cid,
+            area_km2=0.0,
+            population=pop,
+            stocks={},
+            hunger_ticks=0,
+            food_deficit_kg=0.0,
+        )
+        adjacency.append(
+            {"a": source_id, "b": cid, "kind": "land", "shared_length_m": 1000.0}
+        )
+
+    world = World(cells=cells, adjacency=adjacency, carte=carte)
+    return world, source_id, receveuses
+
+
+def _transfert_vers(world: World, receveuse_id: int) -> float:
+    from sim.model import lire_stock_marchandise
+
+    stock_avant = lire_stock_marchandise(world.cells[receveuse_id], MARCHANDISE_NOURRITURE)
+    stock_avant = stock_avant if stock_avant >= 0 else 0.0
+    copie_cells = {
+        cid: Cell(
+            cell_id=c.cell_id,
+            area_km2=c.area_km2,
+            population=c.population,
+            stocks=dict(c.stocks),
+            hunger_ticks=c.hunger_ticks,
+            food_deficit_kg=c.food_deficit_kg,
+            mortality_remainder=c.mortality_remainder,
+        )
+        for cid, c in world.cells.items()
+    }
+    w = World(cells=copie_cells, adjacency=list(world.adjacency), carte=dict(world.carte))
+    from sim.engine import _initialiser_capacite_aretes
+    cap = _initialiser_capacite_aretes(w)
+    _apply_commerce(w, [0.0], MARCHANDISE_NOURRITURE, cap)
+    stock_apres = lire_stock_marchandise(w.cells[receveuse_id], MARCHANDISE_NOURRITURE)
+    stock_apres = stock_apres if stock_apres >= 0 else 0.0
+    return stock_apres - stock_avant
+
+
+def test_cinq_facteurs_transport_suivent_ordre_strict():
+    """SC1 — Cinq transferts distincts, ordre strict des facteurs de transport."""
+    from sim import constants as k
+
+    world, _source_id, receveuses = _build_micro_monde_relief_transport()
+    facteurs = k.facteurs_transport_par_relief()
+    classes = _classes_relief_depuis_carte()
+    transferts = [_transfert_vers(world, receveuses[r]) for r in classes]
+
+    for i in range(len(transferts) - 1):
+        assert transferts[i] > transferts[i + 1] + TOLERANCE, (
+            f"ordre des transferts violé entre {classes[i]} ({transferts[i]}) "
+            f"et {classes[i + 1]} ({transferts[i + 1]}) ; facteurs={facteurs}"
+        )
+
+    distincts = len({round(t, 6) for t in transferts})
+    assert distincts == len(classes), (
+        f"transferts non distincts : {dict(zip(classes, transferts))}"
+    )
+
+
+def _build_monde_arete_relief(relief_a: str, relief_b: str) -> World:
+    from sim.model import ecrire_stock_marchandise
+
+    a_id, b_id = 9100, 9101
+    pop = 100
+    carte = {
+        a_id: {"cell_id": a_id, "relief": relief_a},
+        b_id: {"cell_id": b_id, "relief": relief_b},
+    }
+    source = Cell(
+        cell_id=a_id, area_km2=0.0, population=0,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    receveuse = Cell(
+        cell_id=b_id, area_km2=0.0, population=pop,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    ecrire_stock_marchandise(source, MARCHANDISE_NOURRITURE, 10000.0)
+    adjacency = [{"a": a_id, "b": b_id, "kind": "land", "shared_length_m": 1000.0}]
+    return World(cells={a_id: source, b_id: receveuse}, adjacency=adjacency, carte=carte)
+
+
+def test_goulot_relief_min_commande_capacite():
+    """SC2 — Le bout le plus difficile commande ; sens de lecture invariant."""
+    from sim import constants as k
+
+    base = TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+    facteurs = k.facteurs_transport_par_relief()
+
+    t_plaine_plaine = _transfert_vers(_build_monde_arete_relief("plaine", "plaine"), 9101)
+    t_plaine_hm = _transfert_vers(_build_monde_arete_relief("plaine", "haute_montagne"), 9101)
+    t_hm_hm = _transfert_vers(_build_monde_arete_relief("haute_montagne", "haute_montagne"), 9101)
+    t_hm_plaine = _transfert_vers(_build_monde_arete_relief("haute_montagne", "plaine"), 9101)
+
+    cap_plaine_hm = base * min(facteurs["plaine"], facteurs["haute_montagne"])
+    cap_hm_hm = base * facteurs["haute_montagne"]
+    cap_plaine_plaine = base * facteurs["plaine"]
+
+    assert abs(t_plaine_hm - t_hm_hm) <= TOLERANCE, (
+        f"plaine–haute_montagne ({t_plaine_hm}) != haute_montagne–haute_montagne ({t_hm_hm})"
+    )
+    assert t_plaine_hm < t_plaine_plaine - TOLERANCE, (
+        f"plaine–haute_montagne ({t_plaine_hm}) n'est pas < plaine–plaine ({t_plaine_plaine})"
+    )
+    assert abs(t_plaine_hm - t_hm_plaine) <= TOLERANCE, (
+        f"sens inversé : {t_plaine_hm} vs {t_hm_plaine}"
+    )
+    besoin = 100 * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    assert abs(t_plaine_hm - min(besoin, cap_plaine_hm)) <= TOLERANCE
+    assert abs(t_hm_hm - min(besoin, cap_hm_hm)) <= TOLERANCE
+    assert abs(t_plaine_plaine - min(besoin, cap_plaine_plaine)) <= TOLERANCE
+
+
+def test_relief_inconnu_refuse_sur_monde_charge():
+    """SC6 — Relief inconnu sur monde chargé : erreur explicite avec cell_id et valeur."""
+    from sim.engine import ReliefInvalideError
+
+    world = _build_monde_arete_relief("plaine", "plaine")
+    a_id, b_id = 9100, 9101
+    world.carte[b_id]["relief"] = "relief_inexistant_040"
+
+    with pytest.raises(ReliefInvalideError, match=str(a_id)):
+        _apply_commerce(world, [0.0])
+    with pytest.raises(ReliefInvalideError, match=str(b_id)):
+        _apply_commerce(world, [0.0])
+    with pytest.raises(ReliefInvalideError, match="relief_inexistant_040"):
+        _apply_commerce(world, [0.0])
+
+
+def test_sans_carte_capacite_transport_inchangee():
+    """SC6 — Sans carte, tick et commerce gardent la capacité de base."""
+    from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
+
+    pop = 50
+    source = Cell(
+        cell_id=9200, area_km2=0.0, population=0,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    receveuse = Cell(
+        cell_id=9201, area_km2=0.0, population=pop,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    ecrire_stock_marchandise(source, MARCHANDISE_NOURRITURE, 500.0)
+    world = World(
+        cells={9200: source, 9201: receveuse},
+        adjacency=[{"a": 9200, "b": 9201, "kind": "land", "shared_length_m": 1000.0}],
+    )
+
+    tick(world, random.Random(0))
+    _apply_commerce(world, [0.0])
+    stock = lire_stock_marchandise(world.cells[9201], MARCHANDISE_NOURRITURE)
+    assert stock > 0.0
+    assert stock <= TRADE_CAPACITY_KG_PER_EDGE_PER_TICK + TOLERANCE
+
