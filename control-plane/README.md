@@ -114,6 +114,45 @@ forgepilot recover-review <RUN_ID> --repo /srv/ForgeHistory --run
 `--result` n'accepte qu'une enveloppe brute d'invocation agent, jamais un
 JSON édité à la main.
 
+`brief-review --run` valide lui aussi un schéma fermé. Une première réponse
+textuelle ou mal structurée déclenche une seule reprise avec rappel du schéma ;
+une seconde panne est refusée sans fabriquer de verdict.
+
+Après un verdict `FAIL`, une correction déjà présente dans le worktree peut
+être rattachée au même run sans inventer une sortie Cursor ni refaire le plan :
+
+```bash
+forgepilot recover-iteration <RUN_ID> --repo /srv/ForgeHistory --manual
+forgepilot resume <RUN_ID> --repo /srv/ForgeHistory
+```
+
+ForgePilot vérifie que le run attend bien une correction après revue, que le
+feedback vise le SHA précédent et que tous les chemins restent dans
+`files_allowed_to_change`. Il rejoue ensuite les tests, met à jour la PR et
+demande une nouvelle revue indépendante. `--approach-changed` force une revue
+complète ; sans lui, la revue reste bornée aux constats antérieurs. Une sortie
+exécuteur retrouvée après interruption se rattache avec `--result <enveloppe>`.
+Il n'existe pas de `unblock` générique : un vrai verdict produit `BLOCKED` ne
+se contourne pas.
+
+La relance qui suit un premier refus de contrat ne rejoue pas la même
+condition : le schéma est déposé dans le canal d'échange et un contre-exemple
+est joint. Elle peut en plus changer de juge, si le profil de risque déclare
+une route de secours :
+
+```toml
+[risks.R1.review_fallback]
+backend = "cursor"          # on change de juge, pas de transport
+model = "cursor-grok-4.6"   # obligatoire, et différent de la route nominale
+effort = "high"
+```
+
+La déclaration est facultative et absente de la politique versionnée : sans
+elle, la relance repart sur la route nominale et s'arrête, comme avant, avant
+une troisième dépense identique. L'état final porte `review_route`
+(`kind`, `model`, `fallback_declared`) et le message de `BLOCKED_TOOLING` dit
+laquelle des deux situations s'est produite.
+
 L'état atomique vit dans :
 
 ```text

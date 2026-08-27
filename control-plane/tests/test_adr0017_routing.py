@@ -76,7 +76,7 @@ class PolicyRoutingTests(unittest.TestCase):
             )
 
         prompt = invocation.argv[invocation.argv.index("-p") + 1]
-        self.assertIn(".forge-exchange/review-bundle.json", prompt)
+        self.assertIn("forge-exchange/review-bundle.json", prompt)
         self.assertIn("Lis intégralement", prompt)
         self.assertNotIn(marker, prompt)
         self.assertNotIn("--add-dir", invocation.argv)

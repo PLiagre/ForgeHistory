@@ -34,7 +34,21 @@ class ReviewProtocolError(PilotError):
     Ce n'est pas un verdict produit. Le lot 034 a fini `BLOCKED` — mot
     réservé à une porte humaine — pour trois JSON invalides. Cette erreur
     nomme le canal, pas le code.
+
+    `route` dit par quelle route la réponse refusée est arrivée : route
+    nominale du relecteur, ou route de secours déclarée par la politique
+    pour la relance. Sans elle, l'état final ne distingue pas « la relance
+    a essayé autre chose » de « la relance a rejoué la même condition ».
     """
+
+    def __init__(
+        self,
+        *args: object,
+        raw: str | None = None,
+        route: dict[str, object] | None = None,
+    ) -> None:
+        super().__init__(*args, raw=raw)
+        self.route = route
 
 
 @dataclass(frozen=True)

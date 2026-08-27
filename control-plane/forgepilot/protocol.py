@@ -27,6 +27,13 @@ REVIEW_FIELDS = {
     "checks_observed",
     "human_decision_required",
 }
+BRIEF_REVIEW_FIELDS = {
+    "verdict",
+    "findings",
+    "lot_unique",
+    "criteres_verifiables",
+    "human_decision_required",
+}
 # Une panne de transport n'est pas un jugement sur le produit. Sans ce champ,
 # un relecteur incapable de lire son bundle rendait BLOCKED, et le harnais
 # archivait un verdict produit là où il n'y avait qu'un fichier illisible
@@ -107,6 +114,39 @@ REVIEW_SCHEMA_RETRY_HINT = (
     "`acceptance_criteria` est une liste d'objets "
     '`{"criterion":"...","status":"PASS"}`, jamais une liste de chaînes '
     'ni un objet indexé `{"0":{...}}`. `checks_observed` de même avec `check`.'
+)
+BRIEF_REVIEW_JSON_SCHEMA: dict[str, Any] = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ForgePilotBriefReview",
+    "type": "object",
+    "additionalProperties": False,
+    "required": sorted(BRIEF_REVIEW_FIELDS),
+    "properties": {
+        "verdict": {"type": "string", "enum": ["PASS", "FAIL", "BLOCKED"]},
+        "lot_unique": {"type": "boolean"},
+        "criteres_verifiables": {"type": "boolean"},
+        "human_decision_required": {"type": "boolean", "const": True},
+        "findings": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["id", "defaut", "citation", "consequence", "correction"],
+                "properties": {
+                    "id": {"type": "string", "minLength": 1},
+                    "defaut": {"type": "integer", "minimum": 1, "maximum": 6},
+                    "citation": {"type": "string", "minLength": 1},
+                    "consequence": {"type": "string", "minLength": 1},
+                    "correction": {"type": "string", "minLength": 1},
+                },
+            },
+        },
+    },
+}
+BRIEF_REVIEW_SCHEMA_RETRY_HINT = (
+    "Ta réponse précédente a été refusée par le contrat JSON. Recommence la "
+    "lecture depuis le brief et rends uniquement l'objet conforme au schéma, "
+    "sans prose ni bloc Markdown."
 )
 EXECUTOR_FIELDS = {"summary", "files_modified", "checks", "blockages"}
 EXECUTOR_OPTIONAL_FIELDS = {"approach_changed", "session_id"}
@@ -214,9 +254,12 @@ def _validate_observations(
     *,
     context: str,
     label_key: str,
+    allow_empty: bool = False,
 ) -> list[dict[str, str]]:
-    if not isinstance(value, list) or not value:
+    if not isinstance(value, list) or (not allow_empty and not value):
         raise PilotError(f"{context} doit être une liste non vide d'objets.")
+    if allow_empty and not value:
+        return []
     normalized: list[dict[str, str]] = []
     seen: set[str] = set()
     for index, item in enumerate(value):
@@ -308,6 +351,80 @@ def validate_plan(
     return plan
 
 
+def validate_brief_review(
+    result: object,
+    *,
+    forbidden_prompt: str | None = None,
+) -> dict[str, Any]:
+    """Ferme le contrat de la relecture préalable du brief."""
+
+    _assert_forbidden_text(result, forbidden_prompt, context="La relecture du brief")
+    review = unwrap_agent_result(result, context="La relecture du brief")
+    for key in tuple(review):
+        if key in _TRANSPORT_FIELDS:
+            review.pop(key)
+    _closed_object(review, BRIEF_REVIEW_FIELDS, context="Relecture du brief")
+    verdict = review["verdict"]
+    if verdict not in {"PASS", "FAIL", "BLOCKED"}:
+        raise PilotError(f"Verdict de brief invalide : {verdict!r}.")
+    for field in ("lot_unique", "criteres_verifiables", "human_decision_required"):
+        if not isinstance(review[field], bool):
+            raise PilotError(f"Relecture du brief.{field} doit être un booléen.")
+    if review["human_decision_required"] is not True:
+        raise PilotError(
+            "Relecture du brief invalide : human_decision_required doit rester true."
+        )
+    raw_findings = review["findings"]
+    if not isinstance(raw_findings, list):
+        raise PilotError("Relecture du brief.findings doit être une liste.")
+    findings: list[dict[str, object]] = []
+    identifiers: set[str] = set()
+    fields = {"id", "defaut", "citation", "consequence", "correction"}
+    for index, item in enumerate(raw_findings):
+        if not isinstance(item, dict):
+            raise PilotError(f"Relecture du brief.findings[{index}] doit être un objet.")
+        _closed_object(item, fields, context=f"Relecture du brief.findings[{index}]")
+        identifier = _nonempty_string(
+            item["id"], context=f"Relecture du brief.findings[{index}].id"
+        )
+        if identifier in identifiers:
+            raise PilotError(f"Relecture du brief : identifiant dupliqué {identifier!r}.")
+        identifiers.add(identifier)
+        defect = item["defaut"]
+        if isinstance(defect, bool) or not isinstance(defect, int) or not 1 <= defect <= 6:
+            raise PilotError(
+                f"Relecture du brief.findings[{index}].defaut doit valoir de 1 à 6."
+            )
+        findings.append(
+            {
+                "id": identifier,
+                "defaut": defect,
+                "citation": _nonempty_string(
+                    item["citation"],
+                    context=f"Relecture du brief.findings[{index}].citation",
+                ),
+                "consequence": _nonempty_string(
+                    item["consequence"],
+                    context=f"Relecture du brief.findings[{index}].consequence",
+                ),
+                "correction": _nonempty_string(
+                    item["correction"],
+                    context=f"Relecture du brief.findings[{index}].correction",
+                ),
+            }
+        )
+    if verdict == "PASS" and (
+        findings or not review["lot_unique"] or not review["criteres_verifiables"]
+    ):
+        raise PilotError(
+            "PASS de brief incohérent : constat présent, lot multiple ou critère invérifiable."
+        )
+    if verdict == "FAIL" and not findings:
+        raise PilotError("FAIL de brief incohérent : aucun constat.")
+    review["findings"] = findings
+    return review
+
+
 def validate_review(
     result: object,
     *,
@@ -335,15 +452,20 @@ def validate_review(
             )
         review["blocked_reason"] = blocked_reason
     material_unreadable = blocked_reason == "material_unreadable"
+    if material_unreadable:
+        review.setdefault("acceptance_criteria", [])
+        review.setdefault("checks_observed", [])
     criteria = _validate_observations(
         review["acceptance_criteria"],
         context="Revue.acceptance_criteria",
         label_key="criterion",
+        allow_empty=material_unreadable,
     )
     checks = _validate_observations(
         review["checks_observed"],
         context="Revue.checks_observed",
         label_key="check",
+        allow_empty=material_unreadable,
     )
     expected = list(expected_criteria) if expected_criteria is not None else None
     # Un relecteur qui n'a pas pu lire son bundle n'a pas pu y lire les

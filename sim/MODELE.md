@@ -16,8 +16,10 @@ Le monde est une grille de 596 cellules lues dans la carte figée
 `data/world-1400.json`. À chaque tick, dans cet ordre :
 
 1. **Production** — chaque cellule produit de la nourriture proportionnellement
-   à sa surface, multipliée par un aléa de rendement du tick et par le facteur
-   de sa classe de relief : une montagne ne produit pas comme une plaine.
+   à sa surface, multipliée par un aléa de rendement du tick, par le facteur de
+   sa classe de relief — une montagne ne produit pas comme une plaine — et par
+   le facteur de saison du jour, tiré de la durée du jour de la cellule : on ne
+   récolte pas en janvier comme en juin.
 2. **Commerce** — les cellules en surplus livrent leurs voisines en manque.
    Un kilogramme ne traverse qu'une arête par tick et ne nourrit qu'une fois.
 3. **Consommation** — chaque habitant mange sa ration. Ce qui manque devient
@@ -33,9 +35,9 @@ comme « le centre administratif le plus proche » (ADR-0003).
 
 ## Ce que le moteur ne fait pas encore
 
-La carte porte trois couches. Le tick joue **le relief** depuis le lot 033 ; il
-ne joue **ni le climat, ni les 27 gisements**. Le snapshot le dit lui-même,
-couche par couche.
+La carte porte trois couches. Le tick joue **le relief** depuis le lot 033 et
+**le climat** depuis le lot 035, par la durée du jour ; il ne joue toujours
+**pas les 27 gisements**. Le snapshot le dit lui-même, couche par couche.
 
 Ce n'est pas une déclaration, c'est une **mesure**. Pour chaque couche, le
 snapshot charge deux mondes identiques, en altère franchement la couche dans
@@ -43,11 +45,12 @@ l'un **avant l'amorçage**, joue trois ticks avec la même graine et compare
 l'état obtenu. Différent : le moteur lit la couche. Identique au bit près :
 il ne la lit pas.
 
-Conséquence voulue, et déjà vérifiée une fois : le jour où le tick a consommé
-le relief, `utilisee_par_le_moteur` est passé à `true` tout seul. Personne n'a
-eu de constante à retourner, et personne ne peut la retourner sans que le
-moteur ait changé. C'était auparavant un triplet de booléens écrits à la main,
-et le test se contentait de figer leur valeur courante.
+Conséquence voulue, et déjà vérifiée deux fois : le jour où le tick a consommé
+le relief, puis le jour où il a consommé le climat, `utilisee_par_le_moteur`
+est passé à `true` tout seul. Personne n'a eu de constante à retourner, et
+personne ne peut la retourner sans que le moteur ait changé. C'était
+auparavant un triplet de booléens écrits à la main, et le test se contentait
+de figer leur valeur courante.
 
 **Ce que la sonde ne peut pas voir.** Elle altère une couche en
 **multipliant** ses valeurs numériques. Elle est donc aveugle à toute lecture
@@ -63,7 +66,8 @@ stock d'une cellule est un seul flottant, nommé d'après son contenu.
 
 ## Le mur qui sépare la couche 1 de la couche 2
 
-Mesuré le 2026-08-26 sur la carte figée, avant d'écrire les briefs 034 à 044 :
+Mesuré le 2026-08-26 sur la carte figée, avant d'écrire les briefs 034 à 044,
+et revérifié inchangé le 2026-08-27 après la fusion des lots 034 et 035 :
 
 | grandeur | valeur mesurée |
 |---|---|
@@ -122,6 +126,21 @@ littéral de durée indépendant.
 pertinente (rotation des convois, consommation alimentaire quotidienne, cycle
 de production journalier). Un tick-jour permet une calibration directe avec
 les sources historiques (rations, rendements annuels ÷ 365).
+
+### L'année calendaire et le rang du jour
+
+```
+CALENDAR_DAYS_PER_YEAR = 365
+jour = (numero_tick × TICK_DURATION_DAYS) modulo CALENDAR_DAYS_PER_YEAR
+```
+
+Le rang du jour dans l'année se **dérive** du numéro de tick (`jour_de_tick`) ;
+il n'est stocké nulle part et le monde ne porte pas de date. C'est de lui que
+dépend le facteur de saison.
+
+Conséquence à connaître avant d'écrire un lot : **un appelant qui ne compte pas
+ses ticks n'a pas de date à donner au moteur.** Ce que le tick fait alors n'est
+pas « le premier jour de l'année » — voir « Les trois régimes de production ».
 
 ---
 
@@ -185,24 +204,87 @@ unités).
 
 ```
 yield_factor = rng.uniform(RNG_YIELD_LOW, RNG_YIELD_HIGH)
+duree_jour   = duree_jour_h(jour, solstice_ete_h, solstice_hiver_h)  # de la cellule
+
 food_produced = area_km2 × FOOD_PRODUCTION_KG_PER_KM2_PER_TICK × yield_factor
+                × facteur_relief(classe de relief de la cellule)
+                × facteur_saison(duree_jour)
 ```
+
+Les deux derniers facteurs sont lus dans la carte, cellule par cellule : le
+relief depuis le lot 033, la durée du jour depuis le lot 035. Une cellule dont
+la carte ne porte pas ces données ne se voit pas attribuer une valeur par
+défaut — le moteur refuse, par `ReliefInvalideError` ou `ClimatInvalideError`
+(règle 10 : l'absence ne s'invente pas en silence).
 
 ### Paramètres
 
 | Constante | Valeur | Unité | Dérivation |
 |---|---|---|---|
 | `FOOD_PRODUCTION_KG_PER_KM2_PER_TICK` | 18.0 × TICK_DURATION_DAYS | kg/km²/tick | Proxy annuel : ~6 570 kg/km²/an (rendement brut médiéval ~1 800 kg/ha à 36 % de surface cultivée, référence Slicher van Bath 1963) ÷ 365 jours/an × 1 jour/tick ≈ 18.0 |
-| `RNG_YIELD_LOW` | 0.5 | — | Facteur multiplicatif minimum : mauvaise saison (sécheresse, gel) à 50 % du rendement nominal |
-| `RNG_YIELD_HIGH` | 1.5 | — | Facteur multiplicatif maximum : bonne saison à 150 % du rendement nominal |
+| `RNG_YIELD_LOW` | 0.5 | — | Facteur multiplicatif minimum : mauvaise année (sécheresse, gel) à 50 % du rendement nominal |
+| `RNG_YIELD_HIGH` | 1.5 | — | Facteur multiplicatif maximum : bonne année à 150 % du rendement nominal |
+
+**Le facteur de relief** (lot 033) — fidélité niveau 2, ordres de grandeur
+plausibles, jamais sourcés. La plaine vaut 1 : aucune classe ne produit plus
+que le nominal.
+
+| Constante | Valeur |
+|---|---|
+| `FACTEUR_RELIEF_PLAINE` | 1.0 |
+| `FACTEUR_RELIEF_COLLINE` | 0.80 |
+| `FACTEUR_RELIEF_MARAIS` | 0.50 |
+| `FACTEUR_RELIEF_MONTAGNE` | 0.45 |
+| `FACTEUR_RELIEF_HAUTE_MONTAGNE` | 0.15 |
+
+**Le facteur de saison** (lot 035) — fidélité niveau 2 également. Il compare la
+durée du jour de la cellule à l'équinoxe :
+`max(0, 1 + SENSIBILITE_SAISON × (duree_jour − DUREE_JOUR_EQUINOXE_H) / DUREE_JOUR_EQUINOXE_H)`.
+
+| Constante | Valeur | Unité | Dérivation |
+|---|---|---|---|
+| `DUREE_JOUR_EQUINOXE_H` | 12.0 | h | Niveau 1 : douze heures partout, à l'équinoxe |
+| `SENSIBILITE_SAISON` | 0.5 | — | Sensibilité du rendement à l'écart de durée du jour ; niveau 2 |
+| `JOUR_SOLSTICE_ETE` | 172 | rang | Solstice d'été ; celui d'hiver s'en dérive par une demi-année |
+
+Le plancher à zéro n'est pas un paramètre de calibration mais un **invariant
+physique** : une cellule ne produit jamais une quantité négative.
+
+### Les trois régimes de production
+
+`tick(world, rng, numero_tick)` produit de trois façons, selon ce que
+l'appelant lui donne. C'est à connaître avant d'écrire un lot qui appelle le
+tick : deux de ces régimes ne jouent pas la saison du jour.
+
+| ce que reçoit le tick | ce que joue la production |
+|---|---|
+| un monde sans carte | ni relief ni saison — le nominal seul |
+| une carte, **pas** de `numero_tick` | le relief, et le facteur de saison **moyen sur l'année** |
+| une carte **et** un `numero_tick` | le relief, et la saison du jour dérivé du numéro de tick |
+
+Le deuxième régime est le piège : un appelant sans compteur n'obtient pas
+« le premier jour de l'année », il obtient une année moyennée. C'est un choix
+et non un défaut — une mesure qui ne compte pas les ticks ne doit pas hériter
+d'un mois d'hiver arbitraire — mais un lot qui mesure la production doit dire
+lequel des trois régimes il fait jouer.
 
 ### L'équilibre que ces valeurs produisent
 
-À 10 hab/km², la production moyenne est de 18 kg/km²/tick et la consommation
-de 20. Le monde démarre donc **au-dessus de ce qu'il nourrit** : la population
-descend jusqu'à un régime où elle tient, et la variabilité `[0.5, 1.5]` crée
-des ticks de surplus qui alimentent le commerce et des ticks de manque qui
-créent de la dette.
+À 10 hab/km², la production **nominale** est de 18 kg/km²/tick et la
+consommation de 20. Le monde démarre donc **au-dessus de ce qu'il nourrit**, et
+le relief creuse l'écart : son facteur vaut 1 sur la plaine et descend jusqu'à
+0,15, donc aucune cellule ne produit plus que le nominal, et toute cellule qui
+n'est pas de plaine produit moins. La population descend jusqu'à un régime où
+elle tient, et la variabilité `[0.5, 1.5]` crée des ticks de surplus qui
+alimentent le commerce et des ticks de manque qui créent de la dette.
+
+La saison, elle, ne creuse rien **sur l'année** : `facteur_saison_moyen_annuel`
+vaut 1 pour une cellule dont les deux solstices sont symétriques autour des
+douze heures d'équinoxe, ce que la carte figée donne aujourd'hui. Elle déplace
+la récolte à l'intérieur de l'année — creux d'hiver, pic d'été — sans changer
+le total annuel. Cette moyenne
+est **calculée jour par jour**, jamais supposée égale à 1 : le jour où la carte
+porterait des durées dissymétriques, le moteur suivrait sans qu'on y touche.
 
 C'est voulu — un monde qui démarre à l'équilibre exact ne montre ni famine ni
 commerce. Aucun chiffre mesuré n'est cité ici : voir « Ce qui dit que le monde

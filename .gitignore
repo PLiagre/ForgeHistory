@@ -30,10 +30,11 @@ Thumbs.db
 # every run, deliberately never the real harness/queue/briefs/ queue.
 harness/pipeline/demo/output/
 
-# Environnement virtuel Python local (VM cloud / poste Linux) -- jamais
+# Environnement virtuel Python local (dossier ou lien symbolique) -- jamais
 # versionné ; le lanceur documenté reste `py` sur Windows, `.venv/bin/python`
-# sur Linux (voir AGENTS.md).
-.venv/
+# sur Linux (voir AGENTS.md). Sans barre finale, Git ignore aussi le lien
+# `.venv` créé dans certains worktrees Cursor.
+.venv
 
 # État local du pilote Hermes/Grok/Cursor : sessions, résultats et worktrees.
 # Les décisions autoritaires restent dans la roadmap, les issues et les PR.
@@ -44,7 +45,7 @@ harness/pipeline/demo/output/
 # cursor-ignoré — sinon le fichier existe et reste hors de portée de celui à
 # qui on le tend. `control-plane/tests/test_exchange_channel.py` tient les
 # deux conditions ensemble.
-.forge-exchange/
+forge-exchange/
 
 # Métadonnées de build régénérées par `pip install -e ./control-plane`
 # (installation locale du pilote, voir control-plane/README.md) : jamais

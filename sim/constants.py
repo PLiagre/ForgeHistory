@@ -12,6 +12,14 @@ mortalité, et récupération physique du déficit alimentaire.
 
 import math
 
+# --- Marchandises (brief 037) ---
+
+# Première marchandise du panier ; seule entrée réellement simulée pour l'instant.
+MARCHANDISE_NOURRITURE = "nourriture"
+
+# Clé-sonde SC5 : prouve qu'une deuxième entrée peut coexister dans le panier.
+MARCHANDISE_SONDE_037 = "__sonde_panier_037__"
+
 # --- Base de temps unique (SC1 brief 012) ---
 
 # Durée d'un tick en jours (proxy paramétrique, voir MODELE.md).
@@ -105,6 +113,37 @@ def facteur_saison_moyen_annuel(ete_h: float, hiver_h: float) -> float:
     return total / annee
 
 
+# --- Extraction minière (brief 038, fidélité niveau 2) ---
+
+# Kilogrammes extraits par habitant et par tick sur un gisement notable ;
+# ordre de grandeur plausible niveau 2, jamais sourcé.
+EXTRACTION_KG_PAR_HABITANT_PAR_TICK = 0.02
+
+# Facteurs de débit par classe de richesse du gisement ; niveau 2.
+FACTEUR_RICHESSE_MAJEURE = 2.0
+FACTEUR_RICHESSE_NOTABLE = 1.0
+FACTEUR_RICHESSE_MINEURE = 0.4
+
+
+def extraction_kg_par_habitant_par_tick() -> float:
+    """Débit unitaire par habitant ; relu à chaque appel."""
+    return EXTRACTION_KG_PAR_HABITANT_PAR_TICK
+
+
+def facteurs_richesse_extraction() -> dict[str, float]:
+    """
+    Table des facteurs de débit par classe de richesse d'un gisement.
+
+    Relue les constantes nommées à chaque appel : un test de régime qui
+    remplace une constante en mémoire doit changer le moteur.
+    """
+    return {
+        "majeure": FACTEUR_RICHESSE_MAJEURE,
+        "notable": FACTEUR_RICHESSE_NOTABLE,
+        "mineure": FACTEUR_RICHESSE_MINEURE,
+    }
+
+
 # --- Relief dans le rendement (brief 033, fidélité niveau 2) ---
 
 # Facteurs de production par classe de relief : ordres de grandeur plausibles
@@ -131,6 +170,35 @@ def facteurs_production_par_relief() -> dict[str, float]:
         "marais": FACTEUR_RELIEF_MARAIS,
     }
 
+
+# --- Relief dans le transport (brief 040, fidélité niveau 2) ---
+
+# Facteurs de capacité de transport par classe de relief : ordres de grandeur
+# plausibles niveau 2, jamais sourcés historiquement — échelle distincte de
+# la production (un marais se traverse mal et produit mal, sans coïncidence
+# garantie entre les deux tables).
+FACTEUR_TRANSPORT_PLAINE = 1.00
+FACTEUR_TRANSPORT_COLLINE = 0.70
+FACTEUR_TRANSPORT_MARAIS = 0.40
+FACTEUR_TRANSPORT_MONTAGNE = 0.30
+FACTEUR_TRANSPORT_HAUTE_MONTAGNE = 0.10
+
+
+def facteurs_transport_par_relief() -> dict[str, float]:
+    """
+    Table des facteurs de capacité de transport par classe de relief.
+
+    Relue les constantes nommées à chaque appel : un test de régime qui
+    remplace une constante en mémoire doit changer le moteur.
+    """
+    return {
+        "plaine": FACTEUR_TRANSPORT_PLAINE,
+        "colline": FACTEUR_TRANSPORT_COLLINE,
+        "marais": FACTEUR_TRANSPORT_MARAIS,
+        "montagne": FACTEUR_TRANSPORT_MONTAGNE,
+        "haute_montagne": FACTEUR_TRANSPORT_HAUTE_MONTAGNE,
+    }
+
 # --- Variabilité de rendement (SC2 brief 012) ---
 
 # Le rendement de chaque cellule est multiplié par un facteur uniforme
@@ -145,6 +213,18 @@ RNG_YIELD_HIGH = 1.5
 # Consommation alimentaire par personne et par tick (kg).
 # Proxy : ration journalière médiévale ~2 kg × TICK_DURATION_DAYS.
 FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK = 2.0 * TICK_DURATION_DAYS
+
+
+def consommation_kg_par_habitant_par_tick(marchandise: str) -> float:
+    """
+    Kilogrammes consommés par habitant et par tick pour une marchandise.
+
+    Seul lieu du moteur qui distingue une marchandise d'une autre pour la
+    consommation (brief 039). Relit les constantes nommées à chaque appel.
+    """
+    if marchandise == MARCHANDISE_NOURRITURE:
+        return FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    return 0.0
 
 # --- Commerce inter-cellules (SC4 brief 012) ---
 

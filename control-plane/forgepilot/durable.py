@@ -499,6 +499,7 @@ def _trace_protocol_failure(
     error: PilotError,
     *,
     head_sha: str | None = None,
+    route: dict[str, object] | None = None,
 ) -> ReviewProtocolError:
     """Étend les traces #138 : l'invocation a réussi, le contrat JSON a refusé."""
 
@@ -509,6 +510,8 @@ def _trace_protocol_failure(
     )
     if protocol.raw is None:
         protocol.raw = _payload_as_raw(payload)
+    if route is not None and getattr(protocol, "route", None) is None:
+        protocol.route = route
     persist_failure_trace(
         trace_dir,
         invocation.role,
@@ -563,41 +566,117 @@ def recover_executor_result(
 def recover_iteration_result(
     repo: Path,
     run_id: str,
-    result_path: Path,
+    result_path: Path | None,
+    *,
+    manual: bool = False,
+    approach_changed: bool = False,
 ) -> dict[str, object]:
-    """Archive une correction Cursor retrouvée après invalidation du candidat testé."""
+    """Rattache une correction retrouvée au run qui a produit son feedback.
+
+    Une correction manuelle n'est jamais présentée comme une sortie Cursor.
+    Elle repart néanmoins par la préparation du candidat, les tests, la
+    publication et une nouvelle revue indépendante du SHA corrigé.
+    """
 
     state_path = run_state_path(repo, run_id)
     state = load_state(state_path)
-    if (
-        state.get("step") != "ERROR"
-        or state.get("resume_from") != "PR_TESTING"
-        or not str(state.get("error", "")).startswith("Preuve périmée : le candidat Git a changé")
-    ):
-        raise PilotError(
-            "Récupération itération refusée : le run n'est pas en erreur de candidat périmé."
+    stale_candidate = (
+        state.get("step") == "ERROR"
+        and state.get("resume_from") == "PR_TESTING"
+        and str(state.get("error", "")).startswith(
+            "Preuve périmée : le candidat Git a changé"
         )
+    )
+    ambiguous_iteration = (
+        state.get("step") == "BLOCKED"
+        and state.get("iteration_active") is True
+        and str(state.get("error", "")).startswith(
+            "Reprise Cursor ambiguë : des écritures existent sans résultat final archivé"
+        )
+    )
+    manual_after_review = state.get("step") in {"NEEDS_FIX", "ITERATING"}
+    if manual:
+        if result_path is not None:
+            raise PilotError(
+                "Récupération itération refusée : choisir --manual ou --result, jamais les deux."
+            )
+        if not (manual_after_review or stale_candidate or ambiguous_iteration):
+            raise PilotError(
+                "Récupération itération refusée : le run n'attend pas une correction manuelle après revue."
+            )
+    elif result_path is None:
+        raise PilotError(
+            "Récupération itération refusée : fournir une sortie exécuteur ou déclarer --manual."
+        )
+    elif not (stale_candidate or ambiguous_iteration):
+        raise PilotError(
+            "Récupération itération refusée : le run n'est ni en erreur de candidat "
+            "périmé ni bloqué sur une correction Cursor ambiguë."
+        )
+
     worktree = _state_worktree(repo, state)
     if not _executor_effect_is_ambiguous(worktree, state.get("head_sha")):
-        raise PilotError("Récupération itération refusée : aucune correction Cursor à préserver.")
+        raise PilotError("Récupération itération refusée : aucune correction à préserver.")
+
+    feedback_path = _artifact_path(state_path, state, "feedback")
+    if feedback_path is None or not feedback_path.is_file():
+        raise PilotError("Récupération itération refusée : feedback structuré absent.")
+    feedback = json.loads(feedback_path.read_text(encoding="utf-8"))
+    reviewed_head = state.get("iteration_base_sha") or state.get("head_sha")
+    if feedback.get("head_sha_reviewed") != reviewed_head:
+        raise PilotError("Récupération itération refusée : feedback périmé.")
+
+    plan_path = _artifact_path(state_path, state, "plan")
+    if plan_path is None or not plan_path.is_file():
+        raise PilotError("Récupération itération refusée : plan durable absent.")
+    plan = validate_plan(json.loads(plan_path.read_text(encoding="utf-8")))
+    modified_paths = _candidate_paths(
+        worktree,
+        state,
+        plan["files_allowed_to_change"],  # type: ignore[arg-type]
+        update_only=True,
+    )
+
     iteration = deepcopy(state.get("iteration", {}))
     if not isinstance(iteration, dict):
         iteration = {}
     next_iteration = int(iteration.get("count", 0)) + 1
-    output_path = state_path.parent / f"executor-iteration-{next_iteration}.json"
+    output_path = state_path.parent / (
+        f"manual-iteration-{next_iteration}.json"
+        if manual
+        else f"executor-iteration-{next_iteration}.json"
+    )
     if output_path.exists():
         raise PilotError("Récupération itération refusée : résultat d'itération déjà archivé.")
-    try:
-        raw_result = json.loads(result_path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError) as exc:
-        raise PilotError("Résultat d'itération de récupération illisible.") from exc
-    result = validate_executor(raw_result, iteration=True)
-    write_normalized_json(output_path, result)
+    if manual:
+        result = {
+            "kind": "manual-iteration",
+            "head_sha_reviewed": reviewed_head,
+            "files_modified": modified_paths,
+            "approach_changed": approach_changed,
+        }
+        write_normalized_json(output_path, result)
+    else:
+        assert result_path is not None
+        try:
+            raw_result = json.loads(result_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError) as exc:
+            raise PilotError("Résultat d'itération de récupération illisible.") from exc
+        result = validate_executor(raw_result, iteration=True)
+        write_normalized_json(output_path, result)
+
     iteration["count"] = next_iteration
     state["iteration"] = iteration
     state["iteration_approach_changed"] = result["approach_changed"]
-    state["executor_session"] = extract_session_id(result) or state.get("executor_session")
-    state = _set_artifact(state_path, state, "executor", output_path)
+    state["iteration_active"] = True
+    state["iteration_base_sha"] = reviewed_head
+    state["iteration_origin"] = "manual" if manual else "cursor-recovered"
+    if manual:
+        state["executor_session"] = None
+        state = _set_artifact(state_path, state, "manual_iteration", output_path)
+    else:
+        state["executor_session"] = extract_session_id(result) or state.get("executor_session")
+        state = _set_artifact(state_path, state, "executor", output_path)
     return transition(
         state_path,
         state,
@@ -1286,7 +1365,7 @@ def _assert_review_material_was_readable(
     raise PilotError(
         "Le relecteur n'a pas pu lire son matériel de revue "
         f"({bundle_path.name}) ; aucun verdict produit n'a été rendu. "
-        "Vérifier le canal d'échange (`.forge-exchange/`, jamais cursor-ignoré) "
+        "Vérifier le canal d'échange (forge-exchange/, jamais cursor-ignoré) "
         "puis relancer la revue sur le même SHA."
     )
 
@@ -1351,6 +1430,20 @@ def _review_current_head(
         and int(reviewing_failure.get("consecutive", 0)) >= 1
         and reviewing_failure.get("failure_kind") == "review_protocol"
     )
+    # Durcir le contrat ne suffisait pas : la relance repartait sur la même
+    # route et rendait la même signature. La politique peut déclarer une
+    # autre route pour cette seconde tentative ; sans déclaration, la route
+    # nominale est rejouée et l'état final le dit.
+    profile = settings.policy.profile(risk)
+    declared_fallback = profile.review_fallback
+    fallback = declared_fallback if schema_retry else None
+    nominal = profile.roles["reviewer"]
+    route: dict[str, object] = {
+        "kind": "fallback" if fallback is not None else "nominal",
+        "model": (fallback or nominal).model,
+        "effort": (fallback or nominal).effort,
+        "fallback_declared": declared_fallback is not None,
+    }
     if output_path.is_file():
         try:
             review = validate_review(
@@ -1358,17 +1451,23 @@ def _review_current_head(
                 expected_criteria=plan["acceptance_criteria"],  # type: ignore[arg-type]
             )
         except PilotError as exc:
-            raise ReviewProtocolError(str(exc), raw=output_path.read_text(encoding="utf-8")) from exc
+            raise ReviewProtocolError(
+                str(exc),
+                raw=output_path.read_text(encoding="utf-8"),
+                route=route,
+            ) from exc
         _assert_review_material_was_readable(review, bundle_path)
     else:
         invocation = review_invocation(
             settings,
-            worktree,
+            repo,
             _artifact_path(state_path, state, "plan") or bundle_path,
             review_base,
             risk=risk,
             bundle_path=bundle_path,
             schema_retry=schema_retry,
+            model=fallback.model if fallback is not None else None,
+            effort=(fallback.effort or None) if fallback is not None else None,
         )
         try:
             result = _run_agent(
@@ -1388,6 +1487,7 @@ def _review_current_head(
                     result,
                     exc,
                     head_sha=head_sha,
+                    route=route,
                 ) from exc
             _assert_review_material_was_readable(review, bundle_path)
             write_normalized_json(
@@ -1396,7 +1496,7 @@ def _review_current_head(
                 forbidden_texts=(invocation.prompt or "",),
             )
         finally:
-            _clear_exchange(worktree, "review-bundle", "review-schema")
+            _clear_exchange(repo, "review-bundle", "review-schema")
     material_path = archive_review_material(
         state_path.parent,
         base_sha=review_base,
@@ -1680,6 +1780,33 @@ def _iterate(
     return _review_current_head(settings, repo, state_path, state, plan)
 
 
+def _route_sentence(route: object) -> str:
+    """Dit si la relance a changé de route, ou rejoué la même condition.
+
+    Sans cette phrase, `BLOCKED_TOOLING` ne distingue pas les deux cas, et
+    le propriétaire ne sait pas s'il lui reste une route à déclarer.
+    """
+
+    if not isinstance(route, dict):
+        return ""
+    model = str(route.get("model") or "non nommé")
+    effort = str(route.get("effort") or "")
+    if effort:
+        model = f"{model}, effort {effort}"
+    if route.get("kind") == "fallback":
+        return (
+            f"La relance a emprunté la route de secours déclarée ({model}) ; "
+            "la même signature est revenue. "
+        )
+    if route.get("fallback_declared"):
+        return f"La relance a rejoué la route nominale ({model}). "
+    return (
+        f"La relance a rejoué la route nominale ({model}) : aucune route de "
+        "secours n'est déclarée pour ce risque "
+        "([risks.<Rn>.review_fallback] dans workflow-policy.toml). "
+    )
+
+
 def _record_step_failure(
     state_path: Path,
     state: dict[str, object],
@@ -1709,6 +1836,9 @@ def _record_step_failure(
         "failure_kind": kind,
         "candidate_sha": state.get("head_sha"),
     }
+    route = getattr(error, "route", None)
+    if is_protocol and isinstance(route, dict):
+        record["review_route"] = dict(route)
     if is_protocol:
         record["recover_command"] = (
             f"forgepilot recover-review {state.get('run_id')} --run"
@@ -1725,11 +1855,16 @@ def _record_step_failure(
             error=(
                 f"Deux erreurs de protocole identiques à l'étape {step} ; "
                 "arrêt avant une troisième dépense identique. "
+                f"{_route_sentence(route)}"
                 "Ce n'est pas un verdict produit. Reprendre uniquement la revue : "
                 f"forgepilot recover-review {state.get('run_id')} --run. "
                 f"Cause : {clean_error}"
             ),
-            updates={"resume_from": None, "failure_kind": kind},
+            updates={
+                "resume_from": None,
+                "failure_kind": kind,
+                **({"review_route": dict(route)} if isinstance(route, dict) else {}),
+            },
         )
     if not is_protocol and consecutive >= generic_limit:
         return transition(

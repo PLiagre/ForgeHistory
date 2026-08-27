@@ -1,6 +1,6 @@
 [policy]
 version = 1
-review_bundle_max_bytes = 262144
+review_bundle_max_bytes = 10485760
 
 [controller]
 backend = "hermes"
@@ -114,6 +114,17 @@ resume = true
 backend = "cursor"
 model = "cursor-grok-4.6"
 effort = "xhigh"
+
+# Route de relance du relecteur, après un refus du contrat JSON. Facultative
+# et volontairement non déclarée : nommer un second juge est un arbitrage du
+# propriétaire, pas un défaut d'outil. Sans elle, la relance durcit le contrat
+# et rejoue la route nominale, puis s'arrête avant une troisième dépense
+# identique. La forme attendue, si elle est un jour déclarée :
+#
+# [risks.R1.review_fallback]
+# backend = "cursor"          # on change de juge, pas de transport
+# model = "cursor-grok-4.6"   # obligatoire, et différent de la route nominale
+# effort = "high"
 
 [risks.R2]
 test_profile = "certify"

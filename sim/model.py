@@ -7,6 +7,8 @@ une agrégation dérivée — jamais un champ stocké sur une entité.
 
 from dataclasses import dataclass, field
 
+from sim.constants import MARCHANDISE_NOURRITURE
+
 
 class _NoBadSpatialField:
     """
@@ -17,8 +19,6 @@ class _NoBadSpatialField:
     TypeError explicite à l'instanciation (via __post_init__).
     """
 
-    # Tout champ dont le nom normalisé (minuscules, sans tirets bas) commence
-    # par "province" est interdit — couvre province_id, province_code, province, etc.
     _FORBIDDEN_PREFIX = "province"
 
     def __post_init__(self):
@@ -32,44 +32,94 @@ class _NoBadSpatialField:
                 )
 
 
+def lire_stock_marchandise(cell: "Cell", marchandise: str) -> float:
+    """
+    Lit le stock d'une marchandise dans le panier de la cellule.
+
+    Une marchandise absente du panier rend la sentinelle -1.0 (« non calculé »).
+    Une marchandise présente à zéro se lit 0.0 (règle 8).
+    """
+    if marchandise not in cell.stocks:
+        return -1.0
+    return cell.stocks[marchandise]
+
+
+def ecrire_stock_marchandise(cell: "Cell", marchandise: str, quantite_kg: float) -> None:
+    """Écrit le stock d'une marchandise dans le panier de la cellule."""
+    cell.stocks[marchandise] = quantite_kg
+
+
+def cellule_vers_dict(cell: "Cell") -> dict:
+    """
+    Sérialisation canonique d'une cellule pour World.to_dict().
+
+    Le panier est copié ici : aucun autre module n'indexe stocks directement.
+    """
+    return {
+        "cell_id": cell.cell_id,
+        "area_km2": cell.area_km2,
+        "population": cell.population,
+        "food_stock_kg": lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE),
+        "hunger_ticks": cell.hunger_ticks,
+        "food_deficit_kg": cell.food_deficit_kg,
+        "mortality_remainder": cell.mortality_remainder,
+        "natalite_remainder": cell.natalite_remainder,
+        "stocks": dict(cell.stocks),
+    }
+
+
 @dataclass
 class Cell(_NoBadSpatialField):
     """
     Unité géographique de base du monde simulé.
 
-    Champs :
-        cell_id          : identifiant unique de la cellule (clé spatiale, ADR-0003).
-        area_km2         : superficie en km² (lecture seule après chargement).
-        population       : nombre d'habitants (agrégat, modifié par le moteur).
-        food_stock_kg    : stock de nourriture disponible en kg.
-                           Sentinelle -1 = non calculé (hard-won rule 8).
-        hunger_ticks     : ticks consécutifs sans nourriture suffisante.
-                           Sentinelle -1 = non initialisé (hard-won rule 8).
-        food_deficit_kg  : déficit alimentaire cumulé en kg (brief 012, SC3).
-                           Accumulé quand la consommation dépasse le stock.
-                           Réduit par les kilogrammes de surplus réellement
-                           consommés en sus du besoin (SC5 brief 017).
-                           Sentinelle -1 = non encore calculé (hard-won rule 8).
-        mortality_remainder : partie fractionnaire de mort non encore appliquée,
-                           reportée au tick suivant (SC3 brief 017).
-                           Sans ce report, `int(population × death_rate)`
-                           arrondit à zéro toute mortalité inférieure à un
-                           habitant : une petite cellule devient immortelle
-                           par arrondi.
-                           Sentinelle -1 = non calculé (hard-won rule 8).
-        natalite_remainder : partie fractionnaire de naissance non encore
-                           appliquée, reportée au tick suivant (SC3 brief 036).
-                           Sans ce report, int(population x taux) vaut zero
-                           des que le produit est inferieur a un : une petite
-                           cellule reste sterile par arrondi.
-                           Sentinelle -1 = non calculé (hard-won rule 8).
+    `natalite_remainder` reporte la fraction de naissance non encore
+    appliquée. Sa sentinelle -1.0 signifie « non calculé » ; un monde amorcé
+    l'initialise à 0.0.
     """
 
     cell_id: int
     area_km2: float
     population: int
-    food_stock_kg: float = field(default=-1.0)
+    stocks: dict[str, float] = field(default_factory=dict)
     hunger_ticks: int = field(default=-1)
     food_deficit_kg: float = field(default=-1.0)
     mortality_remainder: float = field(default=-1.0)
     natalite_remainder: float = field(default=-1.0)
+
+    def __init__(
+        self,
+        cell_id: int,
+        area_km2: float,
+        population: int,
+        stocks: dict[str, float] | None = None,
+        hunger_ticks: int = -1,
+        food_deficit_kg: float = -1.0,
+        mortality_remainder: float = -1.0,
+        natalite_remainder: float = -1.0,
+        food_stock_kg: float | None = None,
+    ):
+        self.cell_id = cell_id
+        self.area_km2 = area_km2
+        self.population = population
+        self.stocks = dict(stocks) if stocks is not None else {}
+        self.hunger_ticks = hunger_ticks
+        self.food_deficit_kg = food_deficit_kg
+        self.mortality_remainder = mortality_remainder
+        self.natalite_remainder = natalite_remainder
+        if food_stock_kg is not None and food_stock_kg >= 0:
+            self.stocks = {MARCHANDISE_NOURRITURE: food_stock_kg}
+        _NoBadSpatialField.__post_init__(self)
+
+    @property
+    def food_stock_kg(self) -> float:
+        """Compatibilité tests : délègue à l'accès nommé de lecture."""
+        return lire_stock_marchandise(self, MARCHANDISE_NOURRITURE)
+
+    @food_stock_kg.setter
+    def food_stock_kg(self, valeur: float) -> None:
+        """Compatibilité tests : délègue à l'accès nommé d'écriture."""
+        if valeur < 0:
+            self.stocks.pop(MARCHANDISE_NOURRITURE, None)
+        else:
+            ecrire_stock_marchandise(self, MARCHANDISE_NOURRITURE, valeur)

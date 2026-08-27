@@ -146,6 +146,26 @@ déjà publié, sans replanifier ni réexécuter :
 forgepilot recover-review latest --repo /srv/ForgeHistory --run
 ```
 
+Si le reviewer a rendu `FAIL` puis que le propriétaire a corrigé les constats
+dans le worktree, rattacher ces écritures au run au lieu d'en créer un neuf :
+
+```bash
+forgepilot recover-iteration latest --repo /srv/ForgeHistory --manual
+forgepilot resume latest --repo /srv/ForgeHistory
+```
+
+Cette reprise n'ouvre que depuis une correction attendue après revue. Elle
+contrôle le feedback, le SHA et le périmètre, puis refait les tests et la revue.
+Elle ne débloque jamais un verdict produit `BLOCKED`.
+
+Le message de blocage dit par quelle route la dernière réponse refusée est
+arrivée. Après un premier refus, la relance durcit déjà le contrat (schéma
+déposé, contre-exemple). Elle peut aussi changer de juge si la politique
+déclare une route de secours pour ce risque
+(`[risks.Rn.review_fallback]` dans `control-plane/workflow-policy.toml`) ;
+aucune n'est déclarée aujourd'hui, et le message le dit plutôt que de le
+taire. Nommer ce second juge est un arbitrage du propriétaire.
+
 **Deux acteurs ne sont pas d'accord.**
 Ce n'est pas à eux de trancher, et surtout pas à celui qui a produit le code.
 L'ordre est : la porte mécanique d'abord (elle est déterministe, elle ne
