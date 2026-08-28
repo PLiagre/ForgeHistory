@@ -116,6 +116,7 @@ class World:
                 mortality_remainder=0.0,
                 # Monde amorcé : aucune fraction de naissance en attente.
                 natalite_remainder=0.0,
+                migration_remainder=0.0,
             )
             cells[cid] = cell
 

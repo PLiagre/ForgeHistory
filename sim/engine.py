@@ -17,6 +17,8 @@ Chaîne causale (brief 013) :
     _apply_natalite    → natalité sur cellules rassasiées sans dette,
                          formule inverse de la mortalité avec report
                          de fraction (brief 036)
+    _apply_migration   → part des habitants affamés vers voisines en surplus
+                         (brief 041), après mortalité, sans déplacer de kg
 
 Règle SC9 : aucun littéral numérique non nommé dans les fonctions de calcul.
 Toutes les constantes paramétriques sont dans sim/constants.py.
@@ -631,17 +633,135 @@ def _apply_natalite(cell: Cell, penurie_kg: float) -> None:
         cell.natalite_remainder = remainder
 
 
+def _surplus_nourriture_tick(population: int, stock: float) -> float:
+    """Surplus alimentaire du tick sur un instantané (même définition que le commerce)."""
+    consommation = population * _constantes.FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    stock_eff = stock if stock >= 0 else 0.0
+    return max(0.0, stock_eff - consommation)
+
+
+def _repartir_habitants_proportionnellement(
+    total: int, poids: dict[int, float]
+) -> dict[int, int]:
+    """
+    Parts entières proportionnelles aux poids ; reliquat par plus fort reste,
+    égalité départagée par cell_id croissant.
+    """
+    if total <= 0 or not poids:
+        return {}
+    somme_poids = sum(poids.values())
+    if somme_poids <= 0.0:
+        return {cid: 0 for cid in poids}
+
+    bruts = {cid: total * w / somme_poids for cid, w in poids.items()}
+    parts = {cid: int(brut) for cid, brut in bruts.items()}
+    reliquat = total - sum(parts.values())
+    if reliquat > 0:
+        candidats = sorted(
+            poids,
+            key=lambda cid: (-(bruts[cid] - parts[cid]), cid),
+        )
+        for cid in candidats[:reliquat]:
+            parts[cid] += 1
+    return parts
+
+
+def _voisins_avec_surplus(
+    world, source_id: int, surplus_par_cellule: dict[int, float]
+) -> dict[int, float]:
+    """Voisines d'adjacence dont le surplus du tick est strictement positif."""
+    destinations: dict[int, float] = {}
+    for edge in world.adjacency:
+        a_id = edge["a"]
+        b_id = edge["b"]
+        if a_id not in world.cells or b_id not in world.cells:
+            continue
+        if a_id == source_id:
+            voisin = b_id
+        elif b_id == source_id:
+            voisin = a_id
+        else:
+            continue
+        surplus = surplus_par_cellule.get(voisin, 0.0)
+        if surplus > 0.0:
+            destinations[voisin] = surplus
+    return destinations
+
+
+def _apply_migration(world, penuries: dict[int, float]) -> None:
+    """
+    Maillon 6 — Migration de famine (brief 041).
+
+    Une cellule ne part que si la pénurie du tick (retour de _apply_consumption)
+    est strictement positive. Les partants se répartissent entre les voisines
+    dont le surplus alimentaire du tick est positif, sur un instantané pris
+    avant tout mouvement. Report de fraction via migration_remainder.
+
+    Atomique : une personne ne traverse qu'une arête ; une cellule qui reçoit
+    des arrivants n'en envoie pas le même tick. Aucun kilogramme ne bouge.
+    """
+    snapshot_pop = {cid: cell.population for cid, cell in world.cells.items()}
+    snapshot_stock = {
+        cid: lire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE)
+        for cid, cell in world.cells.items()
+    }
+    surplus_par_cellule = {
+        cid: _surplus_nourriture_tick(snapshot_pop[cid], snapshot_stock[cid])
+        for cid in world.cells
+    }
+
+    transfers: list[tuple[int, int, int]] = []
+
+    for cid, cell in world.cells.items():
+        if penuries.get(cid, 0.0) <= 0.0 or snapshot_pop[cid] <= 0:
+            continue
+
+        remainder = cell.migration_remainder if cell.migration_remainder >= 0.0 else 0.0
+        brut = (
+            snapshot_pop[cid] * _constantes.FRACTION_MIGRANTE_PAR_TICK + remainder
+        )
+        partants = int(brut)
+        cell.migration_remainder = brut - partants
+
+        if partants <= 0:
+            continue
+
+        destinations = _voisins_avec_surplus(world, cid, surplus_par_cellule)
+        if not destinations:
+            continue
+
+        repartition = _repartir_habitants_proportionnellement(partants, destinations)
+        for dest_id, nb in repartition.items():
+            if nb > 0:
+                transfers.append((cid, dest_id, nb))
+
+    receveuses = {dest for _, dest, _ in transfers}
+    transfers = [(src, dest, nb) for src, dest, nb in transfers if src not in receveuses]
+
+    sorties: dict[int, int] = defaultdict(int)
+    entrees: dict[int, int] = defaultdict(int)
+    for src, dest, nb in transfers:
+        sorties[src] += nb
+        entrees[dest] += nb
+
+    for cid, cell in world.cells.items():
+        pop_snapshot = snapshot_pop[cid]
+        delta = entrees.get(cid, 0) - sorties.get(cid, 0)
+        cell.population = pop_snapshot + delta
+
+
 def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
     """
     Avance le monde d'un pas de temps.
 
-    Ordre du tick (brief 013, SC1) :
+    Ordre du tick (brief 013, SC1 ; brief 041) :
         1. Production  (_apply_production)   — pour chaque cellule
         2. Commerce    (_apply_commerce)     — sur le monde entier (snapshot)
         3. Consommation (_apply_consumption) — pour chaque cellule
         4. Faim        (_update_hunger)      — pour chaque cellule
         5. Mortalité   (_apply_mortality)    — pour chaque cellule
         6. Natalité    (_apply_natalite)     — pour chaque cellule
+        7. Migration   (_apply_migration)    — sur le monde entier (snapshot)
 
     rng : instance de random.Random initialisée par l'appelant —
           jamais d'aléa global non contrôlé.
@@ -667,10 +787,14 @@ def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
 
     _apply_commerce(world, total_transported)
 
+    penuries: dict[int, float] = {}
     for cell in world.cells.values():
         penurie_kg = _apply_consumption(cell)
+        penuries[cell.cell_id] = penurie_kg
         _update_hunger(cell, penurie_kg)
         _apply_mortality(cell)
         _apply_natalite(cell, penurie_kg)
+
+    _apply_migration(world, penuries)
 
     return total_transported[0]

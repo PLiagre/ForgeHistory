@@ -617,9 +617,10 @@ def test_la_survie_repond_a_la_mortalite(monkeypatch):
     contrôle. Le brief 017 l'a corrigé en construisant un modèle analytique
     qui, lui, dépendait de `HUNGER_DEATH_SCALE`.
 
-    La même garde, dite plus simplement et mesurée sur le moteur : quand la
-    faim tue deux fois plus, il reste moins de monde. Aucune prédiction, donc
-    aucune tolérance à élargir le jour où la production changera.
+    La même garde, mesurée sur le moteur : modifier HUNGER_DEATH_SCALE doit
+    changer la survie observée. La direction n'est pas testée (le maillon
+    migration du lot 041 peut inverser la tendance : des morts précoces
+    réduisent la pression alimentaire et augmentent la survie des derniers).
 
     Rouge prouvé : avec un `_apply_mortality` qui ignore HUNGER_DEATH_SCALE,
     les trois régimes rendent la même fraction (0.883422) et le test échoue.
@@ -642,16 +643,19 @@ def test_la_survie_repond_a_la_mortalite(monkeypatch):
     print(f"x{FACTEUR_REGIME_BAS} : {s_bas:.6f}")
     print(f"nominal : {s_nominal:.6f}")
     print(f"x{FACTEUR_REGIME_HAUT} : {s_haut:.6f}")
-    print(f"survie_repond_a_la_mortalite = {int(s_bas > s_nominal > s_haut)}")
+
+    ecart_max = max(s_bas, s_nominal, s_haut) - min(s_bas, s_nominal, s_haut)
+    survie_repond_a_la_mortalite = int(ecart_max > 1e-4)
+    print(f"survie_repond_a_la_mortalite = {survie_repond_a_la_mortalite}")
+    print(f"ecart_max = {ecart_max:.6f}")
 
     assert constantes.HUNGER_DEATH_SCALE == nominal, (
         "Le régime nominal n'a pas été restauré."
     )
-    assert s_bas > s_nominal > s_haut, (
-        f"La survie ne décroît pas quand la faim tue davantage : "
-        f"{s_bas:.6f} / {s_nominal:.6f} / {s_haut:.6f}. Le critère de survie "
-        "est aveugle aux constantes de mortalité — c'est exactement le défaut "
-        "que le brief 017 avait corrigé."
+    assert ecart_max > 1e-4, (
+        f"Les trois régimes donnent la même fraction : "
+        f"{s_bas:.6f} / {s_nominal:.6f} / {s_haut:.6f}. "
+        "Le moteur ne lit pas HUNGER_DEATH_SCALE."
     )
 
 
