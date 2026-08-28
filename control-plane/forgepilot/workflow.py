@@ -396,9 +396,26 @@ def review_invocation(
             schema_retry=schema_retry,
         )
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
-        argv = _cursor_read_argv(
-            settings, repo, prompt, mode="ask", model=cursor_model
-        )
+        # Sandbox activé : le relecteur lit le bundle depuis forge-exchange/
+        # dans le workspace, au lieu de le recevoir dans le prompt. Sans
+        # sandbox, l'invocation portable est limitée à 30K unités UTF-16,
+        # ce qu'un plan détaillé (acceptance_criteria + checks + scope)
+        # dépasse régulièrement.
+        argv = [
+            settings.cursor_binary,
+            "-p",
+            prompt,
+            "--force",
+            "--sandbox",
+            "enabled",
+            "--trust",
+            "--workspace",
+            str(repo),
+            "--output-format",
+            "json",
+        ]
+        if cursor_model:
+            argv.extend(["--model", cursor_model])
     else:
         if bundle_path is not None:
             bundle_body = _task_text(bundle_path)

@@ -45,7 +45,10 @@ class PolicyRoutingTests(unittest.TestCase):
             plan_inv.argv[plan_inv.argv.index("--model") + 1],
         )
         self.assertEqual("cursor", review_inv.backend)
-        self.assertEqual("ask", review_inv.argv[review_inv.argv.index("--mode") + 1])
+        self.assertEqual(
+            "enabled",
+            review_inv.argv[review_inv.argv.index("--sandbox") + 1],
+        )
         self.assertEqual(
             "cursor-grok-4.6-xhigh",
             review_inv.argv[review_inv.argv.index("--model") + 1],
