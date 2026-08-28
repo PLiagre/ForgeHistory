@@ -301,7 +301,8 @@ class _MondeEpreuve:
         """Empreinte exacte : `repr` d'un flottant, jamais un arrondi."""
         return [
             (c.cell_id, c.population, repr(c.food_stock_kg), c.hunger_ticks,
-             repr(c.food_deficit_kg), repr(c.mortality_remainder))
+             repr(c.food_deficit_kg), repr(c.mortality_remainder),
+             repr(c.migration_remainder))
             for c in sorted(self.cells.values(), key=lambda c: c.cell_id)
         ]
 

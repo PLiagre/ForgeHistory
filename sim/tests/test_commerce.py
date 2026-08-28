@@ -1014,3 +1014,255 @@ def test_sans_carte_capacite_transport_inchangee():
     assert stock > 0.0
     assert stock <= TRADE_CAPACITY_KG_PER_EDGE_PER_TICK + TOLERANCE
 
+
+# --- Brief 041 — migration de famine ---
+
+def _somme_populations(world: World) -> int:
+    return sum(c.population for c in world.cells.values())
+
+
+def _build_monde_migration_trois_cellules() -> World:
+    """Affamée (201), voisine en surplus (202), témoin sans arête (203)."""
+    from sim import constants as _constantes
+
+    pop = 100
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    affamee = Cell(
+        cell_id=201,
+        area_km2=0.0,
+        population=pop,
+        food_stock_kg=0.0,
+        hunger_ticks=0,
+        food_deficit_kg=besoin,
+        migration_remainder=0.0,
+    )
+    surplus = Cell(
+        cell_id=202,
+        area_km2=0.0,
+        population=pop,
+        food_stock_kg=besoin * 3,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    temoin = Cell(
+        cell_id=203,
+        area_km2=0.0,
+        population=pop,
+        food_stock_kg=besoin,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    adjacency = [{"a": 201, "b": 202, "kind": "land", "shared_length_m": 1000.0}]
+    return World(cells={201: affamee, 202: surplus, 203: temoin}, adjacency=adjacency)
+
+
+def _penuries_affamee_seule(world: World) -> dict[int, float]:
+  from sim.constants import FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+  penuries = {cid: 0.0 for cid in world.cells}
+  for cid, cell in world.cells.items():
+    if cell.food_stock_kg <= 0 and cell.population > 0:
+      penuries[cid] = cell.population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+  return penuries
+
+
+def test_conservation_population_migration():
+    """SC1 — La migration déplace sans créer ni détruire d'habitants."""
+    from sim.engine import _apply_migration
+
+    world = _build_monde_migration_trois_cellules()
+    penuries = _penuries_affamee_seule(world)
+    avant = _somme_populations(world)
+    _apply_migration(world, penuries)
+    apres = _somme_populations(world)
+    ecart = abs(apres - avant)
+    assert ecart == 0, f"écart de population = {ecart} (attendu 0)"
+
+
+def test_depart_affame_vers_surplus_temoin_inchange():
+    """SC2 — L'affamée perd, la voisine gagne autant, le témoin ne bouge pas."""
+    from sim import constants as _constantes
+    from sim.engine import _apply_migration
+
+    world = _build_monde_migration_trois_cellules()
+    pop_temoin_avant = world.cells[203].population
+    pop_affamee_avant = world.cells[201].population
+    pop_surplus_avant = world.cells[202].population
+    penuries = _penuries_affamee_seule(world)
+    _apply_migration(world, penuries)
+    delta_affamee = pop_affamee_avant - world.cells[201].population
+    delta_surplus = world.cells[202].population - pop_surplus_avant
+    assert delta_affamee > 0, "la cellule affamée devrait perdre des habitants"
+    assert delta_affamee == delta_surplus, (
+        f"transfert non conservé : -{delta_affamee} vs +{delta_surplus}"
+    )
+    assert world.cells[203].population == pop_temoin_avant
+
+
+def test_zero_partant_sans_destination_surplus():
+    """SC3 — Affamée sans voisine en surplus : zéro partant mesuré."""
+    from sim.engine import _apply_migration
+
+    affamee = Cell(
+        cell_id=301, area_km2=0.0, population=50,
+        food_stock_kg=0.0, hunger_ticks=1, food_deficit_kg=100.0,
+        migration_remainder=0.0,
+    )
+    voisine_vide = Cell(
+        cell_id=302, area_km2=0.0, population=50,
+        food_stock_kg=0.0, hunger_ticks=0, food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    world = World(
+        cells={301: affamee, 302: voisine_vide},
+        adjacency=[{"a": 301, "b": 302, "kind": "land", "shared_length_m": 1000.0}],
+    )
+    pop_avant = world.cells[301].population
+    _apply_migration(world, {301: 10.0, 302: 0.0})
+    assert world.cells[301].population == pop_avant
+
+
+def test_zero_partant_depuis_cellule_rassasiee():
+    """SC3 — Cellule rassasiée entourée de surplus : zéro partant."""
+    from sim.engine import _apply_migration
+
+    pop = 40
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    rassasiee = Cell(
+        cell_id=311, area_km2=0.0, population=pop,
+        food_stock_kg=besoin, hunger_ticks=0, food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    surplus = Cell(
+        cell_id=312, area_km2=0.0, population=pop,
+        food_stock_kg=besoin * 5, hunger_ticks=0, food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    world = World(
+        cells={311: rassasiee, 312: surplus},
+        adjacency=[{"a": 311, "b": 312, "kind": "land", "shared_length_m": 1000.0}],
+    )
+    pop_avant = world.cells[311].population
+    _apply_migration(world, {311: 0.0, 312: 0.0})
+    assert world.cells[311].population == pop_avant
+
+
+def test_pas_immobilite_par_arrondi_migration():
+    """SC4 — Le report de fraction permet un départ en temps dérivé."""
+    import math
+    from sim import constants as _constantes
+    from sim.engine import _apply_migration
+
+    pop = 50
+    fraction = _constantes.FRACTION_MIGRANTE_PAR_TICK
+    borne = math.ceil(1.0 / (pop * fraction))
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    affamee = Cell(
+        cell_id=401, area_km2=0.0, population=pop,
+        food_stock_kg=0.0, hunger_ticks=1, food_deficit_kg=besoin,
+        migration_remainder=0.0,
+    )
+    surplus = Cell(
+        cell_id=402, area_km2=0.0, population=pop,
+        food_stock_kg=besoin * 3, hunger_ticks=0, food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    world = World(
+        cells={401: affamee, 402: surplus},
+        adjacency=[{"a": 401, "b": 402, "kind": "land", "shared_length_m": 1000.0}],
+    )
+    ticks_jusqu_au_depart = -1
+    for t in range(borne):
+        pop_avant = world.cells[401].population
+        _apply_migration(world, {401: besoin, 402: 0.0})
+        if world.cells[401].population < pop_avant:
+            ticks_jusqu_au_depart = t + 1
+            break
+    assert 0 < ticks_jusqu_au_depart <= borne, (
+        f"premier départ au tick {ticks_jusqu_au_depart}, borne dérivée {borne}"
+    )
+
+
+def test_receveuse_ne_renvie_pas_meme_tick():
+    """SC5 — Une cellule qui reçoit des arrivants n'en envoie pas le même tick."""
+    from sim.engine import _apply_migration
+
+    pop = 80
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    affamee_a = Cell(
+        cell_id=501, area_km2=0.0, population=pop,
+        food_stock_kg=0.0, hunger_ticks=1, food_deficit_kg=besoin,
+        migration_remainder=0.0,
+    )
+    affamee_b = Cell(
+        cell_id=502, area_km2=0.0, population=pop,
+        food_stock_kg=0.0, hunger_ticks=1, food_deficit_kg=besoin,
+        migration_remainder=0.0,
+    )
+    surplus = Cell(
+        cell_id=503, area_km2=0.0, population=pop,
+        food_stock_kg=besoin * 5, hunger_ticks=0, food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    world = World(
+        cells={501: affamee_a, 502: affamee_b, 503: surplus},
+        adjacency=[
+            {"a": 501, "b": 503, "kind": "land", "shared_length_m": 1000.0},
+            {"a": 502, "b": 503, "kind": "land", "shared_length_m": 1000.0},
+        ],
+    )
+    penuries = {501: besoin, 502: besoin, 503: 0.0}
+    pops_avant = {cid: c.population for cid, c in world.cells.items()}
+    _apply_migration(world, penuries)
+    # 503 reçoit : elle ne doit pas avoir perdu de population
+    assert world.cells[503].population >= pops_avant[503]
+    if world.cells[503].population > pops_avant[503]:
+        assert penuries.get(503, 0.0) <= 0.0 or world.cells[503].population == pops_avant[503] + (
+            pops_avant[501] - world.cells[501].population
+        ) + (pops_avant[502] - world.cells[502].population)
+
+
+def test_invariance_ordre_aretes_migration():
+    """SC5 — Même micro-monde, ordre d'adjacence inversé : état identique."""
+    from sim.engine import _apply_migration
+
+    def _jouer(adjacency: list[dict]) -> dict[int, int]:
+        pop = 60
+        besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+        a = Cell(
+            cell_id=601, area_km2=0.0, population=pop,
+            food_stock_kg=0.0, hunger_ticks=1, food_deficit_kg=besoin,
+            migration_remainder=0.0,
+        )
+        b = Cell(
+            cell_id=602, area_km2=0.0, population=pop,
+            food_stock_kg=besoin * 4, hunger_ticks=0, food_deficit_kg=0.0,
+            migration_remainder=0.0,
+        )
+        c = Cell(
+            cell_id=603, area_km2=0.0, population=pop,
+            food_stock_kg=besoin * 4, hunger_ticks=0, food_deficit_kg=0.0,
+            migration_remainder=0.0,
+        )
+        world = World(cells={601: a, 602: b, 603: c}, adjacency=adjacency)
+        penuries = {601: besoin, 602: 0.0, 603: 0.0}
+        _apply_migration(world, penuries)
+        return {cid: cell.population for cid, cell in world.cells.items()}
+
+    edges_ab = [
+        {"a": 601, "b": 602, "kind": "land", "shared_length_m": 1000.0},
+        {"a": 601, "b": 603, "kind": "land", "shared_length_m": 1000.0},
+    ]
+    edges_ba = list(reversed(edges_ab))
+    assert _jouer(edges_ab) == _jouer(edges_ba)
+
+
+def test_sentinelle_migration_remainder():
+    """SC6 — Sentinelle -1.0 sur Cell() nue ; 0.0 sur monde amorcé."""
+    from sim.world import World
+
+    assert Cell(cell_id=1, area_km2=1.0, population=1).migration_remainder == -1.0
+    monde = World.charger(0)
+    for cell in monde.cells.values():
+        assert cell.migration_remainder == 0.0

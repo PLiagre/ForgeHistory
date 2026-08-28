@@ -339,6 +339,12 @@ def rendement_moyen_courant() -> float:
 # mort entière est appliquée en au plus ce nombre de ticks (SC3 brief 017).
 N_BOUND_MORT = math.ceil(1.0 / MAX_DEATH_RATE_PER_TICK)
 
+# --- Migration de famine (brief 041) ---
+
+# Part de la population d'une cellule affamée qui émigre en un tick.
+# Niveau 2 : ordre de grandeur plausible, jamais sourcé (voir MODELE.md).
+FRACTION_MIGRANTE_PAR_TICK = 0.01
+
 # --- Entrée en ligne de commande (python -m sim), ADR-0016 ---
 # Un an calendaire de ticks, dérivé de la base de temps unique : jamais un
 # second littéral de durée. TICK_DURATION_DAYS vaut 1 aujourd'hui.
