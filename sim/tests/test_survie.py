@@ -33,6 +33,7 @@ from sim.constants import (
 from sim.engine import (
     _apply_consumption,
     _apply_mortality,
+    _apply_natalite,
     _apply_production,
     _update_hunger,
     production_moyenne_kg_par_tick,
@@ -691,4 +692,236 @@ def test_la_survie_repond_a_la_nourriture(monkeypatch):
         f"Diviser la production par deux ne fait pas baisser la survie "
         f"({s_nominal:.6f} contre {s_maigre:.6f}). Soit le moteur ne relit "
         "pas la constante, soit la nourriture ne décide plus de rien."
+    )
+
+
+# --- brief 036 : natalité ---
+
+import math
+
+
+def _cellule_rassasiee_productive(population: int, area_km2: float = 50.0) -> tuple[World, int]:
+    """Micro-monde d'une cellule auto-suffisante en nourriture."""
+    besoin = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    cell = Cell(
+        cell_id=1,
+        area_km2=area_km2,
+        population=population,
+        food_stock_kg=besoin * 10,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        mortality_remainder=0.0,
+        natalite_remainder=0.0,
+    )
+    return World(cells={1: cell}, adjacency=[]), population
+
+
+def test_cellule_rassasiee_gagne_habitants():
+    """
+    SC1 — Une cellule rassasiée sans dette voit sa population croître en au
+    plus ceil(1 / (population × taux)) ticks rassasiés.
+    """
+    population = 100
+    world, pop_init = _cellule_rassasiee_productive(population)
+    rate = constantes.naissances_par_habitant_par_tick()
+    borne = math.ceil(1.0 / (rate * population))
+    rng = random.Random(42)
+    for _ in range(borne):
+        tick(world, rng)
+    pop_fin = world.cells[1].population
+    print(f"population initiale = {pop_init}, finale = {pop_fin}, borne = {borne}")
+    assert pop_fin > pop_init, (
+        f"La cellule rassasiée n'a gagné aucun habitant en {borne} ticks."
+    )
+
+
+def test_cellule_affamee_ne_gagne_pas_habitants():
+    """
+    SC2 — La faim ferme la natalité, elle ne la ralentit pas.
+
+    Le maillon est appelé directement : un tick complet tue la cellule
+    avant qu'un remainder inconditionnel n'atteigne 1, et le contrôle
+    passerait en silence (règle 4). La borne est le nombre de ticks
+    rassasiés qui suffirait à naître — dérivée du taux et de la
+    population, jamais écrite en dur.
+    """
+    population = 50
+    remainder_init = 0.0
+    cell = Cell(
+        cell_id=1,
+        area_km2=0.0,
+        population=population,
+        food_stock_kg=0.0,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        mortality_remainder=0.0,
+        natalite_remainder=remainder_init,
+    )
+    rate = constantes.naissances_par_habitant_par_tick()
+    borne = math.ceil(1.0 / (rate * population))
+    penurie_kg = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    remainder_max = remainder_init
+    for _ in range(borne):
+        _apply_natalite(cell, penurie_kg)
+        remainder_max = max(remainder_max, cell.natalite_remainder)
+    print(
+        f"pop = {cell.population}, remainder_init = {remainder_init}, "
+        f"remainder_max = {remainder_max}, borne = {borne}"
+    )
+    assert cell.population == population, (
+        f"Naissance en pénurie : population={cell.population}, "
+        f"départ={population}."
+    )
+    assert remainder_max == remainder_init, (
+        "natalite_remainder a progressé alors que la cellule était affamée."
+    )
+
+
+def test_dette_alimentaire_ferme_la_natalite():
+    """
+    SC2 — Une dette alimentaire nulle est exigée, pas seulement une
+    pénurie nulle ce tick. Sinon la faim d'hier n'empêcherait pas
+    de naître aujourd'hui.
+    """
+    population = 50
+    remainder_init = 0.0
+    cell = Cell(
+        cell_id=1,
+        area_km2=0.0,
+        population=population,
+        food_stock_kg=0.0,
+        hunger_ticks=0,
+        food_deficit_kg=population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
+        mortality_remainder=0.0,
+        natalite_remainder=remainder_init,
+    )
+    rate = constantes.naissances_par_habitant_par_tick()
+    borne = math.ceil(1.0 / (rate * population))
+    remainder_max = remainder_init
+    for _ in range(borne):
+        _apply_natalite(cell, 0.0)
+        remainder_max = max(remainder_max, cell.natalite_remainder)
+    print(
+        f"dette : pop = {cell.population}, remainder_max = {remainder_max}, "
+        f"borne = {borne}"
+    )
+    assert cell.population == population
+    assert remainder_max == remainder_init, (
+        "natalite_remainder a progressé malgré une dette alimentaire."
+    )
+
+
+def test_ration_exacte_ouvre_la_natalite():
+    """
+    SC2 — La porte se lit sur la pénurie du tick, pas sur un stock
+    restant. Une cellule qui mange pile sa ration (pénurie nulle,
+    garde-manger vide, dette nulle) accumule une fraction de natalité.
+    """
+    population = 100
+    besoin = population * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    cell = Cell(
+        cell_id=1,
+        area_km2=0.0,
+        population=population,
+        food_stock_kg=besoin,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        mortality_remainder=0.0,
+        natalite_remainder=0.0,
+    )
+    world = World(cells={1: cell}, adjacency=[])
+    tick(world, random.Random(0))
+    c = world.cells[1]
+    print(
+        f"stock = {c.food_stock_kg}, deficit = {c.food_deficit_kg}, "
+        f"remainder = {c.natalite_remainder}"
+    )
+    assert c.food_stock_kg == 0.0
+    assert c.food_deficit_kg == 0.0
+    assert c.natalite_remainder > 0.0, (
+        "Une cellule qui a mangé pile sa ration doit accumuler une "
+        "fraction de natalité. La porte se lit sur la pénurie, pas "
+        "sur le garde-manger."
+    )
+
+
+def test_petite_cellule_finalement_gagne_un_habitant():
+    """
+    SC3 — population × taux < 1 : un habitant en au plus
+    ceil(1 / (population × taux)) ticks rassasiés.
+    """
+    population = 5
+    world, pop_init = _cellule_rassasiee_productive(population)
+    rate = constantes.naissances_par_habitant_par_tick()
+    borne = math.ceil(1.0 / (rate * population))
+    rng = random.Random(42)
+    for _ in range(borne):
+        tick(world, rng)
+    pop_fin = world.cells[1].population
+    print(f"petite cellule : initiale = {pop_init}, finale = {pop_fin}, borne = {borne}")
+    assert pop_fin > pop_init, (
+        f"Stérilité par arrondi : {pop_init} habitants après {borne} ticks rassasiés."
+    )
+
+
+def test_natalite_remainder_sentinelle_et_amorcage():
+    """
+    SC4 — Sentinelle -1.0 sur Cell() ; 0.0 sur cellule d'un World.charger().
+    """
+    cell_vierge = Cell(cell_id=1, area_km2=1.0, population=10)
+    assert cell_vierge.natalite_remainder == -1.0
+    world = World.charger(rng_seed=0)
+    cell_amorcee = next(iter(world.cells.values()))
+    assert cell_amorcee.natalite_remainder == 0.0
+    print(
+        f"vierge = {cell_vierge.natalite_remainder}, "
+        f"amorcée = {cell_amorcee.natalite_remainder}"
+    )
+
+
+def test_le_monde_ne_nourrit_pas_plus_a_horizon_allonge():
+    """
+    SC5 — Même plafond dérivé à cinq fois l'horizon de N_TICKS_OBSERVES.
+    """
+    horizon = N_TICKS_OBSERVES * 5
+    fraction, monde, pop_initiale = _observer_le_monde(n_ticks=horizon)
+    production_moyenne = production_moyenne_kg_par_tick(monde)
+    ration_du_monde = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK * pop_initiale
+    plafond = production_moyenne / ration_du_monde
+    print(f"horizon = {horizon}, plafond = {plafond:.6f}, fraction = {fraction:.6f}")
+    assert fraction > 0.0
+    assert fraction <= plafond
+
+
+def test_la_demographie_repond_a_la_natalite(monkeypatch):
+    """
+    SC6 — fraction_survie(taux_nul) < fraction_survie(taux_nominal)
+    < fraction_survie(taux_double).
+    """
+    nominal = constantes.NAISSANCES_PAR_HABITANT_PAR_TICK
+
+    def _regime(facteur: float) -> float:
+        monkeypatch.setattr(
+            constantes, "NAISSANCES_PAR_HABITANT_PAR_TICK", nominal * facteur
+        )
+        try:
+            fraction, _, _ = _observer_le_monde()
+        finally:
+            monkeypatch.setattr(
+                constantes, "NAISSANCES_PAR_HABITANT_PAR_TICK", nominal
+            )
+        return fraction
+
+    s_nul = _regime(0.0)
+    s_nominal = _regime(1.0)
+    s_double = _regime(2.0)
+
+    print(f"taux nul : {s_nul:.6f}")
+    print(f"taux nominal : {s_nominal:.6f}")
+    print(f"taux double : {s_double:.6f}")
+
+    assert constantes.NAISSANCES_PAR_HABITANT_PAR_TICK == nominal
+    assert s_nul < s_nominal < s_double, (
+        f"La démographie ne répond pas au taux de natalité : "
+        f"{s_nul:.6f} / {s_nominal:.6f} / {s_double:.6f}."
     )

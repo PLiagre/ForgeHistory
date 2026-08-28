@@ -246,6 +246,18 @@ HUNGER_DEATH_SCALE = 0.005
 # instantané même avec un déficit extrême.
 MAX_DEATH_RATE_PER_TICK = 0.10
 
+# --- Natalité (brief 036, fidélité niveau 2) ---
+
+# Naissances par habitant et par tick, sur les seuls ticks où la cellule
+# a mangé sa ration entière sans dette alimentaire — ordre de grandeur
+# plausible niveau 2, jamais sourcé.
+NAISSANCES_PAR_HABITANT_PAR_TICK = 0.0002
+
+
+def naissances_par_habitant_par_tick() -> float:
+    """Relit NAISSANCES_PAR_HABITANT_PAR_TICK à chaque appel (motif 033)."""
+    return NAISSANCES_PAR_HABITANT_PAR_TICK
+
 # --- Amorçage initial ---
 
 # Densité de population initiale par km² (proxy paramétrique, voir MODELE.md).

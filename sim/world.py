@@ -114,6 +114,8 @@ class World:
                 # Monde amorcé : aucune fraction de mort en attente.
                 # La sentinelle -1.0 signifie « non calculé », jamais « nul ».
                 mortality_remainder=0.0,
+                # Monde amorcé : aucune fraction de naissance en attente.
+                natalite_remainder=0.0,
             )
             cells[cid] = cell
 
