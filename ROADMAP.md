@@ -15,7 +15,7 @@
 ## Le jeu — cinq couches, dans l'ordre
 
 Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
-2026-08-27, après la fusion du lot 039 :
+2026-08-28, après la fusion du lot 041 :
 
 | # | Couche | Statut | Où ça vit |
 |---|---|---|---|
@@ -42,8 +42,8 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
   relief `True`, climat `True`, gisements `True` — les trois couches sont
   consommées par le moteur. Depuis le lot 039, le commerce transporte **toute
   marchandise** présente dans le monde, pas seulement la nourriture.
-- Ce que le monde ne sait pas encore faire : naître (la population ne fait que
-  mourir), migrer, fabriquer (le minerai extrait reste sur place).
+- Ce que le monde ne sait pas encore faire : fabriquer (le minerai extrait
+  reste sur place).
 - `viewer/` : regard mince, preuve SVG.
 - Unity : archivé, au commit `da1596d` (le tag `archive/2026-08` n'a
   jamais pu être poussé — voir `AGENTS.md` § « Les archives »).
@@ -53,7 +53,7 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | Phase | Contenu | Statut |
 |---|---|---|
 | **F1** — Fondations monde | carte figée complète : littoral, cellules, adjacence, relief, climat, gisements | **terminée** |
-| **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — relief, climat, gisements, marchandises multi-commerce joués ; restent la natalité et la migration |
+| **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — relief, climat, gisements, marchandises multi-commerce, natalité et migration joués |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles | à venir |
 
 ## Le workflow — Claude manuel, jamais orchestré (ADR-0021)
@@ -91,20 +91,19 @@ un lot est dans son `brief.md`, et nulle part ailleurs.
 
 | # | lot | en une phrase |
 |---|---|---|
-| 036 | `on-nait-aussi` | la population ne fait plus que mourir |
+| 036 | `on-nait-aussi` | la population ne fait plus que mourir ✓ |
 | 037 | `le-stock-devient-un-panier` | le stock cesse d'être un seul nombre de nourriture |
 | 038 | `les-gisements-sortent-du-minerai` | les 27 gisements nommés produisent enfin quelque chose ✓ |
 | 039 | `le-commerce-porte-tout` | le commerce transporte une marchandise quelconque, pas seulement la nourriture ✓ |
-| 040 | `franchir-une-montagne-coute` | une arête de montagne ne transporte pas comme une arête de plaine |
-| 041 | `on-s-en-va-quand-on-a-faim` | des habitants quittent une cellule affamée pour une voisine en surplus |
+| 040 | `franchir-une-montagne-coute` | une arête de montagne ne transporte pas comme une arête de plaine ✓ |
+| 041 | `on-s-en-va-quand-on-a-faim` | des habitants quittent une cellule affamée pour une voisine en surplus ✓ |
 | 042 | `le-viewer-montre-ce-qui-joue` | le regard mince montre ce que le moteur joue vraiment |
 | 043 | `le-convoi-a-l-echelle-de-la-cellule` | le commerce cesse d'être mille fois trop petit pour les cellules |
 | 044 | `un-metier-le-mineur` | première division du travail : les mineurs ne labourent pas |
 
 Dépendances restantes : 038 avant 044 (tenue). 040 avant 043 (le facteur de terrain se prouve plus simplement sur
 une capacité constante ; il multiplie ensuite la capacité dérivée) · 043
-avant tout lot de couche 2. Les lots 036 et 041 sont indépendants et
-040 est le prochain lot de la chaîne (040 → 043 → couche 2).
+avant tout lot de couche 2. Le prochain lot de la chaîne est 042 (viewer) ou 043 (convoi).
 
 ### Pourquoi il n'y a pas de lot « ville »
 
@@ -161,3 +160,4 @@ seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
 | 2026-08-26 | hermes (correction factuelle après fusion #142) | lot 034 fusionné : le moteur ne porte plus d'état global caché pendant le tick ; prochain lot unique 035 |
 | 2026-08-26 | hermes (décision explicite du propriétaire — ADR-0021) | Claude reste disponible manuellement pour les briefs et revues, mais sort de toute orchestration Hermes/ForgePilot ; aucun backend, témoin, cron, skill ou sous-agent Hermes ne peut l'invoquer |
 | 2026-08-27 | hermes (correction factuelle après fusion #163 du lot 039) | lot 039 fusionné : le commerce transporte toute marchandise, pas seulement la nourriture — capacité d'arête partagée entre marchandises, SC1 vérifié (sortie byte-identique). 92 tests (86→92), 13 tests commerce. Prochain lot 040 : franchir une montagne coûte. |
+| 2026-08-28 | hermes (correction factuelle après fusion #167 du lot 041) | lots 036 (natalité), 040 (relief commerce), 041 (migration) fusionnés. Le monde naît, migre, et le commerce tient compte du relief. F2 : natalité + migration joués. Prochain lot : 042 (viewer) ou 043 (convoi). |
