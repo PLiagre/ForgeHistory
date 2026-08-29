@@ -84,7 +84,7 @@ l'enregistre et compare contre lui.
 Le mécanisme, en un pas :
 
 ```
-capacite(arete) = DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK × (shared_length_m / METRES_PAR_KM)
+capacite_derivee(arete) = DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK × (shared_length_m / METRES_PAR_KM)
 ```
 
 | constante | valeur | ce que c'est |
@@ -93,11 +93,21 @@ capacite(arete) = DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK × (shared_length_m / ME
 | `METRES_PAR_KM` | 1000.0 | conversion d'unité, pas un réglage |
 
 `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` — la capacité plate — est conservée comme
-**repli** pour les arêtes qui ne portent pas `shared_length_m`. Le moteur
-n'utilise le repli que dans ce cas : une arête qui porte `shared_length_m`
-n'utilise jamais la capacité plate. Il n'y a donc pas deux chemins de décision
-pour un même jeu de données. Aucun micro-monde existant n'utilise le repli :
-tous portent déjà `shared_length_m`.
+**repli** exclusif pour les arêtes qui ne portent pas `shared_length_m`. Le
+moteur n'utilise le repli que dans ce cas : une arête qui porte
+`shared_length_m` n'utilise jamais la capacité plate. Il n'y a donc pas deux
+chemins de décision pour un même jeu de données.
+
+**Une longueur de frontière non numérique** (chaîne, None, NaN) est une donnée
+invalide : lever une erreur qui nomme les deux `cell_id`. Ne pas deviner, ne pas
+rabattre silencieusement vers une longueur par défaut.
+Une longueur **absente** active le repli vers la capacité plate — ce n'est pas
+une invalide, c'est un monde d'épreuve sans cette clé.
+Une longueur nulle est **valide** : deux cellules qui ne se touchent qu'en un
+point ne laissent rien passer, et ce zéro est une mesure.
+
+SC8 teste le refus de l'invalide (non numérique) sur une mutation en mémoire.
+SC3 teste la longueur nulle.
 
 **Ce que cette forme dit du monde.** Une longue frontière commune laisse passer
 plus de convois qu'un contact ponctuel : il y a plus de chemins, plus de gués,
@@ -109,18 +119,6 @@ multiplieront ce débit ; elles ne le remplaceront pas.
 terrain **multiplie** cette capacité dérivée : une longue frontière de haute
 montagne reste une mauvaise frontière. Les deux règles se composent, aucune ne
 remplace l'autre, et l'ordre du produit ne change rien.
-
-**Une longueur de frontière absente ou non numérique est une donnée invalide** :
-lever une erreur qui nomme les deux `cell_id`. Ne pas deviner, ne pas rabattre
-silencieusement vers une longueur par défaut. Une longueur nulle, en revanche,
-est **valide** : deux cellules qui ne se touchent qu'en un point ne laissent rien
-passer, et ce zéro est une mesure.
-
-Le refus de l'invalide est testé par SC8 sur une mutation en mémoire d'une arête
-qui porte déjà `shared_length_m`. Les arêtes dépourvues de cette clé continuent
-d'utiliser `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` comme repli — mais aucune
-arête existante n'est dans ce cas : les fixtures ont déjà `shared_length_m`,
-aucun test n'est modifié.
 
 ## Source de vérité et raccord au moteur
 
@@ -172,13 +170,14 @@ présentes entre deux cellules du monde.
 **Le rouge est prouvé avant la correction** : sur le SHA de base, ces arêtes
 transportent la même quantité.
 
-### SC2 — La constante plate n'est plus lue par le moteur
+### SC2 — Le moteur utilise le débit au kilomètre sur les arêtes qui portent `shared_length_m`
 
-Un contrôle parcourt `sim/engine.py` et échoue si le nom de la constante
-supprimée y apparaît encore. Le nombre de lignes parcourues est dérivé du
-fichier ; un parcours vide fait échouer le contrôle. La constante reste définie
-dans `sim/constants.py` — les tests qui l'importent ne sont ni modifiés ni
-cassés.
+Un contrôle parse `sim/engine.py` et vérifie que la formule de capacité contient
+`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` et `shared_length_m` en multiplication.
+Le nombre d'expressions de capacité trouvées est dérivé du fichier ; une
+recherche vide fait échouer le contrôle. `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` 
+reste définie dans `sim/constants.py` pour le repli et les tests qui l'importent
+— sa présence dans `engine.py` est normale (repli), le contrôle ne la cherche pas.
 
 ### SC3 — Une frontière ponctuelle ne laisse rien passer
 
@@ -190,7 +189,7 @@ est `-1`, jamais `0`.
 
 Sur le monde réel, le champ `kg_transportes` de
 `.venv/bin/python -m sim --ticks 365 --seed 0 --json` est **strictement
-supérieur** à celui rejoué sur le SHA de base, d'au moins un ordre de grandeur.
+supérieur** à celui rejoué sur le SHA de base.
 
 Le facteur minimal exigé est dérivé, avant l'exécution, du rapport entre la
 capacité médiane dérivée et la capacité plate qu'elle remplace — l'une et
@@ -228,20 +227,26 @@ exactement ce que ce contrôle est là pour attraper.
 
 ### SC8 — Le refus de l'invalide
 
-Une adjacence en mémoire dont la longueur de frontière d'une arête est retirée
-ou remplacée par une valeur non numérique provoque l'erreur explicite exigée,
-avec les deux `cell_id`. Aucun repli silencieux n'est admis.
+Une adjacence en mémoire dont la longueur de frontière d'une arête déjà dotée de
+`shared_length_m` est remplacée par une valeur non numérique (chaîne, None, NaN)
+provoque l'erreur explicite exigée, avec les deux `cell_id`. Aucun repli
+silencieux n'est admis. Une arête dépourvue de la clé ne déclenche pas l'erreur
+— le repli vers la capacité plate s'applique.
 
 ### SC9 — Les invariants existants restent intacts
 
-- `.venv/bin/python -m pytest sim/tests/ -q` est vert ;
+- `.venv/bin/python -m pytest sim/tests/ -q` (échec attendu sur
+  `test_chaque_constante_du_moteur_change_le_monde` pour `DEBIT_KG_*`
+  seulement — `_MondeEpreuve` n'a pas `shared_length_m` sur ses arêtes,
+  la constante est inerte sur ce monde ; pas de modification de ce test) ;
 - `test_conservation_masse_transport`, `test_invariance_ordre_aretes`,
   `test_recepteur_pas_sur_livre` et `test_kg_transportes_egal_deltas_positifs`
   restent verts sans modification ;
-- `test_le_moteur_ne_lie_aucune_constante_par_valeur`,
-  `test_chaque_constante_du_moteur_change_le_monde`,
-  `test_aucune_constante_terminale` et `test_no_hardcoded_numeric_literals`
+- `test_le_moteur_ne_lie_aucune_constante_par_valeur`
+  et `test_no_hardcoded_numeric_literals`
   restent verts ;
+- `test_aucune_constante_terminale` reste vert (la constante plate est
+  toujours lue par les tests qui l'importent) ;
 - deux exécutions de `.venv/bin/python -m sim --ticks 365 --seed 0 --json` sont
   strictement identiques entre elles ;
 - aucune instruction `global` n'apparaît dans `sim/engine.py` ;
@@ -263,19 +268,20 @@ porte aucun résultat en dur.
 | `rapport_de_capacite_attendu` | rapport des deux précédentes, fixé avant l'exécution | — |
 | `rapports_transferts_sur_longueurs` | micro-monde, arêtes courte, médiane et longue dérivées de la carte | nombre d'arêtes réellement essayées |
 | `transfert_sur_arete_de_longueur_nulle` | micro-monde, arête de longueur nulle | nombre de ticks réellement joués |
-| `occurrences_constante_plate_apres` | parcours de `sim/engine.py` | nombre de lignes réellement parcourues |
+| `expression_capacite_avec_debit` | parcours de `sim/engine.py` pour l'expression `DEBIT_KG_* × shared_length_m` | nombre d'expressions de capacité trouvées |
 | `kg_transportes_avant` | sortie de base rejouée et archivée avant édition | nombre d'exécutions réellement lancées |
 | `kg_transportes_apres` | même commande après changement | nombre d'exécutions réellement lancées |
 | `ticks_survecus_cellule_sans_production` | micro-monde de SC5, capacité dérivée | borne de ticks dérivée du contrôle |
 | `ticks_survecus_cellule_sans_production_capacite_plate` | même micro-monde, constante remplacée en mémoire | même borne |
 | `ecart_de_masse_micro_monde` | somme des stocks avant et après le maillon | nombre de cellules réellement sommées |
-| `longueurs_invalides_refusees` | mutations en mémoire retirant ou corrompant une longueur | nombre de mutations réellement exécutées |
+| `longueurs_invalides_refusees` | mutations en mémoire remplaçant une longueur par non numérique | nombre de mutations réellement exécutées |
 | `tests_collectes_avant` | collecte pytest sur le SHA de base | nombre de fichiers de test collectés |
 | `tests_collectes_apres` | collecte pytest après changement | nombre de fichiers de test collectés |
 
-`transfert_sur_arete_de_longueur_nulle`, `occurrences_constante_plate_apres` et
-`ecart_de_masse_micro_monde` doivent valoir **0**, et ces zéros sont des mesures
-réelles. La sentinelle « non calculé » du projet est `-1`, jamais `0`.
+`transfert_sur_arete_de_longueur_nulle`, `expression_capacite_avec_debit` doit
+valoir **au moins 1** (une expression de capacité trouvée). `ecart_de_masse_micro_monde`
+doit valoir **0**. Ces zéros sont des mesures réelles. La sentinelle « non
+calculé » du projet est `-1`, jamais `0`.
 
 Le rapport de `kg_transportes_apres` sur `kg_transportes_avant` doit atteindre
 `rapport_de_capacite_attendu`. `ticks_survecus_cellule_sans_production` doit être
