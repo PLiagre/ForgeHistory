@@ -63,6 +63,10 @@ Pour choisir et pondérer les destinations, le surplus d'une cellule est alors :
 surplus_destination_kg = max(0, stock_alimentaire_post_consommation_kg)
 ```
 
+Cette définition du surplus de destination relève du niveau de fidélité 2 :
+elle est plausible et générée, jamais sourcée. Une anomalie de niveau 2 n'est
+pas un défaut et n'ouvre ni correctif ni brief.
+
 La population de la destination ne retranche aucune nouvelle ration. Cette
 ration a déjà été mangée. Le moteur ne préfinance pas le tick suivant.
 
