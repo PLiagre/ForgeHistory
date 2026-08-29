@@ -1266,3 +1266,286 @@ def test_sentinelle_migration_remainder():
     monde = World.charger(0)
     for cell in monde.cells.values():
         assert cell.migration_remainder == 0.0
+
+
+# --- Brief 043 : capacité dérivée de shared_length_m ---
+
+def _longueurs_arete_monde_reel() -> tuple[float, float, float]:
+    """Min, médiane et max des longueurs d'arête entre cellules du monde chargé."""
+    import statistics
+
+    monde = World.charger(0)
+    longueurs = [
+        float(e["shared_length_m"])
+        for e in monde.adjacency
+        if e["a"] in monde.cells and e["b"] in monde.cells
+    ]
+    return min(longueurs), statistics.median(longueurs), max(longueurs)
+
+
+def _transfert_commerce_vers(world: World, receveuse_id: int) -> float:
+    from sim.model import lire_stock_marchandise
+
+    stock_avant = lire_stock_marchandise(world.cells[receveuse_id], MARCHANDISE_NOURRITURE)
+    stock_avant = stock_avant if stock_avant >= 0 else 0.0
+    copie_cells = {
+        cid: Cell(
+            cell_id=c.cell_id,
+            area_km2=c.area_km2,
+            population=c.population,
+            stocks=dict(c.stocks),
+            hunger_ticks=c.hunger_ticks,
+            food_deficit_kg=c.food_deficit_kg,
+            mortality_remainder=c.mortality_remainder,
+        )
+        for cid, c in world.cells.items()
+    }
+    w = World(cells=copie_cells, adjacency=list(world.adjacency))
+    from sim.engine import _initialiser_capacite_aretes
+
+    total = [0.0]
+    cap = _initialiser_capacite_aretes(w)
+    _apply_commerce(w, total, MARCHANDISE_NOURRITURE, cap)
+    stock_apres = lire_stock_marchandise(w.cells[receveuse_id], MARCHANDISE_NOURRITURE)
+    stock_apres = stock_apres if stock_apres >= 0 else 0.0
+    return stock_apres - stock_avant
+
+
+def _build_monde_longueurs_distinctes(
+    longueur_courte: float, longueur_mediane: float, longueur_longue: float,
+) -> tuple[World, dict[str, int]]:
+    """Source unique, trois receveuses identiques, arêtes de longueurs distinctes."""
+    from sim.model import ecrire_stock_marchandise
+
+    source_id = 9300
+    pop = 25000
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    stock_source = besoin * 20
+
+    source = Cell(
+        cell_id=source_id,
+        area_km2=0.0,
+        population=0,
+        stocks={},
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+    )
+    ecrire_stock_marchandise(source, MARCHANDISE_NOURRITURE, stock_source)
+    cells = {source_id: source}
+    adjacency: list[dict] = []
+    receveuses: dict[str, int] = {}
+    for idx, (nom, longueur) in enumerate(
+        (
+            ("courte", longueur_courte),
+            ("mediane", longueur_mediane),
+            ("longue", longueur_longue),
+        )
+    ):
+        cid = source_id + idx + 1
+        receveuses[nom] = cid
+        cells[cid] = Cell(
+            cell_id=cid,
+            area_km2=0.0,
+            population=pop,
+            stocks={},
+            hunger_ticks=0,
+            food_deficit_kg=0.0,
+        )
+        adjacency.append(
+            {
+                "a": source_id,
+                "b": cid,
+                "kind": "land",
+                "shared_length_m": longueur,
+            }
+        )
+    return World(cells=cells, adjacency=adjacency), receveuses
+
+
+def test_transferts_proportionnels_aux_longueurs_frontiere():
+    """SC1 — Les transferts suivent le rapport des longueurs de frontière."""
+    courte, mediane, longue = _longueurs_arete_monde_reel()
+    world, receveuses = _build_monde_longueurs_distinctes(courte, mediane, longue)
+    t_court = _transfert_commerce_vers(world, receveuses["courte"])
+    t_med = _transfert_commerce_vers(world, receveuses["mediane"])
+    t_long = _transfert_commerce_vers(world, receveuses["longue"])
+
+    assert t_court > 0.0 and t_med > t_court + TOLERANCE and t_long > t_med + TOLERANCE
+
+    rapport_tm = t_med / t_court
+    rapport_tl = t_long / t_court
+    rapport_lm = mediane / courte
+    rapport_ll = longue / courte
+    assert abs(rapport_tm - rapport_lm) / rapport_lm <= 0.01
+    assert abs(rapport_tl - rapport_ll) / rapport_ll <= 0.01
+
+
+def test_expression_capacite_debit_km_fois_shared_length_m():
+    """SC2 — Le moteur multiplie DEBIT_KG_* et shared_length_m pour la capacité."""
+    import ast
+    from pathlib import Path
+
+    source = Path(__file__).resolve().parents[1] / "engine.py"
+    texte = source.read_text(encoding="utf-8")
+    tree = ast.parse(texte)
+    expressions = 0
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "_capacite_base_arete_kg":
+            corps = ast.get_source_segment(texte, node) or ""
+            if (
+                "DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK" in corps
+                and "shared_length_m" in corps
+                and "*" in corps
+            ):
+                expressions += 1
+    assert expressions >= 1, (
+        "Aucune expression de capacité DEBIT_KG_* × shared_length_m dans "
+        "_capacite_base_arete_kg"
+    )
+
+
+def test_frontiere_ponctuelle_transport_zero():
+    """SC3 — shared_length_m=0 : zéro kg transporté, mesure réelle."""
+    from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
+
+    pop = 50
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    source = Cell(
+        cell_id=9400, area_km2=0.0, population=0,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    receveuse = Cell(
+        cell_id=9401, area_km2=0.0, population=pop,
+        stocks={}, hunger_ticks=0, food_deficit_kg=besoin,
+    )
+    ecrire_stock_marchandise(source, MARCHANDISE_NOURRITURE, besoin * 5)
+    world = World(
+        cells={9400: source, 9401: receveuse},
+        adjacency=[{"a": 9400, "b": 9401, "kind": "land", "shared_length_m": 0.0}],
+    )
+    from sim.engine import _initialiser_capacite_aretes
+
+    total = [0.0]
+    cap = _initialiser_capacite_aretes(world)
+    _apply_commerce(world, total, MARCHANDISE_NOURRITURE, cap)
+    assert total[0] == 0.0
+    stock = lire_stock_marchandise(world.cells[9401], MARCHANDISE_NOURRITURE)
+    assert stock <= 0.0
+
+
+def _ticks_survie_cellule_sans_production(debit_kg: float | None = None) -> int:
+    """Ticks avant première baisse de population — cellule area_km2=0 nourrie par voisine."""
+    import math
+    from sim import constants as k
+    from sim.model import ecrire_stock_marchandise
+
+    centre_id = 9500
+    source_id = 9501
+    pop = 100
+    besoin = pop * k.FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    longueur = 50000.0
+    source = Cell(
+        cell_id=source_id, area_km2=0.0, population=0,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    ecrire_stock_marchandise(source, MARCHANDISE_NOURRITURE, besoin * 200)
+    centre = Cell(
+        cell_id=centre_id, area_km2=0.0, population=pop,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    world = World(
+        cells={centre_id: centre, source_id: source},
+        adjacency=[
+            {"a": source_id, "b": centre_id, "kind": "land", "shared_length_m": longueur},
+        ],
+    )
+    rng = random.Random(0)
+    nominal = k.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK
+    if debit_kg is not None:
+        k.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK = debit_kg
+    try:
+        borne = math.ceil(1.0 / k.MAX_DEATH_RATE_PER_TICK) + 5
+        ticks_survecus = 0
+        for _ in range(borne):
+            pop_avant = world.cells[centre_id].population
+            tick(world, rng)
+            if world.cells[centre_id].population < pop_avant:
+                break
+            ticks_survecus += 1
+        return ticks_survecus
+    finally:
+        k.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK = nominal
+
+
+def test_cellule_sans_production_survit_avec_capacite_derivee():
+    """SC5 — area_km2=0 : la population tient grâce au commerce dérivé."""
+    ticks = _ticks_survie_cellule_sans_production()
+    assert ticks >= 5, f"population en baisse trop tôt : {ticks} ticks"
+
+
+def test_cellule_sans_production_depérit_avec_debit_reduit():
+    """SC5 garde — débit réduit en mémoire : la cellule dépérit plus tôt."""
+    from sim import constants as k
+
+    ticks_derive = _ticks_survie_cellule_sans_production()
+    debit_reduit = k.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK * 0.001
+    ticks_reduit = _ticks_survie_cellule_sans_production(debit_kg=debit_reduit)
+    assert ticks_derive > ticks_reduit
+
+
+def test_longueur_frontiere_invalide_refusee():
+    """SC8 — Longueur non numérique sur arête dotée : erreur avec les deux cell_id."""
+    import math
+
+    from sim.engine import LongueurFrontiereInvalideError, _initialiser_capacite_aretes
+    from sim.model import ecrire_stock_marchandise
+
+    source = Cell(
+        cell_id=9600, area_km2=0.0, population=0,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    receveuse = Cell(
+        cell_id=9601, area_km2=0.0, population=10,
+        stocks={}, hunger_ticks=0, food_deficit_kg=20.0,
+    )
+    ecrire_stock_marchandise(source, MARCHANDISE_NOURRITURE, 500.0)
+    world = World(
+        cells={9600: source, 9601: receveuse},
+        adjacency=[{"a": 9600, "b": 9601, "kind": "land", "shared_length_m": 1000.0}],
+    )
+    for invalide in ("chaîne", None, float("nan")):
+        edge = world.adjacency[0]
+        edge["shared_length_m"] = invalide
+        with pytest.raises(LongueurFrontiereInvalideError, match="9600"):
+            _apply_commerce(world, [0.0], MARCHANDISE_NOURRITURE, _initialiser_capacite_aretes(world))
+        with pytest.raises(LongueurFrontiereInvalideError, match="9601"):
+            _apply_commerce(world, [0.0], MARCHANDISE_NOURRITURE, _initialiser_capacite_aretes(world))
+
+
+def test_arete_sans_shared_length_m_repli_capacite_plate():
+    """SC8 — Clé absente : repli plat, pas d'erreur."""
+    from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
+
+    pop = 50
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    source = Cell(
+        cell_id=9700, area_km2=0.0, population=0,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    receveuse = Cell(
+        cell_id=9701, area_km2=0.0, population=pop,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    ecrire_stock_marchandise(source, MARCHANDISE_NOURRITURE, besoin * 3)
+    world = World(
+        cells={9700: source, 9701: receveuse},
+        adjacency=[{"a": 9700, "b": 9701, "kind": "land"}],
+    )
+    from sim.engine import _initialiser_capacite_aretes
+
+    total = [0.0]
+    cap = _initialiser_capacite_aretes(world)
+    _apply_commerce(world, total, MARCHANDISE_NOURRITURE, cap)
+    stock = lire_stock_marchandise(world.cells[9701], MARCHANDISE_NOURRITURE)
+    assert stock > 0.0
+    assert stock <= TRADE_CAPACITY_KG_PER_EDGE_PER_TICK + TOLERANCE

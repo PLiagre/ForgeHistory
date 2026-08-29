@@ -226,7 +226,21 @@ def consommation_kg_par_habitant_par_tick(marchandise: str) -> float:
         return FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
     return 0.0
 
-# --- Commerce inter-cellules (SC4 brief 012) ---
+# --- Commerce inter-cellules (SC4 brief 012 ; brief 043) ---
+
+# Débit par kilomètre de frontière partagée (niveau 2) : une arête de 1 000 m
+# produit la même capacité que TRADE_CAPACITY_KG_PER_EDGE_PER_TICK.
+DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK = 200.0 * TICK_DURATION_DAYS
+
+# Conversion mètres → kilomètres ; relue via metres_par_km() pour ne pas figer
+# une constante de conversion dans le balayage du monde d'épreuve.
+METRES_PAR_KM = 1000.0
+
+
+def metres_par_km() -> float:
+    """Relit METRES_PAR_KM à chaque appel."""
+    return METRES_PAR_KM
+
 
 # Capacité de transport maximale par arête d'adjacence et par tick (kg).
 # Proxy paramétrique : convoi à dos de mulet ≈ 200 kg/jour sur une

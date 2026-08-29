@@ -29,6 +29,7 @@ Le maillon commerce ne modifie plus food_deficit_kg (SC1) ; les transferts
 sont calculés sur un snapshot immuable (SC2).
 """
 
+import math
 import random
 from collections import defaultdict
 
@@ -45,6 +46,10 @@ class ReliefInvalideError(ValueError):
 
 class ClimatInvalideError(ValueError):
     """Climat absent ou durée de solstice invalide sur une cellule du monde chargé."""
+
+
+class LongueurFrontiereInvalideError(ValueError):
+    """Longueur de frontière non numérique ou NaN sur une arête."""
 
 
 class RichesseGisementInvalideError(ValueError):
@@ -309,14 +314,55 @@ def _facteur_transport_pour_cellule(cell_id: int, carte: dict) -> float:
     return facteurs[relief]
 
 
+def _arete_adjacence(world, a_id: int, b_id: int) -> dict | None:
+    """Entrée d'adjacence appariée aux deux cell_id, sans recalcul."""
+    for edge in world.adjacency:
+        ea = edge["a"]
+        eb = edge["b"]
+        if (ea == a_id and eb == b_id) or (ea == b_id and eb == a_id):
+            return edge
+    return None
+
+
+def _capacite_base_arete_kg(world, a_id: int, b_id: int) -> float:
+    """
+    Capacité dérivée de shared_length_m sur l'arête, ou repli plat.
+
+    Longueur absente : repli TRADE_CAPACITY_KG_PER_EDGE_PER_TICK.
+    Longueur non numérique : erreur nommant les deux cell_id.
+    Longueur nulle : zéro réel (frontière ponctuelle).
+    """
+    edge = _arete_adjacence(world, a_id, b_id)
+    if edge is None or "shared_length_m" not in edge:
+        return _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+    raw = edge["shared_length_m"]
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        raise LongueurFrontiereInvalideError(
+            f"cell_id={a_id} cell_id={b_id} shared_length_m={raw!r}"
+        )
+    longueur_m = float(raw)
+    if math.isnan(longueur_m):
+        raise LongueurFrontiereInvalideError(
+            f"cell_id={a_id} cell_id={b_id} shared_length_m={raw!r}"
+        )
+    if longueur_m == 0.0:
+        return 0.0
+    return (
+        _constantes.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK
+        * (longueur_m / _constantes.metres_par_km())
+    )
+
+
 def _capacite_transport_arete_kg(world, a_id: int, b_id: int) -> float:
     """
     Capacité de transport d'une arête terrestre entre deux cellules du monde.
 
-    Sans carte : facteur de terrain 1, capacité de base inchangée.
-    Avec carte : goulot = min des facteurs de transport des deux reliefs.
+    Base dérivée de shared_length_m sur l'adjacence (brief 043), puis goulot
+    de relief (brief 040) si une carte est chargée.
     """
-    base = _constantes.TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
+    base = _capacite_base_arete_kg(world, a_id, b_id)
+    if base == 0.0:
+        return 0.0
     carte = getattr(world, "carte", None)
     if not carte:
         return base
