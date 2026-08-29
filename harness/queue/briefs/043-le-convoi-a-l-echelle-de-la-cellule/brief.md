@@ -89,14 +89,15 @@ capacite(arete) = DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK × (shared_length_m / ME
 
 | constante | valeur | ce que c'est |
 |---|---:|---|
-| `DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` | 400.0 | kilogrammes traversant un kilomètre de frontière par tick — niveau 2 |
+| `DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` | 200.0 | kilogrammes traversant un kilomètre de frontière par tick — niveau 2. Calibrée pour qu'une arête de 1 000 m — longueur déjà présente dans les fixtures existants — produise la même capacité que `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`. Les tests déjà verts ne changent pas. |
 | `METRES_PAR_KM` | 1000.0 | conversion d'unité, pas un réglage |
 
 `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` — la capacité plate — est conservée comme
-**repli** pour les arêtes qui ne portent pas `shared_length_m` (mondes d'épreuve
-existants). Le moteur n'utilise le repli que dans ce cas : une arête qui porte
-`shared_length_m` n'utilise jamais la capacité plate. Il n'y a donc pas deux
-chemins de décision pour un même jeu de données.
+**repli** pour les arêtes qui ne portent pas `shared_length_m`. Le moteur
+n'utilise le repli que dans ce cas : une arête qui porte `shared_length_m`
+n'utilise jamais la capacité plate. Il n'y a donc pas deux chemins de décision
+pour un même jeu de données. Aucun micro-monde existant n'utilise le repli :
+tous portent déjà `shared_length_m`.
 
 **Ce que cette forme dit du monde.** Une longue frontière commune laisse passer
 plus de convois qu'un contact ponctuel : il y a plus de chemins, plus de gués,
@@ -116,10 +117,10 @@ est **valide** : deux cellules qui ne se touchent qu'en un point ne laissent rie
 passer, et ce zéro est une mesure.
 
 Le refus de l'invalide est testé par SC8 sur une mutation en mémoire d'une arête
-qui porte déjà `shared_length_m`. Les arêtes dépourvues de cette clé (mondes
-d'épreuve existants, micro-mondes sans `shared_length_m`) continuent d'utiliser
-`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` comme repli : aucun fichier de test
-existant n'est modifié.
+qui porte déjà `shared_length_m`. Les arêtes dépourvues de cette clé continuent
+d'utiliser `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` comme repli — mais aucune
+arête existante n'est dans ce cas : les fixtures ont déjà `shared_length_m`,
+aucun test n'est modifié.
 
 ## Source de vérité et raccord au moteur
 
