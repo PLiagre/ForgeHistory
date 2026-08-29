@@ -1441,9 +1441,9 @@ def _ticks_survie_cellule_sans_production(debit_kg: float | None = None) -> int:
 
     centre_id = 9500
     source_id = 9501
-    pop = 100
+    pop = 1000  # besoin 2000 kg/tick, irréalisable avec capacité plate 200 kg
     besoin = pop * k.FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-    longueur = 50000.0
+    longueur = 50000.0  # DEBIT×50 km = 10 000 kg/tick en dérivé
     source = Cell(
         cell_id=source_id, area_km2=0.0, population=0,
         stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
@@ -1483,14 +1483,28 @@ def test_cellule_sans_production_survit_avec_capacite_derivee():
     assert ticks >= 5, f"population en baisse trop tôt : {ticks} ticks"
 
 
-def test_cellule_sans_production_depérit_avec_debit_reduit():
-    """SC5 garde — débit réduit en mémoire : la cellule dépérit plus tôt."""
-    from sim import constants as k
-
-    ticks_derive = _ticks_survie_cellule_sans_production()
-    debit_reduit = k.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK * 0.001
-    ticks_reduit = _ticks_survie_cellule_sans_production(debit_kg=debit_reduit)
-    assert ticks_derive > ticks_reduit
+def test_cellule_sans_production_depérit_avec_capacite_plate():
+    """SC5 garde — capacité plate injectée en mémoire : la cellule dépérit au premier tick."""
+    ticks = _ticks_survie_cellule_sans_production()
+    assert ticks >= 5, f"population en baisse trop tôt avec capacité dérivée : {ticks} ticks"
+    from sim import constants as _k
+    # Remplacer DEBIT par un facteur tel que la capacité dérivée = TRADE_CAPACITY,
+    # puis vérifier que la cellule dépérit (la garde est payée)
+    nominal_debit = _k.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK
+    # TRADE_CAPACITY = 200 ; DEBIT × (50000/1000) = DEBIT×50 = 200 → DEBIT = 4.0
+    _k.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK = 4.0
+    try:
+        ticks_plat = _ticks_survie_cellule_sans_production()
+    finally:
+        _k.DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK = nominal_debit
+    assert ticks_plat == 0, (
+        f"avec capacité équivalente à la plaque ({ticks_plat}), "
+        "la cellule ne devrait pas survivre un tick"
+    )
+    # Preuve : la contrepartie à capacité plate dépérit plus tôt (0 vs ≥5)
+    assert ticks > ticks_plat, (
+        f"capacité dérivée ({ticks}) pas > capacité plate ({ticks_plat})"
+    )
 
 
 def test_longueur_frontiere_invalide_refusee():
