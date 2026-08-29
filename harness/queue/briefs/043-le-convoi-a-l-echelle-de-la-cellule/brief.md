@@ -199,8 +199,14 @@ l'autre mesurées, jamais recopiées d'ici. Le mesureur archive la sortie de bas
 ### SC5 — Une cellule peut désormais être nourrie par ses voisines
 
 Sur un micro-monde déterministe, une cellule qui ne produit **rien** — surface
-nulle — et dont les voisines ont un surplus suffisant traverse un nombre de
-ticks dérivé sans que sa population diminue.
+nulle, **1 000 habitants** (besoin 2 000 kg/tick, irréalisable avec la capacité
+plate d'une arête de 50 km) — et dont les voisines ont un surplus suffisant
+traverse un nombre de ticks dérivé sans que sa population diminue.
+
+**Le rouge est prouvé avant la correction** : sur le SHA de base, avec la
+capacité plate `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK = 200 kg`, une arête de 50 km
+laisse passer 200 kg, la cellule perd sa population dès le premier tick. Avec la
+capacité dérivée (`DEBIT × 50 km = 10 000 kg`), la cellule survit.
 
 C'est le fait que ce lot achète, et qui n'était pas atteignable avant lui : un
 endroit peut vivre de ce qu'on lui apporte. C'est la condition d'existence d'une
@@ -208,7 +214,7 @@ ville, et elle est ici démontrée sur un cas construit, pas supposée.
 
 Le même contrôle, joué avec la capacité plate remplacée en mémoire par le
 module, montre que cette cellule dépérit : la garde est payée, le résultat
-dépend bien de la constante.
+dépend bien de la constante dérivée.
 
 ### SC6 — La masse se conserve toujours
 
