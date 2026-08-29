@@ -92,10 +92,11 @@ capacite(arete) = DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK × (shared_length_m / ME
 | `DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` | 400.0 | kilogrammes traversant un kilomètre de frontière par tick — niveau 2 |
 | `METRES_PAR_KM` | 1000.0 | conversion d'unité, pas un réglage |
 
-`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` — la capacité plate — est **supprimée**,
-pas conservée à côté. Une constante morte laissée en place piège le brief
-suivant, et une capacité plate qui coexisterait avec une capacité dérivée serait
-un deuxième chemin de décision.
+`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` — la capacité plate — est conservée comme
+**repli** pour les arêtes qui ne portent pas `shared_length_m` (mondes d'épreuve
+existants). Le moteur n'utilise le repli que dans ce cas : une arête qui porte
+`shared_length_m` n'utilise jamais la capacité plate. Il n'y a donc pas deux
+chemins de décision pour un même jeu de données.
 
 **Ce que cette forme dit du monde.** Une longue frontière commune laisse passer
 plus de convois qu'un contact ponctuel : il y a plus de chemins, plus de gués,
@@ -114,15 +115,11 @@ silencieusement vers une longueur par défaut. Une longueur nulle, en revanche,
 est **valide** : deux cellules qui ne se touchent qu'en un point ne laissent rien
 passer, et ce zéro est une mesure.
 
-Ce refus vaut partout, y compris sur un micro-monde. Pour que
-`test_write_coverage.py` — hors assertions, hors périmètre de calibration —
-ne crashe pas : les deux arêtes de `_MondeEpreuve.adjacency` n'ont
-aujourd'hui **pas** de `shared_length_m`. Ce lot **ajoute** cette clé à ces
-arêtes, et rien d'autre dans ce fichier. La valeur est une longueur
-strictement positive, identique sur les deux arêtes, **lue** du premier
-littéral `shared_length_m` déjà présent dans `sim/tests/test_commerce.py` —
-pas inventée, pas calibrée après mesure. Aucune assertion de
-`test_write_coverage.py` ne change.
+Le refus de l'invalide est testé par SC8 sur une mutation en mémoire d'une arête
+qui porte déjà `shared_length_m`. Les arêtes dépourvues de cette clé (mondes
+d'épreuve existants, micro-mondes sans `shared_length_m`) continuent d'utiliser
+`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` comme repli : aucun fichier de test
+existant n'est modifié.
 
 ## Source de vérité et raccord au moteur
 
@@ -143,13 +140,7 @@ Fichiers produit autorisés :
 - `sim/engine.py` ;
 - `sim/constants.py` ;
 - `sim/tests/test_commerce.py`, uniquement pour **ajouter** les cas qui
-  protègent cette règle visible, et pour la substitution du nom de la constante
-  supprimée selon la règle ci-dessous ;
-- `sim/tests/test_survie.py`, **uniquement** pour la même substitution de nom, si
-  ce fichier importe la constante supprimée ;
-- `sim/tests/test_write_coverage.py`, **uniquement** pour ajouter `shared_length_m`
-  aux arêtes de `_MondeEpreuve.adjacency`, selon la règle ci-dessous. Aucune
-  assertion de ce fichier ne change.
+  protègent cette règle visible. Aucun test déjà vert n'est modifié.
 
 Livrables du lot autorisés :
 
@@ -161,37 +152,10 @@ Livrables du lot autorisés :
 
 Tout autre chemin est interdit. En particulier : ne modifier ni `sim/world.py`,
 ni `sim/model.py`, ni `sim/snapshot_export.py`, ni `sim/__main__.py`, ni
-`sim/aggregation.py`, ni `sim/tests/test_monde.py`, ni la carte figée, ni le
+`sim/aggregation.py`, ni `sim/tests/test_monde.py`, ni `sim/tests/test_write_coverage.py`,
+ni `sim/tests/test_survie.py`, ni la carte figée, ni le
 visualiseur, ni l'outil de fabrication de la carte, ni ce brief, ni sa grille,
 ni un `verdict.md`.
-
-### La règle de substitution du nom de la constante
-
-La constante supprimée est nommée par des contrôles existants. Pour chaque ligne
-modifiée d'un fichier de test, la ligne d'origine à laquelle on applique **la
-seule substitution du nom de la constante par l'expression de capacité dérivée**
-doit être identique à la ligne d'arrivée. Aucune valeur attendue, aucun seuil,
-aucun nom de test ne change. Le mesureur compte les lignes qui violent cette
-règle ; ce compte doit être **nul**.
-
-Un contrôle dont la valeur attendue dépendait de la capacité plate doit tirer sa
-nouvelle valeur de la **même expression que le moteur**, jamais d'un nombre
-recopié après avoir vu la mesure.
-
-### La règle d'ajout de `shared_length_m` au monde d'épreuve
-
-`_MondeEpreuve.adjacency` dans `sim/tests/test_write_coverage.py` reçoit la
-clé `shared_length_m` sur chaque arête. Pour chaque ligne modifiée de ce
-fichier, la ligne d'origine à laquelle on applique **la seule addition de
-cette clé** doit être identique à la ligne d'arrivée. Aucune valeur
-attendue, aucun seuil, aucun nom de test, aucune assertion ne change. Le
-mesureur compte les lignes qui violent cette règle ; ce compte doit être
-**nul**.
-
-Sans cet ajout, le refus de la longueur absente ferait crasher
-`test_chaque_constante_du_moteur_change_le_monde`, que ce lot n'a pas le
-droit de recalibrer. Ce n'est pas une calibration : c'est la même clé que
-la carte porte déjà sur toutes les arêtes terre–terre.
 
 ## Conditions de succès
 
@@ -207,11 +171,13 @@ présentes entre deux cellules du monde.
 **Le rouge est prouvé avant la correction** : sur le SHA de base, ces arêtes
 transportent la même quantité.
 
-### SC2 — La constante plate a disparu
+### SC2 — La constante plate n'est plus lue par le moteur
 
-Un contrôle parcourt les modules de `sim/` hors tests et échoue si le nom de la
-constante supprimée y apparaît encore. Le nombre de modules parcourus est dérivé
-du répertoire ; un parcours vide fait échouer le contrôle.
+Un contrôle parcourt `sim/engine.py` et échoue si le nom de la constante
+supprimée y apparaît encore. Le nombre de lignes parcourues est dérivé du
+fichier ; un parcours vide fait échouer le contrôle. La constante reste définie
+dans `sim/constants.py` — les tests qui l'importent ne sont ni modifiés ni
+cassés.
 
 ### SC3 — Une frontière ponctuelle ne laisse rien passer
 
@@ -252,8 +218,8 @@ modifié**.
 
 ### SC7 — Le monde ne nourrit toujours pas plus de monde qu'il ne produit
 
-Les trois propriétés de régime de `sim/tests/test_survie.py` restent vertes, à
-la substitution de nom près. Le plafond employé est celui que le moteur dérive.
+Les trois propriétés de régime de `sim/tests/test_survie.py` restent vertes sans
+modification de ce fichier. Le plafond employé est celui que le moteur dérive.
 
 Un commerce plus large déplace mieux la nourriture ; il n'en crée pas. Si le
 plafond était dépassé, c'est que le maillon duplique des kilogrammes — et c'est
@@ -270,7 +236,7 @@ avec les deux `cell_id`. Aucun repli silencieux n'est admis.
 - `.venv/bin/python -m pytest sim/tests/ -q` est vert ;
 - `test_conservation_masse_transport`, `test_invariance_ordre_aretes`,
   `test_recepteur_pas_sur_livre` et `test_kg_transportes_egal_deltas_positifs`
-  restent verts, à la substitution de nom près ;
+  restent verts sans modification ;
 - `test_le_moteur_ne_lie_aucune_constante_par_valeur`,
   `test_chaque_constante_du_moteur_change_le_monde`,
   `test_aucune_constante_terminale` et `test_no_hardcoded_numeric_literals`
@@ -296,27 +262,23 @@ porte aucun résultat en dur.
 | `rapport_de_capacite_attendu` | rapport des deux précédentes, fixé avant l'exécution | — |
 | `rapports_transferts_sur_longueurs` | micro-monde, arêtes courte, médiane et longue dérivées de la carte | nombre d'arêtes réellement essayées |
 | `transfert_sur_arete_de_longueur_nulle` | micro-monde, arête de longueur nulle | nombre de ticks réellement joués |
-| `occurrences_constante_plate_apres` | parcours des modules de `sim/` hors tests | nombre de modules réellement parcourus |
+| `occurrences_constante_plate_apres` | parcours de `sim/engine.py` | nombre de lignes réellement parcourues |
 | `kg_transportes_avant` | sortie de base rejouée et archivée avant édition | nombre d'exécutions réellement lancées |
 | `kg_transportes_apres` | même commande après changement | nombre d'exécutions réellement lancées |
 | `ticks_survecus_cellule_sans_production` | micro-monde de SC5, capacité dérivée | borne de ticks dérivée du contrôle |
 | `ticks_survecus_cellule_sans_production_capacite_plate` | même micro-monde, constante remplacée en mémoire | même borne |
 | `ecart_de_masse_micro_monde` | somme des stocks avant et après le maillon | nombre de cellules réellement sommées |
 | `longueurs_invalides_refusees` | mutations en mémoire retirant ou corrompant une longueur | nombre de mutations réellement exécutées |
-| `aretes_monde_epreuve_avec_longueur` | arêtes de `_MondeEpreuve.adjacency` portant `shared_length_m` après changement | nombre d'arêtes du fixture |
-| `lignes_de_test_hors_substitution` | diff des fichiers de test contre le SHA de base, hors l'ajout de clé au fixture | nombre de lignes du diff réellement examinées |
 | `tests_collectes_avant` | collecte pytest sur le SHA de base | nombre de fichiers de test collectés |
 | `tests_collectes_apres` | collecte pytest après changement | nombre de fichiers de test collectés |
 
-`transfert_sur_arete_de_longueur_nulle`, `occurrences_constante_plate_apres`,
-`ecart_de_masse_micro_monde` et `lignes_de_test_hors_substitution` doivent valoir
-**0**, et ces zéros sont des mesures réelles. La sentinelle « non calculé » du
-projet est `-1`, jamais `0`.
+`transfert_sur_arete_de_longueur_nulle`, `occurrences_constante_plate_apres` et
+`ecart_de_masse_micro_monde` doivent valoir **0**, et ces zéros sont des mesures
+réelles. La sentinelle « non calculé » du projet est `-1`, jamais `0`.
 
 Le rapport de `kg_transportes_apres` sur `kg_transportes_avant` doit atteindre
 `rapport_de_capacite_attendu`. `ticks_survecus_cellule_sans_production` doit être
 strictement supérieur à sa contrepartie à capacité plate.
-`aretes_monde_epreuve_avec_longueur` doit égaler le nombre d'arêtes du fixture.
 
 ## Livrables et porte mécanique
 
