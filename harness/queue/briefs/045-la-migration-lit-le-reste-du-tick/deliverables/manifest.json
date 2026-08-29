@@ -1,0 +1,106 @@
+{
+  "brief": "045-la-migration-lit-le-reste-du-tick",
+  "base_ref": "0f87165739ccae2e744760feba8259a5ba01c01f",
+  "commands": [
+    "git rev-parse HEAD",
+    ".venv/bin/python -m pytest sim/tests/test_commerce.py -q",
+    ".venv/bin/python -m pytest sim/tests/ -q",
+    ".venv/bin/python -m sim --ticks 365 --seed 0 --json",
+    "git grep -n '^[[:space:]]*global ' sim/engine.py",
+    ".venv/bin/python harness/queue/briefs/045-la-migration-lit-le-reste-du-tick/deliverables/measure_045.py"
+  ],
+  "files": [
+    {
+      "path": "../../../../sim/engine.py",
+      "must_differ_from_git": "0f87165739ccae2e744760feba8259a5ba01c01f:sim/engine.py"
+    },
+    {
+      "path": "../../../../sim/tests/test_commerce.py",
+      "must_differ_from_git": "0f87165739ccae2e744760feba8259a5ba01c01f:sim/tests/test_commerce.py"
+    },
+    {
+      "path": "deliverables/cli_ticks365_seed0_run1.json"
+    },
+    {
+      "path": "deliverables/cli_ticks365_seed0_run2.json"
+    },
+    {
+      "path": "deliverables/measure_045.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/manifest.json"
+    }
+  ],
+  "counters": [
+    {
+      "name": "destinations_reste_positif",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "destinations positives essayées dans SC1"
+    },
+    {
+      "name": "habitants_deplaces_reste_positif",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "partants entiers dérivés de la population et de FRACTION_MIGRANTE_PAR_TICK"
+    },
+    {
+      "name": "destinations_stock_nul",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "destinations nulles essayées dans SC2"
+    },
+    {
+      "name": "destinations_sentinelle",
+      "value": 1,
+      "sample_size": 1,
+      "denominator": "destinations négatives essayées dans SC2"
+    },
+    {
+      "name": "habitants_deplaces_stock_nul",
+      "value": 0,
+      "sample_size": 2,
+      "denominator": "appels de migration réellement joués (nul + sentinelle)"
+    },
+    {
+      "name": "poids_independants_population",
+      "value": 1,
+      "sample_size": 2,
+      "denominator": "populations distinctes réellement essayées dans SC3"
+    },
+    {
+      "name": "rapport_stocks_destination",
+      "value": 1,
+      "sample_size": 2,
+      "denominator": "destinations pondérées réellement observées dans SC4"
+    },
+    {
+      "name": "ordres_aretes_essayes",
+      "value": 1,
+      "sample_size": 2,
+      "denominator": "ordres réellement exécutés"
+    },
+    {
+      "name": "ecart_population_totale",
+      "value": 0,
+      "sample_size": 4,
+      "denominator": "cellules réellement sommées"
+    },
+    {
+      "name": "cellules_dont_stock_change",
+      "value": 0,
+      "sample_size": 4,
+      "denominator": "cellules réellement comparées"
+    },
+    {
+      "name": "tests_sim_verts",
+      "value": 118,
+      "sample_size": 118,
+      "denominator": "tests réellement collectés"
+    }
+  ],
+  "rouge_sc1_base": "ration=2.0, reste_dest=1.0\nsurplus_buggy=0.0\npartants_attendus=1\ndelta_source=0, delta_dest=0\nROUGE=oui"
+}
