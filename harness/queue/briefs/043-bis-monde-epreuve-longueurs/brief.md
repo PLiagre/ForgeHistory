@@ -23,8 +23,10 @@ produit et reste strictement séparé du lot produit 044.
 
 ## Cause prouvée et base
 
-La base imposée est le `master`
-`4b732778fc7970ce3e0e108369adc5ff60b5a2a5` (`4b732778`). Sur cette base,
+La base produit de comparaison imposée est le `master`
+`4b732778fc7970ce3e0e108369adc5ff60b5a2a5` (`4b732778`). Le HEAD réel du
+worktree peut être un descendant de cette base qui ajoute uniquement le
+présent brief 043-bis. Sur la base produit,
 `_MondeEpreuve.adjacency` contient deux arêtes sans `shared_length_m`.
 
 `sim/engine.py::_capacite_base_arete_kg` prend donc, pour les deux arêtes, le
@@ -49,10 +51,27 @@ ci-dessous rend toutes les constantes consultées actives : l'arête 1-2 exerce
 `DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK`, tandis que l'arête 1-3 exerce
 `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`.
 
-Avant toute édition, enregistrer le SHA exact, cette commande et sa sortie
-rouge. Si le SHA de départ n'est pas celui imposé, ou si l'échec ne nomme pas
-`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` comme constante inerte, arrêter sans
-adapter le brief.
+Avant toute édition, enregistrer le SHA complet de la base produit, le HEAD
+réel, les commandes de vérification suivantes et leurs sorties :
+
+```bash
+git rev-parse HEAD
+git merge-base --is-ancestor 4b732778fc7970ce3e0e108369adc5ff60b5a2a5 HEAD
+git diff --cached --name-only
+git diff --name-only 4b732778fc7970ce3e0e108369adc5ff60b5a2a5 -- . ':(exclude)harness/queue/briefs/043-bis-monde-epreuve-longueurs/brief.md'
+git status --short --untracked-files=all -- . ':(exclude)harness/queue/briefs/043-bis-monde-epreuve-longueurs/brief.md'
+```
+
+La vérification d'ascendance doit réussir. Les trois commandes d'état qui la
+suivent doivent rester vides : aucune différence indexée ni aucun changement,
+suivi ou non, hors du chemin du présent brief avant édition. Exécuter ensuite
+la commande pytest ciblée ci-dessus et enregistrer sa sortie rouge sur le
+produit ainsi confirmé identique à `4b732778`. Arrêter sans adapter le brief
+si la base produit n'est pas ancêtre du HEAD, si l'index n'est pas vide, si
+une différence existe hors du présent brief, ou si l'échec ne nomme pas
+`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` comme constante inerte. Ne pas arrêter
+sur le seul fait que le HEAD réel diffère de `4b732778` en portant uniquement
+le présent brief.
 
 ## Correction demandée
 
@@ -111,8 +130,11 @@ le viewer, ni le harnais ou ForgePilot, ni ce brief, ni sa grille, ni un
 
 ### SC1 — Le rouge de base est conservé
 
-Le journal contient le SHA complet imposé, la commande ciblée exécutée avant
-toute édition et sa sortie en échec. L'échec montre que
+Le journal contient le SHA complet de la base produit
+`4b732778fc7970ce3e0e108369adc5ff60b5a2a5`, le HEAD réel, les vérifications
+préalables d'ascendance, d'index vide et d'absence de différence hors du
+présent brief, ainsi que la commande ciblée exécutée avant toute édition et sa
+sortie en échec. L'échec montre que
 `DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` ne change pas le monde d'épreuve privé
 de longueurs.
 
