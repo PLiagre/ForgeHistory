@@ -275,7 +275,7 @@ class _MondeEpreuve:
     Monde minuscule qui exerce les cinq maillons du tick en même temps :
     une cellule riche et endettée (remboursement de dette, surplus, commerce
     sortant), une cellule pauvre au plafond de mortalité (faim, mort, borne),
-    et une troisième voisine en équilibre.
+    et une troisième voisine avec un fort besoin de commerce (repli arête 1-3).
 
     Trois cellules plutôt que 596 : ce test répond à « le moteur voit-il cette
     constante ? », pas à « le monde survit-il ? ». Il coûte des millisecondes.
@@ -291,11 +291,11 @@ class _MondeEpreuve:
             2: Cell(cell_id=2, area_km2=1.0, population=1000,
                     food_stock_kg=0.0, hunger_ticks=0,
                     food_deficit_kg=100000.0, mortality_remainder=0.5),
-            3: Cell(cell_id=3, area_km2=10.0, population=50,
+            3: Cell(cell_id=3, area_km2=10.0, population=1000,
                     food_stock_kg=12.0, hunger_ticks=0,
                     food_deficit_kg=0.0, mortality_remainder=0.0),
         }
-        self.adjacency = [{"a": 1, "b": 2}, {"a": 1, "b": 3}]
+        self.adjacency = [{"a": 1, "b": 2, "shared_length_m": 1000.0}, {"a": 1, "b": 3}]
 
     def etat(self):
         """Empreinte exacte : `repr` d'un flottant, jamais un arrondi."""

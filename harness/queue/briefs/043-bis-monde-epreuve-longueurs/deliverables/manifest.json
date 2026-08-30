@@ -1,0 +1,20 @@
+{
+  "brief": "043-bis-monde-epreuve-longueurs",
+  "base_sha": "4b732778fc7970ce3e0e108369adc5ff60b5a2a5",
+  "head_sha": "e9fae56f7cd93da9dd99454697ae35d8849e480e",
+  "risk": "R2",
+  "fixture": {
+    "arete_1_2": "shared_length_m=1000.0 (mètres, frontière physique du fixture)",
+    "arete_1_3": "sans shared_length_m — repli TRADE_CAPACITY_KG_PER_EDGE_PER_TICK",
+    "cellule_3_population": "1000 (anti-faux-vert, pas une règle produit)"
+  },
+  "commandes": [
+    ".venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_chaque_constante_du_moteur_change_le_monde -q -s",
+    ".venv/bin/python -m pytest sim/tests/ -q"
+  ],
+  "fichiers_modifies": [
+    "sim/tests/test_write_coverage.py",
+    "harness/queue/briefs/043-bis-monde-epreuve-longueurs/deliverables/manifest.json",
+    "harness/queue/briefs/043-bis-monde-epreuve-longueurs/deliverables/generator-log.md"
+  ]
+}
