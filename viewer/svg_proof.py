@@ -84,12 +84,15 @@ def _path(ring: Iterable[Tuple[float, float]], bounds) -> str:
 def cell_value(cell: dict, layer: str) -> Any:
     if layer == "population":
         return cell["population"]
-    if layer == "food_stock_kg":
-        return cell["food_stock_kg"]
+    stocks = cell.get("stocks")
+    if isinstance(stocks, dict) and layer in stocks:
+        return stocks[layer]
+    if isinstance(stocks, dict) and layer not in ("insolation", "dist_sea"):
+        return None
     if layer == "food_deficit_kg":
-        return cell["food_deficit_kg"]
+        return cell.get("food_deficit_kg")
     if layer == "hunger_ticks":
-        return cell["hunger_ticks"]
+        return cell.get("hunger_ticks")
     climat = cell.get("climat")
     if climat is None:
         raise KeyError(f"couche climat absente du snapshot pour {layer}")

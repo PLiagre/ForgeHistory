@@ -369,7 +369,7 @@ DEFAULT_CLI_SEED = 0
 # --- Snapshot cellulaire V0-A (brief 027) ---
 # Première photographie cellulaire du jalon V0-A ; le suffixe -1 permet une
 # révision du contrat sans réutiliser le même nom.
-SNAPSHOT_SCHEMA_VERSION = "v0a-2"
+SNAPSHOT_SCHEMA_VERSION = "v0a-3"
 # Même pas que tools/map/io_util.py : plus fin serait du bruit, plus gros
 # écraserait des centroïdes voisins.
 SNAPSHOT_FLOAT_DECIMALS = 6
