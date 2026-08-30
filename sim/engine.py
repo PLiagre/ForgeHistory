@@ -680,10 +680,9 @@ def _apply_natalite(cell: Cell, penurie_kg: float) -> None:
 
 
 def _surplus_nourriture_tick(population: int, stock: float) -> float:
-    """Surplus alimentaire du tick sur un instantané (même définition que le commerce)."""
-    consommation = population * _constantes.FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    """Surplus alimentaire post-consommation sur un instantané migration."""
     stock_eff = stock if stock >= 0 else 0.0
-    return max(0.0, stock_eff - consommation)
+    return max(0.0, stock_eff)
 
 
 def _repartir_habitants_proportionnellement(

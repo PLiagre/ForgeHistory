@@ -1563,3 +1563,299 @@ def test_arete_sans_shared_length_m_repli_capacite_plate():
     stock = lire_stock_marchandise(world.cells[9701], MARCHANDISE_NOURRITURE)
     assert stock > 0.0
     assert stock <= TRADE_CAPACITY_KG_PER_EDGE_PER_TICK + TOLERANCE
+# --- Brief 045 — migration lit le reste du tick ---
+
+
+def _paniers_monde(world: World) -> dict[int, dict[str, float]]:
+    return {cid: dict(c.stocks) for cid, c in world.cells.items()}
+
+
+def _verifier_sc5_conservation_paniers(
+    world: World,
+    pops_avant: dict[int, int],
+    stocks_avant: dict[int, dict[str, float]],
+) -> None:
+    pops_apres = {cid: c.population for cid, c in world.cells.items()}
+    assert sum(pops_avant.values()) == sum(pops_apres.values())
+    assert stocks_avant == _paniers_monde(world)
+
+
+def _build_monde_source_reste_dest(
+    source_id: int,
+    dest_id: int,
+    pop_source: int,
+    pop_dest: int,
+    reste_dest: float,
+) -> World:
+    ration = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    source = Cell(
+        cell_id=source_id,
+        area_km2=0.0,
+        population=pop_source,
+        food_stock_kg=0.0,
+        hunger_ticks=1,
+        food_deficit_kg=pop_source * ration,
+        migration_remainder=0.0,
+    )
+    dest = Cell(
+        cell_id=dest_id,
+        area_km2=0.0,
+        population=pop_dest,
+        food_stock_kg=reste_dest,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    return World(
+        cells={source_id: source, dest_id: dest},
+        adjacency=[
+            {"a": source_id, "b": dest_id, "kind": "land", "shared_length_m": 1000.0}
+        ],
+    )
+
+
+def test_migration_reste_positif_inferieur_a_ration():
+    """SC1 brief 045 — un reste positif inférieur à une ration est une destination."""
+    from sim.constants import FRACTION_MIGRANTE_PAR_TICK
+    from sim.engine import _apply_migration
+
+    pop_source = 100
+    ration = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    reste = ration * 0.5
+    assert 0.0 < reste < ration
+
+    world = _build_monde_source_reste_dest(701, 702, pop_source, 50, reste)
+    penurie = pop_source * ration
+    pops_avant = {cid: c.population for cid, c in world.cells.items()}
+    stocks_avant = _paniers_monde(world)
+    pop_src_avant = world.cells[701].population
+    pop_dst_avant = world.cells[702].population
+
+    _apply_migration(world, {701: penurie, 702: 0.0})
+
+    delta_src = pop_src_avant - world.cells[701].population
+    delta_dst = world.cells[702].population - pop_dst_avant
+    partants_attendus = int(pop_source * FRACTION_MIGRANTE_PAR_TICK)
+    assert partants_attendus >= 1
+    assert delta_src >= 1
+    assert delta_src == delta_dst
+    _verifier_sc5_conservation_paniers(world, pops_avant, stocks_avant)
+
+
+def test_migration_stock_nul_ne_deplace_pas():
+    """SC2 brief 045 — stock post-consommation nul : zéro déplacement mesuré."""
+    from sim.engine import _apply_migration
+
+    pop_source = 100
+    ration = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    world = _build_monde_source_reste_dest(711, 712, pop_source, 50, 0.0)
+    penurie = pop_source * ration
+    pops_avant = {cid: c.population for cid, c in world.cells.items()}
+    stocks_avant = _paniers_monde(world)
+
+    _apply_migration(world, {711: penurie, 712: 0.0})
+
+    assert world.cells[711].population == pops_avant[711]
+    assert world.cells[712].population == pops_avant[712]
+    _verifier_sc5_conservation_paniers(world, pops_avant, stocks_avant)
+
+
+def test_migration_sentinelle_negative_ne_deplace_pas():
+    """SC2 brief 045 — sentinelle négative : zéro déplacement mesuré."""
+    from sim.engine import _apply_migration
+
+    pop_source = 100
+    ration = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    source = Cell(
+        cell_id=721,
+        area_km2=0.0,
+        population=pop_source,
+        food_stock_kg=0.0,
+        hunger_ticks=1,
+        food_deficit_kg=pop_source * ration,
+        migration_remainder=0.0,
+    )
+    dest = Cell(cell_id=722, area_km2=0.0, population=50)
+    world = World(
+        cells={721: source, 722: dest},
+        adjacency=[{"a": 721, "b": 722, "kind": "land", "shared_length_m": 1000.0}],
+    )
+    penurie = pop_source * ration
+    pops_avant = {cid: c.population for cid, c in world.cells.items()}
+    stocks_avant = _paniers_monde(world)
+
+    _apply_migration(world, {721: penurie, 722: 0.0})
+
+    assert world.cells[721].population == pops_avant[721]
+    assert world.cells[722].population == pops_avant[722]
+    _verifier_sc5_conservation_paniers(world, pops_avant, stocks_avant)
+
+
+def test_migration_poids_independants_de_la_population_destination():
+    """SC3 brief 045 — mêmes stocks, populations distinctes, mêmes poids."""
+    from sim.constants import FRACTION_MIGRANTE_PAR_TICK
+    from sim.engine import _apply_migration
+
+    pop_source = 200
+    ration = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    reste = ration * 50
+    pop_dest_a = 10
+    pop_dest_b = 200
+    poids_attendu_a = reste
+    poids_attendu_b = reste
+    assert poids_attendu_a == poids_attendu_b
+
+    source = Cell(
+        cell_id=731,
+        area_km2=0.0,
+        population=pop_source,
+        food_stock_kg=0.0,
+        hunger_ticks=1,
+        food_deficit_kg=pop_source * ration,
+        migration_remainder=0.0,
+    )
+    dest_a = Cell(
+        cell_id=732,
+        area_km2=0.0,
+        population=pop_dest_a,
+        food_stock_kg=reste,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    dest_b = Cell(
+        cell_id=733,
+        area_km2=0.0,
+        population=pop_dest_b,
+        food_stock_kg=reste,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    world = World(
+        cells={731: source, 732: dest_a, 733: dest_b},
+        adjacency=[
+            {"a": 731, "b": 732, "kind": "land", "shared_length_m": 1000.0},
+            {"a": 731, "b": 733, "kind": "land", "shared_length_m": 1000.0},
+        ],
+    )
+    penurie = pop_source * ration
+    partants = int(pop_source * FRACTION_MIGRANTE_PAR_TICK)
+    assert partants >= 2
+    repartition_attendue = {732: partants // 2, 733: partants // 2}
+    pops_avant = {cid: c.population for cid, c in world.cells.items()}
+    stocks_avant = _paniers_monde(world)
+
+    _apply_migration(world, {731: penurie, 732: 0.0, 733: 0.0})
+
+    delta_a = world.cells[732].population - pops_avant[732]
+    delta_b = world.cells[733].population - pops_avant[733]
+    assert delta_a == repartition_attendue[732]
+    assert delta_b == repartition_attendue[733]
+    _verifier_sc5_conservation_paniers(world, pops_avant, stocks_avant)
+
+
+def test_migration_pondération_selon_stock_post_consommation():
+    """SC4 brief 045 — répartition selon le rapport des stocks post-consommation."""
+    from sim.constants import FRACTION_MIGRANTE_PAR_TICK
+    from sim.engine import _apply_migration, _repartir_habitants_proportionnellement
+
+    pop_source = 400
+    ration = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    reste_a = ration * 3
+    reste_b = ration * 1
+    partants = int(pop_source * FRACTION_MIGRANTE_PAR_TICK)
+    assert partants >= 4
+    poids = {742: reste_a, 743: reste_b}
+    repartition_attendue = _repartir_habitants_proportionnellement(partants, poids)
+
+    source = Cell(
+        cell_id=741,
+        area_km2=0.0,
+        population=pop_source,
+        food_stock_kg=0.0,
+        hunger_ticks=1,
+        food_deficit_kg=pop_source * ration,
+        migration_remainder=0.0,
+    )
+    dest_a = Cell(
+        cell_id=742,
+        area_km2=0.0,
+        population=60,
+        food_stock_kg=reste_a,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    dest_b = Cell(
+        cell_id=743,
+        area_km2=0.0,
+        population=120,
+        food_stock_kg=reste_b,
+        hunger_ticks=0,
+        food_deficit_kg=0.0,
+        migration_remainder=0.0,
+    )
+    world = World(
+        cells={741: source, 742: dest_a, 743: dest_b},
+        adjacency=[
+            {"a": 741, "b": 742, "kind": "land", "shared_length_m": 1000.0},
+            {"a": 741, "b": 743, "kind": "land", "shared_length_m": 1000.0},
+        ],
+    )
+    pops_avant = {cid: c.population for cid, c in world.cells.items()}
+    stocks_avant = _paniers_monde(world)
+
+    _apply_migration(world, {741: pop_source * ration, 742: 0.0, 743: 0.0})
+
+    delta_a = world.cells[742].population - pops_avant[742]
+    delta_b = world.cells[743].population - pops_avant[743]
+    assert delta_a == repartition_attendue[742]
+    assert delta_b == repartition_attendue[743]
+    _verifier_sc5_conservation_paniers(world, pops_avant, stocks_avant)
+
+
+def test_migration_invariance_ordre_aretes_reste_positif():
+    """SC5 brief 045 — inverser l'ordre des arêtes donne le même état."""
+    from sim.engine import _apply_migration
+
+    def _jouer(adjacency: list[dict]) -> dict[int, int]:
+        pop_source = 200
+        ration = FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+        reste = ration * 2
+        source = Cell(
+            cell_id=751,
+            area_km2=0.0,
+            population=pop_source,
+            food_stock_kg=0.0,
+            hunger_ticks=1,
+            food_deficit_kg=pop_source * ration,
+            migration_remainder=0.0,
+        )
+        dest_a = Cell(
+            cell_id=752,
+            area_km2=0.0,
+            population=30,
+            food_stock_kg=reste,
+            hunger_ticks=0,
+            food_deficit_kg=0.0,
+            migration_remainder=0.0,
+        )
+        dest_b = Cell(
+            cell_id=753,
+            area_km2=0.0,
+            population=80,
+            food_stock_kg=reste,
+            hunger_ticks=0,
+            food_deficit_kg=0.0,
+            migration_remainder=0.0,
+        )
+        world = World(cells={751: source, 752: dest_a, 753: dest_b}, adjacency=adjacency)
+        _apply_migration(world, {751: pop_source * ration, 752: 0.0, 753: 0.0})
+        return {cid: cell.population for cid, cell in world.cells.items()}
+
+    edges_ab = [
+        {"a": 751, "b": 752, "kind": "land", "shared_length_m": 1000.0},
+        {"a": 751, "b": 753, "kind": "land", "shared_length_m": 1000.0},
+    ]
+    assert _jouer(edges_ab) == _jouer(list(reversed(edges_ab)))
