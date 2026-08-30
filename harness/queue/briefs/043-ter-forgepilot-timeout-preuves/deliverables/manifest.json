@@ -1,0 +1,28 @@
+{
+  "brief": "harness/queue/briefs/043-ter-forgepilot-timeout-preuves/brief.md",
+  "code_files": [
+    "control-plane/forgepilot/durable.py",
+    "control-plane/tests/test_acceleration.py"
+  ],
+  "deliverables": [
+    "harness/queue/briefs/043-ter-forgepilot-timeout-preuves/deliverables/manifest.json",
+    "harness/queue/briefs/043-ter-forgepilot-timeout-preuves/deliverables/generator-log.md"
+  ],
+  "commands": [
+    "cd control-plane && ../.venv/bin/python -m unittest tests.test_acceleration -v",
+    "cd control-plane && ../.venv/bin/python -m unittest discover -s tests"
+  ],
+  "tests_added": [
+    "ProofTimeoutTransmissionTests.test_durable_proof_path_passes_state_proof_timeout_to_run_command",
+    "ProofTimeoutTransmissionTests.test_each_risk_profile_transmits_its_own_proof_timeout",
+    "ProofTimeoutTransmissionTests.test_fast_pr_and_certify_profiles_transmit_effective_proof_timeout",
+    "ProofTimeoutTransmissionTests.test_iteration_and_resume_keep_transmitting_effective_proof_timeout",
+    "ProofTimeoutTransmissionTests.test_elevated_risk_uses_updated_proof_timeout",
+    "ProofTimeoutTransmissionTests.test_missing_timeouts_seconds_is_refused_before_run_command",
+    "ProofTimeoutTransmissionTests.test_missing_proof_key_is_refused_before_run_command",
+    "ProofTimeoutTransmissionTests.test_null_proof_timeout_is_refused_before_run_command",
+    "ProofTimeoutTransmissionTests.test_boolean_proof_timeout_is_refused_before_run_command",
+    "ProofTimeoutTransmissionTests.test_proof_timeout_reader_rejects_invalid_state",
+    "ProofTimeoutTransmissionTests.test_run_test_profile_without_state_passes_none_timeout"
+  ]
+}

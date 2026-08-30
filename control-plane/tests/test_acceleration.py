@@ -21,8 +21,14 @@ from forgepilot.durable import (
     register_run,
     resume_run,
 )
+from forgepilot.durable import (
+    _proof_timeout_seconds,
+    _raise_risk_from_paths,
+    _run_exact_test_profile,
+)
 from forgepilot.policy import derive_risk, effective_risk, load_policy
 from forgepilot.process import PilotError, run_command_stream
+from forgepilot.process import CommandResult
 from forgepilot.protocol import validate_plan, write_normalized_json
 from forgepilot.publication import enforce_allowed_paths, stage_explicit_paths, working_tree_paths
 from forgepilot.review import (
@@ -2009,6 +2015,441 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
                 final = load_state(run_state_path(repo, str(state["run_id"])))
             self.assertEqual("ERROR", final["step"])
             self.assertEqual([], self._exchange_roles(Path(str(final["worktree"]))))
+
+
+class ProofTimeoutTransmissionTests(unittest.TestCase, GitRepoMixin):
+    def _proof_timeout_from_state(self, state: dict[str, object]) -> int:
+        timeouts = state.get("timeouts_seconds")
+        if not isinstance(timeouts, dict):
+            self.fail("timeouts_seconds manquant dans l'état de test")
+        proof = timeouts.get("proof")
+        if not isinstance(proof, int) or isinstance(proof, bool) or proof <= 0:
+            self.fail("timeouts_seconds.proof invalide dans l'état de test")
+        return proof
+
+    def _candidate_from_worktree(
+        self,
+        worktree: Path,
+        base_sha: str,
+        paths: list[str],
+    ) -> dict[str, object]:
+        head_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=worktree,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        tree_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD^{tree}"],
+            cwd=worktree,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        return {
+            "base_sha": base_sha,
+            "head_sha": head_sha,
+            "tree_sha": tree_sha,
+            "paths": paths,
+            "iteration": 0,
+        }
+
+    def _attach_candidate(
+        self,
+        state_path: Path,
+        state: dict[str, object],
+        worktree: Path,
+        paths: list[str],
+    ) -> dict[str, object]:
+        base_sha = str(state["base_sha"])
+        candidate = self._candidate_from_worktree(worktree, base_sha, paths)
+        state = save_state(
+            state_path,
+            {
+                **state,
+                "candidate": candidate,
+                "head_sha": candidate["head_sha"],
+                "worktree": str(worktree),
+            },
+        )
+        return state
+
+    def _record_proof_timeouts(
+        self,
+        state_path: Path,
+        state: dict[str, object],
+        worktree: Path,
+        *,
+        profile: str,
+        paths: list[str],
+        tested_base_sha: str,
+        iteration: int | None = None,
+        allow_heavy: bool = False,
+    ) -> list[int]:
+        recorded: list[int] = []
+
+        def fake_run_command(command, *, cwd, timeout_seconds, **kwargs):
+            recorded.append(timeout_seconds)
+            return CommandResult(
+                argv=tuple(command),
+                returncode=0,
+                stdout="",
+                stderr="",
+            )
+
+        with patch("forgepilot.durable.run_command", side_effect=fake_run_command):
+            _run_exact_test_profile(
+                state_path,
+                state,
+                worktree,
+                profile=profile,
+                paths=paths,
+                tested_base_sha=tested_base_sha,
+                iteration=iteration,
+                allow_heavy=allow_heavy,
+            )
+        return recorded
+
+    def _register_state_for_risk(self, repo: Path, risk: str, task_name: str) -> tuple[Path, dict[str, object], Path]:
+        task = repo / "task.md"
+        task.write_text(f"**Risque : {risk}.**\n", encoding="utf-8")
+        self.commit(repo, "task")
+        state_path, state = register_run(
+            load_settings(),
+            repo,
+            task,
+            task_name,
+            requested_risk=risk,
+            base_ref="main",
+            base_branch="main",
+        )
+        worktree, _ = create_worktree(repo, task_name, str(state["base_sha"]))
+        state = self._attach_candidate(state_path, state, worktree, ["feature.txt"])
+        return state_path, state, worktree
+
+    def test_durable_proof_path_passes_state_proof_timeout_to_run_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path, state, worktree = self._register_state_for_risk(
+                repo, "R2", "proof-timeout-r2"
+            )
+            expected = self._proof_timeout_from_state(state)
+            recorded = self._record_proof_timeouts(
+                state_path,
+                state,
+                worktree,
+                profile="pr",
+                paths=["feature.txt"],
+                tested_base_sha=str(state["base_sha"]),
+            )
+
+        self.assertTrue(recorded, "aucun appel run_command enregistré")
+        for received in recorded:
+            self.assertEqual(expected, received)
+
+    def test_each_risk_profile_transmits_its_own_proof_timeout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path_r1, state_r1, worktree_r1 = self._register_state_for_risk(
+                repo, "R1", "proof-timeout-r1"
+            )
+            expected_r1 = self._proof_timeout_from_state(state_r1)
+            recorded_r1 = self._record_proof_timeouts(
+                state_path_r1,
+                state_r1,
+                worktree_r1,
+                profile="pr",
+                paths=["feature.txt"],
+                tested_base_sha=str(state_r1["base_sha"]),
+            )
+
+            state_path_r2, state_r2, worktree_r2 = self._register_state_for_risk(
+                repo, "R2", "proof-timeout-r2"
+            )
+            expected_r2 = self._proof_timeout_from_state(state_r2)
+            recorded_r2 = self._record_proof_timeouts(
+                state_path_r2,
+                state_r2,
+                worktree_r2,
+                profile="pr",
+                paths=["feature.txt"],
+                tested_base_sha=str(state_r2["base_sha"]),
+            )
+
+        self.assertNotEqual(expected_r1, expected_r2)
+        self.assertTrue(recorded_r1)
+        self.assertTrue(recorded_r2)
+        self.assertTrue(all(value == expected_r1 for value in recorded_r1))
+        self.assertTrue(all(value == expected_r2 for value in recorded_r2))
+
+    def test_fast_pr_and_certify_profiles_transmit_effective_proof_timeout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path, state, worktree = self._register_state_for_risk(
+                repo, "R2", "proof-timeout-profiles"
+            )
+            expected = self._proof_timeout_from_state(state)
+
+            fast = self._record_proof_timeouts(
+                state_path,
+                state,
+                worktree,
+                profile="fast",
+                paths=["feature.txt"],
+                tested_base_sha=str(state["base_sha"]),
+                iteration=1,
+            )
+            state = load_state(state_path)
+            pr = self._record_proof_timeouts(
+                state_path,
+                state,
+                worktree,
+                profile="pr",
+                paths=["feature.txt"],
+                tested_base_sha=str(state["base_sha"]),
+                iteration=1,
+            )
+            state = load_state(state_path)
+            certify = self._record_proof_timeouts(
+                state_path,
+                state,
+                worktree,
+                profile="certify",
+                paths=["feature.txt"],
+                tested_base_sha=str(state["base_sha"]),
+                allow_heavy=True,
+            )
+
+        self.assertTrue(fast and pr and certify)
+        for batch in (fast, pr, certify):
+            self.assertTrue(all(value == expected for value in batch))
+
+    def test_iteration_and_resume_keep_transmitting_effective_proof_timeout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path, state, worktree = self._register_state_for_risk(
+                repo, "R1", "proof-timeout-iteration"
+            )
+            expected = self._proof_timeout_from_state(state)
+
+            iteration_fast = self._record_proof_timeouts(
+                state_path,
+                state,
+                worktree,
+                profile="fast",
+                paths=["feature.txt"],
+                tested_base_sha=str(state["base_sha"]),
+                iteration=1,
+            )
+            state = load_state(state_path)
+            iteration_pr = self._record_proof_timeouts(
+                state_path,
+                state,
+                worktree,
+                profile="pr",
+                paths=["feature.txt"],
+                tested_base_sha=str(state["base_sha"]),
+                iteration=1,
+            )
+
+            state = load_state(state_path)
+            head_sha = str(state["candidate"]["head_sha"])  # type: ignore[index]
+            tree_sha = str(state["candidate"]["tree_sha"])  # type: ignore[index]
+            output_path = state_path.parent / f"pr-{head_sha[:16]}-{tree_sha[:16]}.json"
+            output_path.unlink(missing_ok=True)
+            resumed = self._record_proof_timeouts(
+                state_path,
+                state,
+                worktree,
+                profile="pr",
+                paths=["feature.txt"],
+                tested_base_sha=str(state["base_sha"]),
+            )
+
+        for batch in (iteration_fast, iteration_pr, resumed):
+            self.assertTrue(batch)
+            self.assertTrue(all(value == expected for value in batch))
+
+    def test_elevated_risk_uses_updated_proof_timeout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path, state, worktree = self._register_state_for_risk(
+                repo, "R1", "proof-timeout-elevated"
+            )
+            settings = load_settings()
+            state = _raise_risk_from_paths(
+                settings,
+                state_path,
+                state,
+                ["control-plane/forgepilot/durable.py"],
+                source="candidate",
+            )
+            expected = self._proof_timeout_from_state(state)
+            recorded = self._record_proof_timeouts(
+                state_path,
+                state,
+                worktree,
+                profile="pr",
+                paths=["control-plane/forgepilot/durable.py"],
+                tested_base_sha=str(state["base_sha"]),
+            )
+
+        self.assertEqual("R2", state["risk"]["effective"])  # type: ignore[index]
+        self.assertTrue(recorded)
+        self.assertTrue(all(value == expected for value in recorded))
+
+    def test_missing_timeouts_seconds_is_refused_before_run_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path, state, worktree = self._register_state_for_risk(
+                repo, "R1", "proof-timeout-missing"
+            )
+            state = save_state(state_path, {**state, "timeouts_seconds": None})
+
+            with patch(
+                "forgepilot.durable.run_command",
+                side_effect=AssertionError("run_command ne doit pas être appelé"),
+            ):
+                with self.assertRaisesRegex(PilotError, "timeouts_seconds\\.proof"):
+                    _run_exact_test_profile(
+                        state_path,
+                        state,
+                        worktree,
+                        profile="pr",
+                        paths=["feature.txt"],
+                        tested_base_sha=str(state["base_sha"]),
+                        iteration=None,
+                    )
+
+    def test_missing_proof_key_is_refused_before_run_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path, state, worktree = self._register_state_for_risk(
+                repo, "R1", "proof-timeout-missing-proof"
+            )
+            timeouts = dict(state["timeouts_seconds"])  # type: ignore[arg-type]
+            del timeouts["proof"]
+            state = save_state(state_path, {**state, "timeouts_seconds": timeouts})
+
+            with patch(
+                "forgepilot.durable.run_command",
+                side_effect=AssertionError("run_command ne doit pas être appelé"),
+            ):
+                with self.assertRaisesRegex(PilotError, "timeouts_seconds\\.proof"):
+                    _run_exact_test_profile(
+                        state_path,
+                        state,
+                        worktree,
+                        profile="pr",
+                        paths=["feature.txt"],
+                        tested_base_sha=str(state["base_sha"]),
+                        iteration=None,
+                    )
+
+    def test_null_proof_timeout_is_refused_before_run_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path, state, worktree = self._register_state_for_risk(
+                repo, "R1", "proof-timeout-null"
+            )
+            timeouts = dict(state["timeouts_seconds"])  # type: ignore[arg-type]
+            timeouts["proof"] = None
+            state = save_state(state_path, {**state, "timeouts_seconds": timeouts})
+
+            with patch(
+                "forgepilot.durable.run_command",
+                side_effect=AssertionError("run_command ne doit pas être appelé"),
+            ):
+                with self.assertRaisesRegex(PilotError, "timeouts_seconds\\.proof"):
+                    _run_exact_test_profile(
+                        state_path,
+                        state,
+                        worktree,
+                        profile="pr",
+                        paths=["feature.txt"],
+                        tested_base_sha=str(state["base_sha"]),
+                        iteration=None,
+                    )
+
+    def test_boolean_proof_timeout_is_refused_before_run_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.git_repo(repo)
+            state_path, state, worktree = self._register_state_for_risk(
+                repo, "R1", "proof-timeout-bool"
+            )
+            timeouts = dict(state["timeouts_seconds"])  # type: ignore[arg-type]
+            timeouts["proof"] = True
+            state = save_state(state_path, {**state, "timeouts_seconds": timeouts})
+
+            with patch(
+                "forgepilot.durable.run_command",
+                side_effect=AssertionError("run_command ne doit pas être appelé"),
+            ):
+                with self.assertRaisesRegex(PilotError, "timeouts_seconds\\.proof"):
+                    _run_exact_test_profile(
+                        state_path,
+                        state,
+                        worktree,
+                        profile="pr",
+                        paths=["feature.txt"],
+                        tested_base_sha=str(state["base_sha"]),
+                        iteration=None,
+                    )
+
+    def test_proof_timeout_reader_rejects_invalid_state(self):
+        with self.assertRaisesRegex(PilotError, "timeouts_seconds\\.proof"):
+            _proof_timeout_seconds({"timeouts_seconds": {"proof": 0}})
+        with self.assertRaisesRegex(PilotError, "timeouts_seconds\\.proof"):
+            _proof_timeout_seconds({"timeouts_seconds": {"proof": True}})
+
+    def test_run_test_profile_without_state_passes_none_timeout(self):
+        from forgepilot.durable import run_test_profile
+
+        recorded: list[int | None] = []
+
+        def fake_run_command(command, *, cwd, timeout_seconds, **kwargs):
+            recorded.append(timeout_seconds)
+            return CommandResult(
+                argv=tuple(command),
+                returncode=0,
+                stdout="",
+                stderr="",
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            worktree = Path(tmp)
+            subprocess.run(["git", "init", "-b", "main"], cwd=worktree, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=worktree, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=worktree, check=True)
+            tests_dir = worktree / "sim" / "tests"
+            tests_dir.mkdir(parents=True)
+            (tests_dir / "test_vert.py").write_text("def test_vert():\n    assert True\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=worktree, check=True)
+            subprocess.run(["git", "commit", "-m", "fixture"], cwd=worktree, check=True, capture_output=True)
+
+            with patch("forgepilot.durable.run_command", side_effect=fake_run_command):
+                run_test_profile(
+                    worktree,
+                    paths=["sim/tests/test_vert.py"],
+                    profile="fast",
+                    output_path=worktree / "result.json",
+                )
+
+        self.assertTrue(recorded, "aucun appel run_command enregistré")
+        self.assertTrue(
+            all(timeout is None for timeout in recorded),
+            f"la façade historique doit transmettre None, reçu : {recorded!r}",
+        )
 
 
 if __name__ == "__main__":
