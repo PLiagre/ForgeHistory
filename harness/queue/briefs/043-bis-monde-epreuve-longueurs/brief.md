@@ -11,9 +11,12 @@ produit ; `sim/tests/**` est néanmoins classé R2 par
 Réparer le monde d'épreuve de
 `test_chaque_constante_du_moteur_change_le_monde` afin qu'il exerce la
 capacité physique par longueur de frontière introduite par le lot 043, tout
-en conservant sur l'autre arête le repli plat par arête. Le même monde
-d'épreuve doit ainsi rendre actives `DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` et
-`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`.
+en créant sur l'autre arête un besoin de commerce qui exerce réellement le
+repli plat par arête. Le même monde d'épreuve doit ainsi rendre actives
+`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` et
+`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` au moyen de deux changements de fixture
+précis : une longueur de `1000.0` mètres sur l'arête 1-2 et une population de
+`1000` au lieu de `50` dans la cellule 3.
 
 Ce micro-lot ne change aucune règle du monde. Il ne modifie aucun fichier
 produit et reste strictement séparé du lot produit 044.
@@ -34,6 +37,18 @@ cette raison :
 .venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_chaque_constante_du_moteur_change_le_monde -q
 ```
 
+L'exécution de la première correction envisagée a apporté une seconde preuve :
+ajouter seulement `shared_length_m=1000.0` à l'arête 1-2 laisse le contrôle
+rouge à 9/10, cette fois avec `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` inerte.
+L'arête 1-3 reste bien sur le repli, mais la cellule 3 dite « en équilibre »
+n'a aucun besoin de commerce ; cette arête ne transporte donc rien et la
+présence du chemin de repli ne suffit pas à en prouver la fonction.
+
+Une expérimentation de lecture seule a établi que la combinaison demandée
+ci-dessous rend les dix constantes consultées actives : l'arête 1-2 exerce
+`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK`, tandis que l'arête 1-3 exerce
+`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`.
+
 Avant toute édition, enregistrer le SHA exact, cette commande et sa sortie
 rouge. Si le SHA de départ n'est pas celui imposé, ou si l'échec ne nomme pas
 `DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` comme constante inerte, arrêter sans
@@ -41,32 +56,45 @@ adapter le brief.
 
 ## Correction demandée
 
-Modifier uniquement la donnée `adjacency` de `_MondeEpreuve` dans
-`sim/tests/test_write_coverage.py` : ajouter `shared_length_m` à une seule des
-deux arêtes. L'autre reste sans cette clé afin d'exercer le repli
-`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`.
+Modifier uniquement le fixture `_MondeEpreuve` dans
+`sim/tests/test_write_coverage.py`, avec exactement ces deux changements :
+
+- ajouter `shared_length_m=1000.0` à l'arête 1-2 seulement ; l'arête 1-3
+  reste sans cette clé afin d'exercer le repli
+  `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` ;
+- porter la population de la cellule 3 de `50` à `1000`, sans changer ses
+  autres champs, afin qu'elle ait un besoin de commerce que l'ancienne
+  capacité de repli de 200 kg ne peut pas couvrir entièrement.
 
 La longueur est une valeur en mètres, positive, finie, explicite et
 déterministe. Elle représente une frontière physique du fixture ; elle n'est
-ni aléatoire, ni calculée depuis la valeur d'une constante testée. Un court
-commentaire peut expliquer son unité si nécessaire.
+ni aléatoire, ni calculée depuis la valeur d'une constante testée. La
+population `1000` est un choix de fixture anti-faux-vert : elle est assez
+grande pour que la capacité de repli soit effectivement contraignante. Ce
+n'est ni une règle produit, ni une calibration du monde. Mettre à jour au
+minimum la docstring ou le commentaire qui décrit encore la cellule 3 comme
+« en équilibre » ; un court commentaire peut aussi expliquer l'unité de la
+longueur si nécessaire.
 
 Ne modifier aucune assertion, aucun facteur de mutation, aucune dérivation de
-constantes, aucune cellule et aucune autre donnée du monde d'épreuve. Ne pas
-ajouter de test. Le contrôle existant doit passer parce que son échantillon
-exerce désormais simultanément le chemin par longueur et le chemin de repli,
-pas parce que le contrôle a été relâché ou contourné.
+constantes, aucune fonction ni aucun champ du fixture au-delà des deux valeurs
+nommées ci-dessus. Ne pas ajouter de test. Le contrôle existant doit passer
+parce que son échantillon exerce désormais simultanément le chemin par
+longueur et le chemin de repli, pas parce que le contrôle a été relâché ou
+contourné.
 
-**Fidélité : sans objet.** Cette longueur appartient à un fixture synthétique
-de harnais. Elle ne décrit ni la carte figée ni un lieu historique.
+**Fidélité : sans objet.** Cette longueur et cette population appartiennent à
+un fixture synthétique de harnais. Elles ne décrivent ni la carte figée ni un
+lieu historique.
 
 ## Périmètre d'écriture
 
 Fichier de harnais autorisé :
 
-- `sim/tests/test_write_coverage.py`, uniquement pour ajouter une clé
-  `shared_length_m` à une seule arête et, si utile, son commentaire d'unité ;
-  l'autre arête doit rester sans cette clé.
+- `sim/tests/test_write_coverage.py`, uniquement pour ajouter
+  `shared_length_m=1000.0` à l'arête 1-2, porter la population de la cellule 3
+  de `50` à `1000`, et mettre à jour au minimum la docstring ou le commentaire
+  rendu faux ; l'arête 1-3 doit rester sans `shared_length_m`.
 
 Livrables minimaux autorisés, seulement pour porter les preuves du lot :
 
@@ -90,20 +118,22 @@ de longueurs.
 
 ### SC2 — Les deux chemins de capacité sont exercés
 
-Après correction, une seule des deux entrées de `_MondeEpreuve.adjacency`
-porte un `shared_length_m` numérique, positif et fini ; l'autre ne porte pas
-cette clé. La valeur est stable entre deux exécutions. Le même monde d'épreuve
-exerce ainsi le chemin de capacité par longueur avec
-`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` et le chemin de repli avec
-`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`. Aucun autre élément du fixture n'a
-changé.
+Après correction, l'arête 1-2 de `_MondeEpreuve.adjacency` porte exactement
+`shared_length_m=1000.0` et l'arête 1-3 ne porte pas cette clé. La population
+de la cellule 3 vaut exactement `1000` au lieu de `50` ; ses autres champs
+restent identiques. Ces valeurs sont stables entre deux exécutions. Le même
+monde d'épreuve exerce ainsi le chemin de capacité par longueur avec
+`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK` sur 1-2 et le chemin de repli avec
+`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` sur 1-3. La docstring ou le commentaire
+qui qualifiait la cellule 3 d'« en équilibre » est corrigé au strict minimum.
 
-### SC3 — Le contrôle ciblé devient vert sans contournement
+### SC3 — Le contrôle ciblé prouve 10/10 sans contournement
 
-La même commande que pour SC1 est verte après la seule correction autorisée :
+Le contrôle ciblé est vert après les deux changements autorisés et sa sortie
+montre explicitement `constantes_du_moteur_atteignables = 10 / 10` :
 
 ```bash
-.venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_chaque_constante_du_moteur_change_le_monde -q
+.venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_chaque_constante_du_moteur_change_le_monde -q -s
 ```
 
 Toutes les assertions du fichier, les facteurs `(0.1, 3.0, 1e6)`, la fonction
@@ -121,23 +151,29 @@ marqué comme succès attendu, filtré ou supprimé.
 
 ### SC5 — Aucun produit ni lot voisin ne bouge
 
-Le diff hors livrables ne contient que l'ajout d'une longueur sur une seule
-arête, et éventuellement son commentaire, dans
-`sim/tests/test_write_coverage.py`. L'autre arête reste sans
-`shared_length_m`.
+Le diff hors livrables ne contient, dans `sim/tests/test_write_coverage.py`,
+que l'ajout de `shared_length_m=1000.0` sur l'arête 1-2, le passage de la
+population de la cellule 3 de `50` à `1000`, et la mise à jour minimale de la
+docstring ou du commentaire rendu faux. L'arête 1-3 reste sans
+`shared_length_m`. Les assertions, les facteurs et les fonctions du fichier
+restent identiques à la base.
 `sim/engine.py`, `sim/constants.py` et tout le lot 044 restent identiques à la
 base.
 
 ## Livrables et séparation des rôles
 
 Le manifeste déclare les seuls fichiers écrits et les deux commandes pytest.
-Il décrit la modification comme l'ajout de `shared_length_m` à une seule arête,
-l'autre restant sans la clé. Le journal, en français clair, contient la preuve
-rouge, le diff borné montrant cette répartition, le vert ciblé et le résultat
-de la suite complète. Il indique que le même monde d'épreuve exerce le chemin
-longueur (`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK`) et le chemin de repli
-(`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`). Aucun mesureur dédié n'est demandé :
-les commandes ci-dessus suffisent et évitent d'élargir le micro-lot.
+Il décrit exactement l'ajout de `shared_length_m=1000.0` à l'arête 1-2 et le
+passage de la population de la cellule 3 de `50` à `1000`, l'arête 1-3 restant
+sans la clé. Le journal, en français clair, contient la preuve rouge, le diff
+borné montrant les deux changements et la correction minimale de description,
+la preuve ciblée explicite `10 / 10` et le résultat de la suite `sim/tests/`
+complète. Il indique que le même monde d'épreuve exerce le chemin longueur
+(`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK`) et le chemin de repli
+(`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`), et que la population `1000` est une
+valeur anti-faux-vert du fixture, pas une règle produit. Aucun mesureur dédié
+n'est demandé : les commandes ci-dessus suffisent et évitent d'élargir le
+micro-lot.
 
 L'exécutant n'écrit pas de `verdict.md`, ne juge pas son propre travail, ne
 fusionne rien et ne pousse pas directement sur `master`.
@@ -147,6 +183,9 @@ fusionne rien et ne pousse pas directement sur `master`.
 - toute modification du moteur, des constantes ou d'une règle du monde ;
 - tout changement produit prévu ou demandé par le lot 044 ;
 - toute nouvelle calibration de capacité ou de débit ;
-- toute modification d'une assertion ou de la portée du contrôle existant ;
+- toute modification supplémentaire du fixture au-delà des deux valeurs
+  expressément autorisées et de la correction minimale de sa description ;
+- toute modification d'une assertion, d'un facteur, d'une fonction ou de la
+  portée du contrôle existant ;
 - tout nouveau test ou fichier de mesure ;
 - toute correction rétroactive des briefs, grilles ou livrables 043 et 044.
