@@ -1093,11 +1093,6 @@ def run_test_profile(
             ("control-plane-tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests"], control_plane)
         )
 
-    if timeout_seconds is None:
-        # Façade hors chemin durable : les appelants historiques ne portent pas
-        # l'état ; la borne locale 1800 reste le comportement observable d'avant.
-        timeout_seconds = 1800
-
     results: list[dict[str, object]] = []
     code = 0
     for suite_id, command, cwd in suites:

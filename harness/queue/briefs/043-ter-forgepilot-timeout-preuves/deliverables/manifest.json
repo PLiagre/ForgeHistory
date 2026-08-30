@@ -22,6 +22,7 @@
     "ProofTimeoutTransmissionTests.test_missing_proof_key_is_refused_before_run_command",
     "ProofTimeoutTransmissionTests.test_null_proof_timeout_is_refused_before_run_command",
     "ProofTimeoutTransmissionTests.test_boolean_proof_timeout_is_refused_before_run_command",
-    "ProofTimeoutTransmissionTests.test_proof_timeout_reader_rejects_invalid_state"
+    "ProofTimeoutTransmissionTests.test_proof_timeout_reader_rejects_invalid_state",
+    "ProofTimeoutTransmissionTests.test_run_test_profile_without_state_passes_none_timeout"
   ]
 }

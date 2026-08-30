@@ -61,7 +61,7 @@ Après correction dans `durable.py` :
 cd control-plane && python3 -m unittest tests.test_acceleration.ProofTimeoutTransmissionTests -v
 ```
 
-10 tests verts sur le raccord durable.
+11 tests verts sur le raccord durable (dont la façade historique sans état).
 
 Valeurs dérivées des états construits (jamais recopiées depuis la politique dans les assertions) :
 
@@ -78,17 +78,38 @@ Refus avant `run_command` (`PilotError` nommant `timeouts_seconds.proof`) :
 - valeur nulle ;
 - valeur booléenne.
 
+## Itération après relecture Grok FAIL (P1)
+
+Finding unique : `run_test_profile` conservait une borne morte locale via `timeout_seconds = 1800` quand l'argument optionnel était absent.
+
+Correction :
+
+- suppression entière du repli `if timeout_seconds is None: timeout_seconds = 1800` ;
+- la façade historique transmet désormais `None` tel quel à `run_command` (absence de délai, pas de seconde politique cachée) ;
+- le chemin durable continue d'exiger et de transmettre l'entier validé depuis `timeouts_seconds.proof` via `_proof_timeout_seconds` et `_run_exact_test_profile`.
+
+Nouvelle méthode de preuve :
+
+- `ProofTimeoutTransmissionTests.test_run_test_profile_without_state_passes_none_timeout` — vérifie que chaque appel mocké reçoit `None`, jamais `1800`.
+
+Vérification :
+
+```bash
+rg -n "1800" control-plane/forgepilot/durable.py
+# aucune occurrence
+```
+
 ## Suite complète ForgePilot
 
 ```bash
 cd control-plane && python3 -m unittest tests.test_acceleration -v
-# Ran 75 tests — OK
+# Ran 76 tests — 75 OK, 1 ERROR (TestRunnerTests sans pytest dans l'environnement courant)
 
 cd control-plane && python3 -m unittest discover -s tests
-# Ran 188 tests — OK
+# Ran 189 tests — 188 OK, 1 ERROR (même cause : pytest absent pour TestRunnerTests)
 ```
 
-(Exécution locale avec interpréteur disposant de `pytest` pour les deux tests `TestRunnerTests` qui lancent une mini-suite sim.)
+Les 11 tests ciblés `ProofTimeoutTransmissionTests` sont verts. L'unique erreur restante est préexistante à l'absence de `pytest` pour `TestRunnerTests` ; elle n'est pas liée au retrait du repli `1800`.
 
 ## Diff borné et périmètre
 

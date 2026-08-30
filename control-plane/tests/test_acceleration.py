@@ -2412,6 +2412,45 @@ class ProofTimeoutTransmissionTests(unittest.TestCase, GitRepoMixin):
         with self.assertRaisesRegex(PilotError, "timeouts_seconds\\.proof"):
             _proof_timeout_seconds({"timeouts_seconds": {"proof": True}})
 
+    def test_run_test_profile_without_state_passes_none_timeout(self):
+        from forgepilot.durable import run_test_profile
+
+        recorded: list[int | None] = []
+
+        def fake_run_command(command, *, cwd, timeout_seconds, **kwargs):
+            recorded.append(timeout_seconds)
+            return CommandResult(
+                argv=tuple(command),
+                returncode=0,
+                stdout="",
+                stderr="",
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            worktree = Path(tmp)
+            subprocess.run(["git", "init", "-b", "main"], cwd=worktree, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=worktree, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=worktree, check=True)
+            tests_dir = worktree / "sim" / "tests"
+            tests_dir.mkdir(parents=True)
+            (tests_dir / "test_vert.py").write_text("def test_vert():\n    assert True\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=worktree, check=True)
+            subprocess.run(["git", "commit", "-m", "fixture"], cwd=worktree, check=True, capture_output=True)
+
+            with patch("forgepilot.durable.run_command", side_effect=fake_run_command):
+                run_test_profile(
+                    worktree,
+                    paths=["sim/tests/test_vert.py"],
+                    profile="fast",
+                    output_path=worktree / "result.json",
+                )
+
+        self.assertTrue(recorded, "aucun appel run_command enregistré")
+        self.assertTrue(
+            all(timeout is None for timeout in recorded),
+            f"la façade historique doit transmettre None, reçu : {recorded!r}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
