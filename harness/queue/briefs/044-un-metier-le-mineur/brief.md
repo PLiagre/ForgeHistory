@@ -143,7 +143,37 @@ Fichiers produit autorisés :
 - `sim/engine.py` ;
 - `sim/constants.py` ;
 - `sim/tests/test_monde.py`, uniquement pour **ajouter** les cas qui protègent
-  cette règle visible ; les assertions déjà présentes restent inchangées.
+  cette règle visible, avec l'unique exception ci-dessous ; toutes les autres
+  assertions déjà présentes restent inchangées.
+
+**Exception unique pour le contrôle hérité du lot 038.** Le contrôle
+`test_minerai_ne_change_pas_la_nourriture` et son assertion `changes == 0`
+reposent sur la prémisse du lot 038 selon laquelle un gisement ne change pas la
+production alimentaire. Cette prémisse est explicitement **supersédée** par la
+nouvelle règle du lot 044 : les habitants affectés à la mine cessent de
+cultiver, donc une cellule à gisement produit moins de nourriture.
+
+Il est permis de substituer ce seul contrôle, et de le renommer si nécessaire,
+afin qu'il protège la nouvelle règle au lieu de l'ancienne. La substitution
+doit conserver le scénario comparatif dérivé de la carte et remplacer
+l'attente d'égalité par l'attente d'une baisse strictement constatée dans les
+cellules porteuses de gisement. Il est interdit de supprimer ce contrôle sans
+le remplacer, de modifier ou renommer un autre test existant, ou de relâcher
+une autre assertion. Cette substitution n'est pas une calibration après
+observation : elle retire une prémisse rendue fausse par la règle métier même
+du présent lot.
+
+**Preuve rouge sur le SHA de base.** Avant toute modification du produit,
+l'exécutant applique uniquement cette substitution de contrôle à l'arbre du
+SHA de base enregistré, puis exécute ce contrôle isolément. Il doit échouer en
+montrant que le SHA de base conserve `changes == 0`, alors que le contrôle
+substitué exige une baisse stricte. Le SHA exact, la commande et la sortie en
+échec sont archivés dans `generator-log.md`.
+
+**Preuve verte après changement.** Après la modification du produit, le même
+contrôle substitué doit passer sans nouvel ajustement, puis
+`.venv/bin/python -m pytest sim/tests/ -q` doit être vert. Tous les autres
+tests existants restent inchangés et verts.
 
 Livrables du lot autorisés :
 
