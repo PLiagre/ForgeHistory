@@ -39,13 +39,13 @@ cette raison :
 
 L'exécution de la première correction envisagée a apporté une seconde preuve :
 ajouter seulement `shared_length_m=1000.0` à l'arête 1-2 laisse le contrôle
-rouge à 9/10, cette fois avec `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` inerte.
+rouge, cette fois avec `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` inerte.
 L'arête 1-3 reste bien sur le repli, mais la cellule 3 dite « en équilibre »
 n'a aucun besoin de commerce ; cette arête ne transporte donc rien et la
 présence du chemin de repli ne suffit pas à en prouver la fonction.
 
 Une expérimentation de lecture seule a établi que la combinaison demandée
-ci-dessous rend les dix constantes consultées actives : l'arête 1-2 exerce
+ci-dessous rend toutes les constantes consultées actives : l'arête 1-2 exerce
 `DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK`, tandis que l'arête 1-3 exerce
 `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`.
 
@@ -127,10 +127,11 @@ monde d'épreuve exerce ainsi le chemin de capacité par longueur avec
 `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK` sur 1-3. La docstring ou le commentaire
 qui qualifiait la cellule 3 d'« en équilibre » est corrigé au strict minimum.
 
-### SC3 — Le contrôle ciblé prouve 10/10 sans contournement
+### SC3 — Le contrôle ciblé est vert sans contournement
 
 Le contrôle ciblé est vert après les deux changements autorisés et sa sortie
-montre explicitement `constantes_du_moteur_atteignables = 10 / 10` :
+montre le rapport `constantes_du_moteur_atteignables` dérivé par le contrôle
+lui-même :
 
 ```bash
 .venv/bin/python -m pytest sim/tests/test_write_coverage.py::test_chaque_constante_du_moteur_change_le_monde -q -s
@@ -167,8 +168,9 @@ Il décrit exactement l'ajout de `shared_length_m=1000.0` à l'arête 1-2 et le
 passage de la population de la cellule 3 de `50` à `1000`, l'arête 1-3 restant
 sans la clé. Le journal, en français clair, contient la preuve rouge, le diff
 borné montrant les deux changements et la correction minimale de description,
-la preuve ciblée explicite `10 / 10` et le résultat de la suite `sim/tests/`
-complète. Il indique que le même monde d'épreuve exerce le chemin longueur
+la preuve ciblée verte, dont la sortie montre le rapport dérivé par le contrôle
+lui-même, et le résultat de la suite `sim/tests/` complète. Il indique que le
+même monde d'épreuve exerce le chemin longueur
 (`DEBIT_KG_PAR_KM_DE_FRONTIERE_PAR_TICK`) et le chemin de repli
 (`TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`), et que la population `1000` est une
 valeur anti-faux-vert du fixture, pas une règle produit. Aucun mesureur dédié
