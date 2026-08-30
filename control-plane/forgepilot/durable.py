@@ -1033,9 +1033,25 @@ def _commit_push_and_pr(
     return str(candidate["head_sha"]), pull_request
 
 
-# Bornes des suites de tests lancées sur le candidat (ADR-0018).
-_TEST_TIMEOUT_SECONDS = 1800
 _TEST_OUTPUT_TAIL = 4000
+
+
+def _proof_timeout_seconds(state: dict[str, object]) -> int:
+    timeouts = state.get("timeouts_seconds")
+    if not isinstance(timeouts, dict):
+        raise PilotError(
+            "État durable invalide : timeouts_seconds.proof absent ou invalide."
+        )
+    proof = timeouts.get("proof")
+    if proof is None:
+        raise PilotError(
+            "État durable invalide : timeouts_seconds.proof absent ou invalide."
+        )
+    if isinstance(proof, bool) or not isinstance(proof, int) or proof <= 0:
+        raise PilotError(
+            "État durable invalide : timeouts_seconds.proof absent ou invalide."
+        )
+    return proof
 
 
 def run_test_profile(
@@ -1048,6 +1064,7 @@ def run_test_profile(
     base_sha: str | None = None,
     head_sha: str | None = None,
     allow_heavy: bool = False,
+    timeout_seconds: int | None = None,
 ) -> dict[str, object]:
     """
     Lance les suites de tests du candidat, dans son worktree.
@@ -1076,6 +1093,11 @@ def run_test_profile(
             ("control-plane-tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests"], control_plane)
         )
 
+    if timeout_seconds is None:
+        # Façade hors chemin durable : les appelants historiques ne portent pas
+        # l'état ; la borne locale 1800 reste le comportement observable d'avant.
+        timeout_seconds = 1800
+
     results: list[dict[str, object]] = []
     code = 0
     for suite_id, command, cwd in suites:
@@ -1083,7 +1105,7 @@ def run_test_profile(
         # pour que la preuve soit écrite AUSSI quand une suite est rouge : une
         # preuve qui n'existe qu'en cas de succès ne prouve rien.
         try:
-            completed = run_command(command, cwd=cwd, timeout_seconds=_TEST_TIMEOUT_SECONDS)
+            completed = run_command(command, cwd=cwd, timeout_seconds=timeout_seconds)
             entree = {
                 "returncode": 0,
                 "stdout_tail": (completed.stdout or "")[-_TEST_OUTPUT_TAIL:],
@@ -1262,6 +1284,7 @@ def _run_exact_test_profile(
             base_sha=tested_base_sha,
             head_sha=head_sha,
             allow_heavy=allow_heavy,
+            timeout_seconds=_proof_timeout_seconds(state),
         )
         _assert_candidate_identity(worktree, candidate)
         write_normalized_json(
