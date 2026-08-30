@@ -1,4 +1,4 @@
-# Brief 043-ter — ForgePilot respecte le délai de preuve
+# Brief 043-ter — ForgePilot transmet le délai de preuve effectif
 
 **Authored**: 2026-08-30T12:15:00Z
 **Author**: Codex/OpenAI, sur demande explicite du propriétaire
@@ -8,16 +8,15 @@ dans `control-plane/**` est classé R2 par
 
 ## But unique
 
-Supprimer la borne morte de 1 800 secondes imposée par
-`control-plane/forgepilot/durable.py` aux commandes de preuve. Chaque commande
-lancée par `run_test_profile` doit recevoir le délai de preuve effectif du run,
-déjà dérivé du profil de risque de la politique et persisté dans l'état. Cette
-valeur doit être transmise explicitement sur tout le chemin durable et inscrite
-dans la preuve produite.
+Supprimer la borne morte `_TEST_TIMEOUT_SECONDS` imposée par
+`control-plane/forgepilot/durable.py` aux commandes de preuve. Le chemin
+durable doit lire `timeouts_seconds.proof` dans l'état effectif du run, refuser
+son absence ou une valeur invalide, puis transmettre cette valeur explicitement
+jusqu'à chaque appel de `run_command` effectué pour la preuve.
 
-Ce lot ne raccourcit ni n'allonge aucun profil dans la politique. Il raccorde
-la décision existante à son effet. Il ne change ni les suites sélectionnées, ni
-leur ordre, ni leur contenu, ni une règle du monde.
+Ce lot ne change ni le contenu des résumés ou des preuves, ni leur cache. Il ne
+modifie aucun profil de la politique, aucune suite sélectionnée, leur ordre ou
+leur contenu, ni une règle du monde.
 
 ## Cause prouvée
 
@@ -25,20 +24,18 @@ Le candidat du lot 043-bis a terminé toute la suite du moteur avec succès :
 `127 passed in 2991.60s`. ForgePilot a pourtant fait échouer ce même candidat à
 l'étape `PR_TESTING` exactement après `1800.2 s`.
 
-Les deux valeurs concurrentes sont visibles dans le dépôt :
+À cette date, les valeurs concurrentes observées dans le dépôt étaient :
 
-- `control-plane/workflow-policy.toml` déclare
+- `control-plane/workflow-policy.toml` déclarait
   `risks.R2.timeouts.proof = 21600` ;
-- l'état durable R2 copie cette décision sous
+- l'état durable R2 copiait cette décision sous
   `timeouts_seconds.proof = 21600` ;
-- `control-plane/forgepilot/durable.py::run_test_profile` ignore cette valeur
-  et passe `_TEST_TIMEOUT_SECONDS = 1800` à chaque appel de `run_command`.
+- `control-plane/forgepilot/durable.py::run_test_profile` ignorait cette valeur
+  et passait `_TEST_TIMEOUT_SECONDS = 1800` à chaque appel de `run_command`.
 
-La suite n'est donc pas rouge. ForgePilot la tue avec une seconde politique
-locale, plus courte que la politique effective du run. La constante
-`_TEST_TIMEOUT_SECONDS` est une borne morte : elle nomme sa propre référence,
-ne dérive ni du run ni de la politique, et rend inopérant le délai R2 payé et
-persisté.
+Ces nombres décrivent le défaut historique. Ils ne sont pas des cibles de ce
+lot. La cible est toujours la valeur dérivée du profil puis portée par l'état
+effectif au moment de la preuve.
 
 Avant toute édition, archiver dans le journal les sorties de ces constats :
 
@@ -51,80 +48,77 @@ rg -n "timeouts_seconds" control-plane/forgepilot/state.py control-plane/forgepi
 
 La base attendue à la rédaction est
 `4b732778fc7970ce3e0e108369adc5ff60b5a2a5`. Si les noms ont changé avant le
-lancement, retrouver le même chemin de données sans réintroduire une table ou
-une valeur de repli. Si la politique effective atteint déjà `run_command` et
-la preuve persistée, arrêter : le lot est caduc.
+lancement, retrouver le même chemin de données sans introduire une seconde
+politique locale. Si la valeur effective de `timeouts_seconds.proof` atteint
+déjà chaque `run_command` de preuve, arrêter : le lot est caduc.
 
 ## Contrat de correction
 
-### Une seule source du délai
+### Une seule source du délai durable
 
-Le délai utilisé pour une preuve est `timeouts_seconds.proof` du run durable.
-Ce champ est créé depuis le profil de risque de
-`control-plane/workflow-policy.toml` et est remplacé par le nouveau profil si
-le risque effectif monte. Ne pas recalculer ce délai depuis le nom `fast`, `pr`
-ou `certify`. Ne pas créer de dictionnaire de délais, de constante globale, de
-valeur par défaut ou de cas spécial R2 dans `durable.py`.
+Le délai utilisé par le chemin durable est `timeouts_seconds.proof` de l'état
+effectif du run. Ce champ est déjà créé depuis le profil de risque de
+`control-plane/workflow-policy.toml` et remplacé par le nouveau profil si le
+risque effectif monte.
 
-Lire cette valeur de façon fermée : elle doit être un entier strictement
-positif, et un booléen n'est pas un entier recevable ici. Si le champ, la clé
-`proof` ou la valeur valide manque, lever `PilotError` avec un message qui
-nomme `timeouts_seconds.proof`. Ne jamais deviner un délai. Les états durables
-créés par la version actuelle portent déjà ce champ ; aucune migration d'état
-n'est demandée.
+Ne pas recalculer ce délai depuis le nom `fast`, `pr` ou `certify`. Ne pas créer
+de dictionnaire de délais, de nouvelle constante globale, de valeur de repli ou
+de cas spécial lié à un niveau de risque dans `durable.py`.
 
-### Transmission explicite
+Lire la valeur de façon fermée : elle doit être un entier strictement positif,
+et un booléen n'est pas un entier recevable ici. Si `timeouts_seconds`, la clé
+`proof` ou une valeur valide manque, lever `PilotError` avant `run_command`. Le
+message nomme `timeouts_seconds.proof`. Ne jamais deviner un délai pour un état
+durable. Les états créés par la version actuelle portent déjà ce champ ; aucune
+migration d'état n'est demandée.
 
-Supprimer `_TEST_TIMEOUT_SECONDS`. Ajouter à `run_test_profile` un argument
-nommé explicite pour le délai de preuve. Cet argument est obligatoire : aucune
-valeur par défaut cachée ne doit permettre à un appelant de l'omettre.
+### Transmission explicite jusqu'au processus
 
-Tous les chemins durables doivent transmettre la valeur effective jusqu'à
-`run_command` :
+Supprimer `_TEST_TIMEOUT_SECONDS`. Le raccord interne emprunté par le chemin
+durable porte un argument nommé explicite pour le délai. Une fois la valeur lue
+et validée dans l'état, chaque appel intermédiaire la reçoit explicitement et
+la transmet inchangée à `run_command` sous `timeout_seconds`.
 
-- preuve `pr` avant la première publication ;
-- preuve `fast`, puis preuve `pr`, lors d'une itération ;
-- preuve `certify` exigée par un run R2 ;
-- reprise d'une de ces étapes sur le même état.
+Le raccord couvre :
 
-Le point commun `_run_exact_test_profile` peut porter cette transmission, mais
-ses appelants durables doivent lui fournir explicitement la valeur issue de
-l'état. Un appel durable ne doit ni ignorer `settings`, ni relire une constante
-locale à la place du run effectif.
+- la preuve `pr` avant la première publication ;
+- les preuves `fast` puis `pr` d'une itération ;
+- la preuve `certify` exigée par le risque effectif ;
+- la reprise de chacune de ces étapes sur le même état.
 
-La façade `run_targeted_tests` reste présente. Adapter sa signature et sa
-transmission au nouvel argument obligatoire, sans réintroduire de délai par
-défaut. Adapter les doubles et appels des tests existants au contrat explicite.
-En dehors de ce nouvel argument et du champ de preuve décrit ci-dessous, les
-valeurs de retour, exceptions, suites choisies, arrêts au premier échec et
-façades conservent leur comportement.
+Le point commun `_run_exact_test_profile` peut porter la lecture et la
+transmission. Un appel durable ne doit ni ignorer l'état, ni relire une
+constante locale à la place du délai effectif.
 
-### Preuve durable et cache
+Les façades déjà appelées par les contrôles existants, notamment
+`run_test_profile` et `run_targeted_tests`, restent appelables avec exactement
+les mêmes arguments et conservent leur comportement observable. Le raccord
+durable peut être ajouté derrière une façade compatible ou dans une fonction
+interne distincte. Il ne doit pas obliger à modifier un appel déjà présent dans
+`test_acceleration.py`. Le nouveau chemin et son argument explicite sont testés
+uniquement par de nouvelles méthodes de test.
 
-Le résumé écrit par `run_test_profile` porte le délai effectif sous un champ
-explicite `timeout_seconds`, sur succès comme sur échec. Le même résumé est
-ensuite inclus dans l'entrée `proofs` de l'état par le mécanisme existant : la
-preuve persistée doit donc permettre de lire le délai réellement donné à
-`run_command`.
-
-Un résultat mis en cache ne peut être réutilisé comme preuve du run courant
-que si son `timeout_seconds` correspond à la valeur effective demandée. Une
-ancienne preuve sans ce champ, ou portant une autre valeur, est rejouée puis
-réécrite ; elle n'est pas complétée en mémoire après coup. Ne pas ajouter le
-délai au nom du fichier : l'identité Git existante reste l'identité du
-candidat, et une discordance de configuration invalide simplement le contenu
-mis en cache.
+En dehors de ce raccord, les valeurs de retour, exceptions, suites choisies,
+arrêts au premier échec, résumés, preuves, reprises et façades conservent leur
+comportement. En particulier, ne pas ajouter `timeout_seconds` à un résumé ou à
+une preuve et ne pas changer une règle de lecture ou d'invalidation du cache.
 
 ## Périmètre d'écriture
 
 Fichiers ForgePilot autorisés :
 
-- `control-plane/forgepilot/durable.py`, uniquement pour supprimer la borne
-  morte, valider et transmettre le délai effectif, le persister dans le résumé
-  de preuve et empêcher la réutilisation d'un cache portant un autre délai ;
-- `control-plane/tests/test_acceleration.py`, uniquement pour adapter les
-  appels existants strictement nécessaires et ajouter les preuves unitaires
-  rouge/vert de ce contrat.
+- `control-plane/forgepilot/durable.py`, uniquement pour supprimer
+  `_TEST_TIMEOUT_SECONDS`, lire et valider `timeouts_seconds.proof` sur le
+  chemin durable, puis le transmettre explicitement à `run_command` ;
+- `control-plane/tests/test_acceleration.py`, uniquement pour ajouter de
+  nouvelles méthodes de test rouge/vert de ce raccord.
+
+Dans `control-plane/tests/test_acceleration.py`, il est interdit de modifier,
+renommer, déplacer, supprimer, sauter ou relâcher une méthode de test déjà
+présente. Il est également interdit de modifier leurs corps, leurs fixtures,
+leurs doubles, leurs imports ou leurs appels existants. Ajouter seulement de
+nouvelles méthodes. Toutes les méthodes déjà présentes doivent rester vertes
+sans adaptation.
 
 Livrables minimaux autorisés :
 
@@ -141,89 +135,80 @@ ni `control-plane/forgepilot/state.py`, ni une autre suite de tests, ni
 
 ### SC1 — Le rouge prouve la borne morte sans suite longue
 
-Avant la correction, ajouter le contrôle unitaire qui charge la politique R2,
-prend sa valeur `timeouts.proof`, remplace `run_command` par un double instantané
-qui enregistre `timeout_seconds`, puis exerce `run_test_profile` sans lancer
-pytest. Sur la base, le contrôle échoue en montrant que la valeur reçue vaut
-`1800` au lieu de la valeur `proof` R2. Le journal conserve la commande, la
-sortie rouge et l'écart observé.
+Avant la correction, ajouter une nouvelle méthode de test qui construit un état
+durable depuis un profil chargé, dérive de cet état sa valeur
+`timeouts_seconds.proof`, remplace `run_command` par un double instantané qui
+enregistre `timeout_seconds`, puis exerce le raccord durable sans lancer
+pytest. Sur la base, le contrôle échoue en montrant que la valeur reçue par
+`run_command` diffère de celle dérivée de l'état. Le journal conserve la
+commande, la sortie rouge et les deux valeurs observées.
 
-Le contrôle ne dort pas, ne lance pas `sim/tests/` et ne simule pas une durée de
-six heures. Il vérifie l'argument transmis à la frontière où le processus
-serait réellement lancé.
+Le contrôle ne dort pas, ne lance pas `sim/tests/` et ne simule pas une longue
+durée. Il compare l'argument exact à la frontière où le processus serait
+réellement lancé.
 
-### SC2 — La valeur R2 atteint chaque `run_command`
+### SC2 — La valeur dérivée atteint chaque `run_command`
 
-Après correction, le même contrôle est vert. Avec un run dont
-`timeouts_seconds.proof` vaut `21600`, chaque invocation de `run_command`
-effectuée par `run_test_profile`, y compris `git-diff-check` et chaque suite
-présente dans le fixture, reçoit exactement `timeout_seconds=21600`.
+Après correction, le même contrôle est vert. Pour un état durable construit
+depuis le profil chargé, chaque invocation de `run_command` effectuée par le
+profil de test, y compris `git-diff-check` et chaque suite présente dans la
+fixture, reçoit exactement la valeur lue dans `timeouts_seconds.proof`.
 
-Le test dérive d'abord la valeur depuis la politique ou l'état construit par
-le run, puis vérifie explicitement qu'elle vaut `21600`. Il ne valide pas la
-seule présence d'un nouvel argument et n'inspecte pas seulement une structure
-intermédiaire.
+Le test dérive son attendu depuis le profil et l'état construits par le run. Il
+ne recopie aucun nombre de politique dans l'assertion, ne valide pas la seule
+présence d'un argument et ne s'arrête pas à une structure intermédiaire.
 
-### SC3 — Un profil plus court garde sa propre valeur
+Une autre nouvelle méthode construit un run avec un autre profil de risque.
+Sa propre valeur dérivée traverse le même chemin et atteint `run_command`
+inchangée. Ce cas interdit le remplacement de la borne morte par une autre
+constante, un maximum global ou une branche spéciale.
 
-Un second cas construit un run d'un risque dont `timeouts.proof` est inférieur
-à celui de R2. Sa propre valeur traverse le même chemin et atteint
-`run_command` inchangée. Le test dérive cette valeur du profil chargé ; il ne
-recopie pas un second nombre dans une table de test ou de production.
+### SC3 — Tous les chemins durables transmettent la valeur effective
 
-Ce cas interdit un correctif qui remplacerait simplement `1800` par `21600`,
-un maximum global ou une branche spéciale pour `certify`.
+De nouvelles méthodes exercent, avec des doubles instantanés, les preuves
+`fast`, `pr` et `certify`. Elles comparent chacune la valeur reçue par
+`run_command` à `timeouts_seconds.proof` lu dans l'état au moment de
+l'exécution. Le cas d'itération couvre `fast` puis `pr` ; un autre flux couvre
+`pr` puis `certify` ; une reprise couvre au moins une de ces étapes.
 
-### SC4 — Tous les appelants durables transmettent le délai effectif
+Si le risque est relevé mécaniquement avant la preuve, l'attendu est dérivé de
+l'état relevé, déjà enregistré dans `timeouts_seconds`, et non du risque
+demandé au départ. Aucun contrôle ne contient une valeur numérique cible, ne
+lance un agent réel, un processus long ou une suite `sim`.
 
-Les essais du flux durable prouvent, avec des doubles instantanés, que les
-preuves `fast`, `pr` et `certify` reçoivent le délai `proof` porté par l'état au
-moment de leur exécution. Au minimum, un flux R2 doit observer `21600` sur ses
-preuves `pr` et `certify`, et le cas d'itération doit couvrir `fast` et `pr`.
+### SC4 — L'absence et les valeurs invalides sont refusées
 
-Si le risque est relevé mécaniquement avant la preuve, la valeur transmise est
-celle du risque relevé, déjà enregistrée dans `timeouts_seconds`, et non celle
-du risque demandé au départ. Ces contrôles n'invoquent aucun agent réel, aucun
-processus long et aucune suite `sim`.
+De nouvelles méthodes couvrent au minimum :
 
-### SC5 — La preuve nomme le délai réellement utilisé
+- l'absence de `timeouts_seconds` ;
+- l'absence de `timeouts_seconds.proof` ;
+- une valeur nulle ;
+- une valeur booléenne.
 
-Sur succès, le JSON normalisé produit et l'entrée correspondante de `proofs`
-portent `result.timeout_seconds` égal à l'argument observé par `run_command`.
-Sur échec simulé, le fichier de résumé existe encore et porte le même champ,
-comme il porte déjà la suite rouge.
+Chaque cas échoue avant `run_command` avec un `PilotError` qui nomme
+`timeouts_seconds.proof`. Aucun cas ne retombe sur la borne historique, une
+valeur de politique recopiée ou une autre valeur implicite.
 
-Un cache de même candidat, même profil et autre `timeout_seconds` — ou sans ce
-champ — ne court-circuite pas l'exécution. Un cache portant la valeur effective
-et un résultat vert conserve le comportement de reprise existant. Les tests
-prouvent ces deux branches sans lancer de suite longue.
-
-### SC6 — L'absence est refusée, pas remplacée
-
-Des cas unitaires couvrent au minimum l'absence de
-`timeouts_seconds.proof`, une valeur nulle et une valeur booléenne. Chacun
-échoue avant `run_command` avec un `PilotError` qui nomme
-`timeouts_seconds.proof`. Aucun cas ne retombe sur `1800`, `21600` ou une autre
-valeur implicite.
-
-### SC7 — ForgePilot reste vert, sans changement produit
+### SC5 — ForgePilot reste vert, sans changement annexe
 
 Exécuter uniquement les suites du plan de contrôle ForgePilot :
 
 ```bash
-cd control-plane && ../.venv/bin/python -m unittest tests.test_acceleration.TestRunnerTests -v
+cd control-plane && ../.venv/bin/python -m unittest tests.test_acceleration -v
 cd control-plane && ../.venv/bin/python -m unittest discover -s tests
 ```
 
-La première commande peut être ajustée au nom exact des nouveaux cas dans le
-même fichier, mais elle doit rester ciblée sur les contrôles de délai. La
-seconde suite complète doit être verte. Ne pas lancer `sim/tests/` : le lot ne
-touche pas au produit, et sa preuve repose sur des doubles de processus.
+La première commande prouve ensemble les méthodes anciennes inchangées et les
+nouvelles méthodes de raccord. La seconde suite complète doit être verte. Ne
+pas lancer `sim/tests/` : le lot ne touche pas au produit, et sa preuve repose
+sur des doubles de processus.
 
 Le diff hors livrables contient seulement `durable.py` et
-`test_acceleration.py`. La sélection et l'ordre des suites candidates sont
-inchangés. Aucun test n'est supprimé, sauté, marqué comme succès attendu ou
-relâché.
+`test_acceleration.py`. Dans ce dernier fichier, le diff ne contient que des
+ajouts de méthodes. La sélection et l'ordre des suites candidates sont
+inchangés. `_TEST_TIMEOUT_SECONDS` a disparu et aucune borne globale
+équivalente ne la remplace. Les résumés, les preuves et les règles de cache
+n'ont pas changé.
 
 ## Livrables et séparation des rôles
 
@@ -231,28 +216,39 @@ Le manifeste déclare les deux fichiers de code/test autorisés, les deux
 livrables et les commandes unitaires exécutées. Le journal contient :
 
 - les constats de base et le SHA ;
-- la preuve rouge ciblée montrant `1800` face au délai R2 dérivé ;
-- la preuve verte où `21600` atteint `run_command` ;
-- le cas plus court et sa valeur dérivée ;
-- les refus des valeurs absente, nulle et booléenne ;
-- les cas succès, échec et cache, avec `timeout_seconds` persisté ;
+- la preuve rouge ciblée, avec la valeur dérivée et la valeur alors reçue par
+  `run_command` ;
+- les preuves vertes où les valeurs dérivées des différents états atteignent
+  exactement `run_command` ;
+- les observations `fast`, `pr`, `certify` et reprise ;
+- les refus des champs absents et des valeurs nulle et booléenne ;
 - le résultat de la suite complète `control-plane/tests` ;
-- le diff borné et la confirmation qu'aucun fichier produit n'a changé.
+- le diff borné, la preuve que les anciennes méthodes de test sont inchangées
+  et la confirmation qu'aucun fichier produit n'a changé.
+
+Le journal ne présente aucun nombre comme délai cible. Il peut conserver les
+nombres du constat historique, explicitement qualifiés comme observations de
+la base avant correction.
 
 L'exécutant n'écrit pas de `verdict.md`, ne juge pas la recevabilité de son
 travail, ne fusionne rien et ne pousse pas directement sur `master`.
 
 ## Hors périmètre
 
+- ajouter `timeout_seconds` à un résumé, à un JSON de preuve ou à l'état ;
+- modifier la validation, l'identité, la lecture ou l'invalidation du cache des
+  preuves ;
 - modifier les valeurs ou profils de `workflow-policy.toml` ;
+- modifier une méthode ou un appel déjà présent dans
+  `control-plane/tests/test_acceleration.py` ;
 - accélérer, découper, filtrer ou réordonner les suites candidates ;
 - donner un délai distinct à chaque sous-suite : ce lot raccorde le délai de
   preuve existant à chaque commande du profil ;
 - ajouter une variable d'environnement, une option CLI ou une configuration
   parallèle ;
-- remplacer la constante `1800` par une autre constante globale ;
-- rendre le nouvel argument facultatif ou lui donner une valeur de repli ;
-- migrer les états durables, changer leur schéma ou changer l'identité Git des
-  preuves ;
+- remplacer la borne morte par une autre constante globale, une table ou un
+  cas spécial ;
+- deviner une valeur quand `timeouts_seconds.proof` manque ou est invalide ;
+- migrer les états durables ou changer leur schéma ;
 - modifier le moteur, ses tests, la carte, le viewer ou une règle du monde ;
 - relancer la suite longue du lot 043-bis pour prouver cette correction.
