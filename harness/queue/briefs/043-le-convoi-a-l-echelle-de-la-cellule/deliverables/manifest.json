@@ -1,0 +1,37 @@
+{
+  "brief": "043-le-convoi-a-l-echelle-de-la-cellule",
+  "base_sha": "810a8a847ae010dc01cf0a9867dc858fa3a01af7",
+  "commands": {
+    "cli_baseline": ".venv/bin/python -m sim --ticks 365 --seed 0 --json",
+    "pytest_commerce": ".venv/bin/python -m pytest sim/tests/test_commerce.py -q",
+    "pytest_survie": ".venv/bin/python -m pytest sim/tests/test_survie.py -q",
+    "pytest_sim": ".venv/bin/python -m pytest sim/tests/ -q",
+    "measure": ".venv/bin/python harness/queue/briefs/043-le-convoi-a-l-echelle-de-la-cellule/deliverables/measure_043.py"
+  },
+  "files": [
+    {
+      "path": "../../../../sim/engine.py",
+      "must_differ_from_git": "810a8a847ae010dc01cf0a9867dc858fa3a01af7:sim/engine.py"
+    },
+    {
+      "path": "../../../../sim/constants.py",
+      "must_differ_from_git": "810a8a847ae010dc01cf0a9867dc858fa3a01af7:sim/constants.py"
+    },
+    {
+      "path": "../../../../sim/tests/test_commerce.py",
+      "must_differ_from_git": "810a8a847ae010dc01cf0a9867dc858fa3a01af7:sim/tests/test_commerce.py"
+    },
+    {
+      "path": "deliverables/pre-edit/baseline_ticks365_seed0.json"
+    },
+    {
+      "path": "deliverables/measure_043.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/manifest.json"
+    }
+  ]
+}
