@@ -40,6 +40,7 @@ _ROOT_KEYS = {
     "carte",
     "couches",
     "cells",
+    "jour_de_tick",
 }
 _CELL_KEYS = {
     "cell_id",
@@ -47,7 +48,7 @@ _CELL_KEYS = {
     "geometry",
     "centroid",
     "population",
-    "food_stock_kg",
+    "stocks",
     "food_deficit_kg",
     "hunger_ticks",
     "mortality_remainder",
@@ -350,6 +351,43 @@ def test_zero_mesure_n_est_pas_sentinelle():
     cell = doc["cells"][0]
     assert cell["hunger_ticks"] == 0
     assert cell["hunger_ticks"] != -1
+
+
+
+# --- Brief 042 : panier photographié et jour de l'année ---
+
+
+def test_snapshot_porte_le_panier_du_moteur():
+    """SC1/SC2 — Chaque cellule porte stocks ; food_stock_kg absent du document."""
+    world = World.charger(0)
+    doc = build_snapshot_document(world, 0, 0)
+    assert doc["cells"], "document vide"
+    for cell_doc, cell in zip(
+        sorted(doc["cells"], key=lambda item: int(item["cell_id"])),
+        sorted(world.cells.values(), key=lambda cell: cell.cell_id),
+    ):
+        assert "stocks" in cell_doc
+        assert "food_stock_kg" not in cell_doc
+        for marchandise, quantite in cell.stocks.items():
+            assert cell_doc["stocks"][marchandise] == quantite
+
+
+def test_jour_de_tick_present_ou_absent():
+    """SC3 — jour_de_tick photographié ou clé absente, jamais inventée."""
+    from sim import constants as _constants
+
+    world = World.charger(0)
+    tick = 17
+    doc = build_snapshot_document(world, 0, tick)
+    assert doc["jour_de_tick"] == _constants.jour_de_tick(tick)
+
+    original = _constants.jour_de_tick
+    try:
+        delattr(_constants, "jour_de_tick")
+        sans = build_snapshot_document(world, 0, tick)
+        assert "jour_de_tick" not in sans
+    finally:
+        _constants.jour_de_tick = original
 
 # --- brief 033 : relief dans le rendement ---
 

@@ -1,16 +1,8 @@
 (function () {
-  var LAYERS = [
-    { id: "population", label: "population", path: ["population"] },
-    { id: "food_stock_kg", label: "stock alimentaire", path: ["food_stock_kg"] },
-    { id: "food_deficit_kg", label: "déficit alimentaire", path: ["food_deficit_kg"] },
-    { id: "hunger_ticks", label: "faim", path: ["hunger_ticks"] },
-    { id: "insolation", label: "insolation", path: ["climate_drivers", "insolation_annual_mj_m2"] },
-    { id: "dist_sea", label: "distance à la mer", path: ["climate_drivers", "dist_sea_centroid_m"] }
-  ];
-
   var state = {
     snapshot: null,
     compare: null,
+    layers: [],
     layer: "population",
     scale: 1,
     ox: 0,
@@ -21,6 +13,24 @@
     lastX: 0,
     lastY: 0
   };
+
+  function deriveLayers(doc) {
+    var commodities = {};
+    doc.cells.forEach(function (cell) {
+      var stocks = cell.stocks;
+      if (!stocks) {
+        return;
+      }
+      Object.keys(stocks).forEach(function (key) {
+        commodities[key] = true;
+      });
+    });
+    var layers = [{ id: "population", label: "population", path: ["population"] }];
+    Object.keys(commodities).sort().forEach(function (key) {
+      layers.push({ id: key, label: key, path: ["stocks", key] });
+    });
+    return layers;
+  }
 
   function readField(cell, path) {
     var value = cell;
@@ -117,20 +127,24 @@
   }
 
   function currentLayer() {
-    for (var i = 0; i < LAYERS.length; i += 1) {
-      if (LAYERS[i].id === state.layer) {
-        return LAYERS[i];
+    for (var i = 0; i < state.layers.length; i += 1) {
+      if (state.layers[i].id === state.layer) {
+        return state.layers[i];
       }
     }
-    return LAYERS[0];
+    return state.layers[0];
   }
 
-  function layerAvailable(doc, layer) {
-    if (layer.id === "insolation" || layer.id === "dist_sea") {
-      return doc.layers && doc.layers.climate_drivers_c1 &&
-        doc.layers.climate_drivers_c1.status === "present";
+  function showJour(doc) {
+    var el = document.getElementById("jour");
+    if (!el) {
+      return;
     }
-    return true;
+    if (doc.jour_de_tick === undefined || doc.jour_de_tick === null) {
+      el.textContent = "Jour de l'année : absent";
+    } else {
+      el.textContent = "Jour de l'année : " + String(doc.jour_de_tick);
+    }
   }
 
   function draw() {
@@ -226,33 +240,21 @@
   function fillLayers() {
     var select = document.getElementById("layer");
     select.innerHTML = "";
-    var unavailable = [];
-    LAYERS.forEach(function (layer) {
-      if (!layerAvailable(state.snapshot, layer)) {
-        unavailable.push(layer.label);
-        return;
-      }
+    state.layers.forEach(function (layer) {
       var option = document.createElement("option");
       option.value = layer.id;
       option.textContent = layer.label;
       select.appendChild(option);
     });
-    var notes = [];
-    if (state.snapshot.layers.relief_g6.status !== "present") {
-      notes.push("relief non disponible");
+    document.getElementById("unavailable").textContent = "";
+    if (state.layers.every(function (layer) { return layer.id !== state.layer; })) {
+      state.layer = state.layers[0].id;
     }
-    if (state.snapshot.layers.resources_r1.status !== "present") {
-      notes.push("gisements non disponibles");
-    }
-    if (unavailable.length) {
-      notes.push(unavailable.join(", ") + " indisponible");
-    }
-    document.getElementById("unavailable").textContent = notes.join(" · ");
     select.value = state.layer;
-    select.addEventListener("change", function () {
+    select.onchange = function () {
       state.layer = select.value;
       draw();
-    });
+    };
   }
 
   function bindMap() {
@@ -297,7 +299,9 @@
       fetch("meta.json").then(function (res) { return res.json(); })
     ]).then(function (pair) {
       state.snapshot = pair[0];
+      state.layers = deriveLayers(state.snapshot);
       state.bounds = computeBounds(state.snapshot.cells);
+      showJour(state.snapshot);
       fillLayers();
       bindMap();
       draw();

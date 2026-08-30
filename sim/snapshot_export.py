@@ -1,4 +1,4 @@
-"""Photographie déterministe du monde déjà simulé (schéma v0a-2).
+"""Photographie déterministe du monde déjà simulé (schéma v0a-3).
 
 Ce module ne recalcule aucune mécanique. Il joint ce que porte la carte
 figée (géométrie, relief, climat, gisements) à la province dérivée et à
@@ -26,12 +26,9 @@ from sim.aggregation import (
     identifiant_de_province_de_cellule,
     nom_de_province_de_cellule,
 )
-from sim.constants import (
-    MARCHANDISE_NOURRITURE,
-    SNAPSHOT_FLOAT_DECIMALS,
-    SNAPSHOT_SCHEMA_VERSION,
-)
-from sim.model import lire_stock_marchandise
+from sim import constants as _constants
+from sim.constants import SNAPSHOT_FLOAT_DECIMALS, SNAPSHOT_SCHEMA_VERSION
+from sim.model import cellule_vers_dict
 from sim.world import CARTE_PATH, CARTE_RELATIVE, World
 
 _HASH_CHUNK_BYTES = 1024 * 1024
@@ -201,7 +198,6 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
                 "centroid": centroid,
                 "climat": raw.get("climat"),
                 "food_deficit_kg": cell.food_deficit_kg,
-                "food_stock_kg": lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE),
                 "geometry": raw["geometry"],
                 "gisements": raw.get("gisements", []),
                 "hunger_ticks": cell.hunger_ticks,
@@ -209,10 +205,11 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
                 "population": cell.population,
                 "province": {"id": int(province_id), "name": province_name},
                 "relief": raw.get("relief"),
+                "stocks": cellule_vers_dict(cell)["stocks"],
             }
         )
 
-    document = {
+    document: dict[str, Any] = {
         "cell_count": len(cells_out),
         "cells": cells_out,
         "crs": "EPSG:3035",
@@ -226,6 +223,8 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
         "seed": int(seed),
         "tick": int(tick),
     }
+    if hasattr(_constants, "jour_de_tick"):
+        document["jour_de_tick"] = _constants.jour_de_tick(int(tick))
     return _round_tree(document)
 
 

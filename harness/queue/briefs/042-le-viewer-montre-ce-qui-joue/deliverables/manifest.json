@@ -1,0 +1,117 @@
+{
+  "brief": "042-le-viewer-montre-ce-qui-joue",
+  "base_ref": "3372496ec7516a479b35cd0f60258011e0060c2b",
+  "commands": [
+    ".venv/bin/python -m pytest sim/tests/ viewer/tests/ -q",
+    ".venv/bin/python -m sim --ticks 365 --seed 0 --json",
+    ".venv/bin/python harness/queue/briefs/042-le-viewer-montre-ce-qui-joue/deliverables/measure_042.py"
+  ],
+  "counters": [
+    {
+      "name": "cellules_du_document",
+      "value": 596,
+      "denominator": "cellules_monde=596"
+    },
+    {
+      "name": "cellules_avec_panier",
+      "value": 596,
+      "denominator": "cellules_du_document"
+    },
+    {
+      "name": "occurrences_ancien_champ_dans_le_document",
+      "value": 0,
+      "denominator": "cles_parcourues=17413"
+    },
+    {
+      "name": "ecarts_panier_moteur_document",
+      "value": 0,
+      "denominator": "couples_cellule_marchandise=596"
+    },
+    {
+      "name": "couches_proposees_par_le_viewer",
+      "value": 2,
+      "denominator": "marchandises_presentes=1"
+    },
+    {
+      "name": "noms_de_marchandise_en_dur_dans_le_viewer",
+      "value": 0,
+      "denominator": "fichiers_parcourus=9"
+    },
+    {
+      "name": "constantes_du_moteur_trouvees_dans_le_viewer",
+      "value": 0,
+      "denominator": "constantes_cherchees=10"
+    },
+    {
+      "name": "etats_visuels_distincts",
+      "value": 3,
+      "denominator": "etats_montes=3"
+    },
+    {
+      "name": "svg_deterministes",
+      "value": 2,
+      "denominator": "couches_proposees_par_le_viewer"
+    },
+    {
+      "name": "lignes_de_test_hors_substitution",
+      "value": 0,
+      "denominator": "lignes_diff_examinees=88"
+    },
+    {
+      "name": "champs_cli_identiques",
+      "value": 1,
+      "denominator": "champs_presents=10"
+    },
+    {
+      "name": "tests_collectes_avant",
+      "value": 125,
+      "denominator": "fichiers_test_substituables"
+    },
+    {
+      "name": "tests_collectes_apres",
+      "value": 130,
+      "denominator": "fichiers_test_substituables"
+    },
+    {
+      "name": "rouge_sc1_base_avait_panier",
+      "value": 0,
+      "denominator": "sha=3372496ec7516a479b35cd0f60258011e0060c2b"
+    }
+  ],
+  "files": [
+    {
+      "path": "../../../../sim/snapshot_export.py",
+      "must_differ_from_git": "3372496ec7516a479b35cd0f60258011e0060c2b:sim/snapshot_export.py"
+    },
+    {
+      "path": "../../../../sim/constants.py",
+      "must_differ_from_git": "3372496ec7516a479b35cd0f60258011e0060c2b:sim/constants.py"
+    },
+    {
+      "path": "../../../../viewer/snapshot_loader.py"
+    },
+    {
+      "path": "../../../../viewer/svg_proof.py"
+    },
+    {
+      "path": "../../../../viewer/static/app.js"
+    },
+    {
+      "path": "deliverables/snapshot_ticks0_seed0.json",
+      "must_differ_from_git": "deliverables/pre-edit/snapshot_ticks0_seed0.json"
+    },
+    {
+      "path": "deliverables/cli_ticks365_seed0_apres.json",
+      "identical_to": "deliverables/pre-edit/cli_ticks365_seed0.json"
+    },
+    {
+      "path": "deliverables/measure_042.py"
+    },
+    {
+      "path": "deliverables/generator-log.md"
+    },
+    {
+      "path": "deliverables/manifest.json"
+    }
+  ]
+}

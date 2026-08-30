@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from sim.snapshot_export import build_snapshot_document, export_snapshot
 from sim.world import World
 from viewer.classify import (
@@ -20,6 +22,7 @@ from viewer.classify import (
     numeric_diff,
 )
 from viewer.snapshot_loader import SnapshotLoadError, load_snapshot
+from viewer.snapshot_loader import proposed_layers
 from viewer.svg_proof import render_compare_svg, render_svg
 
 _REPO = Path(__file__).resolve().parents[2]
@@ -175,3 +178,48 @@ def test_les_couches_climat_rendent_des_nombres():
             f"La couche « {couche} » ne rend plus de nombres : "
             "le snapshot et le viewer ne parlent plus la même langue."
         )
+
+def test_couches_derivees_du_document(tmp_path: Path):
+    world = World.charger(0)
+    snap = tmp_path / "layers.json"
+    export_snapshot(world, 0, 0, snap)
+    document = load_snapshot(snap)
+    couches = proposed_layers(document)
+    assert couches[0] == "population"
+    interdites = {"food_deficit_kg", "hunger_ticks", "insolation", "dist_sea"}
+    assert interdites.isdisjoint(couches)
+    marchandises = set()
+    for cell in document["cells"]:
+        marchandises.update(cell.get("stocks", {}).keys())
+    assert set(couches[1:]) == marchandises
+
+
+def test_trois_etats_visuels_panier(tmp_path: Path):
+    world = World.charger(0)
+    doc = build_snapshot_document(world, 0, 0)
+    cell = doc["cells"][0]
+    cle = next(iter(cell["stocks"]))
+    absent = dict(cell)
+    absent["stocks"] = {}
+    zero = dict(cell)
+    zero["stocks"] = {cle: 0.0}
+    sentinelle = dict(cell)
+    sentinelle["stocks"] = {cle: -1.0}
+    base = {k: v for k, v in doc.items() if k != "cells"}
+    rendus = {
+        render_svg({**base, "cells": [absent], "cell_count": 1}, layer=cle),
+        render_svg({**base, "cells": [zero], "cell_count": 1}, layer=cle),
+        render_svg({**base, "cells": [sentinelle], "cell_count": 1}, layer=cle),
+    }
+    assert len(rendus) == 3
+    assert len(set(rendus)) == 3
+
+
+def test_schema_inconnu_nomme_attendu(tmp_path: Path):
+    path = tmp_path / "bad.json"
+    path.write_text('{"schema_version":"v0a-999","cells":[]}\n', encoding="utf-8")
+    with pytest.raises(SnapshotLoadError) as exc:
+        load_snapshot(path)
+    msg = str(exc.value)
+    assert "inconnu" in msg
+    assert "attendu" in msg
