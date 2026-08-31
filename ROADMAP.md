@@ -71,8 +71,17 @@ manquent pour qu'elle puisse exister, et chacune a son brief écrit :
 | [046 — la mer est un port commun](briefs/046-la-mer-est-un-port-commun.md) | les cellules côtières cessent d'être hermétiques |
 | [047 — le bourg est une agrégation dérivée](briefs/047-le-bourg-est-une-agregation-derivee.md) | compter la part non agricole d'une cellule, sans la déclarer |
 
-Aucun ordre n'est imposé entre eux, **sauf** 044 avant 047 : le bourg compte
-une part non agricole que le métier doit d'abord créer.
+**044 part seul, en premier.** Deux raisons distinctes :
+
+- 047 en **dépend** — le bourg compte une part non agricole que le métier doit
+  d'abord créer, et son contrôle d'échantillon échoue tant qu'elle vaut zéro ;
+- 046 **entre en collision** avec lui — les deux écrivent dans `sim/engine.py`
+  et `sim/constants.py`. Ils ne dépendent pas l'un de l'autre, mais ils ne
+  peuvent pas s'écrire en même temps.
+
+Une fois 044 fusionné, **046 et 047 partent en parallèle** : leurs périmètres
+sont disjoints (`engine.py`, `constants.py`, `world.py`, `test_commerce.py`
+contre `aggregation.py`, `test_province.py`).
 
 Les trois sont au format court d'[AGENTS.md](AGENTS.md) : un fichier, cinq
 sections, prêts à être lancés tels quels.

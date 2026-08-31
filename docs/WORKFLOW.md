@@ -172,10 +172,19 @@ l'étape 3 leur reste due.
 | **046** — la mer est un port commun | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
 | **047** — le bourg est une agrégation dérivée | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
 
-**044 avant 047** : le bourg compte une part non agricole que le métier doit
-d'abord créer, et son SC4 échoue tant que l'échantillon est vide.
-**046 part en parallèle** : il ne dépend d'aucun des deux, et ne touche aucun
-fichier en commun avec 044.
+**044 part seul, en premier**, pour deux raisons distinctes : 047 en *dépend*
+(son SC4 échoue tant que la part non agricole vaut zéro), et 046 *entre en
+collision* avec lui — les deux écrivent dans `sim/engine.py` et
+`sim/constants.py`.
+
+Une fois 044 fusionné, **046 et 047 partent en parallèle** : leurs périmètres
+sont disjoints.
+
+| lot | écrit dans |
+|---|---|
+| 044 | `engine.py`, `constants.py`, `tests/test_monde.py` |
+| 046 | `engine.py`, `constants.py`, `world.py`, `tests/test_commerce.py` |
+| 047 | `aggregation.py`, `tests/test_province.py` |
 
 Cette table est un aide-mémoire. La vérité reste GitHub : les PR, les checks et
 `master`.
