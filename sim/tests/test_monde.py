@@ -1393,7 +1393,9 @@ def test_cellules_minieres_produisent_moins_et_s_endettent_plus():
     carte_doc = World.lire_carte()
     porteuses = _porteuses_de_la_carte(carte_doc)
     assert porteuses, "échantillon vide : aucune cellule porteuse"
-    horizon = _k.DEFAULT_CLI_TICKS
+    # Après la réserve initiale, avant que la mortalité n'ait fini d'ajuster
+    # la ration : c'est là que la dette est une mesure, pas un équilibre.
+    horizon = _k.INITIAL_FOOD_RESERVE_TICKS + _k.N_BOUND_MORT
 
     def _jouer(sans_gisements: bool) -> tuple[float, float]:
         monde = World.charger(0)
