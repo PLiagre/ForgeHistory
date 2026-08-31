@@ -31,8 +31,8 @@ class PilotError(RuntimeError):
 class ReviewProtocolError(PilotError):
     """Réponse reviewer reçue, puis refusée par le contrat JSON.
 
-    Ce n'est pas un verdict produit. Le lot 034 a fini `BLOCKED` — mot
-    réservé à une porte humaine — pour trois JSON invalides. Cette erreur
+    Ce n'est pas une conclusion sur le produit. Le lot 034 a fini `BLOCKED`
+    pour trois JSON invalides. Cette erreur
     nomme le canal, pas le code.
 
     `route` dit par quelle route la réponse refusée est arrivée : route

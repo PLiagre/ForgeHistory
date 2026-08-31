@@ -1,8 +1,7 @@
 name: worker-pc
 
-# ADR-0020 : tâche machine bornée sur le runner Windows du propriétaire.
-# Jamais pull_request, jamais schedule, jamais le code d'un fork.
-# Un ping vert prouve que le PC a répondu. Il ne prouve ni Unity ni un LLM.
+# Diagnostic manuel borné sur un runner Windows auto-hébergé.
+# Un ping vert prouve seulement que le PC a répondu.
 
 on:
   workflow_dispatch:

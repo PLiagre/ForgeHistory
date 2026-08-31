@@ -1,5 +1,7 @@
 # ADR-0018: le dégraissage — trois acteurs, carte figée, vraisemblable plutôt que véridique
 
+> **Statut actuel — 2026-08-30 : La carte figée, les niveaux de vraisemblance et la référence d'archive restent actifs. Toute attribution de rôle ou procédure est obsolète.**
+
 **Date**: 2026-08-25
 **Status**: accepted
 **Deciders**: le propriétaire (décision du 2026-08-25), Claude (rédaction)

@@ -1,5 +1,7 @@
 # ADR-0011: Hermes console du propriétaire — un droit d'agir borné, sur ordre explicite
 
+> **Statut actuel — 2026-08-30 : Archive historique. Les règles de rôle, d'identité, de fournisseur, de relecture, de verdict, de porte, d'orchestration et de fusion décrites ci-dessous sont obsolètes et n'imposent plus rien.**
+
 **Date**: 2026-08-12
 **Status**: accepted
 **Deciders**: propriétaire du projet (« ok pour tout », session Cursor Cloud

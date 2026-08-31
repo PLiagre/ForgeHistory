@@ -20,11 +20,6 @@ Thumbs.db
 # execution, on one machine only and in no one's diff.
 .claude/settings.local.json
 
-# A Cursor run killed before its trap fires leaves the parked settings here,
-# and the repository running with no hooks at all. Never commit that state:
-# harness/tests/test_hooks_armed.py fails for as long as this file exists.
-.claude/settings.json.cursor-hook-bug-disabled
-
 # Demo-local scratch output for harness/pipeline/demo/run_full_auto_demo.sh
 # (brief 006 Lot 006c, SC18) -- a disposable brief seed the demo writes on
 # every run, deliberately never the real harness/queue/briefs/ queue.
@@ -36,8 +31,7 @@ harness/pipeline/demo/output/
 # `.venv` créé dans certains worktrees Cursor.
 .venv
 
-# État local du pilote Hermes/Grok/Cursor : sessions, résultats et worktrees.
-# Les décisions autoritaires restent dans la roadmap, les issues et les PR.
+# État local facultatif de ForgePilot : sessions, résultats et worktrees.
 .forgepilot/
 
 # Canal d'échange ForgePilot -> agent : la copie du plan, du feedback ou du

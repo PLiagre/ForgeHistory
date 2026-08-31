@@ -1,5 +1,7 @@
 # ADR-0017: Grok juge la PR, Claude témoin rare, fusion mécanique
 
+> **Statut actuel — 2026-08-30 : Archive historique. Les règles de rôle, d'identité, de fournisseur, de relecture, de verdict, de porte, d'orchestration et de fusion décrites ci-dessous sont obsolètes et n'imposent plus rien.**
+
 **Date**: 2026-08-23
 **Status**: accepted
 **Deciders**: le propriétaire (oui du 2026-08-23), Cursor Cloud (rédaction)

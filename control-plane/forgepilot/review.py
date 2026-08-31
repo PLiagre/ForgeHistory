@@ -110,7 +110,7 @@ def archive_review_material(
         "base_sha": base_sha,
         "head_sha": head_sha,
         "tree_sha": tree_sha,
-        "reviewer": "independent-read-only",
+        "review": "optional-diagnostic",
         "bundle": str(bundle_path),
         "verdict": review.get("verdict"),
         "acceptance_criteria": review.get("acceptance_criteria", []),
@@ -149,16 +149,16 @@ def render_verdict_material(material_path: Path, output: Path) -> Path:
     except (FileNotFoundError, json.JSONDecodeError) as exc:
         raise PilotError(f"Matériau de revue illisible : {material_path}") from exc
     lines = [
-        "# Matériau pour verdict.md",
+        "# Diagnostic facultatif ForgePilot",
         "",
-        "> Généré par ForgePilot depuis une revue en lecture seule. "
-        "La fusion mécanique exige un PASS sur ce SHA et des checks verts (ADR-0017).",
+        "> Généré par ForgePilot comme diagnostic facultatif. "
+        "Ce résultat ne conditionne pas la livraison.",
         "",
         f"- SHA de base : `{material.get('base_sha')}`",
         f"- SHA évalué : `{material.get('head_sha')}`",
         f"- Tree Git évalué : `{material.get('tree_sha')}`",
-        f"- Verdict du reviewer : **{material.get('verdict')}**",
-        f"- Décision humaine requise : **{'oui' if material.get('human_decision_required', True) else 'non'}**",
+        f"- Résultat déclaré : **{material.get('verdict')}**",
+        "- Effet automatique sur le dépôt : **aucun**",
         "",
         "## Constats",
         "",

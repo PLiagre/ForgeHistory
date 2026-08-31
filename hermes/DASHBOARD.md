@@ -1,22 +1,21 @@
 # Tableau de bord — ForgeHistory
 
-> Vue générée par `hermes/dashboard.py` — **ne jamais l'éditer à la
-> main**. Régénérer avec `python hermes/dashboard.py`. Une vue
-> périmée reste périmée tant que personne ne la régénère.
+> Vue facultative générée par `hermes/dashboard.py`.
+> Régénérer avec `python3 hermes/dashboard.py` lorsque cette vue est utile.
 >
-> Générée le 2026-08-28 14:18 UTC.
+> Générée le 2026-08-31 10:14 UTC.
 
 ## En bref
 
-- **Produit** : `sim/` (`python -m sim`) + `viewer/` mince.
+- **Produit** : `sim/` (`python3 -m sim`) + `viewer/` mince.
 - **Prochain pas produit** : un seul, dans [ROADMAP.md](../ROADMAP.md).
-- **Pilotage ouvert** : 1 demande(s), 0 proposition(s).
-- **Rôles** (ADR-0021) : Claude reste manuel pour le propriétaire ;
-  Hermes pilote sans l'invoquer ; Cursor planifie, exécute et relit.
+- **Éléments ouverts** : 0 demande(s), 0 proposition(s).
+- **Contribution** : toute personne ou tout agent autorisé peut planifier,
+  modifier, tester, documenter et relire.
 
-## Ce qui attend le propriétaire
+## Points ouverts
 
-- Trancher la demande `hermes/requests/DEMANDE-20260823-cout-du-lot-et-ceremonie-de-preuve.md` — Réduire le coût d'un lot : la cérémonie de preuve et les relances du pilote.
+- Rien n'attend.
 
 ## Activité GitHub récente
 
@@ -24,7 +23,6 @@ Non disponible dans cette génération (données GitHub non fournies au script).
 
 ## Comment lire ce tableau
 
-Boot Hermes : cette vue, les propositions OPEN,
-[ROADMAP.md](../ROADMAP.md), `forgepilot doctor`, puis
-`python -m sim --ticks 0 --json`.
-Les briefs terminés et les archives ne se lisent pas au démarrage.
+Lire [ROADMAP.md](../ROADMAP.md), puis mesurer le produit avec
+`python3 -m sim --ticks 0 --json`. Cette vue, les briefs et
+ForgePilot sont des aides facultatives.

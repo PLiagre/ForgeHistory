@@ -1,5 +1,7 @@
 # ADR-0005: Cursor Cloud as independent auditor (repositioned from Générateur backend)
 
+> **Statut actuel — 2026-08-30 : Archive historique. Les règles de rôle, d'identité, de fournisseur, de relecture, de verdict, de porte, d'orchestration et de fusion décrites ci-dessous sont obsolètes et n'imposent plus rien.**
+
 **Date**: 2026-08-05
 **Status**: accepted
 **Deciders**: project owner

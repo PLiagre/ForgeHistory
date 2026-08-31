@@ -3,23 +3,23 @@ version = 1
 review_bundle_max_bytes = 10485760
 
 [controller]
-backend = "hermes"
-provider = "nous_portal"
-model = "openai/gpt-5.4"
-can_plan = false
-can_review = false
-can_merge = false
+backend = "local"
+provider = "configurable"
+model = ""
+can_plan = true
+can_review = true
+can_merge = true
 
-# Aucun témoin automatique. Le propriétaire peut solliciter Claude manuellement,
-# hors Hermes et hors ForgePilot ; aucune commande du pilote ne l'invoque.
+# Aucune étape supplémentaire n'est configurée dans cet exemple. Un outil
+# externe peut être choisi librement hors de cette configuration.
 [witness]
 backend = "none"
 
 [classification]
 # R0 est volontairement étroit : ces chemins ne peuvent rester R0 que si
 # tous les fichiers du lot correspondent à cette liste et à aucune règle R2.
-# R0 = aucun agent : ni planificateur, ni exécutant, ni relecteur. Réservé
-# à ce qui ne peut casser ni le jeu, ni les règles, ni le pilotage.
+# R0 n'appelle aucun outil externe. Il convient aux changements documentaires
+# qui ne peuvent casser ni le jeu ni l'automatisation.
 #
 # Un lot n'est R0 que si TOUS ses fichiers correspondent à cette liste ET
 # qu'aucun ne touche `r2_paths` — la règle R2 gagne toujours. C'est ce qui
@@ -115,15 +115,14 @@ backend = "cursor"
 model = "cursor-grok-4.6"
 effort = "xhigh"
 
-# Route de relance du relecteur, après un refus du contrat JSON. Facultative
-# et volontairement non déclarée : nommer un second juge est un arbitrage du
-# propriétaire, pas un défaut d'outil. Sans elle, la relance durcit le contrat
+# Route de relance de l'étape de diagnostic, après un refus du contrat JSON.
+# Elle est facultative et non déclarée. Sans elle, la relance durcit le contrat
 # et rejoue la route nominale, puis s'arrête avant une troisième dépense
 # identique. La forme attendue, si elle est un jour déclarée :
 #
 # [risks.R1.review_fallback]
-# backend = "cursor"          # on change de juge, pas de transport
-# model = "cursor-grok-4.6"   # obligatoire, et différent de la route nominale
+# backend = "cursor"          # exemple de backend configuré
+# model = "modele-au-choix"   # facultatif ; la route peut être identique ou différente
 # effort = "high"
 
 [risks.R2]

@@ -40,7 +40,7 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 | `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
 | `sim/__main__.py` | `python -m sim` — lance le monde, sans Unity |
 | `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`) |
-| `sim/MODELE.md` | Comment le monde fonctionne — tenu par Claude (ADR-0018) |
+| `sim/MODELE.md` | Comment le monde fonctionne — modifiable par tout contributeur autorisé |
 
 ---
 

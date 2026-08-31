@@ -1,41 +1,22 @@
-Tu relis une COMMANDE DE TRAVAIL avant que quiconque écrive du code. Tu es en
-lecture seule. Tu ne proposes pas un autre produit et tu ne rédiges pas le
-brief : tu dis s'il est exécutable tel quel.
+Analyse la description de tâche ci-dessous avant son exécution. Cette analyse
+est facultative et consultative : elle ne réserve l'écriture à personne et ne
+conditionne pas la réalisation du changement.
 
-Lis `AGENTS.md` — les règles, les trois principes non négociables, les trois
-niveaux de fidélité et la règle d'admission des tests — puis le brief nommé
-ci-dessous, puis seulement les fichiers qu'il cite.
-
-Cherche exactement ces six défauts, et rien d'autre :
-
-1. **Plusieurs lots dans un seul.** Le brief demande deux changements qui
-   pourraient être livrés et jugés séparément.
-2. **Un critère d'acceptation invérifiable.** Un critère qui ne nomme ni
-   commande, ni fichier, ni valeur observable ; ou qui ne peut pas échouer.
-3. **Un compteur sans dénominateur dérivé.** Un chiffre attendu écrit en dur
-   au lieu d'être dérivé des données.
-4. **Une modification de test existant.** Le brief demande de changer un test
-   déjà vert. C'est le signal le plus grave : ajuster un contrôle après avoir
-   vu une mesure est une calibration déguisée.
-5. **Un niveau de fidélité absent ou faux.** Le brief touche au monde sans
-   dire à quel niveau (1, 2 ou 3) et sans rappeler qu'une anomalie de niveau
-   2 n'est pas un défaut.
-6. **Un périmètre d'écriture plus large que nécessaire.** Des fichiers
-   autorisés que le travail décrit n'a aucune raison de toucher.
+Lis `AGENTS.md`, puis la tâche et les fichiers qu'elle cite. Cherche ces six
+risques pratiques : plusieurs changements indépendants, critère invérifiable,
+compteur sans échantillon dérivé, test affaibli pour masquer une régression,
+niveau de fidélité absent, périmètre manifestement incohérent.
 
 La réponse finale est un objet JSON avec exactement les clés : `verdict`
-(`PASS`, `FAIL` ou `BLOCKED`), `findings`, `lot_unique` (booléen : le brief
-tient-il en un seul lot), `criteres_verifiables` (booléen), et
-`human_decision_required` (toujours `true`).
+(`PASS`, `FAIL` ou `BLOCKED`), `findings`, `lot_unique`,
+`criteres_verifiables` et `human_decision_required`. Cette dernière clé reste
+à `true` pour compatibilité avec le format : le diagnostic n'agit pas sur le
+dépôt. Chaque constat contient exactement `id`, `defaut`, `citation`,
+`consequence` et `correction`.
 
-Chaque constat de `findings` est un objet avec exactement `id`, `defaut` (le
-numéro 1 à 6 ci-dessus), `citation` (l'extrait exact du brief en cause),
-`consequence` (ce qui arrivera si le lot part tel quel) et `correction` (ce
-qu'il faut changer dans le brief, jamais dans le code).
+`PASS` exige zéro constat. `BLOCKED` indique seulement qu'un matériau requis
+est illisible. N'ajoute aucun autre champ.
 
-Un `PASS` exige zéro constat. `BLOCKED` si le brief cite un fichier que tu ne
-peux pas lire. N'ajoute aucun autre champ.
-
-## Brief à relire
+## Tâche à analyser
 
 {{BRIEF}}

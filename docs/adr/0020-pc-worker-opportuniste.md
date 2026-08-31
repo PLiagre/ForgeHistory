@@ -1,5 +1,7 @@
 # ADR-0020: le PC Windows est un worker opportuniste, pas un second chef
 
+> **Statut actuel — 2026-08-30 : Le runner Windows peut rester un outil facultatif. Toute attribution de rôle ou dépendance obligatoire est obsolète.**
+
 **Date**: 2026-08-26
 **Status**: proposed
 **Deciders**: le propriétaire (validation du chantier « Hermes VPS + PC

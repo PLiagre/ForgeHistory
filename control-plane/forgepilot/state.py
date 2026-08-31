@@ -18,9 +18,9 @@ from .process import PilotError
 
 STATE_SCHEMA_VERSION = 1
 TERMINAL_STEPS = {"COMPLETE", "BLOCKED", "BLOCKED_TOOLING", "ERROR", "CANCELLED"}
-# ERROR et BLOCKED_TOOLING sont des arrêts d'outil. BLOCKED sans
-# qualification reste réservé à une porte qui exige une décision humaine
-# sur le produit (lot 034 : trois JSON invalides avaient collé les deux).
+# ERROR et BLOCKED_TOOLING sont des arrêts d'outil. BLOCKED décrit une étape
+# qui ne peut pas continuer avec les matériaux du run courant ; ce statut ne
+# décide pas de la recevabilité du changement hors de ForgePilot.
 LOCK_HEARTBEAT_SECONDS = 5.0
 # Longueur minimale d'une valeur d'environnement pour qu'on la traite comme
 # un secret à masquer. En dessous, masquer fait plus de mal que de bien : une
@@ -340,7 +340,7 @@ def _acquire_lock(lock_dir: Path, owner: dict[str, object]) -> None:
             try:
                 visible_owner = (lock_dir / "owner.json").read_text(encoding="utf-8").strip()
             except OSError:
-                visible_owner = "propriétaire illisible"
+                visible_owner = "détenteur illisible"
             raise PilotError(
                 f"Verrou ForgePilot déjà détenu : {lock_dir} ({visible_owner}). "
                 "Un verrou distant, vivant ou ambigu n'est jamais récupéré automatiquement."
@@ -383,8 +383,8 @@ def execution_locks(repo: Path, run_id: str):
                     try:
                         atomic_write_json(lock_dir / "owner.json", refreshed)
                     except OSError:
-                        # La perte du verrou sera détectée par les contrôles
-                        # d'identité avant toute publication ; ne jamais recréer
+                        # La perte du verrou sera détectée par la comparaison
+                        # technique avant toute publication ; ne jamais recréer
                         # silencieusement un répertoire disparu.
                         return
 

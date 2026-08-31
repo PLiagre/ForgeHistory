@@ -149,23 +149,11 @@ class WorkflowTests(unittest.TestCase):
         for arg in invocation.argv:
             self.assertNotIn(marker, arg)
 
-    def test_brief_review_reads_only_and_never_inlines_the_brief(self):
-        """
-        La relecture de brief arrive AVANT tout code, en lecture seule, et le
-        brief est passé par référence.
+    def test_optional_brief_analysis_is_bounded_and_referenced(self):
+        """Le diagnostic facultatif utilise le mode `ask` et lit par chemin.
 
-        Trois propriétés, chacune payée :
-
-        1. **Lecture seule.** Le relecteur ne doit rien pouvoir écrire — ni
-           `--force`, ni `--sandbox`, et le mode Cursor est `ask`. Un
-           relecteur qui peut corriger devient le producteur, et la règle
-           « celui qui produit ne juge pas » tombe.
-        2. **Par référence.** La ligne de commande ne bouge pas avec la
-           taille du brief : c'est ce qui a tué des lots quand l'exécutant
-           recopiait le plan dans `-p`.
-        3. **R0 refuse.** Un lot documentaire ne mobilise aucun agent ; y
-           faire relire un brief serait une cérémonie sans objet, et le
-           refus doit le DIRE plutôt que de lancer un agent pour rien.
+        Ce bornage est une propriété technique de l'invocation, pas une
+        séparation de droits entre personnes ou agents.
         """
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -208,15 +196,15 @@ class WorkflowTests(unittest.TestCase):
                     "en lecture seule.",
                 )
 
-    def test_brief_review_refuses_when_no_reviewer_is_configured(self):
-        """R0 n'a pas de relecteur : le refus doit nommer la raison."""
+    def test_brief_review_explains_when_no_diagnostic_backend_is_configured(self):
+        """R0 n'appelle aucun outil externe dans la configuration fournie."""
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             (repo / ".git").mkdir()
             brief = repo / "brief.md"
             brief.write_text("# brief\n", encoding="utf-8")
             settings = replace(SETTINGS, policy=load_policy())
-            with self.assertRaisesRegex(PilotError, "aucun agent"):
+            with self.assertRaisesRegex(PilotError, "backend de diagnostic"):
                 brief_review_invocation(settings, repo, brief, risk="R0")
 
     def test_executor_prompt_does_not_grow_with_the_plan(self):
@@ -925,18 +913,19 @@ class ChainTests(unittest.TestCase):
             self.assertIn("--sandbox", argv)
             self.assertEqual("enabled", argv[argv.index("--sandbox") + 1])
 
-    def test_proposition_is_refused(self):
+    def test_proposition_is_accepted_as_a_task(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             prop_dir = repo / "hermes" / "propositions"
             prop_dir.mkdir(parents=True)
             task = prop_dir / "PROPOSITION-20260820-exemple.md"
             task.write_text("Une proposition, pas un brief.\n", encoding="utf-8")
-            err = io.StringIO()
-            with patch("sys.stderr", err):
+            out = io.StringIO()
+            with patch("sys.stdout", out):
                 code = main(["enchaine", str(task), "--repo", str(repo)])
-            self.assertEqual(2, code)
-            self.assertIn("proposition", err.getvalue().lower())
+            self.assertEqual(0, code)
+            payload = json.loads(out.getvalue())
+            self.assertEqual("proposition-20260820-exemple", payload["task_name"])
 
     def test_empty_task_is_refused(self):
         with tempfile.TemporaryDirectory() as tmp:

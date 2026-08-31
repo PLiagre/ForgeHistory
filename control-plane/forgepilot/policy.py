@@ -15,12 +15,6 @@ RISK_LEVELS = ("R0", "R1", "R2")
 ROLE_NAMES = ("planner", "executor", "reviewer")
 TIMEOUT_NAMES = ("planner", "executor", "reviewer", "proof")
 TEST_PROFILES = ("fast", "pr", "certify")
-BACKENDS = {
-    "planner": {"cursor", "none"},
-    "executor": {"cursor", "none"},
-    "reviewer": {"cursor", "none"},
-    "witness": {"none"},
-}
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 GROK_EFFORTS = ("low", "medium", "high", "xhigh")
 
@@ -148,11 +142,8 @@ def _load_role(risk: str, name: str, raw: object, *, label: str | None = None) -
     if not isinstance(raw, dict):
         raise PilotError(f"Politique invalide : [risks.{risk}.roles.{name}] absent.")
     backend = raw.get("backend")
-    if not isinstance(backend, str) or backend not in BACKENDS[name]:
-        accepted = ", ".join(sorted(BACKENDS[name]))
-        raise PilotError(
-            f"Backend incompatible pour {shown} : {backend!r} ; attendu {accepted}."
-        )
+    if not isinstance(backend, str) or not backend.strip():
+        raise PilotError(f"Backend invalide pour {shown} : chaîne non vide attendue.")
     model = raw.get("model", "")
     effort = raw.get("effort", "")
     resume = raw.get("resume", False)
@@ -160,62 +151,23 @@ def _load_role(risk: str, name: str, raw: object, *, label: str | None = None) -
         raise PilotError(f"Politique invalide : types incorrects pour {shown}.")
     if effort and effort not in EFFORT_LEVELS:
         raise PilotError(f"Effort invalide {effort!r} pour {shown}.")
-    if name == "executor" and effort:
-        raise PilotError("Cursor ne possède pas de drapeau d'effort séparé.")
-    if resume and not (name == "executor" and backend == "cursor"):
-        raise PilotError(
-            f"Reprise incompatible pour {shown} : seul l'exécuteur Cursor la supporte."
-        )
     if backend == "none" and (model or effort or resume):
         raise PilotError(f"Le backend none de {shown} ne peut définir modèle, effort ou reprise.")
     return PolicyRole(backend=backend, model=model, effort=effort, resume=resume)
 
 
-def _load_review_fallback(
-    risk: str, raw: object, reviewer: PolicyRole
-) -> PolicyRole | None:
-    """Route de relance du relecteur, après un refus du contrat JSON.
+def _load_review_fallback(risk: str, raw: object) -> PolicyRole | None:
+    """Charge une route de relance facultative.
 
-    Le lot 034 a rejoué trois fois la même invocation contre la même
-    condition, et a payé trois fois la même signature d'échec. Le contrat
-    est depuis durci à la relance (schéma déposé, exemple contraire). Ce
-    qui manquait encore : une **autre** route, déclarée par la politique,
-    pour la seconde tentative.
-
-    Elle est facultative — sans déclaration, la relance rejoue la route
-    nominale et s'arrête comme aujourd'hui avant une troisième dépense.
-    Quand elle existe, elle doit être une vraie route : même transport
-    (on change de juge, pas de tuyau), modèle nommé, et différente de la
-    route nominale. Une route de secours identique n'en est pas une : elle
-    rejouerait la condition qu'elle est censée changer.
+    La configuration peut réutiliser la route nominale, changer d'outil ou
+    ne nommer aucun modèle. ForgePilot vérifie seulement la forme de cette
+    configuration ; il n'impose aucune séparation entre les étapes.
     """
 
     if raw is None:
         return None
     label = f"{risk}.review_fallback"
-    if reviewer.backend == "none":
-        raise PilotError(
-            f"Politique invalide : {label} déclarée alors qu'aucun relecteur "
-            f"n'est configuré pour {risk}."
-        )
-    fallback = _load_role(risk, "reviewer", raw, label=label)
-    if fallback.backend != reviewer.backend:
-        raise PilotError(
-            f"Politique invalide : {label} change de backend "
-            f"({fallback.backend!r} au lieu de {reviewer.backend!r}) ; "
-            "la relance change de juge, pas de transport."
-        )
-    if not fallback.model:
-        raise PilotError(
-            f"Politique invalide : {label} doit nommer un modèle ; sans lui "
-            "la relance rejoue la condition qui vient d'échouer."
-        )
-    if (fallback.model, fallback.effort) == (reviewer.model, reviewer.effort):
-        raise PilotError(
-            f"Politique invalide : {label} répète la route nominale de "
-            f"{risk} ; une route identique n'est pas une route de secours."
-        )
-    return fallback
+    return _load_role(risk, "reviewer", raw, label=label)
 
 
 def load_policy(path: Path | str | None = None) -> WorkflowPolicy:
@@ -260,14 +212,16 @@ def load_policy(path: Path | str | None = None) -> WorkflowPolicy:
         "can_review": controller_raw.get("can_review"),
         "can_merge": controller_raw.get("can_merge"),
     }
-    if controller_fields["backend"] != "hermes" or controller_fields["provider"] != "nous_portal":
-        raise PilotError("Contrôleur incompatible : Hermes via Nous Portal est requis.")
-    if not isinstance(controller_fields["model"], str) or not controller_fields["model"]:
-        raise PilotError("Politique invalide : controller.model doit être une chaîne non vide.")
-    if any(controller_fields[name] is not False for name in ("can_plan", "can_review", "can_merge")):
-        raise PilotError(
-            "Frontière invalide : Hermes pilote mais ne planifie, ne juge et ne fusionne pas."
-        )
+    for name in ("backend", "provider"):
+        if not isinstance(controller_fields[name], str) or not controller_fields[name]:
+            raise PilotError(f"Politique invalide : controller.{name} doit être une chaîne non vide.")
+    if not isinstance(controller_fields["model"], str):
+        raise PilotError("Politique invalide : controller.model doit être une chaîne.")
+    if any(
+        not isinstance(controller_fields[name], bool)
+        for name in ("can_plan", "can_review", "can_merge")
+    ):
+        raise PilotError("Politique invalide : les capacités du contrôleur sont booléennes.")
     controller = ControllerPolicy(**controller_fields)  # type: ignore[arg-type]
 
     profiles: dict[str, RiskProfile] = {}
@@ -296,7 +250,7 @@ def load_policy(path: Path | str | None = None) -> WorkflowPolicy:
             }
         )
         review_fallback = _load_review_fallback(
-            risk, profile_raw.get("review_fallback"), roles["reviewer"]
+            risk, profile_raw.get("review_fallback")
         )
         profiles[risk] = RiskProfile(risk, test_profile, roles, timeouts, review_fallback)
 

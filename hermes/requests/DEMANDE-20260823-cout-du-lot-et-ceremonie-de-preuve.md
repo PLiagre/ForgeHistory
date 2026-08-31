@@ -3,9 +3,13 @@ author: hermes
 kind: demande
 created_at: 2026-08-23T19:20:00Z
 concerns: workflow
-status: OPEN
+status: CLOSED
 ---
 # Réduire le coût d'un lot : la cérémonie de preuve et les relances du pilote
+
+> **Archive close le 2026-08-30.** La réinitialisation de gouvernance a rendu
+> les portes, revues séparées et cérémonies de preuve facultatives. Cette
+> demande ne gouverne plus le workflow courant.
 
 Mise en forme par Claude (CTO) d'une décision prise par le propriétaire après
 lecture de la PR #131 (`026-geo-gisements-1400-r1`). Les chiffres ci-dessous

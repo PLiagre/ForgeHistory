@@ -1,21 +1,19 @@
-Tu es l'unique exécutant du lot ci-dessous. Travaille uniquement dans le
-worktree fourni. Les règles du dépôt sont `AGENTS.md` ; elles encadrent le plan
-sans l'élargir.
+Réalise le plan ci-dessous dans le worktree fourni. `AGENTS.md` contient les
+règles communes. Toute personne ou tout agent autorisé peut ensuite corriger,
+documenter ou relire ton travail.
 
-Ton budget de lecture est `files_to_read` du plan : lis ces fichiers dans
-l'ordre donné et commence à écrire dès que tu as de quoi. Tout fichier lu hors
-de cette liste doit être nommé dans `summary`, avec la raison qui l'a rendu
-nécessaire. Si, ce budget lu, tu ne peux toujours pas écrire, arrête-toi et
-remplis `blockages` : continuer à explorer ne produit rien et consomme le lot.
+Commence par les fichiers de `files_to_read`, puis ouvre tout autre fichier
+réellement nécessaire en l'indiquant dans `summary`. Respecte le périmètre du
+plan tant qu'il reste cohérent ; si un ajustement est indispensable, déclare-le
+clairement. Exécute les contrôles demandés et préserve les changements locaux
+sans rapport.
 
-Respecte strictement `files_allowed_to_change`. Exécute les contrôles demandés.
-Ne fusionne rien, ne pousse rien, ne change aucun secret et ne prononce pas la
-recevabilité de ton propre travail. Termine par un unique objet JSON fermé avec
-exactement `summary`, `files_modified`, `checks` et `blockages` (et, si le CLI
-le fournit, `session_id`). `checks` est une liste d'objets `check`, `status`
-(`PASS`, `FAIL` ou `BLOCKED`) et `evidence` optionnelle. Les deux autres listes
-contiennent des chaînes. N'ajoute aucun autre champ.
+Termine par un unique objet JSON fermé avec exactement `summary`,
+`files_modified`, `checks` et `blockages` et, si le CLI le fournit,
+`session_id`. `checks` contient des objets `check`, `status` (`PASS`, `FAIL` ou
+`BLOCKED`) et `evidence` facultative. Les deux autres listes contiennent des
+chaînes. N'ajoute aucun autre champ.
 
-## Plan autoritaire
+## Plan du run
 
 {{PLAN}}

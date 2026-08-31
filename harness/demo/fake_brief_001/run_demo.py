@@ -1,15 +1,8 @@
 #!/usr/bin/env py
-"""
-F0's done-criterion, made concrete: a deliberately fake brief must be
-rejected by the mechanical gate, and the rejection must be PROVEN, not
-narrated.
+"""Prouve que le vérificateur détecte un dossier incohérent.
 
-Runs verdict_audit.py against this directory's forged brief as a real
-subprocess, logs the full stdout/stderr + exit code to run_demo.log
-(timestamped, command included verbatim -- hard-won rule 9: an impossibility
-is tested before being invoked, command + error, never a bare claim), and
-exits 0 only if the gate actually rejected the forgery. Exits 1 if the gate
-ever wrongly accepts it -- that would be a demo failure, not a success.
+Cette démonstration teste un format historique. Son résultat est informatif et
+n'accorde aucune autorité de livraison.
 """
 import datetime
 import subprocess
@@ -39,13 +32,13 @@ def main() -> int:
     ]
     LOG_FILE.write_text("\n".join(log_lines), encoding="utf-8")
 
-    rejected = result.returncode == 1 and "VERDICT: REJECT" in result.stdout
-    if rejected:
-        print(f"PROVEN: fake brief was REJECTED by verdict_audit.py. See {LOG_FILE}")
+    detected = result.returncode == 1 and "RESULT: INCOHERENT" in result.stdout
+    if detected:
+        print(f"PROUVÉ : dossier incohérent détecté. Voir {LOG_FILE}")
         return 0
 
     print(
-        "DEMO FAILURE: the gate did not reject the forged brief as expected "
+        "ÉCHEC DE DÉMONSTRATION : l'incohérence attendue n'a pas été détectée "
         f"(exit_code={result.returncode}). See {LOG_FILE}",
         file=sys.stderr,
     )
