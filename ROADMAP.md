@@ -30,7 +30,7 @@ classes, les déterminants du climat et les gisements nommés de 1400. Les
 compter se fait par une commande, jamais en recopiant un nombre ici :
 
 ```bash
-python -m sim --ticks 0 --json
+py -m sim --ticks 0 --json
 ```
 
 Le tick joue, dans cet ordre : extraction minière, production agricole,
@@ -74,10 +74,8 @@ manquent pour qu'elle puisse exister, et chacune a son brief écrit :
 Aucun ordre n'est imposé entre eux, **sauf** 044 avant 047 : le bourg compte
 une part non agricole que le métier doit d'abord créer.
 
-> **Ces trois briefs sont à l'ancien format** (dossier, grille d'évaluation,
-> tableau de compteurs, manifeste). Ils sont à réécrire au format court
-> d'[AGENTS.md](AGENTS.md) avant d'être lancés. Leur règle du monde et leurs
-> conditions de succès sont bonnes : c'est la cérémonie autour qui saute.
+Les trois sont au format court d'[AGENTS.md](AGENTS.md) : un fichier, cinq
+sections, prêts à être lancés tels quels.
 
 ### Le mur, et pourquoi il est en train de tomber
 

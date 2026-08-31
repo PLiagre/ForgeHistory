@@ -30,5 +30,5 @@ ajoute ses cas dans le fichier qui porte déjà l'invariant concerné.
 | `test_write_coverage.py` | tout champ du modèle est écrit quelque part et lu quelque part |
 
 ```bash
-python -m pytest sim/tests/ -q
+py -m pytest sim/tests/ -q
 ```

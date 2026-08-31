@@ -13,7 +13,7 @@ comment le monde fonctionne — c'est de lui que les lots sont découpés.
 ## Le projet en trois phrases
 
 ForgeHistory est un moteur de simulation historique vivant (1400-1900) dont
-le gameplay émerge. Le produit est `sim/` — `python -m sim`. Le monde lit une
+le gameplay émerge. Le produit est `sim/` — `py -m sim`. Le monde lit une
 carte figée, `data/world-1400.json`.
 
 ## Langue
@@ -167,7 +167,7 @@ processus : elles survivent à tout changement de workflow.
 
 | chemin | quoi |
 |---|---|
-| `sim/` | **le produit** — `python -m sim`. Voir `sim/README.md` et `sim/MODELE.md`. |
+| `sim/` | **le produit** — `py -m sim`. Voir `sim/README.md` et `sim/MODELE.md`. |
 | `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
 | `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
 | `briefs/` | un fichier par lot. |
@@ -190,15 +190,18 @@ faudrait, l'outil se récupère par la commande ci-dessus.
 
 ## Les commandes
 
+`py` sur la machine Windows du propriétaire, `python3` sur Linux — jamais
+`python` nu (règle 1).
+
 ```bash
-python -m sim                            # le produit
-python -m sim --ticks 0 --json           # fumée : le monde s'amorce
-python -m pytest sim/tests/ -q           # les tests du jeu
-python -m pytest viewer/tests/ -q        # le regard mince
+py -m sim                                # le produit
+py -m sim --ticks 0 --json               # fumée : le monde s'amorce
+py -m pytest sim/tests/ -q               # les tests du jeu
+py -m pytest viewer/tests/ -q            # le regard mince
 
 # regarder le monde : photographier, puis ouvrir
-python -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
-python -m viewer --snapshot /tmp/monde.json
+py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
+py -m viewer --snapshot /tmp/monde.json
 ```
 
 Le moteur et le regard sont en bibliothèque standard seule ; seuls les tests

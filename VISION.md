@@ -1,7 +1,7 @@
 # Vision — Moteur de simulation historique vivant
 
 > **Où vit le produit aujourd'hui.** Le moteur tourne dans `sim/`
-> (`python -m sim`). `viewer/` est un regard mince sur une photographie.
+> (`py -m sim`). `viewer/` est un regard mince sur une photographie.
 > Il n'y a pas de moteur de rendu : cette note de statut ne change pas les
 > piliers ci-dessous.
 

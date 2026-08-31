@@ -7,20 +7,20 @@ pas une seconde simulation.
 ## Preuve SVG (sans navigateur, sans serveur)
 
 ```
-.venv/bin/python -m sim --ticks 0 --seed 0 --snapshot-json /tmp/world.json
-.venv/bin/python -m viewer --snapshot /tmp/world.json --proof-svg /tmp/carte.svg
+py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/world.json
+py -m viewer --snapshot /tmp/world.json --proof-svg /tmp/carte.svg
 ```
 
 Comparaison de deux photographies :
 
 ```
-.venv/bin/python -m viewer --snapshot /tmp/a.json --compare /tmp/b.json --proof-svg /tmp/diff.svg
+py -m viewer --snapshot /tmp/a.json --compare /tmp/b.json --proof-svg /tmp/diff.svg
 ```
 
 ## Regard local (stdlib uniquement)
 
 ```
-.venv/bin/python -m viewer --snapshot /tmp/world.json
+py -m viewer --snapshot /tmp/world.json
 ```
 
 Hôte par défaut `127.0.0.1`, port `8765`. Si le port est pris, la commande

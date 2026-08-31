@@ -4,9 +4,9 @@ Moteur de simulation ForgeHistory — **le produit vivant**. Il tourne
 seul, sans moteur de rendu :
 
 ```
-.venv/bin/python -m sim
-.venv/bin/python -m sim --ticks 0 --json
-.venv/bin/python -m sim --ticks 0 --seed 0 --snapshot-json /tmp/world.json
+py -m sim
+py -m sim --ticks 0 --json
+py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/world.json
 ```
 
 `--snapshot-json` écrit une photographie cellulaire déterministe (schéma
@@ -33,7 +33,7 @@ constantes, limites — dans [`MODELE.md`](MODELE.md).
 | `sim/world.py` | `World` — chargement depuis les artefacts G3, sérialisation |
 | `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
 | `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
-| `sim/__main__.py` | `python -m sim` — lance le monde |
+| `sim/__main__.py` | `py -m sim` — lance le monde |
 | `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`) |
 | `sim/MODELE.md` | Comment le monde fonctionne : formules, constantes, limites |
 
@@ -61,7 +61,7 @@ provenance et les limites de ce qu'ils prouvent sont décrites dans
 
 Le nombre exact de cellules et d'arêtes n'est recopié nulle part : il se lit
 dans `data/world-1400.json` et se dérive du chargement. La commande qui le
-donne est `python -m sim --ticks 0 --json`.
+donne est `py -m sim --ticks 0 --json`.
 
 Ces fichiers sont suivis par git et lisibles depuis un clone frais.
 
@@ -70,7 +70,7 @@ Ces fichiers sont suivis par git et lisibles depuis un clone frais.
 ## Lancer les tests
 
 ```
-.venv/bin/python -m pytest sim/tests/ -v
+py -m pytest sim/tests/ -v
 ```
 
 Depuis la racine du dépôt. La suite attend tous les tests PASSED,
