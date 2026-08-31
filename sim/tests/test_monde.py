@@ -1056,3 +1056,380 @@ def test_ressource_inconnue_acceptee():
     tick(world, random.Random(0), numero_tick=0)
     assert "mythrite" in world.cells[cid].stocks
     assert world.cells[cid].stocks["mythrite"] > 0.0
+
+
+# --- Un métier : le mineur ---
+
+
+def _gisements_complets(raw: dict) -> list:
+    """Enregistrements de gisement avec ressource et richesse."""
+    return [
+        g
+        for g in (raw.get("gisements") or [])
+        if isinstance(g, dict) and g.get("ressource") is not None and g.get("richesse") is not None
+    ]
+
+
+def _porteuses_de_la_carte(carte_doc: dict) -> set[int]:
+    """Cellules que la carte déclare porteuses d'au moins un gisement complet."""
+    return {
+        int(raw["cell_id"])
+        for raw in carte_doc["cellules"]
+        if _gisements_complets(raw)
+    }
+
+
+def _paire_meme_relief_porteuse_et_non(carte_doc: dict) -> tuple[int, int, str]:
+    """
+    Une porteuse et une non-porteuse de même classe de relief, dérivées
+    de la carte. Échoue si aucune paire n'existe.
+    """
+    par_relief: dict[str, dict[str, int | None]] = {}
+    for raw in carte_doc["cellules"]:
+        relief = raw.get("relief")
+        if not relief:
+            continue
+        seau = par_relief.setdefault(relief, {"avec": None, "sans": None})
+        cid = int(raw["cell_id"])
+        if _gisements_complets(raw):
+            if seau["avec"] is None:
+                seau["avec"] = cid
+        else:
+            if seau["sans"] is None:
+                seau["sans"] = cid
+        if seau["avec"] is not None and seau["sans"] is not None:
+            return int(seau["avec"]), int(seau["sans"]), relief
+    pytest.fail(
+        "échantillon vide : aucune paire porteuse/non-porteuse de même relief"
+    )
+
+
+def _carte_sans_gisements(carte: dict) -> dict:
+    """Copie en mémoire : listes de gisements vidées, rien d'autre changé."""
+    copie = {}
+    for cid, raw in carte.items():
+        entree = dict(raw)
+        entree["gisements"] = []
+        copie[cid] = entree
+    return copie
+
+
+def test_cellule_a_gisement_cultive_moins():
+    """
+    SC1 — À surface, relief, date et rendement identiques, une porteuse
+    produit strictement moins qu'une non-porteuse de même classe de relief.
+    """
+    from sim import constants as _k
+    from sim.engine import production_du_tick_kg
+
+    carte_doc = World.lire_carte()
+    cid_avec, cid_sans, relief = _paire_meme_relief_porteuse_et_non(carte_doc)
+    world = World.charger(0)
+    surface = world.cells[cid_sans].area_km2
+    world.cells[cid_avec].area_km2 = surface
+    rendement = _k.rendement_moyen_courant()
+    jour = _k.jour_de_tick(0)
+
+    carte = {cid: dict(raw) for cid, raw in world.carte.items()}
+    climat_ref = carte[cid_avec].get("climat")
+    carte[cid_sans] = dict(carte[cid_sans])
+    carte[cid_sans]["climat"] = climat_ref
+
+    prod_avec = production_du_tick_kg(
+        world.cells[cid_avec], rendement, carte, jour=jour
+    )
+    prod_sans = production_du_tick_kg(
+        world.cells[cid_sans], rendement, carte, jour=jour
+    )
+    print(
+        f"relief={relief} cid_avec={cid_avec} cid_sans={cid_sans} "
+        f"prod_avec={prod_avec} prod_sans={prod_sans}"
+    )
+    assert prod_avec < prod_sans, (
+        "Une cellule à gisement ne cultive pas moins qu'une non-porteuse "
+        f"de même relief : {prod_avec} >= {prod_sans}."
+    )
+
+
+def test_baisse_ne_touche_que_les_porteuses():
+    """
+    SC2 — Au premier tick, le stock de nourriture ne diffère que sur les
+    cellules que la carte déclare porteuses. L'autre monde a les gisements
+    vidés, rien d'autre.
+    """
+    import random
+
+    from sim.constants import MARCHANDISE_NOURRITURE
+    from sim.engine import tick
+    from sim.model import lire_stock_marchandise
+
+    carte_doc = World.lire_carte()
+    porteuses = _porteuses_de_la_carte(carte_doc)
+    assert porteuses, "échantillon vide : aucune cellule porteuse sur la carte"
+
+    monde = World.charger(0)
+    temoin = World.charger(0)
+    temoin.carte = _carte_sans_gisements(temoin.carte)
+
+    tick(monde, random.Random(0), numero_tick=0)
+    tick(temoin, random.Random(0), numero_tick=0)
+
+    differentes = {
+        cid
+        for cid in monde.cells
+        if lire_stock_marchandise(monde.cells[cid], MARCHANDISE_NOURRITURE)
+        != lire_stock_marchandise(temoin.cells[cid], MARCHANDISE_NOURRITURE)
+    }
+    print(
+        f"porteuses={len(porteuses)} differentes={len(differentes)} "
+        f"hors_porteuses={sorted(differentes - porteuses)[:8]}"
+    )
+    assert differentes == porteuses, (
+        "L'ensemble qui change n'est pas exactement celui des porteuses : "
+        f"en trop={differentes - porteuses} manquantes={porteuses - differentes}."
+    )
+
+
+def test_richesse_ordonne_la_part_miniere():
+    """
+    SC3 — À un gisement unique, la part minière suit l'ordre des richesses
+    dérivé de la carte : majeure > notable > mineure.
+    """
+    from sim import constants as _k
+
+    carte_doc = World.lire_carte()
+    facteurs = _k.facteurs_richesse_extraction()
+    par_classe: dict[str, list] = {}
+    for raw in carte_doc["cellules"]:
+        complets = _gisements_complets(raw)
+        if len(complets) != 1:
+            continue
+        richesse = complets[0]["richesse"]
+        if richesse in facteurs and richesse not in par_classe:
+            par_classe[richesse] = complets
+    assert set(par_classe) == set(facteurs), (
+        f"classe manquante dans l'échantillon : {set(facteurs) - set(par_classe)}"
+    )
+
+    parts = {
+        richesse: _k.part_miniere_de(gisements, facteurs)
+        for richesse, gisements in par_classe.items()
+    }
+    print(
+        f"part_majeure={parts['majeure']} part_notable={parts['notable']} "
+        f"part_mineure={parts['mineure']}"
+    )
+    assert parts["majeure"] > parts["notable"] > parts["mineure"]
+
+
+def test_plafond_part_miniere():
+    """
+    SC4 — Assez de gisements majeurs pour dépasser le plafond : la part
+    vaut exactement le plafond, et la cellule continue de produire.
+    """
+    from sim import constants as _k
+    from sim.engine import production_du_tick_kg
+
+    facteurs = _k.facteurs_richesse_extraction()
+    contrib = _k.PART_MINIERE_PAR_GISEMENT * facteurs["majeure"]
+    assert contrib > 0.0, "contribution nulle : le plafond ne peut pas se dériver"
+    n_gisements = 0
+    acc = 0.0
+    plafond = _k.PART_MINIERE_MAXIMALE
+    while acc <= plafond:
+        n_gisements += 1
+        acc += contrib
+    gisements = [
+        {"ressource": "fer", "richesse": "majeure"} for _ in range(n_gisements)
+    ]
+    part = _k.part_miniere_de(gisements, facteurs)
+    print(f"n_gisements={n_gisements} part={part} plafond={plafond}")
+    assert part == plafond
+
+    world = World.charger(0)
+    cid = next(iter(world.cells))
+    entree = dict(world.carte[cid])
+    entree["gisements"] = gisements
+    world.carte[cid] = entree
+    prod = production_du_tick_kg(
+        world.cells[cid], _k.rendement_moyen_courant(), world.carte, jour=0
+    )
+    print(f"production_sous_plafond={prod}")
+    assert prod > 0.0
+
+
+def test_une_seule_definition_part_miniere():
+    """
+    SC5 — Une seule fonction calcule la part minière ; un seul jeu de
+    facteurs de richesse ; une seule formule de production alimentaire.
+    """
+    import ast
+
+    sim_dir = pathlib.Path(__file__).parent.parent
+    modules = sorted(
+        p
+        for p in sim_dir.rglob("*.py")
+        if "tests" not in p.relative_to(sim_dir).parts
+    )
+    assert modules, "échantillon vide : aucun module de sim/ hors tests"
+
+    defs_part: list[tuple[str, str]] = []
+    defs_richesse: list[tuple[str, str]] = []
+    defs_production: list[tuple[str, str]] = []
+    lectures_nom_dans_engine = 0
+    noms_interdits = {"PART_MINIERE_PAR_GISEMENT", "PART_MINIERE_MAXIMALE"}
+
+    for fichier in modules:
+        arbre = ast.parse(fichier.read_text(encoding="utf-8"), filename=str(fichier))
+        for node in ast.walk(arbre):
+            if isinstance(node, ast.FunctionDef):
+                if "part_miniere" in node.name:
+                    defs_part.append((fichier.name, node.name))
+                if node.name.startswith("facteurs_richesse"):
+                    defs_richesse.append((fichier.name, node.name))
+                for child in ast.walk(node):
+                    nom = None
+                    if isinstance(child, ast.Attribute):
+                        nom = child.attr
+                    elif isinstance(child, ast.Name):
+                        nom = child.id
+                    if nom == "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK":
+                        defs_production.append((fichier.name, node.name))
+            if fichier.name == "engine.py" and isinstance(node, ast.Attribute):
+                if node.attr in noms_interdits and not isinstance(node.ctx, ast.Store):
+                    lectures_nom_dans_engine += 1
+
+    print(f"modules_parcourus={len(modules)}")
+    print(f"defs_part={defs_part}")
+    print(f"defs_richesse={defs_richesse}")
+    print(f"defs_production={defs_production}")
+    print(f"lectures_nom_dans_engine={lectures_nom_dans_engine}")
+
+    assert len(defs_part) == 1, (
+        f"plus d'une fonction calcule la part minière : {defs_part}"
+    )
+    assert len(defs_richesse) == 1, (
+        f"second jeu de facteurs de richesse : {defs_richesse}"
+    )
+    uniques_prod = sorted(set(defs_production))
+    assert len(uniques_prod) == 1, (
+        f"plus d'une formule de production alimentaire : {uniques_prod}"
+    )
+    assert lectures_nom_dans_engine == 0, (
+        "sim/engine.py lit PART_MINIERE_* par son nom"
+    )
+
+
+def test_extraction_suit_les_mineurs():
+    """
+    SC6 — À population égale, l'extraction est proportionnelle à la part
+    minière. Une part nulle mesure 0.0, pas la sentinelle -1.
+    """
+    from sim import constants as _k
+    from sim.engine import _extraction_du_tick_kg
+
+    world = World.charger(0)
+    facteurs = _k.facteurs_richesse_extraction()
+    par_part: dict[int, float] = {}
+    for cid, cell in world.cells.items():
+        gisements = (world.carte.get(cid) or {}).get("gisements")
+        part = _k.part_miniere_de(gisements, facteurs)
+        if part > 0.0:
+            par_part[cid] = part
+    assert par_part, "échantillon vide : aucune part minière strictement positive"
+
+    paires = [
+        (a, b)
+        for a in par_part
+        for b in par_part
+        if a < b and par_part[a] != par_part[b]
+    ]
+    assert paires, "échantillon vide : toutes les parts minières sont égales"
+    cid_a, cid_b = paires[0]
+    population = 1000
+    world.cells[cid_a].population = population
+    world.cells[cid_b].population = population
+    extrait_a = sum(
+        _extraction_du_tick_kg(world.cells[cid_a], world.carte).values()
+    )
+    extrait_b = sum(
+        _extraction_du_tick_kg(world.cells[cid_b], world.carte).values()
+    )
+    ratio_parts = par_part[cid_a] / par_part[cid_b]
+    ratio_extraits = extrait_a / extrait_b
+    print(
+        f"cid_a={cid_a} part_a={par_part[cid_a]} extrait_a={extrait_a} "
+        f"cid_b={cid_b} part_b={par_part[cid_b]} extrait_b={extrait_b}"
+    )
+    print(f"ratio_parts={ratio_parts} ratio_extraits={ratio_extraits}")
+    assert extrait_a > 0.0 and extrait_b > 0.0
+    assert abs(ratio_extraits - ratio_parts) < 1e-9, (
+        "L'extraction n'est pas proportionnelle à la part minière."
+    )
+
+    cid_nulle = next(
+        cid for cid in world.cells if cid not in par_part
+    )
+    extrait_nul = sum(
+        _extraction_du_tick_kg(world.cells[cid_nulle], world.carte).values()
+    )
+    print(f"cid_nulle={cid_nulle} extrait_nul={extrait_nul}")
+    assert extrait_nul == 0.0
+    assert extrait_nul != -1
+
+
+def test_cellules_minieres_produisent_moins_et_s_endettent_plus():
+    """
+    SC7 — Sur le monde réel, à un horizon dérivé, les porteuses produisent
+    strictement moins et s'endettent strictement plus que le même monde
+    dont les gisements ont été vidés.
+    """
+    import random
+
+    from sim import constants as _k
+    from sim import engine
+    from sim.engine import tick
+
+    carte_doc = World.lire_carte()
+    porteuses = _porteuses_de_la_carte(carte_doc)
+    assert porteuses, "échantillon vide : aucune cellule porteuse"
+    horizon = _k.DEFAULT_CLI_TICKS
+
+    def _jouer(sans_gisements: bool) -> tuple[float, float]:
+        monde = World.charger(0)
+        if sans_gisements:
+            monde.carte = _carte_sans_gisements(monde.carte)
+        productions = {cid: 0.0 for cid in porteuses}
+        originale = engine.production_du_tick_kg
+
+        def _mesurer(cell, yield_factor, carte, jour=None):
+            valeur = originale(cell, yield_factor, carte, jour)
+            if cell.cell_id in productions:
+                productions[cell.cell_id] += valeur
+            return valeur
+
+        engine.production_du_tick_kg = _mesurer
+        try:
+            rng = random.Random(0)
+            for numero in range(horizon):
+                tick(monde, rng, numero_tick=numero)
+        finally:
+            engine.production_du_tick_kg = originale
+        production = sum(productions.values())
+        dette = sum(monde.cells[cid].food_deficit_kg for cid in porteuses)
+        return production, dette
+
+    prod_avec, dette_avec = _jouer(False)
+    prod_sans, dette_sans = _jouer(True)
+    print(
+        f"horizon={horizon} porteuses={len(porteuses)} "
+        f"prod_avec={prod_avec} prod_sans={prod_sans} "
+        f"dette_avec={dette_avec} dette_sans={dette_sans}"
+    )
+    assert prod_avec < prod_sans, (
+        "Les porteuses ne produisent pas moins avec leurs gisements."
+    )
+    assert dette_avec > dette_sans, (
+        "Les porteuses ne s'endettent pas plus avec leurs gisements."
+    )
+
