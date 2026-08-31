@@ -1,26 +1,22 @@
 """
 Constantes nommées du moteur de simulation.
 
-Toutes les valeurs paramétriques documentées dans sim/MODELE.md.
-Aucun code de calcul du moteur ne doit contenir de littéral numérique
-au-delà de 0 et 1 (valeurs structurelles) — voir brief 011, SC9.
+Une seule place pour tout ce qui se règle. Le corps d'une fonction du
+moteur ne contient aucun littéral numérique en dehors de 0, 1 et -1 —
+vérifié par `sim/tests/test_no_hardcoded.py`.
 
-Brief 012 : constantes temporelles alignées sur TICK_DURATION_DAYS.
-Brief 017 : modèle de survie stationnaire dépendant des constantes de
-mortalité, et récupération physique du déficit alimentaire.
+Toutes les valeurs sont documentées dans `sim/MODELE.md`, et toutes les
+durées dérivent de TICK_DURATION_DAYS : jamais un second littéral de temps.
 """
 
 import math
 
-# --- Marchandises (brief 037) ---
+# --- Marchandises ---
 
 # Première marchandise du panier ; seule entrée réellement simulée pour l'instant.
 MARCHANDISE_NOURRITURE = "nourriture"
 
-# Clé-sonde SC5 : prouve qu'une deuxième entrée peut coexister dans le panier.
-MARCHANDISE_SONDE_037 = "__sonde_panier_037__"
-
-# --- Base de temps unique (SC1 brief 012) ---
+# --- Base de temps unique ---
 
 # Durée d'un tick en jours (proxy paramétrique, voir MODELE.md).
 # Toutes les constantes temporelles ci-dessous sont dérivées de cette valeur.
@@ -35,7 +31,7 @@ TICK_DURATION_DAYS = 1
 FOOD_PRODUCTION_KG_PER_KM2_PER_TICK = 18.0 * TICK_DURATION_DAYS
 
 
-# --- Saison dans le rendement (brief 035, fidélité niveau 2) ---
+# --- Saison dans le rendement (fidélité niveau 2) ---
 
 # Durée d'un jour d'équinoxe — niveau 1 (douze heures partout).
 DUREE_JOUR_EQUINOXE_H = 12.0
@@ -96,13 +92,37 @@ def facteur_saison(duree_jour_h_val: float) -> float:
     return max(plancher, 1.0 + sensibilite * ecart)
 
 
+# Moyennes annuelles déjà calculées. La clé porte TOUTES les constantes que
+# le calcul relit : changer l'une d'elles change la clé, donc rate le cache et
+# recalcule. Sans cela, un test qui remplace une constante en mémoire
+# mesurerait une valeur figée en croyant mesurer le nouveau régime.
+_moyennes_annuelles: dict[tuple, float] = {}
+
+
 def facteur_saison_moyen_annuel(ete_h: float, hiver_h: float) -> float:
     """
     Moyenne du facteur saisonnier sur une année calendaire complète.
 
     Somme jour par jour, divisée par le nombre de jours dérivé des constantes
     de temps — pas la valeur 1 supposée.
+
+    Le résultat ne dépend que de ses deux arguments et des constantes citées
+    dans la clé ci-dessous ; il est donc gardé plutôt que refait à chaque
+    appel. C'est une année entière de calcul par cellule et par tick.
     """
+    cle = (
+        ete_h,
+        hiver_h,
+        CALENDAR_DAYS_PER_YEAR,
+        JOUR_SOLSTICE_ETE,
+        DUREE_JOUR_EQUINOXE_H,
+        SENSIBILITE_SAISON,
+        FACTEUR_DEUX,
+    )
+    garde = _moyennes_annuelles.get(cle)
+    if garde is not None:
+        return garde
+
     annee = CALENDAR_DAYS_PER_YEAR
     total = 0.0
     jour = 0
@@ -110,10 +130,12 @@ def facteur_saison_moyen_annuel(ete_h: float, hiver_h: float) -> float:
         duree = duree_jour_h(jour, ete_h, hiver_h)
         total += facteur_saison(duree)
         jour += 1
-    return total / annee
+    moyenne = total / annee
+    _moyennes_annuelles[cle] = moyenne
+    return moyenne
 
 
-# --- Extraction minière (brief 038, fidélité niveau 2) ---
+# --- Extraction minière (fidélité niveau 2) ---
 
 # Kilogrammes extraits par habitant et par tick sur un gisement notable ;
 # ordre de grandeur plausible niveau 2, jamais sourcé.
@@ -144,7 +166,7 @@ def facteurs_richesse_extraction() -> dict[str, float]:
     }
 
 
-# --- Relief dans le rendement (brief 033, fidélité niveau 2) ---
+# --- Relief dans le rendement (fidélité niveau 2) ---
 
 # Facteurs de production par classe de relief : ordres de grandeur plausibles
 # niveau 2, jamais sourcés historiquement.
@@ -171,7 +193,7 @@ def facteurs_production_par_relief() -> dict[str, float]:
     }
 
 
-# --- Relief dans le transport (brief 040, fidélité niveau 2) ---
+# --- Relief dans le transport (fidélité niveau 2) ---
 
 # Facteurs de capacité de transport par classe de relief : ordres de grandeur
 # plausibles niveau 2, jamais sourcés historiquement — échelle distincte de
@@ -199,7 +221,7 @@ def facteurs_transport_par_relief() -> dict[str, float]:
         "haute_montagne": FACTEUR_TRANSPORT_HAUTE_MONTAGNE,
     }
 
-# --- Variabilité de rendement (SC2 brief 012) ---
+# --- Variabilité de rendement ---
 
 # Le rendement de chaque cellule est multiplié par un facteur uniforme
 # tiré du rng à chaque tick (fluctuations climatiques/agronomiques).
@@ -220,13 +242,13 @@ def consommation_kg_par_habitant_par_tick(marchandise: str) -> float:
     Kilogrammes consommés par habitant et par tick pour une marchandise.
 
     Seul lieu du moteur qui distingue une marchandise d'une autre pour la
-    consommation (brief 039). Relit les constantes nommées à chaque appel.
+    consommation. Relit les constantes nommées à chaque appel.
     """
     if marchandise == MARCHANDISE_NOURRITURE:
         return FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
     return 0.0
 
-# --- Commerce inter-cellules (SC4 brief 012 ; brief 043) ---
+# --- Commerce inter-cellules ---
 
 # Débit par kilomètre de frontière partagée (niveau 2) : une arête de 1 000 m
 # produit la même capacité que TRADE_CAPACITY_KG_PER_EDGE_PER_TICK.
@@ -247,7 +269,7 @@ def metres_par_km() -> float:
 # liaison rurale (voir MODELE.md).
 TRADE_CAPACITY_KG_PER_EDGE_PER_TICK = 200.0 * TICK_DURATION_DAYS
 
-# --- Mortalité par famine (SC3 brief 012) ---
+# --- Mortalité par famine ---
 
 # Facteur de mortalité : fraction de la population mourant par tick
 # par kg de déficit alimentaire cumulé par habitant.
@@ -260,7 +282,7 @@ HUNGER_DEATH_SCALE = 0.005
 # instantané même avec un déficit extrême.
 MAX_DEATH_RATE_PER_TICK = 0.10
 
-# --- Natalité (brief 036, fidélité niveau 2) ---
+# --- Natalité (fidélité niveau 2) ---
 
 # Naissances par habitant et par tick, sur les seuls ticks où la cellule
 # a mangé sa ration entière sans dette alimentaire — ordre de grandeur
@@ -282,21 +304,15 @@ SEED_POPULATION_VARIATION_LOW = 0.9
 SEED_POPULATION_VARIATION_HIGH = 1.1
 
 # Nombre de ticks de consommation couverts par le stock alimentaire initial.
-# Renommé depuis INITIAL_FOOD_DAYS : l'unité est le tick, pas le jour
-# calendaire (SC1 brief 012 — correction du nom trompeur constat P3-2).
+# L'unité est le tick, pas le jour calendaire.
 INITIAL_FOOD_RESERVE_TICKS = 5
 
-# --- Récupération physique du déficit alimentaire (SC5 brief 017) ---
+# --- Récupération physique du déficit alimentaire ---
 
-# Successeur nommé de DEFICIT_RECOVERY_RATE_PER_TICK (brief 013, supprimée).
-# Ancienne sémantique : fraction du déficit effacée par tick de surplus,
-# indépendamment du surplus réel — un nanogramme d'excédent effaçait 10 % de
-# la dette (principe 3 violé : des kilogrammes disparaissaient sans
-# contrepartie physique).
-# Nouvelle sémantique : kilogrammes de dette alimentaire remboursés par
-# kilogramme de surplus RÉELLEMENT consommé au-delà du besoin d'entretien.
-# Voie (a) du brief 017 : ratio 1:1. Les kg remboursés quittent le stock.
-# Justification complète dans MODELE.md (SC5 brief 017).
+# Kilogrammes de dette alimentaire remboursés par kilogramme de surplus
+# RÉELLEMENT consommé au-delà du besoin d'entretien. Ratio 1:1 : les kg
+# remboursés quittent le stock. Une dette ne peut donc pas s'effacer sans
+# contrepartie physique — l'économie est physique, rien ne se téléporte.
 DEFICIT_RECOVERY_RATE_PER_SURPLUS_KG = 1.0
 
 # --- Rendement moyen (seule grandeur dérivée que le moteur consulte) ---
@@ -341,35 +357,33 @@ def rendement_moyen_courant() -> float:
 # exactement la calibration après mesure que ce fichier interdisait.
 #
 # La garde payée par un vrai défaut est conservée : le critère de survie ne
-# doit pas être aveugle aux constantes qui gouvernent la mort (c'est ce que le
-# brief 017 reprochait à celui du brief 013). Elle est désormais tenue par la
-# DIRECTION de la réponse, mesurée sur le moteur, qui survit à tout changement
-# du modèle de production.
+# doit pas être aveugle aux constantes qui gouvernent la mort. Elle est tenue
+# par la DIRECTION de la réponse, mesurée sur le moteur, qui survit à tout
+# changement du modèle de production.
 
 # --- Borne de ticks pour qu'une fraction de mort devienne une mort entière ---
 # N_BOUND_MORT = ceil(1 / MAX_DEATH_RATE_PER_TICK) : au plafond de mortalité,
 # une cellule accumule au moins MAX_DEATH_RATE_PER_TICK mort par habitant et
 # par tick ; le report de la fraction (mortality_remainder) garantit qu'une
-# mort entière est appliquée en au plus ce nombre de ticks (SC3 brief 017).
+# mort entière est appliquée en au plus ce nombre de ticks.
 N_BOUND_MORT = math.ceil(1.0 / MAX_DEATH_RATE_PER_TICK)
 
-# --- Migration de famine (brief 041) ---
+# --- Migration de famine ---
 
 # Part de la population d'une cellule affamée qui émigre en un tick.
 # Niveau 2 : ordre de grandeur plausible, jamais sourcé (voir MODELE.md).
 FRACTION_MIGRANTE_PAR_TICK = 0.01
 
-# --- Entrée en ligne de commande (python -m sim), ADR-0016 ---
+# --- Entrée en ligne de commande (python -m sim) ---
 # Un an calendaire de ticks, dérivé de la base de temps unique : jamais un
 # second littéral de durée. TICK_DURATION_DAYS vaut 1 aujourd'hui.
 CALENDAR_DAYS_PER_YEAR = 365
 DEFAULT_CLI_TICKS = CALENDAR_DAYS_PER_YEAR * TICK_DURATION_DAYS
 DEFAULT_CLI_SEED = 0
 
-# --- Snapshot cellulaire V0-A (brief 027) ---
-# Première photographie cellulaire du jalon V0-A ; le suffixe -1 permet une
+# --- Snapshot cellulaire ---
+# Photographie cellulaire déterministe ; le suffixe numéroté permet une
 # révision du contrat sans réutiliser le même nom.
 SNAPSHOT_SCHEMA_VERSION = "v0a-3"
-# Même pas que tools/map/io_util.py : plus fin serait du bruit, plus gros
-# écraserait des centroïdes voisins.
+# Plus fin serait du bruit, plus gros écraserait des centroïdes voisins.
 SNAPSHOT_FLOAT_DECIMALS = 6

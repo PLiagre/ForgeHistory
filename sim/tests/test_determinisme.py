@@ -1,15 +1,12 @@
 """
 Même graine, même monde.
 
-Ce que ce fichier protège (ADR-0018) :
+Ce que ce fichier protège :
   - le rng est réellement consommé à chaque tick ;
   - deux exécutions à graine identique donnent le même condensé, deux
     graines différentes donnent des mondes différents ;
   - la dérivation de province départage les égalités de façon stable et
     ne mute aucune entrée.
-
-Fusion des anciens fichiers rng, seeding, engine et
-determinisme_departage_purete.
 """
 
 import hashlib
@@ -51,7 +48,7 @@ _CELLULE_FABRIQUEE = 900001
 # --- test_rng.py ---
 def test_rng_etat_change_apres_tick():
     """
-    SC2.1 — Le rng est consommé à chaque tick.
+    Le rng est consommé à chaque tick.
     rng.getstate() avant ≠ rng.getstate() après 10 ticks.
     Compteur : rng_etat_change_apres_tick (True si état différent).
     """
@@ -77,9 +74,9 @@ def test_rng_etat_change_apres_tick():
 # --- test_rng.py ---
 def test_ticks_deterministes_meme_graine():
     """
-    SC2.2 — Déterminisme à graine fixe.
+    Déterminisme à graine fixe.
     Deux runs de 200 ticks, world_seed=42 et rng_seed=42, donnent
-    le même condensé SHA256. Condensés cités par nom (hard-won rule 12).
+    le même condensé SHA256. Condensés cités par nom (règle 12).
     Compteur : ticks_deterministes_meme_graine (True si condensés égaux).
     """
     hash_run_A = _run_n_ticks_digest(world_seed=42, rng_seed=42)
@@ -100,7 +97,7 @@ def test_ticks_deterministes_meme_graine():
 # --- test_rng.py ---
 def test_ticks_differents_graines_rng_differentes():
     """
-    SC2.3 — Sensibilité à la graine rng.
+    Sensibilité à la graine rng.
     Deux runs de 200 ticks, world_seed=42, mais rng_seed=42 vs rng_seed=999 :
     les condensés doivent être différents (l'écart vient du tick, pas de
     l'amorçage seul).
@@ -128,7 +125,7 @@ def test_ticks_differents_graines_rng_differentes():
 # --- test_seeding.py ---
 def test_seeding_determinisme():
     """
-    SC4 : deux runs avec la même graine rng_seed = 42 donnent
+    Deux runs avec la même graine rng_seed = 42 donnent
     des populations identiques sur toutes les cellules.
     """
     w1 = World.charger(rng_seed=42)
@@ -155,7 +152,7 @@ def test_seeding_determinisme():
 # --- test_determinisme_departage_purete.py ---
 def test_determinisme_agregation_deux_passes():
     """
-    SC4 — trois appels, une seule appartenance : deux fois les mêmes entrées,
+    Trois appels, une seule appartenance : deux fois les mêmes entrées,
     puis les centres dans l'ordre inverse.
 
     Compteur : determinisme_agregation_deux_passes.
@@ -188,7 +185,7 @@ def test_determinisme_agregation_deux_passes():
 # --- test_determinisme_departage_purete.py ---
 def test_departage_egalite_plus_petit_id():
     """
-    SC4/D4 — deux centres exactement équidistants d'une cellule fabriquée : la
+    Deux centres exactement équidistants d'une cellule fabriquée : la
     cellule relève du plus petit `id`, dans les deux ordres de parcours.
 
     Un simple « premier arrivé, premier servi » passerait dans un ordre et
@@ -227,7 +224,7 @@ def test_departage_egalite_plus_petit_id():
 # --- test_determinisme_departage_purete.py ---
 def test_departage_egalite_est_bien_une_egalite_exacte():
     """
-    SC4/D4 — le cas synthétique est bien une égalité exacte de distance, pas
+    Le cas synthétique est bien une égalité exacte de distance, pas
     une quasi-égalité que le hasard des flottants trancherait. Sans cela, le
     test précédent ne mesurerait pas le départage.
     """
@@ -248,7 +245,7 @@ def test_departage_egalite_est_bien_une_egalite_exacte():
 # --- test_determinisme_departage_purete.py ---
 def test_purete_agregation_ne_mute_pas_les_entrees():
     """
-    SC4/D1 — `derive_appartenance` ne modifie aucun objet reçu et n'écrit
+    `derive_appartenance` ne modifie aucun objet reçu et n'écrit
     aucun fichier. Comparaison avant / après sur des copies profondes, et
     comparaison des octets des deux fichiers lus par le module.
     """

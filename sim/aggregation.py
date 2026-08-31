@@ -1,7 +1,7 @@
 """
 Agrégation dérivée : la Province se recalcule, elle ne s'estampille pas.
 
-ADR-0003 : `cell_id` est la seule clé spatiale. La Province n'est donc pas un
+`cell_id` est la seule clé spatiale. La Province n'est donc pas un
 champ posé sur une entité, mais le regroupement des cellules qui relèvent
 aujourd'hui d'un centre administratif plutôt que d'un autre.
 
@@ -11,13 +11,13 @@ d'elle, et de personne d'autre. Quand un centre se déplace, aucune cellule
 n'est réécrite : la réponse à « de qui cette terre relève-t-elle ? » est
 simplement recalculée.
 
-Entrées lues, jamais écrites (ADR-0018 : elles vivent toutes dans `data/`) :
+Entrées lues, jamais écrites — elles vivent toutes dans `data/` :
 - `data/world-1400.json` — position géographique de chaque cellule
   (`centroid.lat`, `centroid.lon`, repère WGS84) ;
 - `data/province-centres-1400.json` — les centres administratifs
   (`coordinates`) et le paramètre de projection (`projection.mid_latitude`).
 
-Voir `sim/MODELE.md`, section « brief 018 », pour la provenance des données,
+Voir `sim/MODELE.md` pour la provenance des données,
 la projection employée, la règle de départage des égalités et la politique de
 refus de deviner.
 """
@@ -87,7 +87,8 @@ class Regroupement(_NoBadSpatialField):
     Cette vue vit hors de `sim.model` à dessein. `sim.model` contient les
     entités persistées que le moteur fait évoluer ; y déclarer ce type
     inviterait à traiter l'appartenance comme un état stockable, ce que
-    l'ADR-0003 interdit. Un regroupement se recalcule, il ne se conserve pas.
+    la clé spatiale unique interdit. Un regroupement se recalcule, il ne se
+    conserve pas.
 
     Champs :
         id       : identifiant du centre dont relèvent ces cellules.

@@ -1,7 +1,7 @@
 """
 Chargement du monde, ligne de commande et snapshot.
 
-Ce que ce fichier protège (ADR-0018) :
+Ce que ce fichier protège :
   - le monde chargé correspond au fichier de carte, sans nombre codé en dur ;
   - la ligne de commande amorce un monde et le rend en JSON stable ;
   - le snapshot a un schéma fermé, recalcule la province au lieu de la
@@ -76,23 +76,6 @@ def test_le_monde_charge_exactement_la_carte():
     assert len(world.cells) == len(carte["cellules"])
     assert len(world.adjacency) == len(carte["adjacence"])
     assert set(world.cells) == {c["cell_id"] for c in carte["cellules"]}
-
-
-def test_la_carte_versionnee_est_celle_que_l_outil_produit():
-    """
-    ADR-0018, risque nommé : une carte figée peut devenir périmée si
-    `tools/map/` évolue sans la regénérer. Ce test le refuse.
-    """
-    outil = _REPO_ROOT / "tools" / "map" / "build_world.py"
-    resultat = subprocess.run(
-        [sys.executable, str(outil), "--verifier"],
-        capture_output=True, text=True, cwd=_REPO_ROOT,
-    )
-    print(resultat.stdout)
-    assert resultat.returncode == 0, (
-        "La carte versionnée ne correspond plus à ce que produit "
-        f"tools/map/build_world.py :\n{resultat.stdout}\n{resultat.stderr}"
-    )
 
 
 def test_cells_have_required_fields():
@@ -201,7 +184,7 @@ def test_la_consommation_des_couches_est_mesuree_pas_declaree():
     engine.production_kg = production_qui_lit_le_climat
     try:
         # Sans lecture réelle de la couche, rien ne doit bouger.
-        # Le climat devient consommé par le lot 035 ; la sonde pointe
+        # Le climat est désormais consommé ; la sonde pointe
         # vers les gisements, encore inertes.
         assert _couche_consommee("couche_inexistante") is False, (
             "La sonde rend True alors que le moteur ne lit pas la couche : "
@@ -317,7 +300,7 @@ def test_rouge_sentinelle_et_cle_spatiale():
 # --- test_snapshot_v0a.py ---
 def test_le_relief_est_une_classe_pas_une_altitude():
     """
-    ADR-0018 : le jeu voit cinq classes de relief, jamais des mètres.
+    Le jeu voit cinq classes de relief, jamais des mètres.
     """
     world = World.charger(0)
     doc = build_snapshot_document(world, 0, 0)
@@ -354,11 +337,11 @@ def test_zero_mesure_n_est_pas_sentinelle():
 
 
 
-# --- Brief 042 : panier photographié et jour de l'année ---
+# --- Panier photographié et jour de l'année ---
 
 
 def test_snapshot_porte_le_panier_du_moteur():
-    """SC1/SC2 — Chaque cellule porte stocks ; food_stock_kg absent du document."""
+    """Chaque cellule porte stocks ; food_stock_kg absent du document."""
     world = World.charger(0)
     doc = build_snapshot_document(world, 0, 0)
     assert doc["cells"], "document vide"
@@ -373,7 +356,7 @@ def test_snapshot_porte_le_panier_du_moteur():
 
 
 def test_jour_de_tick_present_ou_absent():
-    """SC3 — jour_de_tick photographié ou clé absente, jamais inventée."""
+    """jour_de_tick photographié ou clé absente, jamais inventée."""
     from sim import constants as _constants
 
     world = World.charger(0)
@@ -389,12 +372,12 @@ def test_jour_de_tick_present_ou_absent():
     finally:
         _constants.jour_de_tick = original
 
-# --- brief 033 : relief dans le rendement ---
+# --- Relief dans le rendement ---
 
 
 def test_production_kg_modulée_par_le_relief():
     """
-    SC1 — À surface et rendement identiques, chaque classe de relief de la
+    À surface et rendement identiques, chaque classe de relief de la
     carte applique son facteur nominal via l'unique formule production_kg().
     """
     from sim import constants as _k
@@ -441,7 +424,7 @@ def test_production_kg_modulée_par_le_relief():
 
 
 def test_tick_refuse_relief_inconnu():
-    """SC2 — Le tick refuse une classe de relief absente de l'ensemble dérivé."""
+    """Le tick refuse une classe de relief absente de l'ensemble dérivé."""
     import random
 
     from sim.engine import ReliefInvalideError, tick
@@ -458,7 +441,7 @@ def test_tick_refuse_relief_inconnu():
 
 
 def test_tick_refuse_relief_absent():
-    """SC2 — Une classe manquante dans world.carte est refusée explicitement."""
+    """Une classe manquante dans world.carte est refusée explicitement."""
     import random
 
     from sim.engine import ReliefInvalideError, tick
@@ -474,11 +457,11 @@ def test_tick_refuse_relief_absent():
     assert "relief=None" in str(exc.value)
 
 
-# --- brief 034 : moteur sans état de module pour la carte ---
+# --- Le moteur ne garde pas la carte dans un état de module ---
 
 
 def test_aucune_instruction_global_dans_le_moteur():
-    """SC1 — Aucune fonction de sim/engine.py ne déclare global."""
+    """Aucune fonction de sim/engine.py ne déclare global."""
     import ast
 
     engine_path = pathlib.Path(__file__).resolve().parents[1] / "engine.py"
@@ -526,7 +509,7 @@ def _cartes_par_classe_relief_pour_cellule(carte_originale: dict, cell_id: int) 
 
 
 def test_production_du_tick_kg_modulée_par_le_relief():
-    """SC2a — Seule la carte change ; le rapport suit les facteurs nominaux."""
+    """Seule la carte change ; le rapport suit les facteurs nominaux."""
     from sim import constants as _k
     from sim.engine import production_du_tick_kg
 
@@ -566,7 +549,7 @@ def test_production_du_tick_kg_modulée_par_le_relief():
 
 
 def test_production_du_tick_kg_appels_consecutifs_identiques():
-    """SC2b — Mêmes arguments, même flottant ; aucun état de module posé."""
+    """Mêmes arguments, même flottant ; aucun état de module posé."""
     from sim import engine
     from sim.engine import production_du_tick_kg
 
@@ -590,7 +573,7 @@ def test_production_du_tick_kg_appels_consecutifs_identiques():
 
 
 def test_tick_ne_pose_pas_carte_dans_le_module():
-    """SC2c — Pendant un tick réel, _carte_du_tick reste None à chaque lecture."""
+    """Pendant un tick réel, _carte_du_tick reste None à chaque lecture."""
     import random
 
     from sim import engine
@@ -623,7 +606,7 @@ def test_tick_ne_pose_pas_carte_dans_le_module():
         f"{non_none} lectures ont vu un état de module au lieu de None"
     )
 
-# --- brief 035 : saison dans le rendement ---
+# --- Saison dans le rendement ---
 
 
 def _cellules_par_amplitude_jour(carte: dict) -> tuple[int, int]:
@@ -644,7 +627,7 @@ def _cellules_par_amplitude_jour(carte: dict) -> tuple[int, int]:
 
 
 def test_production_ete_differe_de_hiver_sur_amplitude_max():
-    """SC1 — À surface et rendement identiques, été ≠ hiver sur l'amplitude max."""
+    """À surface et rendement identiques, été ≠ hiver sur l'amplitude max."""
     from sim import constants as _k
     from sim.engine import production_du_tick_kg
 
@@ -667,7 +650,7 @@ def test_production_ete_differe_de_hiver_sur_amplitude_max():
 
 
 def test_le_nord_a_une_saison_plus_violente_que_le_sud():
-    """SC2 — Le rapport été/hiver est plus grand au nord qu'au sud."""
+    """Le rapport été/hiver est plus grand au nord qu'au sud."""
     from sim import constants as _k
     from sim.engine import production_du_tick_kg
 
@@ -695,7 +678,7 @@ def test_le_nord_a_une_saison_plus_violente_que_le_sud():
 
 
 def test_plafond_survie_coherent_avec_facteur_saison_moyen():
-    """SC4 — production_moyenne_kg_par_tick emploie le facteur saisonnier moyen."""
+    """production_moyenne_kg_par_tick emploie le facteur saisonnier moyen."""
     from sim import constants as _k
     from sim.engine import (
         _lire_solstices,
@@ -733,7 +716,7 @@ def test_plafond_survie_coherent_avec_facteur_saison_moyen():
 
 
 def test_somme_annuelle_saisonniere_egale_somme_au_facteur_moyen():
-    """SC5 — Sur une année, la saison redistribue sans créer ni détruire."""
+    """Sur une année, la saison redistribue sans créer ni détruire."""
     from sim import constants as _k
     from sim.engine import (
         _production_du_tick_kg_saison_moyenne,
@@ -770,7 +753,7 @@ def test_somme_annuelle_saisonniere_egale_somme_au_facteur_moyen():
     ],
 )
 def test_tick_refuse_climat_incomplet(mutation: str, cle_attendue: str):
-    """SC6 — Climat absent ou solstice non numérique : erreur nommée."""
+    """Climat absent ou solstice non numérique : erreur nommée."""
     import random
 
     from sim.engine import ClimatInvalideError, tick
@@ -794,11 +777,11 @@ def test_tick_refuse_climat_incomplet(mutation: str, cle_attendue: str):
         tick(world, random.Random(0), numero_tick=0)
     assert cle_attendue in str(exc.value)
 
-# --- Brief 037 : panier de marchandises (SC3, SC4, SC5) ---
+# --- Panier de marchandises ---
 
 
 def test_sentinelle_panier_absent_vs_zero():
-    """SC3 — Absent → -1.0 ; présent à zéro → 0.0 ; les deux ne se confondent pas."""
+    """Absent → -1.0 ; présent à zéro → 0.0 ; les deux ne se confondent pas."""
     from sim.constants import MARCHANDISE_NOURRITURE
     from sim.model import Cell, ecrire_stock_marchandise, lire_stock_marchandise
 
@@ -813,7 +796,7 @@ def test_sentinelle_panier_absent_vs_zero():
 
 
 def test_acces_directs_au_panier_hors_modele():
-    """SC4 — Aucun module de sim/ hors model.py n'indexe stocks directement."""
+    """Aucun module de sim/ hors model.py n'indexe stocks directement."""
     import ast
     import pathlib
 
@@ -839,21 +822,26 @@ def test_acces_directs_au_panier_hors_modele():
     )
 
 
+# Marchandise d'épreuve : elle n'existe que pour ce test, qui prouve que le
+# panier tient plus d'une entrée. Elle n'a rien à faire dans le moteur.
+MARCHANDISE_EPREUVE = "__sonde_panier__"
+
+
 def test_panier_deuxieme_marchandise_et_to_dict():
-    """SC5 — Deuxième marchandise dans le panier ; World.to_dict() l'expose."""
-    from sim.constants import MARCHANDISE_NOURRITURE, MARCHANDISE_SONDE_037
+    """Une deuxième marchandise tient dans le panier, et World.to_dict() l'expose."""
+    from sim.constants import MARCHANDISE_NOURRITURE
     from sim.model import Cell, ecrire_stock_marchandise, lire_stock_marchandise
     from sim.world import World
 
     cell = Cell(cell_id=99, area_km2=1.0, population=10, food_stock_kg=100.0)
     assert lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE) == 100.0
-    ecrire_stock_marchandise(cell, MARCHANDISE_SONDE_037, 42.0)
-    assert lire_stock_marchandise(cell, MARCHANDISE_SONDE_037) == 42.0
+    ecrire_stock_marchandise(cell, MARCHANDISE_EPREUVE, 42.0)
+    assert lire_stock_marchandise(cell, MARCHANDISE_EPREUVE) == 42.0
     assert lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE) == 100.0
 
     world = World(cells={99: cell}, adjacency=[])
     doc = world.to_dict()
-    assert doc["cells"]["99"]["stocks"][MARCHANDISE_SONDE_037] == 42.0
+    assert doc["cells"]["99"]["stocks"][MARCHANDISE_EPREUVE] == 42.0
 
     monde_charge = World.charger(0)
     cellules_avec_panier = sum(
@@ -862,7 +850,7 @@ def test_panier_deuxieme_marchandise_et_to_dict():
     assert cellules_avec_panier == len(monde_charge.cells)
 
 
-# --- Brief 038 : extraction minière ---
+# --- Extraction minière ---
 
 
 def _agreger_gisements_carte(carte_doc: dict) -> tuple[int, set[str], set[str]]:
@@ -899,7 +887,7 @@ def _ressources_minieres_panier(world) -> tuple[int, set[str]]:
 
 
 def test_chaque_gisement_produit_sa_ressource():
-    """SC1 — Panier minière aligné sur la carte après un tick."""
+    """Panier minière aligné sur la carte après un tick."""
     import random
 
     from sim.engine import tick
@@ -921,7 +909,7 @@ def test_chaque_gisement_produit_sa_ressource():
 
 
 def test_richesse_ordre_les_debits():
-    """SC2 — majeure > notable > mineure à population et ressource égales."""
+    """majeure > notable > mineure à population et ressource égales."""
     import copy
     import random
 
@@ -960,7 +948,7 @@ def test_richesse_ordre_les_debits():
 
 
 def test_sans_bras_pas_de_minerai():
-    """SC3 — Population nulle : extraction mesurée à 0.0, pas la sentinelle -1."""
+    """Population nulle : extraction mesurée à 0.0, pas la sentinelle -1."""
     import random
 
     from sim.engine import _extraction_du_tick_kg, tick
@@ -992,7 +980,7 @@ def test_sans_bras_pas_de_minerai():
 
 
 def test_minerai_ne_change_pas_la_nourriture():
-    """SC5 — Le stock alimentaire est identique avec ou sans gisement."""
+    """Le stock alimentaire est identique avec ou sans gisement."""
     import copy
     import random
 
@@ -1022,7 +1010,7 @@ def test_minerai_ne_change_pas_la_nourriture():
 
 
 def test_richesse_inconnue_refusee():
-    """SC6 — Richesse hors des trois classes : erreur nommée."""
+    """Richesse hors des trois classes : erreur nommée."""
     import random
 
     from sim.engine import RichesseGisementInvalideError, tick
@@ -1049,7 +1037,7 @@ def test_richesse_inconnue_refusee():
 
 
 def test_gisement_incomplet_ignore():
-    """SC6 — Sans ressource ou richesse : ignoré, les autres extraient."""
+    """Sans ressource ou richesse : ignoré, les autres extraient."""
     import random
 
     from sim.constants import MARCHANDISE_NOURRITURE
@@ -1079,7 +1067,7 @@ def test_gisement_incomplet_ignore():
 
 
 def test_ressource_inconnue_acceptee():
-    """SC6 — Ressource inédite : acceptée dans le panier."""
+    """Ressource inédite : acceptée dans le panier."""
     import random
 
     from sim.engine import tick

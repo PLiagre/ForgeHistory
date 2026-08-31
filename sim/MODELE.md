@@ -1,22 +1,17 @@
 # sim/MODELE.md — comment le monde fonctionne
 
-> **Tenu par Claude** (architecte du modèle, ADR-0018 ; il écrit aussi les
-> briefs depuis ADR-0019). Ce fichier dit comment le monde fonctionne — pas
-> quoi faire pour un lot donné : ça, c'est le brief. C'est d'ici que les
-> briefs sont découpés, et c'est pourquoi une affirmation fausse ici se
-> propage à tous les lots suivants.
+> Ce fichier dit **comment le monde fonctionne** — pas quoi faire pour un
+> lot donné : ça, c'est le brief. C'est d'ici que les briefs sont découpés,
+> et c'est pourquoi une affirmation fausse ici se propage à tous les lots
+> suivants.
 >
-> Il est rangé par **mécanisme**, jamais par numéro de brief : les briefs sont
-> archivés, leurs numéros ne veulent plus rien dire pour qui lit le moteur
-> aujourd'hui. Les numéros qui apparaissent encore ci-dessous datent une règle,
-> ils ne la nomment pas.
+> Il est rangé par **mécanisme**, jamais par numéro de lot. Les numéros qui
+> apparaissent encore ci-dessous datent une règle, ils ne la nomment pas ;
+> les lots eux-mêmes vivent dans l'historique git.
 >
-> **Révision du 2026-08-30**, après les lots 034 à 043 et 045. La révision
-> précédente décrivait au présent quatre mécanismes que le moteur avait cessé
-> d'ignorer — gisements, natalité, migration, stock à une seule marchandise —
-> et une capacité de transport que le lot 043 a remplacée. Une formule morte
-> décrite au présent piège le brief suivant : c'est la dette que cette
-> révision paie.
+> **Une formule morte décrite au présent piège le lot suivant.** Quand un
+> mécanisme change, ce document change dans le même mouvement — sinon la
+> dette se paie au lot d'après.
 
 ## En une page
 
@@ -50,7 +45,7 @@ part. À chaque tick, dans cet ordre :
    Personne n'emporte de kilogrammes.
 
 La **province** ne se stocke pas : elle se recalcule à chaque consultation
-comme « le centre administratif le plus proche » (ADR-0003). Le tick ne la
+comme « le centre administratif le plus proche ». Le tick ne la
 consomme pas.
 
 L'ordre fait foi dans `sim/engine.py`, fonction `tick()`. Ce résumé le suit ;
@@ -215,7 +210,7 @@ seule topologie que la carte autorise est un **bassin commun** — on expédie
 vers la mer, on puise depuis la mer — et non un réseau de routes maritimes.
 Dans un bassin, Venise et Bruges sont à égale distance l'une de l'autre. C'est
 une limite de la donnée, déclarée ici pour que personne ne la prenne pour une
-décision de modèle ; le jour où `tools/map/` produira une adjacence
+décision de modèle ; le jour où la carte portera une adjacence
 port-à-port, elle tombera sans que le reste bouge.
 
 ## Ce qu'est une ville, à l'échelle d'une cellule
@@ -256,7 +251,7 @@ Trois raisons, dans l'ordre où elles pèsent :
    carrés contient évidemment un bourg et sa campagne. C'est la seule des deux
    lectures qui décrive quelque chose de vrai à la taille de la cellule.
 3. **B ne crée aucune seconde clé spatiale.** Le bourg est une **vue dérivée**
-   de la cellule, comme la province (ADR-0003). Il n'est jamais un champ
+   de la cellule, comme la province. Il n'est jamais un champ
    stocké, jamais un `ville_id`, jamais une entité que le tick fait évoluer.
 
 ### D'où vient la donnée
@@ -279,12 +274,12 @@ n'autorise personne à inventer ce second métier en même temps que la vue.
 
 ### Ce qui se refuse plutôt que se devine
 
-- **Aucune liste de villes historiques.** `tools/map/` en emploie pour semer la
-  maille ; ce n'est pas une entité du moteur, et `data/world-1400.json` n'en
-  porte aucune. Une ville nommée entrerait au niveau 1 de fidélité, donc
+- **Aucune liste de villes historiques.** L'outil qui a fabriqué la carte en
+  a employé pour semer la maille ; ce n'est pas une entité du moteur, et
+  `data/world-1400.json` n'en porte aucune. Une ville nommée entrerait au niveau 1 de fidélité, donc
   exigerait une source : le jeu n'en a pas, et le niveau 3 ne se simule pas.
 - **Aucun `city_id`, `ville_id` ni `bourg_id`.** `cell_id` reste la seule clé
-  spatiale (ADR-0003, mode de défaillance n° 1).
+  spatiale (mode de défaillance n° 1).
 - **Aucun seuil qui « fait » une ville.** Poser un drapeau au-dessus d'un
   nombre d'habitants serait une règle de gameplay, pas une règle de monde.
   Le bourg n'est pas déclaré : il est **compté**.
@@ -629,7 +624,7 @@ de mort.
 > Les formules antérieures — plancher de mortalité binaire, récupération de
 > dette multiplicative `D × (1 − r)`, seuil de coupure `DEFICIT_ZERO_EPSILON` —
 > ne sont plus décrites ici. Une formule morte décrite au présent piège le
-> brief suivant. Elles sont dans l'historique git, avec les raisons de leur
+> lot suivant. Elles sont dans l'historique git, avec les raisons de leur
 > retrait dans les messages de commit.
 
 ---
@@ -765,7 +760,7 @@ interdisait ailleurs.
 
 La garde payée par un vrai défaut est conservée intacte : le critère de survie
 ne doit pas être **aveugle aux constantes qui gouvernent la mort** — c'est ce
-que le brief 017 reprochait à celui du brief 013, où une famine deux fois plus
+qu'on reprochait à un critère antérieur, où une famine deux fois plus
 meurtrière passait le même contrôle. La propriété n° 2 la tient directement,
 sur le moteur, et survit à tout changement du modèle de production. Rouge
 prouvé : avec une mortalité qui ignore `HUNGER_DEATH_SCALE`, les trois régimes
@@ -777,7 +772,7 @@ Elles sont datées et elles vieillissent. La règle 12 le dit pour les empreinte
 de parité, et vaut ici : **un compteur se cite par son nom, pas par sa valeur.**
 Une révision antérieure de ce document affirmait quatre compteurs qui étaient
 tous faux, de deux à trente fois, parce qu'ils dataient d'un moteur deux
-révisions plus vieux — et ce document est celui d'où les briefs sont découpés.
+révisions plus vieux — et ce document est celui d'où les lots sont découpés.
 
 Aucune valeur mesurée n'est donc citée comme une propriété du modèle. Pour
 connaître l'état du monde : `python -m sim --ticks 20 --json`.
@@ -1049,7 +1044,7 @@ Elle ne modifie aucun objet reçu, n'écrit aucun fichier, et n'ajoute aucun
 champ à `Cell`. La vue dérivée (`Regroupement`) vit dans `sim/aggregation.py`,
 hors de `sim.model`, parce que `sim.model` contient les entités **persistées**
 que le moteur fait évoluer : y déclarer la Province inviterait à la traiter
-comme un état stockable, exactement ce que l'ADR-0003 interdit. Le pas de
+comme un état stockable, exactement ce que la clé spatiale unique interdit. Le pas de
 temps (`tick`) ne consomme pas l'agrégation : la Province est une vue du
 monde, pas un acteur économique.
 

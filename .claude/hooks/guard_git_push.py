@@ -1,18 +1,13 @@
 #!/usr/bin/env py
 """
-PreToolUse hook (Bash matcher). Blocks `git push` if the harness's own test
-suite is red.
+Bloque `git push` si les tests du jeu sont rouges (hook PreToolUse, Bash).
 
-Explicitly required by the brief (voir AGENTS.md /
-project charter, section 5.5): "les hooks pour tout ce qui est mécanique et
-doit se vérifier à chaque fois ... garde avant `git push`." A mechanical,
-deterministic check -- no LLM inference, same philosophy as
-harness/verdict_audit.py.
+Le workflow V1 tient sur une seule garde mécanique : rien de rouge ne
+remonte sur une branche. La CI le revérifie, mais après coup ; ici c'est
+avant. Le propriétaire lit ensuite le diff et fusionne — ça, aucune machine
+ne le fait à sa place.
 
-Reads the hook's JSON payload on stdin, checks tool_input.command for a
-`git push` invocation, and if found, runs `py -m pytest harness/tests/ -q`.
-Blocks (exit 2) if that suite fails; allows (exit 0) otherwise, including
-when no harness/tests/ directory exists yet (nothing to guard).
+Sortie 2 (bloqué) si la suite échoue, 0 sinon.
 """
 import json
 import re
@@ -37,22 +32,21 @@ def main() -> int:
         return 0
 
     repo_root = Path(__file__).resolve().parent.parent.parent
-    tests_dir = repo_root / "harness" / "tests"
-    if not tests_dir.is_dir():
-        return 0  # nothing to guard yet
+    suites = [d for d in (repo_root / "sim" / "tests", repo_root / "viewer" / "tests") if d.is_dir()]
+    if not suites:
+        return 0  # rien à garder
 
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", str(tests_dir), "-q"],
+        [sys.executable, "-m", "pytest", *(str(d) for d in suites), "-q"],
         capture_output=True, text=True, cwd=repo_root,
     )
 
     if result.returncode != 0:
         print(
-            "Blocked: `git push` while harness/tests/ is red.\n"
-            f"Ran: py -m pytest harness/tests/ -q (exit {result.returncode})\n"
-            "Fix the failing tests first, or run the command yourself "
-            "outside this hook if you deliberately need to push a "
-            "known-broken state.\n\n"
+            "Bloqué : `git push` alors que les tests sont rouges.\n"
+            f"Joué : py -m pytest sim/tests/ viewer/tests/ -q (sortie {result.returncode})\n"
+            "Réparer d'abord, ou lancer la commande soi-même hors de ce hook "
+            "pour pousser un état sciemment cassé.\n\n"
             f"{result.stdout[-2000:]}\n{result.stderr[-2000:]}",
             file=sys.stderr,
         )

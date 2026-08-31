@@ -1,62 +1,76 @@
-# AGENTS.md — les règles, pour tous les agents
+# AGENTS.md — les règles, pour tous
 
-Le seul fichier de règles du dépôt (ADR-0018, amendé par ADR-0021). Hermes,
-Cursor et Claude utilisé manuellement
-lisent celui-ci. Il ne paraphrase aucun autre document : ce qui est ici
-n'est écrit qu'ici.
+Le seul fichier de règles du dépôt. Il ne paraphrase aucun autre document :
+ce qui est ici n'est écrit qu'ici.
 
-Les quatre documents vivants : **VISION.md** (ce qu'on construit, gelé) ·
-**ROADMAP.md** (où on en est, tenu par Hermes) · **AGENTS.md** (ce fichier) ·
-**hermes/DASHBOARD.md** (généré, jamais édité à la main).
+Les trois documents vivants : **[VISION.md](VISION.md)** (ce qu'on construit,
+gelé) · **[ROADMAP.md](ROADMAP.md)** (où on en est) · **AGENTS.md** (ce
+fichier). Le quatrième document, [`sim/MODELE.md`](sim/MODELE.md), dit
+comment le monde fonctionne — c'est de lui que les lots sont découpés.
 
 ---
 
 ## Le projet en trois phrases
 
 ForgeHistory est un moteur de simulation historique vivant (1400-1900) dont
-le gameplay émerge. Le produit vivant est `sim/` — `python -m sim`, sans
-Unity. Le monde lit une carte figée, `data/world-1400.json`.
+le gameplay émerge. Le produit est `sim/` — `python -m sim`. Le monde lit une
+carte figée, `data/world-1400.json`.
 
 ## Langue
 
-Toute communication avec le propriétaire et tout écrit du dépôt — messages
-de commit, comptes-rendus, documents — est en **français clair**. Phrases
-courtes, concrètes : ce qui a été fait, pourquoi, ce qui reste. Un terme
-technique nécessaire s'explique en une phrase la première fois.
+Tout ce qui s'écrit ici est en **français clair** : messages de commit,
+briefs, commentaires, documents. Phrases courtes, concrètes : ce qui a été
+fait, pourquoi, ce qui reste. Un terme technique nécessaire s'explique en une
+phrase la première fois.
 
 ---
 
-## Qui fait quoi
+## Le workflow
 
-| acteur | fait | ne fait pas |
-|---|---|---|
-| **Hermes** (Sol 5.6, VPS) | roadmap, suivi, remet au propriétaire les besoins de brief, fait relire les briefs fournis, lance Cursor, mesure, rend compte | n'écrit pas de brief, ne code pas, ne fusionne pas, ne juge pas un lot et **ne lance jamais Claude/Anthropic** |
-| **Cursor** (Grok 4.6 plan, Composer code) | exécute le brief, ouvre la PR, se relit dans une invocation neuve, itère jusqu'au vert | ne décide pas de ce qui est recevable |
-| **Claude manuel** | sur action directe du propriétaire, peut écrire les briefs, tenir `sim/MODELE.md` ou produire une revue consultative | n'a aucun agent, cron, backend ou témoin dans Hermes/ForgePilot ; Hermes ne le lance jamais |
+1. Le propriétaire écrit un brief, seul ou avec qui il veut →
+   `briefs/NNN-slug.md`.
+2. Il le donne à qui il veut — Claude, Cursor, Codex — sur une branche.
+3. La CI joue les tests.
+4. Il lit le diff.
+5. Il fusionne.
 
-Le processus complet :
+Pas de relecture obligatoire, pas de porte mécanique, pas de verdict, pas de
+niveau de risque, pas d'ordre d'enchaînement entre les lots.
 
-> Le propriétaire fournit un brief, éventuellement écrit avec Claude manuel →
-> Hermes le fait relire puis le lance → Cursor
-> l'exécute et ouvre une PR → les tests passent et la porte mécanique
-> vérifie le compte-rendu → le propriétaire fusionne.
+**La seule règle de rôle : celui qui a écrit le code ne dit pas s'il est
+recevable.** Celui qui le dit, c'est le propriétaire, parce que c'est lui qui
+fusionne.
 
-Le déroulé pas à pas, avec les commandes exactes de chaque étape :
-[`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md). Ce fichier-ci dit les
-**règles** ; celui-là dit **la marche à suivre**. Aucun des deux ne
-paraphrase l'autre.
+## Le brief
 
-**Celui qui produit ne prononce pas la recevabilité de son propre travail.**
-C'est la seule règle de rôle qui subsiste, et elle ne se contourne pas. Elle
-vaut aussi pour le brief : celui qui l'écrit ne le relit pas. Le relecteur
-(`forgepilot brief-review`) et le juge du lot ne sont jamais Claude.
+Un fichier, cinq sections. C'est la seule source d'instruction d'un lot :
+aucun autre document ne le paraphrase.
 
-## Une seule source d'instruction
+```
+# Brief NNN — titre
 
-Exactement un document dit ce qu'un agent doit faire pour un lot : le
-`brief.md` de ce lot. Tout autre document peut y renvoyer ; aucun ne peut le
-paraphraser. Vérifié par
-`harness/tests/test_single_source_of_instruction.py`.
+## But                    une phrase : ce que le monde saura faire après
+## Règle du monde         comment ça marche, en termes de monde ;
+                          cite la section de sim/MODELE.md dont ça découle
+## Périmètre              les fichiers autorisés en écriture, rien d'autre
+## Conditions de succès   SC1…SCn ; chacune nomme une commande qui peut échouer
+## Hors périmètre         ce que ce lot ne fait pas
+```
+
+Cinq façons de rater un brief :
+
+1. **Un lot = un changement.** Si deux parties pourraient être livrées et
+   jugées séparément, ce sont deux briefs. Le test : « si la moitié marche et
+   l'autre pas, est-ce que je fusionne ? » Si oui, couper.
+2. **Chaque critère nomme une commande, un fichier ou une valeur
+   observable**, et doit pouvoir échouer. « Le code est propre » n'est pas un
+   critère.
+3. **Tout compteur a un dénominateur dérivé des données.** Jamais un nombre
+   attendu écrit en dur. Un échantillon vide **échoue**, il ne passe pas.
+4. **Ne jamais demander de modifier un test existant.** Ajuster un contrôle
+   après avoir vu une mesure est une calibration déguisée. Un lot **ajoute**
+   ses cas au fichier qui porte déjà l'invariant concerné.
+5. **Tout brief qui touche au monde dit son niveau de fidélité** (1, 2 ou 3).
 
 ---
 
@@ -76,20 +90,18 @@ paraphraser. Vérifié par
 
 ## Vraisemblable, pas véridique
 
-Trois niveaux de fidélité. Tout brief qui touche au monde s'y réfère.
-
 - **Niveau 1 — juste dans les grandes lignes. Obligatoire.** La Méditerranée
   est là où elle est ; les Alpes sont des montagnes ; Venise est grande en
   1400.
 - **Niveau 2 — plausible, généré, jamais sourcé.** Rendements, gisements
   secondaires, population des villages, climat local. **Une anomalie de
-  niveau 2 n'est pas un défaut** : elle n'ouvre ni correctif, ni brief.
+  niveau 2 n'est pas un défaut** : elle n'ouvre ni correctif, ni lot.
 - **Niveau 3 — pas simulé.** Ce qui a besoin d'une source pour exister
   n'entre pas dans le jeu.
 
-Les constantes : pas de nombre magique dans le code du moteur — la règle
-reste. Justifier chaque constante par une source — la règle est abandonnée ;
-« ordre de grandeur plausible » en commentaire suffit.
+Pas de nombre magique dans le code du moteur — la règle tient. Justifier
+chaque constante par une source — abandonné ; « ordre de grandeur plausible »
+en commentaire suffit.
 
 ## La règle d'admission des tests
 
@@ -104,20 +116,19 @@ Un test existe s'il protège **l'une de ces trois choses**, et seulement :
 Corollaire : **ne pas ajouter un fichier de test par lot.** Un lot ajoute ses
 cas au fichier qui porte déjà l'invariant concerné.
 
+Et la suite doit rester **jouable à la main avant chaque fusion**. Une suite
+qu'on n'attend pas est une suite qu'on ne joue pas.
+
 ---
 
 ## Les douze règles payées par un vrai défaut
 
-Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
+Chacune a coûté un défaut mesuré. Elles portent sur le code, pas sur le
+processus : elles survivent à tout changement de workflow.
 
 1. `py`, jamais `python` (sur la machine Windows du propriétaire, `python`
-   est un faux alias du Microsoft Store). Sur Linux : `python3`.
-   *2026-08-25 : il n'y a plus de clone Windows de ce dépôt — le VPS, WSL2 et
-   Cursor Cloud sont Linux, et Unity, seule chose qui exigeait Windows natif,
-   est archivée. La moitié Windows de cette règle est donc devenue
-   historique. Elle reste écrite : elle a coûté un vrai défaut, et le jour où
-   un clone Windows réapparaît elle redevient vraie sans avoir à être
-   redécouverte.*
+   est un faux alias du Microsoft Store). Sur Linux : `python3`. Tenu
+   mécaniquement par `.claude/hooks/no_bare_python.py`.
 2. Un contrôle **dérive** sa référence ; il n'est jamais nommé d'après sa
    cible. (Six récurrences historiques.)
 3. Un compteur dérive aussi.
@@ -137,19 +148,18 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
     l'œil que des suites 100 % vertes n'ont jamais attrapés.
 12. Une empreinte de parité se cite par **nom**, jamais par valeur : elle
     sera rebasée un jour, et le document qui porte la constante morte piège
-    tous les briefs suivants.
+    tous les lots suivants.
 
-## Les sept modes de défaillance diagnostiqués
+## Les six modes de défaillance diagnostiqués
 
 | # | mode de défaillance | contre-mesure structurelle |
 |---|---|---|
-| 1 | double clé primaire (ProvinceId de la sim contre cell_id de la géométrie) | UNE clé spatiale, décidée avant tout code (ADR-0003) |
+| 1 | double clé primaire | UNE clé spatiale : `cell_id`, décidée avant tout code |
 | 2 | champ déclaré que personne n'écrit | `sim/tests/test_write_coverage.py` : chaque champ a un site d'écriture et un site de lecture, rouge sinon |
 | 3 | variable terminale (calculée, lue par personne) | avant d'ouvrir un levier, vérifier que sa conséquence atteint quelque chose de mesurable hors de son module |
 | 4 | la présentation réimplémente la simulation | la présentation LIT, elle ne décide jamais |
 | 5 | compteur codé en dur | un compteur dérive des données, ou il n'existe pas |
-| 6 | contrôle qui nomme sa propre référence (échantillon vide, passage silencieux) | référence DÉRIVÉE de la mesure ; un échantillon vide doit ÉCHOUER, jamais passer |
-| 7 | le producteur prononce sa propre recevabilité | celui qui produit ne juge pas — porte mécanique + relecture en invocation neuve |
+| 6 | contrôle qui nomme sa propre référence | référence DÉRIVÉE de la mesure ; un échantillon vide doit ÉCHOUER, jamais passer |
 
 ---
 
@@ -157,61 +167,40 @@ Chacune a coûté un défaut mesuré dans VictoriaProject. Écrites verbatim.
 
 | chemin | quoi |
 |---|---|
-| `sim/` | **le produit vivant** — `python -m sim`. Voir `sim/README.md`. |
+| `sim/` | **le produit** — `python -m sim`. Voir `sim/README.md` et `sim/MODELE.md`. |
 | `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
-| `viewer/` | un regard mince sur un snapshot. Jamais une seconde simulation. |
-| `tools/map/` | l'outil qui fabrique la carte. Hors du chemin quotidien : ne se ressort que si on refait la carte. Voir `tools/map/BUILD.md`. |
-| `harness/` | la porte mécanique, et rien d'autre. Voir `harness/README.md`. |
-| `hermes/` | le pilotage : propositions, demandes, rapports, crons, tableau de bord. |
-| `control-plane/` | ForgePilot — l'outil qui lance un lot chez Cursor. |
-| `docs/operations/pc-windows-worker.md` | contrat du worker PC (ADR-0020) : présence GitHub, pas un second chef. |
-| `docs/adr/` | une décision structurelle = un ADR daté. **ADR-0021 est la frontière opérationnelle la plus récente** : Claude reste manuel et Hermes ne l'invoque jamais. |
+| `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
+| `briefs/` | un fichier par lot. |
 
 ## Les archives
 
-`unity/`, `architecture/` et les 33 briefs terminés sont sortis de l'arbre
-de travail au dégraissage (ADR-0018). Ils restent dans l'historique git, au
-commit du lot D : **`da1596d`**. C'est la référence qui marche aujourd'hui,
-depuis n'importe quel clone :
+L'outil qui fabrique la carte, les quarante lots déjà faits avec leurs
+preuves, l'ancien pilote et l'ancien harnais sont sortis de l'arbre de
+travail au dégraissage V1. Ils vivent dans l'historique git, au tag
+**`v0-avant-degraissage`** :
 
 ```bash
-git show da1596d:unity/<chemin>          # relire un fichier
-git checkout da1596d -- unity/           # récupérer tout un dossier
-git ls-tree --name-only da1596d:unity    # voir ce qu'il y a
+git show v0-avant-degraissage:<chemin>        # relire un fichier
+git checkout v0-avant-degraissage -- tools/   # récupérer l'outil carte
+git ls-tree --name-only v0-avant-degraissage  # voir ce qu'il y avait
 ```
 
-> **Le tag `archive/2026-08` n'existe pas sur `origin`.** Deux sessions ont
-> essayé de le pousser, les deux ont reçu un `HTTP 403` : le jeton pousse des
-> branches, pas des tags. Vérifiable : `git ls-remote --tags origin` ne le
-> montre pas. Tant que quelqu'un ne l'aura pas posé depuis un clone local
-> (`git tag -a archive/2026-08 da1596d && git push origin archive/2026-08`),
-> **utiliser le SHA ci-dessus** — les commandes en `archive/2026-08` échouent
-> avec `fatal: invalid object name`.
+La carte est figée : on ne refait pas `data/world-1400.json`. Le jour où il
+faudrait, l'outil se récupère par la commande ci-dessus.
 
 ## Les commandes
 
 ```bash
-python -m sim                            # le produit vivant
+python -m sim                            # le produit
 python -m sim --ticks 0 --json           # fumée : le monde s'amorce
 python -m pytest sim/tests/ -q           # les tests du jeu
 python -m pytest viewer/tests/ -q        # le regard mince
-python -m pytest harness/tests/ -q       # la porte mécanique
-python harness/verdict_audit.py <brief>  # la porte, sur un lot
-python tools/map/build_world.py          # refaire la carte figée
-python hermes/dashboard.py               # régénérer le tableau de bord
-cd control-plane && python -m unittest discover -s tests   # ForgePilot
-.venv/bin/forgepilot workers --repo .    # constat du worker PC (ADR-0020)
+
+# regarder le monde : photographier, puis ouvrir
+python -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
+python -m viewer --snapshot /tmp/monde.json
 ```
 
-## Notes d'environnement (VM Linux Cursor Cloud)
-
-Le `python3` du système est un interpréteur Debian géré (PEP 668). Un
-`.venv` à la racine est créé au démarrage avec `pytest` et la pile
-scientifique : **utiliser `.venv/bin/python` pour tout ce qui a besoin d'un
-paquet tiers**. Ne jamais `pip install --user` contre le python système.
-
-La porte mécanique et le moteur sont en bibliothèque standard seule :
-`python3` suffit pour eux.
-
-Il n'y a pas de linter configuré. Les garde-fous du dépôt sont les tests et
-`harness/verdict_audit.py`.
+Le moteur et le regard sont en bibliothèque standard seule ; seuls les tests
+demandent `pytest`. Il n'y a pas de linter : les garde-fous du dépôt sont les
+tests et l'œil du propriétaire sur le diff.

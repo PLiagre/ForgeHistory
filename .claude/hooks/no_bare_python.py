@@ -1,48 +1,89 @@
 #!/usr/bin/env py
 """
-PreToolUse hook (Bash matcher). Blocks bare `python` invocations.
+Bloque les invocations de `python` nu (hook PreToolUse, matcher Bash).
 
-Hard-won rule 1: `py`, never `python` — the Microsoft Store alias for
-`python` on this machine is a fake stub that exits non-zero instead of
-running the interpreter. Reads the hook's JSON payload on stdin, checks
-tool_input.command, exits 2 (block) if found, else exits 0 (allow).
+Sur la machine Windows du propriétaire, `python` est un faux alias du
+Microsoft Store qui sort en erreur au lieu de lancer l'interpréteur. La
+règle est `py`, ou `python3` sous Linux.
 
-The matching itself lives in `harness/bare_python.py`, shared with
-`verdict_audit.py`'s `no_bare_python_alias` check — see that module for why
-the match is positional rather than a substring scan, and what it
-deliberately does not catch.
-
-On a missing or broken matcher this hook **fails closed** (exit 2) rather
-than waving everything through. The only way that import fails is a
-repository whose `harness/` is gone or unreadable, which is not a state to
-keep working in; and a guard that disappears silently is worse than one that
-stops you with a message naming the file to restore.
+Le mot n'est bloqué qu'en POSITION DE COMMANDE — là où un shell
+l'exécuterait vraiment. Une simple recherche de sous-chaîne bloquait
+`grep -rn python`, `git commit -m "drop python fallback"` et le mot dans un
+commentaire : 9 faux positifs sur 15. Une garde qu'on contourne ne protège
+rien.
 """
 import json
+import re
 import sys
-from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "harness"))
+# Mots après lesquels le jeton suivant est une commande, pas un argument.
+_PREFIXES = "if|then|else|elif|do|done|while|until|sudo|env|time|nohup|exec|command|xargs"
 
-try:
-    from bare_python import find_invocation
-except Exception as exc:  # noqa: BLE001 -- a broken guard must be loud, never silent
-    print(
-        f"Blocked: the bare-`python` guard could not load its matcher "
-        f"({REPO_ROOT / 'harness' / 'bare_python.py'}): {exc}. "
-        "Restore that file; the guard fails closed rather than allowing "
-        "unchecked commands.",
-        file=sys.stderr,
-    )
-    sys.exit(2)
+# Interpréteurs dont l'argument -c / -Command est exécuté comme une commande.
+# Le nom de l'interpréteur est obligatoire : `-c` seul n'est pas un drapeau
+# d'exécution, et le traiter ainsi bloquait `grep -c python`.
+_SHELLS = r"bash|sh|zsh|ksh|dash|pwsh|powershell"
+_RUN_FLAGS = r"-lc|-c|-Command|-EncodedCommand"
+
+COMMAND_POSITION = re.compile(
+    r"""(?:
+          ^                                    # début de la commande
+        | [;&|()\{\}\n]                        # après un opérateur shell
+        | \$\(                                 # dans une substitution
+        | `                                    # ...ou une substitution à quotes inverses
+        | \b(?:""" + _PREFIXES + r""")\b       # après un mot préfixe
+        | \b[A-Za-z_][A-Za-z0-9_]*=\S*         # après une affectation de variable
+        | \beval\b\s*["']?                     # eval "python ..."
+        | \b(?:""" + _SHELLS + r""")\b         # bash -c "python ..."
+          (?:\s+-\S+)*?\s+(?:""" + _RUN_FLAGS + r""")\s*["']?
+      )
+      \s*
+      python(?!3)\b
+    """,
+    re.VERBOSE,
+)
+
+_HEREDOC_START = re.compile(r"""<<-?\s*(?P<q>['"]?)(?P<delim>\w+)(?P=q)""")
+
+
+def strip_heredoc_bodies(command: str) -> str:
+    """Retire le corps des heredocs, garde la ligne qui les ouvre.
+
+    Un corps de heredoc est de la donnée passée à un autre programme, mais
+    ses lignes commencent en début de ligne — une position de commande.
+    """
+    lines = command.split("\n")
+    kept: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        kept.append(line)
+        index += 1
+        match = _HEREDOC_START.search(line)
+        if not match:
+            continue
+        delimiter = match.group("delim")
+        while index < len(lines) and lines[index].strip() != delimiter:
+            index += 1
+        if index < len(lines):  # sauter la ligne de terminaison elle-même
+            index += 1
+    return "\n".join(kept)
+
+
+def find_invocation(text: str) -> "re.Match | None":
+    """La première invocation de `python` nu dans `text`, ou None.
+
+    `python3` et `./python` n'en sont pas : ni l'un ni l'autre n'est l'alias
+    du Store que cette règle vise.
+    """
+    return COMMAND_POSITION.search(strip_heredoc_bodies(text))
 
 
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
-        return 0  # malformed payload is not this hook's problem to police
+        return 0  # une charge utile malformée n'est pas l'affaire de ce hook
 
     command = (payload.get("tool_input") or {}).get("command", "")
     if isinstance(command, list):
@@ -50,11 +91,10 @@ def main() -> int:
 
     if find_invocation(command):
         print(
-            "Blocked: bare `python` invocation detected. Use `py` instead "
-            "(see docs/rules/hard-won-rules.md, rule 1 — the Microsoft "
-            "Store `python` alias on this machine is a fake stub). "
-            "If you meant the word rather than the command, it is only "
-            "blocked in command position — quote it or reword.",
+            "Bloqué : invocation de `python` nu. Employer `py` (AGENTS.md, "
+            "règle 1 — l'alias `python` du Microsoft Store est un faux stub). "
+            "Le mot n'est bloqué qu'en position de commande : s'il s'agit du "
+            "mot et non de la commande, le citer ou le reformuler.",
             file=sys.stderr,
         )
         return 2

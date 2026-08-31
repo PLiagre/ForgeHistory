@@ -1,6 +1,6 @@
 # Les tests du jeu
 
-## La règle d'admission (ADR-0018)
+## La règle d'admission
 
 Un test existe s'il protège **l'une de ces trois choses**, et seulement :
 
@@ -23,7 +23,7 @@ ajoute ses cas dans le fichier qui porte déjà l'invariant concerné.
 |---|---|
 | `test_survie.py` | faim, dette alimentaire, mortalité, direction du modèle de survie |
 | `test_commerce.py` | conservation de la masse, un kg ne nourrit qu'une fois, pas de sur-livraison |
-| `test_province.py` | la province est dérivée, jamais stockée (ADR-0003) |
+| `test_province.py` | la province est dérivée, jamais stockée |
 | `test_determinisme.py` | même graine, même monde ; départage stable des égalités |
 | `test_monde.py` | chargement de la carte, ligne de commande, schéma du snapshot |
 | `test_no_hardcoded.py` | aucun nombre magique dans le moteur |

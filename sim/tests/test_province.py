@@ -1,7 +1,7 @@
 """
-La province est une vue dérivée, jamais une donnée stockée (ADR-0003).
+La province est une vue dérivée, jamais une donnée stockée.
 
-Ce que ce fichier protège (ADR-0018) :
+Ce que ce fichier protège :
   - une seule source de vérité : aucune entité ne porte de champ province ;
     la vue ne transporte que des identifiants, jamais une cellule modifiable ;
   - invariant : chaque cellule relève d'exactement une province ;
@@ -106,7 +106,7 @@ def _champs_declares(cellule) -> set:
 # --- test_province_aggregation.py ---
 def test_province_couverture_totale_monde_reel():
     """
-    SC1 — sur le monde réel, chaque cellule chargée relève d'exactement une
+    sur le monde réel, chaque cellule chargée relève d'exactement une
     province. Aucun nombre de cellules n'est écrit en dur : tout est dérivé
     des fichiers.
 
@@ -173,7 +173,7 @@ def test_province_couverture_totale_monde_reel():
 # --- test_province_aggregation.py ---
 def test_province_consultation_rend_le_centre_le_plus_proche():
     """
-    SC1 — la consultation de production rend bien le centre le plus proche,
+    la consultation de production rend bien le centre le plus proche,
     re-dérivé indépendamment pour un échantillon de cellules.
     """
     monde = World.charger(rng_seed=RNG_SEED)
@@ -208,7 +208,7 @@ def test_province_consultation_rend_le_centre_le_plus_proche():
 # --- test_province_aggregation.py ---
 def test_province_refus_position_absente():
     """
-    SC1/D5 — une cellule chargée sans position connue fait lever une erreur
+    une cellule chargée sans position connue fait lever une erreur
     explicite qui nomme la cellule. Pas de province par défaut, pas d'écart
     silencieux.
 
@@ -242,7 +242,7 @@ def test_province_refus_position_absente():
 # --- test_province_aggregation.py ---
 def test_province_aucun_champ_province_sur_entites():
     """
-    SC2 — par introspection : aucune dataclass de `sim.model` ni du module
+    par introspection : aucune dataclass de `sim.model` ni du module
     d'agrégation ne déclare de champ dont le nom normalisé commence par le
     préfixe interdit.
 
@@ -278,8 +278,8 @@ def test_province_aucun_champ_province_sur_entites():
 # --- test_province_aggregation.py ---
 def test_province_garde_prefixe_variantes_rouges():
     """
-    SC2 — la garde `_NoBadSpatialField` est exercée : chaque variante de nom
-    interdit lève une `TypeError` citant l'ADR-0003.
+    la garde `_NoBadSpatialField` est exercée : chaque variante de nom
+    interdit lève une `TypeError` qui nomme la clé spatiale unique.
 
     Compteur : garde_prefixe_variantes_rouges.
     """
@@ -292,7 +292,7 @@ def test_province_garde_prefixe_variantes_rouges():
             [("cell_id", int), (variante, str)],
             bases=(_NoBadSpatialField,),
         )
-        with pytest.raises(TypeError, match="ADR-0003"):
+        with pytest.raises(TypeError, match="seule clé spatiale"):
             classe(**{"cell_id": 1, variante: "X"})
         levees += 1
 
@@ -304,7 +304,7 @@ def test_province_garde_prefixe_variantes_rouges():
 # --- test_province_aggregation.py ---
 def test_province_champs_vue_couverts():
     """
-    SC2 — mode d'échec n° 2 appliqué à la vue dérivée : chaque champ déclaré
+    mode d'échec n° 2 appliqué à la vue dérivée : chaque champ déclaré
     par le module d'agrégation a au moins un site de construction ET au moins
     un site de lecture dans le code de production.
 
@@ -347,7 +347,7 @@ def test_province_champs_vue_couverts():
 # --- test_province_aggregation.py ---
 def test_province_egalites_de_distance_monde_reel():
     """
-    SC4 — nombre de cellules du monde réel dont la distance minimale est
+    nombre de cellules du monde réel dont la distance minimale est
     atteinte par au moins deux centres (égalité exacte en flottant). Ce
     compteur peut légitimement valoir 0 : c'est un fait mesuré, pas une
     sentinelle.
@@ -381,7 +381,7 @@ def test_province_egalites_de_distance_monde_reel():
 # --- test_province_aggregation.py ---
 def test_province_agregation_ne_reference_aucune_cellule_modifiable():
     """
-    SC4 — la vue dérivée ne transporte que des identifiants : jamais un objet
+    la vue dérivée ne transporte que des identifiants : jamais un objet
     `Cell` modifiable. Un agrégat qui référencerait des cellules rouvrirait la
     porte à leur réécriture.
     """
@@ -404,7 +404,7 @@ def test_province_agregation_ne_reference_aucune_cellule_modifiable():
 # --- test_redessin_province.py ---
 def test_redessin_change_agregat_sans_reecrire_les_cellules():
     """
-    SC3 — les deux faits sont vérifiés ensemble : l'agrégat bouge ET les
+    les deux faits sont vérifiés ensemble : l'agrégat bouge ET les
     cellules ne bougent pas. Vérifier l'un sans l'autre ne prouverait rien.
     """
     monde = World.charger(rng_seed=RNG_SEED)
@@ -495,7 +495,7 @@ def test_redessin_change_agregat_sans_reecrire_les_cellules():
 # --- test_redessin_province.py ---
 def test_redessin_naffecte_pas_les_enregistrements_lus():
     """
-    SC3 — le redessin produit de nouveaux enregistrements de centres ; il ne
+    le redessin produit de nouveaux enregistrements de centres ; il ne
     réécrit pas ceux qui ont été lus du fichier.
     """
     centres = charger_centres()

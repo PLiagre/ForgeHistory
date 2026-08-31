@@ -1,21 +1,10 @@
 name: tests
 
-# ADR-0018 : un workflow de tests, plus le scan de sécurité.
-# ADR-0020 ajoute worker-pc.yml (ping workflow_dispatch, runner Windows).
-# Les douze workflows précédents orchestraient des rôles supprimés
-# (full-auto, machine d'audit, bot de fusion, aiguillage de risque).
+# Deux travaux : le jeu et le regard qui le montre. C'est toute la CI.
 #
-# Cinq travaux :
-#   * sim-tests      -- le jeu : invariants physiques, règles visibles, déterminisme
-#   * viewer-tests   -- le regard mince : il lit le snapshot sans le réinventer
-#   * harness-tests  -- la porte mécanique et ses gardes
-#   * control-plane  -- ForgePilot, l'outil qui lance les lots
-#   * f0-demo        -- un faux compte-rendu doit être refusé par la porte
-#
-# Pourquoi le brief honnête n'est pas rejoué ici : son ACCEPT dépend des
-# dates de fichiers (la rubrique doit précéder les livrables), qu'un
-# checkout git écrase. Le chemin ACCEPT est couvert par les fixtures de
-# test_verdict_audit.py.
+# Elle ne juge pas un lot, elle ne lit pas de compte-rendu, elle ne fusionne
+# rien. Elle dit une seule chose : les tests passent, ou ils ne passent pas.
+# Le reste, c'est le propriétaire qui le lit dans le diff.
 
 on:
   push:
@@ -26,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  sim-tests:
+  sim:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -35,9 +24,9 @@ jobs:
           python-version: "3.13"
       - run: python -m pip install --upgrade pip pytest
       - name: Les tests du jeu
-        run: python -m pytest sim/tests/ -v
+        run: python -m pytest sim/tests/ -q
 
-  viewer-tests:
+  viewer:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -46,39 +35,4 @@ jobs:
           python-version: "3.13"
       - run: python -m pip install --upgrade pip pytest
       - name: Le regard mince sur le snapshot
-        run: python -m pytest viewer/tests/ -v
-
-  harness-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-        with:
-          python-version: "3.13"
-      - run: python -m pip install --upgrade pip pytest
-      - name: La porte mécanique et ses gardes
-        run: python -m pytest harness/tests/ -v
-
-  control-plane-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-        with:
-          python-version: "3.13"
-      # pytest est requis : ForgePilot lance les suites du candidat avec
-      # `python -m pytest`, et un test l'exerce pour de vrai.
-      - run: python -m pip install --upgrade pip pytest
-      - name: ForgePilot
-        working-directory: control-plane
-        run: python -m unittest discover -s tests -v
-
-  f0-demo:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-        with:
-          python-version: "3.13"
-      - name: Un faux compte-rendu doit être refusé
-        run: python harness/demo/fake_brief_001/run_demo.py
+        run: python -m pytest viewer/tests/ -q

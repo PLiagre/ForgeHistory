@@ -24,7 +24,7 @@
             "timeout": 5
           }
         ],
-        "description": "Block bare `python` invocations — fake Store stub on this machine; use `py`.",
+        "description": "Bloque les invocations de `python` nu — faux alias du Store sur cette machine ; employer `py`.",
         "id": "pre:bash:no-bare-python"
       },
       {
@@ -36,7 +36,7 @@
             "timeout": 30
           }
         ],
-        "description": "Block `git push` if harness/tests/ is red.",
+        "description": "Bloque `git push` si sim/tests/ ou viewer/tests/ est rouge.",
         "id": "pre:bash:guard-git-push"
       },
       {
@@ -48,7 +48,7 @@
             "timeout": 5
           }
         ],
-        "description": "Block edits to VISION.md unless FORGE_ALLOW_VISION_EDIT=1 is set.",
+        "description": "Bloque les modifications de VISION.md sauf si FORGE_ALLOW_VISION_EDIT=1 est posé.",
         "id": "pre:edit:guard-vision"
       }
     ]

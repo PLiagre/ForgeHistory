@@ -1,163 +1,113 @@
-# ROADMAP — ForgeHistory
+# ROADMAP — où on en est
 
-> **Propriétaire de ce document : Hermes (chef de projet).** Toute évolution
-> de la feuille de route passe par une demande écrite sous `hermes/requests/`
-> (format : `hermes/README.md`), tranchée par le propriétaire, puis reflétée
-> ici par Hermes. Personne d'autre ne réécrit ce fichier sur le fond ;
-> une correction factuelle (statut devenu faux) est permise à tout acteur,
-> en la signalant dans le message de commit.
->
-> La vision produit (ce que le jeu **est**) vit dans [VISION.md](VISION.md)
-> et prime en cas de conflit. Ce fichier dit **où on en est** et **dans quel
-> ordre on avance** — jamais ce qu'il faut faire pour un brief donné (ça,
-> c'est le brief lui-même).
+Ce fichier dit **où on en est** et **dans quel ordre on avance**. Il ne dit
+jamais quoi faire pour un lot donné : ça, c'est le brief.
 
-## Le jeu — cinq couches, dans l'ordre
+La vision produit (ce que le jeu **est**) vit dans [VISION.md](VISION.md) et
+prime en cas de conflit. Le fonctionnement du monde vit dans
+[`sim/MODELE.md`](sim/MODELE.md). Les règles vivent dans
+[AGENTS.md](AGENTS.md).
 
-Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
-2026-08-28, après la fusion du lot 041 :
+---
 
-| # | Couche | Statut | Où ça vit |
-|---|---|---|---|
-| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **commencé** | `data/`, `sim/`, `viewer/` |
-| 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | non commencé | `sim/` |
-| 3 | **États** — fiscalité, lois, diplomatie, technologies, culture, religion | non commencé | `sim/` |
-| 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencé | `sim/` |
-| 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencé | `sim/` |
+## Les cinq couches
 
-**Couche 1 — état vrai** (au 2026-08-27, après la fusion du lot 039)
-
-- La carte est **figée** : `data/world-1400.json`, un seul fichier lu par
-  `sim/`. Elle porte 596 cellules, 1 364 arêtes d'adjacence, le relief en
-  cinq classes, les déterminants du climat et 27 gisements nommés de 1400.
-- `tools/map/` (ex-`pipeline/geo/`) est l'outil qui fabrique la carte. Il
-  est hors du chemin quotidien : on ne le ressort que pour refaire la carte.
-- `sim/` : amorçage, tick, commerce, survie, province dérivée, snapshot
-  `v0a-2`, panier de marchandises. Depuis le lot 034, le tick reçoit la carte
-  explicitement et ne porte plus d'état global caché. Il joue **le relief**,
-  **le climat** par la durée du jour, et depuis le lot 038, **les gisements**
-  — chaque gisement complet produit des kg de sa ressource dans le panier
-  (population × débit × facteur de richesse). C'est la première couche de la
-  carte qui entre dans le jeu après le climat. Mesure refaite le 2026-08-27 :
-  relief `True`, climat `True`, gisements `True` — les trois couches sont
-  consommées par le moteur. Depuis le lot 039, le commerce transporte **toute
-  marchandise** présente dans le monde, pas seulement la nourriture.
-- Ce que le monde ne sait pas encore faire : fabriquer (le minerai extrait
-  reste sur place).
-- `viewer/` : regard mince, preuve SVG.
-- Unity : archivé, au commit `da1596d` (le tag `archive/2026-08` n'a
-  jamais pu être poussé — voir `AGENTS.md` § « Les archives »).
-
-## Le projet — phases F
-
-| Phase | Contenu | Statut |
+| # | couche | statut |
 |---|---|---|
-| **F1** — Fondations monde | carte figée complète : littoral, cellules, adjacence, relief, climat, gisements | **terminée** |
-| **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — relief, climat, gisements, marchandises multi-commerce, natalité et migration joués |
-| **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles | à venir |
+| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **faite, et elle tourne** |
+| 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | **ouverte** — trois briefs écrits |
+| 3 | **États** — fiscalité, lois, diplomatie, technologies, culture, religion | non commencée |
+| 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencée |
+| 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencée |
 
-## Le workflow — Claude manuel, jamais orchestré (ADR-0021)
+---
 
-> Le propriétaire fournit un brief, éventuellement écrit avec Claude manuel →
-> Hermes le fait relire puis le lance → Cursor
-> l'exécute et ouvre une PR → les tests passent et la porte mécanique
-> vérifie le compte-rendu → le propriétaire fusionne.
+## Couche 1 — ce que le monde sait faire
 
-- **Hermes** (Sol 5.6, VPS) : roadmap, suivi, mesure le besoin, remet au
-  propriétaire tout brief manquant, fait relire les briefs fournis et lance
-  Cursor. N'écrit pas de brief, ne code pas, ne fusionne pas, ne juge pas et
-  ne lance jamais Claude/Anthropic.
-- **Cursor** (Grok 4.6 pour le plan, Composer pour le code) : exécute,
-  ouvre la PR, se relit dans une invocation neuve.
-- **Claude manuel** : le propriétaire peut l'utiliser directement pour écrire
-  un brief, tenir `sim/MODELE.md` ou demander une revue consultative. Aucun
-  backend, cron, agent ou témoin Hermes/ForgePilot ne l'invoque.
+La carte est **figée** : `data/world-1400.json`, un seul fichier lu par
+`sim/`. Elle porte les cellules, leurs arêtes d'adjacence, le relief en cinq
+classes, les déterminants du climat et les gisements nommés de 1400. Les
+compter se fait par une commande, jamais en recopiant un nombre ici :
 
-Règle de fond conservée : celui qui produit ne prononce pas la recevabilité
-de son propre travail.
+```bash
+python -m sim --ticks 0 --json
+```
 
-Le déroulé d'un lot, étape par étape et commande par commande, est dans
-[`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
+Le tick joue, dans cet ordre : extraction minière, production agricole,
+commerce, consommation, faim, mortalité, natalité, migration. Concrètement :
 
-Trois workflows GitHub : les tests, le scan de sécurité, et le ping du
-worker PC (`workflow_dispatch` seulement, ADR-0020). Il n'y a plus de
-pipeline full-auto, plus de bot de fusion, plus de machine d'états d'audit.
+- le **relief** module le rendement d'une cellule et le débit d'une arête ;
+- le **climat** joue par la durée du jour, donc par la saison ;
+- les **gisements** produisent des kg de leur ressource dans le panier ;
+- le **commerce** transporte n'importe quelle marchandise, pas seulement la
+  nourriture, avec une capacité dérivée de la longueur de frontière partagée ;
+- la population **naît**, **meurt de faim** et **migre** vers les voisines en
+  surplus ;
+- la **province** est une agrégation dérivée, recalculée, jamais stockée.
 
-## Prochaines étapes (dans l'ordre)
+`viewer/` est un regard mince sur une photographie du monde. Il lit, il ne
+décide jamais.
 
-Neuf lots écrits attendent sous `harness/queue/briefs/`. La liste
-ci-dessous est un **renvoi**, pas une instruction : ce qu'il faut faire pour
-un lot est dans son `brief.md`, et nulle part ailleurs.
+### Ce que le monde ne sait pas encore faire
 
-| # | lot | en une phrase |
-|---|---|---|
-| 036 | `on-nait-aussi` | la population ne fait plus que mourir ✓ |
-| 037 | `le-stock-devient-un-panier` | le stock cesse d'être un seul nombre de nourriture |
-| 038 | `les-gisements-sortent-du-minerai` | les 27 gisements nommés produisent enfin quelque chose ✓ |
-| 039 | `le-commerce-porte-tout` | le commerce transporte une marchandise quelconque, pas seulement la nourriture ✓ |
-| 040 | `franchir-une-montagne-coute` | une arête de montagne ne transporte pas comme une arête de plaine ✓ |
-| 041 | `on-s-en-va-quand-on-a-faim` | des habitants quittent une cellule affamée pour une voisine en surplus ✓ |
-| 042 | `le-viewer-montre-ce-qui-joue` | le regard mince montre ce que le moteur joue vraiment |
-| 043 | `le-convoi-a-l-echelle-de-la-cellule` | le commerce cesse d'être mille fois trop petit pour les cellules |
-| 044 | `un-metier-le-mineur` | première division du travail : les mineurs ne labourent pas |
+- **Fabriquer.** Le minerai extrait reste du minerai : rien ne le transforme.
+- **Utiliser la mer.** Les arêtes maritimes de la carte sont écartées en
+  silence. Plus d'une cellule sur trois n'a aucun voisin terrestre : elle ne
+  peut ni recevoir ni donner un kilogramme.
+- **Diviser le travail.** Tout le monde laboure. Il n'y a pas de métier.
+- **Concentrer les gens.** Aucun endroit ne peut abriter plus de monde qu'il
+  n'en nourrit lui-même — voir ci-dessous.
 
-Dépendances restantes : 038 avant 044 (tenue). 040 avant 043 (le facteur de terrain se prouve plus simplement sur
-une capacité constante ; il multiplie ensuite la capacité dérivée) · 043
-avant tout lot de couche 2. Le prochain lot de la chaîne est 042 (viewer) ou 043 (convoi).
+---
 
-### Pourquoi il n'y a pas de lot « ville »
+## Couche 2 — les villes
 
-Mesuré le 2026-08-26, avant d'écrire ces briefs, et toujours vrai au
-2026-08-27 : **aucun mécanisme du moteur ne concentre la population.** Ni la
-natalité, ni une migration de famine, ni une migration d'attraction ne font
-monter la densité de la cellule la plus dense au-dessus de celle de la
-médiane, à 365 comme à 1 000 ticks.
+Une ville est un endroit qui **ne produit pas ce qu'il mange**. Trois choses
+manquent pour qu'elle puisse exister, et chacune a son brief écrit :
 
-La cause est chiffrable. Une cellule médiane compte environ 96 000 habitants
-et consomme près de 192 000 kg par tick ; une arête d'adjacence en transporte
-200. Le commerce est **962 fois trop petit** pour l'échelle des cellules :
-aucun endroit du monde ne peut être nourri par ses voisins, donc aucun endroit
-ne peut abriter plus de monde qu'il n'en nourrit lui-même.
+| brief | ce qu'il ouvre |
+|---|---|
+| [044 — un métier : le mineur](briefs/044-un-metier-le-mineur.md) | la première division du travail : les mineurs ne labourent pas |
+| [046 — la mer est un port commun](briefs/046-la-mer-est-un-port-commun.md) | les cellules côtières cessent d'être hermétiques |
+| [047 — le bourg est une agrégation dérivée](briefs/047-le-bourg-est-une-agregation-derivee.md) | compter la part non agricole d'une cellule, sans la déclarer |
 
-Une ville est précisément un endroit qui ne produit pas ce qu'il mange. Tant
-que ce rapport tient, un brief « le bourg est une agrégation dérivée » porterait
-sur un phénomène que le moteur ne peut pas produire, et son critère
-d'acceptation serait invérifiable. Le lot 043 est ce qui lève le blocage ; le
-bourg s'écrira après lui, sur une mesure et non sur une intention.
+Aucun ordre n'est imposé entre eux, **sauf** 044 avant 047 : le bourg compte
+une part non agricole que le métier doit d'abord créer.
 
-Côté pilotage : cron quotidien de lecture et de mesure ; une proposition
-seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
-[`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
+> **Ces trois briefs sont à l'ancien format** (dossier, grille d'évaluation,
+> tableau de compteurs, manifeste). Ils sont à réécrire au format court
+> d'[AGENTS.md](AGENTS.md) avant d'être lancés. Leur règle du monde et leurs
+> conditions de succès sont bonnes : c'est la cérémonie autour qui saute.
 
-## Historique des révisions
+### Le mur, et pourquoi il est en train de tomber
 
-| date | auteur | changement |
-|---|---|---|
-| 2026-08-12 | hermes (rédaction initiale déléguée à Cursor, décision propriétaire) | création — état F0/F1, couches jeu, workflow quatre acteurs |
-| 2026-08-12 | hermes (rédaction déléguée à Cursor, décision propriétaire « ok pour tout ») | reflet de la demande « tableau de bord unique et pilotage » (H1-H5, ADR-0011) ; correction factuelle : secrets CI provisionnés |
-| 2026-08-12 | orchestrateur Cursor (remplaçant du CTO Claude, indisponible — instruction propriétaire) | correction factuelle uniquement : brief 011 (F2, amorçage `sim/`) livré et accepté — statuts couche 1, F2 et étape 4 mis à jour |
-| 2026-08-13 | hermes (rédaction déléguée à l'orchestrateur Cursor, décision propriétaire — `DEMANDE-20260813-audit-par-grandes-etapes.md`) | audit/contre-audit par grandes étapes (ADR-0012) : section « Grandes étapes — jalons d'audit » (E1-E6), chaîne quatre acteurs mise à jour (Cursor audite les jalons, plus chaque PR) |
-| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire — `DEMANDE-20260814-pilote-forgepilot.md`) | pilote ADR-0013 corrigé : Hermes léger, Claude Code Pro plan/revue en lecture seule, Cursor unique exécutant ; ancien full-auto en mode manuel |
-| 2026-08-14 | hermes (rédaction déléguée, décision propriétaire) | hébergement progressif : trois lots locaux, VPS 4 Go seulement si concluant ; Render écarté pour Hermes |
-| 2026-08-14 | hermes (rédaction déléguée, correction propriétaire — `DEMANDE-20260814-worker-unity-windows.md`) | correction de plateforme : Unity reste sous Windows ; pilote local Windows/WSL2, puis VPS facultatif + worker Unity Windows manuel et bloquant |
-| 2026-08-16 | hermes (rédaction déléguée à Claude Code, rattrapage demandé par le propriétaire) | correction factuelle uniquement, aucune décision nouvelle : PR #106 fusionnée le 2026-08-14 (le texte la disait « en attente ») ; fleuves G5 livrés et fusionnés (brief 021, PR #107) ; état du pilote ajouté aux prochaines étapes (lot 022 fusionné sans verdict, brief 023 non lancé, ADR-0014 `proposed`). Rapports adossés : `hermes/reports/RAPPORT-20260816-*.md` |
-| 2026-08-16 | hermes (rédaction déléguée à Claude Code, décision propriétaire — `DEMANDE-20260815-hermes-cerveau-du-pipeline.md`) | **ADR-0014 accepté** : Hermes déclenche et rend compte, Claude juge à la demande, Cursor exécute, le propriétaire garde le veto sur la fusion. Section « Workflow pilote » mise à jour ; point d'entrée unique `forge-start` puis `hermes chat -s forgehistory-suivi` |
-| 2026-08-19 | hermes | bilan obligatoire des lots pilotes `021` à `023` écrit : pilote clos, trois verdicts finaux acceptés, proposition de conserver ForgePilot avec ajustements ; dette VPS avant bilan déclarée, budget Claude et ADR-0015 laissés à la décision du propriétaire |
-| 2026-08-20 | hermes (décision propriétaire — `DEMANDE-20260820-abandon-budget-claude.md`) | abandon de l'enveloppe mensuelle Claude et de la cadence associée comme préalable ; les limites fournisseur restent des états opérationnels à signaler |
-| 2026-08-20 | cursor-cloud (décision propriétaire — `DEMANDE-20260820-simulation-sans-unity-hermes-pilote.md`) | **ADR-0016** : `sim/` sans Unity est le produit vivant ; Unity en veille ; Hermes pilote et propose ; crons quotidiens de lecture autorisés. ADR-0015 accepté. |
-| 2026-08-20 | cursor-cloud (ordre propriétaire) | `forgepilot enchaine` : un brief, un `--run`, draft PR, pas de fusion (ADR-0013 amendement 002). |
-| 2026-08-21 | hermes | brief 025 C1 fusionné par PR #123 : insolation, durées de jour, continentalité et preuves déterministes livrées ; climat observé toujours ouvert ; brief 026 débloqué par la fusion |
-| 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-repartition-modeles-grok-claude.md`) | pilote multi-modèle activé : Grok 4.6 High/XHigh planifie, Composer 2.5 exécute, GPT-5.6 Sol XHigh relit en contexte neuf ; Claude devient un témoin critique différé et sa limite ne bloque plus les lots ordinaires |
-| 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-workflow-adaptatif-r0-r1-r2.md`) | vérifications proportionnées au risque : R0 documentaire, R1 produit borné par défaut avec CI/revue/contrôles en parallèle, R2 critique renforcé ; corrections et itérations deviennent conditionnelles |
-| 2026-08-21 | hermes (décision propriétaire — `DEMANDE-20260821-visualiseur-web-v0.md`) | jalon transversal V0 inséré après le correctif 024 et avant le lot 026 : export cellulaire déterministe puis visualiseur web mince interactif ; Unity reste en veille |
-| 2026-08-23 | cursor-cloud (correction factuelle après fusion #126) | #126 fusionné : G6 A1/A2 livré non consommé, snapshot `v0a-1`, viewer mince, ForgePilot accéléré. V0 première tranche livrée. Prochain pas unique : brief 026. Plus de « G6 encore en PR ». |
-| 2026-08-23 | cursor-cloud (décision propriétaire — ADR-0017) | Grok 4.6 planifie et juge la PR finale ; Composer 2.5 code ; Claude Opus 5 témoin rare ; `forgepilot merge` si PASS + checks verts. Hermes principal : `openai/gpt-5.4`. |
-| 2026-08-23 | hermes (correction factuelle après #130 et preuve VPS) | cache Copernicus complet vérifié `1110/1110` ; preuve Europe G6 verte et déterministe. Le relief est calculé mais reste `not_consumed` par `sim/`. Le prochain pas unique reste le brief 026. |
-| 2026-08-25 | claude (correction factuelle, ADR-0018) | dégraissage : trois acteurs, carte figée, phases F et prochaines étapes réécrites sur l'état réel |
-| 2026-08-25 | claude (**correction factuelle uniquement**, aucune décision nouvelle) | deux affirmations devenues fausses : le tag `archive/2026-08` n'existe pas sur `origin` (403 au push, deux sessions) — le commit `da1596d` le remplace ; et le prochain lot ne demande plus de re-dériver un modèle analytique de survie, celui-ci ayant été retiré au profit de trois propriétés mesurées. Renvoi ajouté vers `docs/MODE-EMPLOI.md`. |
-| 2026-08-26 | claude (décision propriétaire du 2026-08-26 — **ADR-0019**) | Claude écrit désormais tous les briefs, Hermes pilote et cesse de rédiger. Corrections factuelles jointes : le relief est joué par le tick depuis la fusion du lot 033 (PR #137) ; onze lots écrits et listés dans « Prochaines étapes » ; et la mesure qui explique pourquoi aucun lot « ville » n'est écrit |
-| 2026-08-26 | cursor (correction factuelle, ADR-0020 proposed) | un troisième workflow GitHub : ping worker PC en `workflow_dispatch` seulement ; ce n'est pas le retour du full-auto |
-| 2026-08-26 | hermes (correction factuelle après fusion #142) | lot 034 fusionné : le moteur ne porte plus d'état global caché pendant le tick ; prochain lot unique 035 |
-| 2026-08-26 | hermes (décision explicite du propriétaire — ADR-0021) | Claude reste disponible manuellement pour les briefs et revues, mais sort de toute orchestration Hermes/ForgePilot ; aucun backend, témoin, cron, skill ou sous-agent Hermes ne peut l'invoquer |
-| 2026-08-27 | hermes (correction factuelle après fusion #163 du lot 039) | lot 039 fusionné : le commerce transporte toute marchandise, pas seulement la nourriture — capacité d'arête partagée entre marchandises, SC1 vérifié (sortie byte-identique). 92 tests (86→92), 13 tests commerce. Prochain lot 040 : franchir une montagne coûte. |
-| 2026-08-28 | hermes (correction factuelle après fusion #167 du lot 041) | lots 036 (natalité), 040 (relief commerce), 041 (migration) fusionnés. Le monde naît, migre, et le commerce tient compte du relief. F2 : natalité + migration joués. Prochain lot : 042 (viewer) ou 043 (convoi). |
+Mesuré avant d'écrire ces briefs : **aucun mécanisme du moteur ne concentrait
+la population.** Ni la natalité, ni la migration de famine ne faisaient monter
+la densité de la cellule la plus dense au-dessus de la médiane, à 365 comme à
+1 000 ticks.
+
+La cause était chiffrable : une cellule médiane consomme des centaines de
+milliers de kg par tick, et une arête d'adjacence en transportait deux cents.
+Le commerce était **près de mille fois trop petit** pour l'échelle des
+cellules. Aucun endroit ne pouvait être nourri par ses voisins.
+
+La capacité dérivée de la longueur de frontière a **baissé ce mur, sans le
+lever**. Ce qui reste : la mer (046) et le métier (044). Le bourg (047)
+s'écrit sur une mesure, pas sur une intention — c'est pourquoi il vient
+après.
+
+---
+
+## Le dégraissage V1
+
+Le dépôt est passé de 363 fichiers à une cinquantaine. Sont sortis de l'arbre
+de travail : le pilote ForgePilot, le harnais et sa porte mécanique, le
+pilotage Hermes, les vingt et un ADR, l'outil qui a fabriqué la carte, et les
+quarante lots déjà faits avec leurs preuves.
+
+Rien n'est perdu : tout vit dans l'historique git, au tag
+`v0-avant-degraissage` (voir [AGENTS.md](AGENTS.md) § « Les archives »).
+
+Ce qui reste : la vision, le modèle, le moteur, ses tests, le regard mince,
+la carte, et les briefs. Le workflow tient en cinq lignes dans
+[AGENTS.md](AGENTS.md), et c'est le propriétaire qui le pilote.

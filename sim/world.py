@@ -2,7 +2,7 @@
 Chargement et représentation du monde simulé.
 
 World.charger() lit la carte figée `data/world-1400.json` — un seul
-fichier, produit une fois par `tools/map/build_world.py` (ADR-0018) — et
+fichier, produit une fois pour toutes par l'outil carte — et
 amorce la population de chaque cellule avec un rng_seed déterministe.
 """
 
@@ -23,7 +23,7 @@ from sim.model import Cell, cellule_vers_dict
 # Racine du dépôt : deux niveaux au-dessus du paquet sim/
 _REPO_ROOT = pathlib.Path(__file__).parent.parent
 
-# La carte figée est la seule entrée géographique du jeu (ADR-0018).
+# La carte figée est la seule entrée géographique du jeu.
 CARTE_RELATIVE = "data/world-1400.json"
 CARTE_PATH = _REPO_ROOT / "data" / "world-1400.json"
 
@@ -69,7 +69,8 @@ class World:
         if not CARTE_PATH.is_file():
             raise FileNotFoundError(
                 f"Carte du monde introuvable : {CARTE_PATH}. "
-                "La reconstruire avec `python tools/map/build_world.py`."
+                "Elle est versionnée : la récupérer avec "
+                "`git checkout -- data/world-1400.json`."
             )
         return json.loads(CARTE_PATH.read_text(encoding="utf-8"))
 

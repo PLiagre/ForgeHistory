@@ -1,7 +1,0 @@
-self-hosted-runner:
-  labels:
-    - windows
-    - high-memory
-    - unity
-    - local-llm
-    - x64
