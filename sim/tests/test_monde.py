@@ -1370,9 +1370,13 @@ def _constantes_relief_table() -> set[str]:
 
 def test_une_seule_definition_part_miniere():
     """
-    SC5 — Trois références dérivées : la part minière se calcule autant
-    de fois que le motif relief ; les jeux de richesse et les formules
-    de production restent ceux de master.
+    SC5 — Deux références dérivées : la part minière se calcule autant de
+    fois que le motif relief ; les jeux de richesse restent ceux de master.
+
+    Le nombre de formules de production est encore compté et affiché, mais
+    plus comparé : sa référence était master, qui porte la duplication
+    qu'elle devait interdire. Deux égale deux, et le contrôle restait vert
+    sur une propriété fausse. Le brief 044 en demande une qui sait rougir.
     """
     modules = _modules_sim_hors_tests()
     n_modules = len(modules)
@@ -1391,7 +1395,6 @@ def test_une_seule_definition_part_miniere():
     lecteurs_relief: set[str] = set()
     formules_ici = 0
     jeux_ici = 0
-    formules_master = 0
     jeux_master = 0
 
     sim_dir = pathlib.Path(__file__).parent.parent
@@ -1406,9 +1409,6 @@ def test_une_seule_definition_part_miniere():
 
         relatif = "sim/" + str(fichier.relative_to(sim_dir))
         source_master = _texte_master(relatif)
-        formules_master += len(
-            _fonctions_qui_lisent(source_master, relatif, {nom_production})
-        )
         jeux_master += _jeux_indexes_par(source_master, classes_carte)
 
     n_part = len(lecteurs_part)
@@ -1416,7 +1416,7 @@ def test_une_seule_definition_part_miniere():
     print(f"fonctions_lisant_part_miniere={n_part} {sorted(lecteurs_part)}")
     print(f"fonctions_lisant_table_relief={n_relief} {sorted(lecteurs_relief)}")
     print(f"jeux_richesse_ici={jeux_ici} jeux_richesse_master={jeux_master}")
-    print(f"formules_prod_ici={formules_ici} formules_prod_master={formules_master}")
+    print(f"formules_prod_ici={formules_ici}")
 
     assert n_relief > 0, (
         "référence vide : le parcours ne voit aucune lecture de la table "
@@ -1432,13 +1432,8 @@ def test_une_seule_definition_part_miniere():
     assert jeux_ici == jeux_master, (
         f"un second jeu de facteurs de richesse apparaît : {jeux_ici} != {jeux_master}"
     )
-    assert formules_ici > 0 and formules_master > 0, (
-        f"comptage nul des formules de production : ici={formules_ici} "
-        f"master={formules_master}"
-    )
-    assert formules_ici == formules_master, (
-        "une seconde formule de production alimentaire apparaît : "
-        f"{formules_ici} != {formules_master}"
+    assert formules_ici > 0, (
+        f"comptage nul des formules de production : ici={formules_ici}"
     )
 
 
