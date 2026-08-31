@@ -979,36 +979,6 @@ def test_sans_bras_pas_de_minerai():
     assert stock != -1.0
 
 
-def test_minerai_ne_change_pas_la_nourriture():
-    """Le stock alimentaire est identique avec ou sans gisement."""
-    import copy
-    import random
-
-    from sim.constants import MARCHANDISE_NOURRITURE
-    from sim.engine import tick
-
-    carte_avec = World.lire_carte()
-    carte_sans = copy.deepcopy(carte_avec)
-    for raw in carte_sans["cellules"]:
-        raw["gisements"] = []
-
-    rng_seed = 0
-    numero = 0
-    avec = World.charger(rng_seed, carte_doc=copy.deepcopy(carte_avec))
-    sans = World.charger(rng_seed, carte_doc=carte_sans)
-    tick(avec, random.Random(rng_seed), numero_tick=numero)
-    tick(sans, random.Random(rng_seed), numero_tick=numero)
-
-    changes = 0
-    for cid in avec.cells:
-        nourriture_avec = avec.cells[cid].stocks.get(MARCHANDISE_NOURRITURE, -1.0)
-        nourriture_sans = sans.cells[cid].stocks.get(MARCHANDISE_NOURRITURE, -1.0)
-        if nourriture_avec != nourriture_sans:
-            changes += 1
-    print(f"cellules_dont_la_nourriture_a_change={changes} / {len(avec.cells)}")
-    assert changes == 0
-
-
 def test_richesse_inconnue_refusee():
     """Richesse hors des trois classes : erreur nommée."""
     import random

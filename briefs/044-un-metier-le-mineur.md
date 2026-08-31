@@ -86,6 +86,11 @@ Cette atténuation entre dans l'unique formule de production, à côté du facte
 relief et du facteur de saison. Il n'y a toujours **qu'une** formule de
 production alimentaire dans `sim/`.
 
+La prémisse inverse — « un gisement ne change rien à la nourriture » — vivait
+dans `sim/tests/test_monde.py`. Elle a été retirée par un geste séparé **avant**
+ce lot, parce que cette règle-ci la rend fausse. Ne la recrée pas : SC1 et SC2
+disent ce qui la remplace.
+
 ### 4. Ce qu'ils extraient est proportionnel à ceux qui extraient
 
 Le débit d'extraction, aujourd'hui calculé sur la population entière, se calcule
@@ -112,23 +117,19 @@ production que le tick — il tient compte de l'atténuation sans qu'on le lui d
 ## Périmètre
 
 En écriture : `sim/engine.py`, `sim/constants.py`, et `sim/tests/test_monde.py`
-pour y **ajouter** des cas — avec l'unique exception ci-dessous.
+— ce dernier **uniquement pour y ajouter des cas**.
 
-**Exception, et une seule.** `test_minerai_ne_change_pas_la_nourriture` et son
-assertion `changes == 0` reposent sur la prémisse qu'un gisement ne change pas la
-production alimentaire. Cette prémisse est **supersédée** par la règle de ce lot.
-Il est permis de substituer ce seul contrôle, et de le renommer, pour qu'il
-protège la nouvelle règle : garder le scénario comparatif dérivé de la carte, et
-remplacer l'attente d'égalité par l'attente d'une baisse strictement constatée
-dans les cellules porteuses. Interdit de le supprimer sans le remplacer, de
-toucher un autre test, ou de relâcher une autre assertion. Ce n'est pas une
-calibration après observation : c'est le retrait d'une prémisse que la règle
-métier de ce lot rend fausse.
+**Aucun test existant n'est modifié, renommé, supprimé ni relâché**, dans aucun
+fichier, `sim/tests/test_monde.py` compris. Si un test existant devient rouge,
+c'est le code de ce lot qui est faux, ou c'est ce brief : on s'arrête et on le
+dit — on ne touche pas au test.
 
 Tout autre chemin est interdit, nommément : `sim/world.py`, `sim/model.py`,
 `sim/snapshot_export.py`, `sim/__main__.py`, `sim/aggregation.py`,
 `sim/tests/test_survie.py`, `sim/tests/test_commerce.py`,
-`sim/tests/test_write_coverage.py`, la carte figée, le visualiseur, et ce brief.
+`sim/tests/test_write_coverage.py`, `sim/tests/test_determinisme.py`,
+`sim/tests/test_province.py`, `sim/tests/test_no_hardcoded.py`, la carte figée,
+le visualiseur, et ce brief.
 
 ## Conditions de succès
 
@@ -146,20 +147,37 @@ contrôle échoue au lieu de la fabriquer.
 **Rouge prouvé d'abord** : sur `master`, ces deux cellules produisent exactement
 la même chose.
 
-### SC2 — La richesse ordonne l'atténuation
+### SC2 — La baisse ne touche que les porteuses
+
+Deux mondes sont joués sur la même graine à partir de la **même** carte : l'un
+tel quel, l'autre avec la liste des gisements vidée sur toutes les cellules,
+**rien d'autre n'étant changé**. Au **premier tick**, l'ensemble des cellules
+dont le stock de nourriture diffère entre les deux mondes est **exactement**
+l'ensemble des cellules que la carte déclare porteuses. Les deux ensembles sont
+dérivés de la carte ; ni l'un ni l'autre n'est écrit, et un ensemble de
+porteuses vide fait échouer le contrôle.
+
+Ce contrôle porte sur le premier tick, et sur lui seul : au-delà, le commerce et
+la migration propagent légitimement l'écart aux cellules voisines, et il n'y a
+plus d'ensemble attendu à dériver.
+
+**Rouge prouvé d'abord** : sur `master`, l'ensemble qui change est vide alors que
+celui des porteuses ne l'est pas.
+
+### SC3 — La richesse ordonne l'atténuation
 
 À population égale, la part minière suit strictement l'ordre des richesses :
 majeure > notable > mineure. Les trois classes sont dérivées de la carte ; si
 l'une manque, le contrôle échoue au lieu de la sauter.
 
-### SC3 — Le plafond tient
+### SC4 — Le plafond tient
 
 Une cellule à laquelle on ajoute, en mémoire, assez de gisements majeurs pour
 dépasser le plafond garde une part minière **exactement** égale au plafond, et
 continue de produire de la nourriture. Le nombre de gisements ajoutés est dérivé
 des constantes, jamais écrit.
 
-### SC4 — Une seule définition
+### SC5 — Une seule définition
 
 Un contrôle parcourt l'arbre syntaxique des modules de `sim/` hors tests et
 échoue si plus d'une fonction calcule la part minière, ou si un second jeu de
@@ -167,7 +185,7 @@ facteurs de richesse apparaît. Le nombre de modules parcourus est dérivé du
 répertoire. De même, il n'y a toujours qu'une seule formule de production
 alimentaire.
 
-### SC5 — L'extraction suit les mineurs, pas la population
+### SC6 — L'extraction suit les mineurs, pas la population
 
 À gisement identique, la quantité extraite est **proportionnelle à la part
 minière**, non à la population entière. Le contrôle compare deux cellules dont
@@ -177,7 +195,7 @@ Une cellule dont la part minière est nulle n'extrait rien. Ce zéro est une
 **mesure réelle** : le maillon a été joué et a compté zéro. La sentinelle « non
 calculé » est `-1`, jamais `0`.
 
-### SC6 — Les cellules minières produisent moins et s'endettent plus
+### SC7 — Les cellules minières produisent moins et s'endettent plus
 
 Sur le monde réel joué à un horizon dérivé, pour l'ensemble des cellules que la
 carte déclare porteuses d'au moins un gisement :
@@ -190,7 +208,7 @@ On ne mesure **pas** les kilogrammes reçus par le commerce.
 
 **Rouge prouvé d'abord** : sur `master`, les deux écarts sont nuls.
 
-### SC7 — Le plafond de survie reste dérivé, et il tient
+### SC8 — Le plafond de survie reste dérivé, et il tient
 
 Les propriétés de régime de `sim/tests/test_survie.py` restent vertes **sans que
 ce fichier soit modifié**. Le plafond descend tout seul parce qu'il appelle la
@@ -198,14 +216,20 @@ même formule de production que le tick : c'est ce que ce couplage a été écri
 pour garantir. Vérifier aussi à un horizon cinq fois plus long, pour montrer que
 l'effet se stabilise.
 
-### SC8 — Les invariants existants restent intacts
+### SC9 — Les invariants existants restent intacts
 
 ```bash
 py -m pytest sim/tests/ viewer/tests/ -q
 ```
 
-- vert, et la liste des tests en échec est **vide**, comparée à celle de `master`
-  plutôt que supposée ;
+```bash
+git diff master -- sim/tests/ | grep "^-" | grep -v "^---"
+```
+
+- la suite est verte, et la liste des tests en échec est **vide**, comparée à
+  celle de `master` plutôt que supposée ;
+- la seconde commande ne sort **rien** : aucune ligne retirée d'aucun fichier de
+  test, donc aucun test existant modifié, renommé, supprimé ni relâché ;
 - `test_chaque_constante_du_moteur_change_le_monde`,
   `test_le_moteur_ne_lie_aucune_constante_par_valeur`,
   `test_aucune_constante_terminale` et `test_no_hardcoded_numeric_literals`
@@ -216,7 +240,7 @@ py -m pytest sim/tests/ viewer/tests/ -q
 - deux exécutions de `py -m sim --ticks 365 --seed 0 --json` sont strictement
   identiques entre elles, et différentes de celle de `master` ;
 - aucune instruction `global` dans `sim/engine.py` ;
-- le nombre de tests collectés est au moins celui de `master`.
+- le nombre de tests collectés est strictement supérieur à celui de `master`.
 
 ## Hors périmètre
 
@@ -228,4 +252,5 @@ py -m pytest sim/tests/ viewer/tests/ -q
 - le déplacement des mineurs vers les gisements ; l'épuisement d'un gisement ;
 - la définition d'un bourg ou d'une ville — c'est le lot 047 ;
 - le schéma du snapshot, sa version, le visualiseur ;
-- la calibration d'un test existant après observation.
+- la calibration d'un test existant après observation, et toute autre retouche
+  d'un test existant, quel qu'en soit le motif.
