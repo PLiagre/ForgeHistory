@@ -1,19 +1,17 @@
 # Vision — Moteur de simulation historique vivant
 
-> **Où vit le produit aujourd'hui (2026-08-23).** Le moteur tourne dans
-> `sim/` (`python -m sim`). `viewer/` est un regard mince sur un snapshot.
-> Unity est en veille. Cette note de statut ne change pas les piliers
-> ci-dessous.
+> **Où vit le produit aujourd'hui.** Le moteur tourne dans `sim/`
+> (`python -m sim`). `viewer/` est un regard mince sur une photographie.
+> Il n'y a pas de moteur de rendu : cette note de statut ne change pas les
+> piliers ci-dessous.
 
 > Ce document est la source de vérité de la vision produit. Il prime sur
-> PROJECT_BRIEF.md en cas de conflit. Décisions d'architecture associées :
-> [ADR-001](docs/adr/ADR-001-moteur-vivant-lod.md) (moteur multi-échelle) et
-> [ADR-002](docs/adr/ADR-002-monde-amorce-historiquement.md) (le monde est
-> amorcé historiquement, et le joueur agit en créant des conditions).
+> tout autre document en cas de conflit.
 >
-> ⚠️ Lire ADR-002 avant d'invoquer « la simulation ne connaît pas X » : le monde
-> à t0 contient ce que l'histoire dit qu'il contient. L'émergence concerne ce qui
-> arrive PENDANT la partie, pas l'amorçage.
+> ⚠️ **Le monde est amorcé historiquement.** À t0 il contient ce que
+> l'histoire dit qu'il contient. L'émergence concerne ce qui arrive PENDANT
+> la partie, pas l'amorçage — à lire avant d'invoquer « la simulation ne
+> connaît pas X ».
 
 ## Ce que nous construisons
 
@@ -54,8 +52,9 @@ Monde → Pays → Province → Ville → Quartier → Bâtiment → Famille →
 ```
 
 Chaque niveau doit pouvoir être simulé indépendamment. Le moteur augmente ou
-diminue le niveau de détail selon le contexte (voir ADR-001 : agrégation /
-désagrégation conservatives).
+diminue le niveau de détail selon le contexte : les agrégations et
+désagrégations sont conservatives — rien ne se perd ni ne s'invente en
+changeant d'échelle.
 
 ## Les piliers
 
@@ -85,11 +84,11 @@ indépendamment.
 ## Architecture en couches
 
 ```
-Simulation Core → Monde → Population → Économie → Politique → Militaire → Présentation (Unity)
+Simulation Core → Monde → Population → Économie → Politique → Militaire → Présentation
 ```
 
-Unity n'est jamais responsable de la logique métier (rendu, interactions,
-animations, effets, interface uniquement). Le backend fonctionne sans Unity.
+La présentation n'est jamais responsable de la logique métier : elle rend,
+elle affiche, elle réagit aux clics. Le moteur tourne sans elle.
 
 ## Roadmap par couches
 

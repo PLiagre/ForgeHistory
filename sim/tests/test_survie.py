@@ -108,10 +108,14 @@ def _observer_le_monde(n_ticks: int = None) -> tuple[float, World, int]:
     pop_fin = sum(c.population for c in world.cells.values())
     return pop_fin / pop_init, world, pop_init
 # Fenêtre d'observation du monde réel. Ce n'est pas une grandeur physique :
-# c'est un budget de test — assez long pour que le transitoire de départ soit
-# passé, assez court pour que trois exécutions tiennent en deux secondes.
-# Vérifié en mesurant la direction de la réponse à 60, 100, 150, 200, 400 et
-# 1 000 ticks, avec et sans relief : elle tient à tous ces horizons.
+# c'est le temps qu'il faut pour qu'une réponse devienne lisible.
+#
+# 200 n'est pas un chiffre rond : à 60 ticks, la réponse à la natalité n'est
+# plus mesurable — doubler le taux donne 0.491150 de survivants contre
+# 0.495450 au nominal, un écart du mauvais signe et de l'ordre du bruit, et
+# `test_la_demographie_repond_a_la_natalite` échoue. La natalité met plus
+# longtemps que la mortalité à se voir dans une fraction de survivants.
+# Raccourcir cette fenêtre demande donc de le remesurer, pas de le supposer.
 N_TICKS_OBSERVES = 200
 
 FACTEUR_REGIME_BAS = 0.5
@@ -121,10 +125,10 @@ FACTEUR_REGIME_HAUT = 2.0
 # --- test_causal_chain.py ---
 def test_sc7a_stock_decreases_when_production_lt_consumption():
     """
-    SC7a : une cellule avec production insuffisante voit son stock baisser
+    Une cellule avec production insuffisante voit son stock baisser
     après production+consommation.
     État initial construit à la main. Un seul maillon testé (production + consommation).
-    area_km2 = 1.0 (≥ minimum G3 = 1.444877 km²), conforme au plancher SC5 brief 012.
+    area_km2 = 1.0, en dessous de la plus petite cellule réelle de la carte.
     Production max = 1.0 × 18 × 1.5 = 27 kg << consommation = 5000 × 2 = 10 000 kg.
     """
     # Production max = 1.0 × 18 × 1.5 = 27 kg/tick (très faible)
@@ -154,7 +158,7 @@ def test_sc7a_stock_decreases_when_production_lt_consumption():
 # --- test_hunger_criterion.py ---
 def test_hunger_ticks_cellule_ravitaillee():
     """
-    SC4 — Après un tick complet, ni le témoin ni la receveuse ne sont comptés
+    Après un tick complet, ni le témoin ni la receveuse ne sont comptés
     affamés : tous deux ont mangé exactement leur ration.
 
     Compteur : hunger_ticks_cellule_ravitaillee.
@@ -191,11 +195,11 @@ def test_hunger_ticks_cellule_ravitaillee():
 # --- test_hunger_criterion.py ---
 def test_penurie_reelle_incremente_toujours():
     """
-    SC4 — Le critère reste fonctionnel dans l'autre sens : une cellule qui
+    Le critère reste fonctionnel dans l'autre sens : une cellule qui
     manque réellement de nourriture voit bien hunger_ticks progresser.
 
     Sans ce contrôle, un critère qui n'incrémente jamais passerait le test
-    ci-dessus (hard-won rule 6 : un contrôle trop grossier coûte autant qu'un
+    ci-dessus (règle 6 : un contrôle trop grossier coûte autant qu'un
     contrôle laxiste).
     """
     cell = Cell(
@@ -214,7 +218,7 @@ def test_penurie_reelle_incremente_toujours():
 # --- test_hunger_criterion.py ---
 def test_penurie_retournee_est_le_manque_exact():
     """
-    SC4 — La pénurie retournée par _apply_consumption est le manque en kg du
+    La pénurie retournée par _apply_consumption est le manque en kg du
     tick, pas un booléen déguisé : elle vaut exactement
     besoin − stock disponible.
     """
@@ -237,7 +241,7 @@ def test_penurie_retournee_est_le_manque_exact():
 # --- test_deficit_physique.py ---
 def test_deficit_reduction_infinitesimal():
     """
-    SC5 — Un surplus de 1e-9 kg ne peut rembourser que 1e-9 kg de dette.
+    Un surplus de 1e-9 kg ne peut rembourser que 1e-9 kg de dette.
 
     Compteur : deficit_reduction_infinitesimal.
     """
@@ -260,7 +264,7 @@ def test_deficit_reduction_infinitesimal():
 # --- test_deficit_physique.py ---
 def test_deficit_reduction_proportionnel():
     """
-    SC5 — Un surplus de 5 000 kg rembourse 5 000 kg de dette (ratio nominal
+    Un surplus de 5 000 kg rembourse 5 000 kg de dette (ratio nominal
     1 kg de dette par kg de surplus), et ces kilogrammes quittent le stock.
 
     Compteur : deficit_reduction_proportionnel.
@@ -287,11 +291,11 @@ def test_deficit_reduction_proportionnel():
 # --- test_deficit_physique.py ---
 def test_invariant_physique_reduction_bornee_par_le_surplus():
     """
-    SC5 — Invariant : pour tout surplus, la réduction de dette est bornée par
+    Invariant : pour tout surplus, la réduction de dette est bornée par
     le surplus du tick. Vérifié sur une gamme de surplus couvrant sept ordres
     de grandeur, y compris un surplus supérieur à la dette.
 
-    Un seul cas de test ne prouverait rien d'une borne (hard-won rule 6).
+    Un seul cas de test ne prouverait rien d'une borne (règle 6).
     """
     surplus_testes = [
         SURPLUS_INFINITESIMAL_KG,
@@ -326,7 +330,7 @@ def test_invariant_physique_reduction_bornee_par_le_surplus():
 def test_champ_mortality_remainder_est_sentinelle():
     """
     Le champ `mortality_remainder` existe et vaut -1.0 par défaut : sentinelle
-    « non calculé » (hard-won rule 8 — un zéro peut être une mesure réelle).
+    « non calculé » (règle 8 — un zéro peut être une mesure réelle).
     """
     cell = Cell(cell_id=1, area_km2=1.0, population=10)
     print(f"mortality_remainder par défaut = {cell.mortality_remainder}")
@@ -336,10 +340,10 @@ def test_champ_mortality_remainder_est_sentinelle():
 # --- test_mortalite_accumulateur.py ---
 def test_famine_tue_en_borne_de_ticks():
     """
-    SC3 — Une cellule de 5 habitants en famine totale perd au moins un
+    Une cellule de 5 habitants en famine totale perd au moins un
     habitant en au plus N_BOUND_MORT ticks.
 
-    Borne analytique (dérivée, documentée dans sim/MODELE.md SC3 brief 017) :
+    Borne analytique, dérivée et documentée dans sim/MODELE.md :
     au plafond de mortalité, `raw` augmente de
     `population × MAX_DEATH_RATE_PER_TICK` par tick, soit une mort entière en
     au plus `ceil(1 / MAX_DEATH_RATE_PER_TICK)` ticks quelle que soit la
@@ -388,7 +392,7 @@ def test_famine_tue_en_borne_de_ticks():
 # --- test_mortalite_accumulateur.py ---
 def test_precision_mortalite_sur_n_ticks():
     """
-    SC3 — Sur N_TICKS_OBSERVES ticks d'un micro-monde déterministe à trois
+    Sur N_TICKS_OBSERVES ticks d'un micro-monde déterministe à trois
     cellules (populations ≥ 50, déficit par tête constant non nul), l'écart
     entre les morts réellement appliqués et la somme exacte
     `population × death_rate` accumulée tick par tick est ≤ 1 par cellule.
@@ -451,7 +455,7 @@ def test_precision_mortalite_sur_n_ticks():
 # --- test_mortalite_continue.py ---
 def test_plafond_toute_population():
     """
-    SC4 — Pour toute population dans POPULATIONS_TEST avec un déficit minuscule,
+    Pour toute population dans POPULATIONS_TEST avec un déficit minuscule,
     le taux effectif de mortalité est ≤ MAX_DEATH_RATE_PER_TICK.
 
     Sans le plancher max(1, …), deaths = int(pop × rate) = 0 pour un déficit
@@ -461,7 +465,7 @@ def test_plafond_toute_population():
 
     Compteur : max_taux_mortalite_effectif_pop_1.
     """
-    max_taux_observe = -1.0  # sentinel (hard-won rule 8)
+    max_taux_observe = -1.0  # sentinel (règle 8)
 
     for pop in POPULATIONS_TEST:
         cell = Cell(
@@ -497,7 +501,7 @@ def test_plafond_toute_population():
 # --- test_mortalite_continue.py ---
 def test_deficit_non_efface_en_1_tick():
     """
-    SC4 brief 013, adapté SC5 brief 017 — Un tick de surplus plus petit que la
+    Un tick de surplus plus petit que la
     dette ne peut pas effacer cette dette.
 
     Construit une cellule avec food_deficit_kg = 10 000 kg et un stock qui
@@ -612,15 +616,14 @@ def test_la_survie_repond_a_la_mortalite(monkeypatch):
     """
     Règle de jeu visible, et la garde payée par un vrai défaut.
 
-    Le critère de survie du brief 013 était aveugle aux constantes qui
-    gouvernent la mort : une famine deux fois plus meurtrière passait le même
-    contrôle. Le brief 017 l'a corrigé en construisant un modèle analytique
-    qui, lui, dépendait de `HUNGER_DEATH_SCALE`.
+    Un critère de survie aveugle aux constantes qui gouvernent la mort ne
+    prouve rien : une famine deux fois plus meurtrière passait le même
+    contrôle.
 
-    La même garde, mesurée sur le moteur : modifier HUNGER_DEATH_SCALE doit
-    changer la survie observée. La direction n'est pas testée (le maillon
-    migration du lot 041 peut inverser la tendance : des morts précoces
-    réduisent la pression alimentaire et augmentent la survie des derniers).
+    La garde, mesurée sur le moteur : modifier HUNGER_DEATH_SCALE doit
+    changer la survie observée. La direction n'est pas testée — le maillon
+    migration peut inverser la tendance, des morts précoces réduisant la
+    pression alimentaire et augmentant la survie des derniers.
 
     Rouge prouvé : avec un `_apply_mortality` qui ignore HUNGER_DEATH_SCALE,
     les trois régimes rendent la même fraction (0.883422) et le test échoue.
@@ -699,7 +702,7 @@ def test_la_survie_repond_a_la_nourriture(monkeypatch):
     )
 
 
-# --- brief 036 : natalité ---
+# --- Natalité ---
 
 import math
 
@@ -722,7 +725,7 @@ def _cellule_rassasiee_productive(population: int, area_km2: float = 50.0) -> tu
 
 def test_cellule_rassasiee_gagne_habitants():
     """
-    SC1 — Une cellule rassasiée sans dette voit sa population croître en au
+    Une cellule rassasiée sans dette voit sa population croître en au
     plus ceil(1 / (population × taux)) ticks rassasiés.
     """
     population = 100
@@ -741,7 +744,7 @@ def test_cellule_rassasiee_gagne_habitants():
 
 def test_cellule_affamee_ne_gagne_pas_habitants():
     """
-    SC2 — La faim ferme la natalité, elle ne la ralentit pas.
+    La faim ferme la natalité, elle ne la ralentit pas.
 
     Le maillon est appelé directement : un tick complet tue la cellule
     avant qu'un remainder inconditionnel n'atteigne 1, et le contrôle
@@ -783,7 +786,7 @@ def test_cellule_affamee_ne_gagne_pas_habitants():
 
 def test_dette_alimentaire_ferme_la_natalite():
     """
-    SC2 — Une dette alimentaire nulle est exigée, pas seulement une
+    Une dette alimentaire nulle est exigée, pas seulement une
     pénurie nulle ce tick. Sinon la faim d'hier n'empêcherait pas
     de naître aujourd'hui.
     """
@@ -817,7 +820,7 @@ def test_dette_alimentaire_ferme_la_natalite():
 
 def test_ration_exacte_ouvre_la_natalite():
     """
-    SC2 — La porte se lit sur la pénurie du tick, pas sur un stock
+    La porte se lit sur la pénurie du tick, pas sur un stock
     restant. Une cellule qui mange pile sa ration (pénurie nulle,
     garde-manger vide, dette nulle) accumule une fraction de natalité.
     """
@@ -851,7 +854,7 @@ def test_ration_exacte_ouvre_la_natalite():
 
 def test_petite_cellule_finalement_gagne_un_habitant():
     """
-    SC3 — population × taux < 1 : un habitant en au plus
+    population × taux < 1 : un habitant en au plus
     ceil(1 / (population × taux)) ticks rassasiés.
     """
     population = 5
@@ -870,7 +873,7 @@ def test_petite_cellule_finalement_gagne_un_habitant():
 
 def test_natalite_remainder_sentinelle_et_amorcage():
     """
-    SC4 — Sentinelle -1.0 sur Cell() ; 0.0 sur cellule d'un World.charger().
+    Sentinelle -1.0 sur Cell() ; 0.0 sur cellule d'un World.charger().
     """
     cell_vierge = Cell(cell_id=1, area_km2=1.0, population=10)
     assert cell_vierge.natalite_remainder == -1.0
@@ -885,7 +888,7 @@ def test_natalite_remainder_sentinelle_et_amorcage():
 
 def test_le_monde_ne_nourrit_pas_plus_a_horizon_allonge():
     """
-    SC5 — Même plafond dérivé à cinq fois l'horizon de N_TICKS_OBSERVES.
+    Même plafond dérivé à cinq fois l'horizon de N_TICKS_OBSERVES.
     """
     horizon = N_TICKS_OBSERVES * 5
     fraction, monde, pop_initiale = _observer_le_monde(n_ticks=horizon)
@@ -899,7 +902,7 @@ def test_le_monde_ne_nourrit_pas_plus_a_horizon_allonge():
 
 def test_la_demographie_repond_a_la_natalite(monkeypatch):
     """
-    SC6 — fraction_survie(taux_nul) < fraction_survie(taux_nominal)
+    fraction_survie(taux_nul) < fraction_survie(taux_nominal)
     < fraction_survie(taux_double).
     """
     nominal = constantes.NAISSANCES_PAR_HABITANT_PAR_TICK

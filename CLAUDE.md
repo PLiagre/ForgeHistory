@@ -1,7 +1,7 @@
 # CLAUDE.md
 
-Les règles communes du dépôt vivent dans [AGENTS.md](AGENTS.md).
+Les règles du dépôt vivent dans un seul fichier : **[AGENTS.md](AGENTS.md)**.
 
-Ce renvoi vaut pour tout outil qui lit `CLAUDE.md`. Il ne crée aucun rôle
-réservé : les mêmes droits et les mêmes obligations de préservation et de test
-s'appliquent à tous les contributeurs et agents.
+Ce fichier existe parce que Claude Code lit `CLAUDE.md` et Cursor lit
+`AGENTS.md`. Il ne dit rien de plus qu'un renvoi : deux fichiers de règles
+qui se recopient finissent toujours par se contredire.

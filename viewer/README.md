@@ -1,8 +1,8 @@
 # viewer/
 
-Regard mince sur une photographie `sim/` (brief 028). Aucune logique
-métier : le paquet lit un snapshot `v0a-1` et montre les cellules déjà
-photographiées. Ce n'est pas une simulation.
+Regard mince sur une photographie `sim/`. Aucune logique métier : le
+paquet lit un snapshot et montre les cellules déjà photographiées. Ce n'est
+pas une seconde simulation.
 
 ## Preuve SVG (sans navigateur, sans serveur)
 
@@ -26,5 +26,5 @@ Comparaison de deux photographies :
 Hôte par défaut `127.0.0.1`, port `8765`. Si le port est pris, la commande
 refuse (code 2) au lieu d'en choisir un autre en silence.
 
-Le viewer ne recalcule rien, ne lit pas `tools/map/`, et ne charge
+Le viewer ne recalcule rien, ne lit que le snapshot, et ne charge
 aucune ressource réseau.

@@ -1,32 +1,24 @@
 """
 Moteur de simulation : boucle de tick.
 
-tick(world, rng) fait avancer l'état du monde d'un pas de temps.
-Chaîne causale (brief 013) :
-    _apply_production  → produit de la nourriture avec variabilité rng
-    _apply_commerce    → transfère de la nourriture entre cellules adjacentes
-                         (calcul en deux passes sur snapshot — SC2 brief 013)
-    _apply_consumption → consomme le stock, accumule food_deficit_kg si manque ;
-                         rembourse la dette avec des kg réels de surplus
-                         (SC5 brief 017) et retourne la pénurie du tick
-    _update_hunger     → met à jour hunger_ticks selon la pénurie du tick
-                         (SC4 brief 017), non selon le stock restant
-    _apply_mortality   → mortalité proportionnelle à food_deficit_kg,
-                         sans plancher max(1, …) — SC4 brief 013 —
-                         avec report de la fraction de mort (SC3 brief 017)
-    _apply_natalite    → natalité sur cellules rassasiées sans dette,
-                         formule inverse de la mortalité avec report
-                         de fraction (brief 036)
-    _apply_migration   → part des habitants affamés vers voisines en surplus
-                         (brief 041), après mortalité, sans déplacer de kg
+`tick(world, rng)` avance le monde d'un pas de temps. Sept maillons, dans
+cet ordre — l'ordre est la mécanique, pas une convention :
 
-Règle SC9 : aucun littéral numérique non nommé dans les fonctions de calcul.
-Toutes les constantes paramétriques sont dans sim/constants.py.
+    _apply_extraction  → les gisements rendent des kg dans le panier
+    _apply_production  → la nourriture pousse, avec variabilité rng
+    _apply_commerce    → les marchandises circulent entre cellules voisines
+    _apply_consumption → on mange ; ce qui manque devient une dette en kg
+    _update_hunger     → la faim suit la pénurie du tick, pas le stock restant
+    _apply_mortality   → on meurt de la dette, proportionnellement
+    _apply_natalite    → on naît là où on est rassasié et sans dette
+    _apply_migration   → les affamés partent vers les voisines en surplus
 
-Correction brief 013 SC1 : l'ordre production → consommation → commerce
-(brief 012) est remplacé par production → commerce → consommation.
-Le maillon commerce ne modifie plus food_deficit_kg (SC1) ; les transferts
-sont calculés sur un snapshot immuable (SC2).
+Le commerce vient avant la consommation : on mange ce qui vient d'arriver.
+Il est calculé sur un instantané immuable, pour qu'un transfert ne dépende
+pas de l'ordre de parcours des cellules, et il ne touche jamais à la dette.
+
+Aucun littéral numérique nu dans les fonctions de calcul : toutes les
+constantes réglables vivent dans `sim/constants.py`.
 """
 
 import math
@@ -132,7 +124,7 @@ def production_du_tick_kg(
 ) -> float:
     """
     Production alimentaire d'une cellule pendant un tick, avec relief et saison
-    lus depuis la carte passée en argument (briefs 034 et 035).
+    lus depuis la carte passée en argument.
 
     `jour` facultatif : sans jour, seul le relief module la production (appels
     historiques à trois arguments). Avec un jour explicite, le facteur saisonnier
@@ -357,8 +349,8 @@ def _capacite_transport_arete_kg(world, a_id: int, b_id: int) -> float:
     """
     Capacité de transport d'une arête terrestre entre deux cellules du monde.
 
-    Base dérivée de shared_length_m sur l'adjacence (brief 043), puis goulot
-    de relief (brief 040) si une carte est chargée.
+    Base dérivée de shared_length_m sur l'adjacence, puis goulot de relief
+    si une carte est chargée.
     """
     base = _capacite_base_arete_kg(world, a_id, b_id)
     if base == 0.0:
@@ -378,7 +370,7 @@ def _capacite_transport_arete_kg(world, a_id: int, b_id: int) -> float:
 
 
 def _initialiser_capacite_aretes(world) -> dict[tuple[int, int], float]:
-    """Capacité restante par arête au début du maillon commerce (brief 039)."""
+    """Capacité restante par arête au début du maillon commerce."""
     capacite: dict[tuple[int, int], float] = {}
     for edge in world.adjacency:
         a_id = edge["a"]
@@ -413,7 +405,7 @@ def _apply_commerce(
     capacite_restante: dict[tuple[int, int], float] | None = None,
 ) -> None:
     """
-    Maillon 2 — Commerce inter-cellules (brief 013, SC1+SC2 ; brief 039).
+    Maillon 2 — Commerce inter-cellules.
 
     Transporte la marchandise passée en paramètre. Sans paramètre de marchandise,
     joue toutes les marchandises dérivées du monde dans un ordre stable, avec un
@@ -423,20 +415,20 @@ def _apply_commerce(
     (un kg ne traverse au plus qu'une arête par tick) et l'invariance à
     l'ordre des arêtes.
 
-    Définition du besoin et du surplus (SC2 brief 013, documenté dans MODELE.md) :
+    Définition du besoin et du surplus (détaillée dans sim/MODELE.md) :
     - besoin d'une cellule = max(0, consommation_tick - stock_snapshot)
       (manque prévisible du tick courant)
     - surplus d'une cellule = max(0, stock_snapshot - consommation_tick)
       (excédent disponible après sa propre alimentation du tick)
 
-    Allocation déterministe (multi-demandeurs sur la même source, SC2 brief 013) :
+    Allocation déterministe (plusieurs demandeurs sur la même source) :
     - Les demandes sont triées par cell_id croissant (ordre stable).
     - Si la somme des demandes dépasse le surplus de la source, chaque
       receveur reçoit une part proportionnelle à son besoin.
     - Le transfert par arête est borné par la capacité restante de l'arête.
 
     Conservation stricte : seul le stock de la marchandise courante est modifié.
-    food_deficit_kg n'est jamais touché par ce maillon (SC1 brief 013).
+    food_deficit_kg n'est jamais touché par ce maillon.
     `total_transported` est une liste à un élément (accumulateur mutable).
     """
     if marchandise is None:
@@ -474,9 +466,12 @@ def _apply_commerce(
             continue
 
         cle = _cle_arête(a_id, b_id)
-        cap_arête = capacite_restante.get(
-            cle, _capacite_transport_arete_kg(world, a_id, b_id)
-        )
+        # Le défaut se calcule seulement s'il sert : passé à `.get()`, il
+        # était évalué pour chaque arête et chaque marchandise, puis jeté.
+        if cle in capacite_restante:
+            cap_arête = capacite_restante[cle]
+        else:
+            cap_arête = _capacite_transport_arete_kg(world, a_id, b_id)
 
         surplus_a = _surplus(a_id)
         surplus_b = _surplus(b_id)
@@ -545,22 +540,23 @@ def _apply_commerce(
         consomme_par_arête[cle] += transfer
 
     for cle, qty in consomme_par_arête.items():
-        restant = capacite_restante.get(
-            cle, _capacite_transport_arete_kg(world, cle[0], cle[1])
-        )
+        if cle in capacite_restante:
+            restant = capacite_restante[cle]
+        else:
+            restant = _capacite_transport_arete_kg(world, cle[0], cle[1])
         capacite_restante[cle] = max(0.0, restant - qty)
 
 
 def _apply_consumption(cell: Cell) -> float:
     """
-    Maillon 3 — Consommation (brief 013 SC1 ; brief 017 SC4+SC5).
+    Maillon 3 — Consommation.
 
     Lit le stock de nourriture (après commerce), soustrait la consommation, et retourne
     la pénurie du tick en kg (0.0 s'il n'y a pas eu de manque). Cette valeur
     de retour est le critère causal de la faim : c'est elle, et non un stock
-    vide, qui dit qu'une cellule a MANQUÉ de nourriture ce tick (SC4).
+    vide, qui dit qu'une cellule a MANQUÉ de nourriture ce tick.
 
-    Si stock ≥ consommation (surplus ou égalité) — SC5 brief 017 :
+    Si stock ≥ consommation (surplus ou égalité) :
         - le surplus disponible est `remaining`
         - la dette alimentaire est remboursée par des kilogrammes RÉELS :
           remboursement = min(dette, remaining × ratio) où le ratio nommé est
@@ -607,7 +603,7 @@ def _apply_consumption(cell: Cell) -> float:
 
 def _update_hunger(cell: Cell, penurie_kg: float) -> None:
     """
-    Maillon 4 — Faim (brief 017, SC4).
+    Maillon 4 — Faim.
 
     `penurie_kg` est le manque du tick retourné par _apply_consumption.
     hunger_ticks progresse si et seulement si la cellule a manqué de
@@ -617,7 +613,7 @@ def _update_hunger(cell: Cell, penurie_kg: float) -> None:
     tick avec un stock nul et un déficit nul : elle a mangé sa ration, elle
     n'est pas affamée. L'ancien critère testait le stock résiduel après
     consommation, ce qui confondait le garde-manger vide et la
-    sous-alimentation (voir sim/MODELE.md, SC4 brief 017).
+    sous-alimentation (voir sim/MODELE.md).
     Traite la sentinelle -1 comme hunger_ticks = 0.
     """
     if penurie_kg > 0.0:
@@ -629,13 +625,12 @@ def _update_hunger(cell: Cell, penurie_kg: float) -> None:
 
 def _apply_mortality(cell: Cell) -> None:
     """
-    Maillon 5 — Mortalité (brief 013 SC4 ; brief 017 SC3).
+    Maillon 5 — Mortalité.
 
     La mortalité est proportionnelle au déficit alimentaire cumulé par habitant
     (food_deficit_kg / population), plafonnée à MAX_DEATH_RATE_PER_TICK.
 
-    Formule (sans plancher max(1, …) — SC4 brief 013 ; avec report de la
-    fraction — SC3 brief 017) :
+    Formule, sans plancher max(1, …) et avec report de la fraction :
         per_capita_deficit = food_deficit_kg / population
         death_rate = min(per_capita_deficit × HUNGER_DEATH_SCALE, MAX_DEATH_RATE_PER_TICK)
         raw    = population × death_rate + mortality_remainder
@@ -735,7 +730,7 @@ def _voisins_avec_surplus(
 
 def _apply_migration(world, penuries: dict[int, float]) -> None:
     """
-    Maillon 6 — Migration de famine (brief 041).
+    Maillon 6 — Migration de famine.
 
     Une cellule ne part que si la pénurie du tick (retour de _apply_consumption)
     est strictement positive. Les partants se répartissent entre les voisines
@@ -799,7 +794,7 @@ def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
     """
     Avance le monde d'un pas de temps.
 
-    Ordre du tick (brief 013, SC1 ; brief 041) :
+    Ordre du tick :
         1. Production  (_apply_production)   — pour chaque cellule
         2. Commerce    (_apply_commerce)     — sur le monde entier (snapshot)
         3. Consommation (_apply_consumption) — pour chaque cellule

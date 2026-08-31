@@ -1,95 +1,206 @@
-# AGENTS.md — règles communes de ForgeHistory
+# AGENTS.md — les règles, pour tous
 
-## Le projet
+Le seul fichier de règles du dépôt. Il ne paraphrase aucun autre document :
+ce qui est ici n'est écrit qu'ici.
 
-ForgeHistory est un moteur de simulation historique vivant couvrant la période
-1400-1900. Le produit principal est `sim/`, lancé avec `python3 -m sim`. Il lit
-la carte figée `data/world-1400.json`. Le dossier `viewer/` présente un
-snapshot sans réimplémenter la simulation.
+Les trois documents vivants : **[VISION.md](VISION.md)** (ce qu'on construit,
+gelé) · **[ROADMAP.md](ROADMAP.md)** (où on en est) · **AGENTS.md** (ce
+fichier). Le quatrième document, [`sim/MODELE.md`](sim/MODELE.md), dit
+comment le monde fonctionne — c'est de lui que les lots sont découpés.
+
+---
+
+## Le projet en trois phrases
+
+ForgeHistory est un moteur de simulation historique vivant (1400-1900) dont
+le gameplay émerge. Le produit est `sim/` — `python -m sim`. Le monde lit une
+carte figée, `data/world-1400.json`.
 
 ## Langue
 
-Toute communication avec le propriétaire et tout écrit du dépôt sont en
-français clair. Les termes techniques nécessaires sont expliqués à leur
-première utilisation.
+Tout ce qui s'écrit ici est en **français clair** : messages de commit,
+briefs, commentaires, documents. Phrases courtes, concrètes : ce qui a été
+fait, pourquoi, ce qui reste. Un terme technique nécessaire s'explique en une
+phrase la première fois.
 
-## Principes durables
+---
 
-1. **Une seule source de vérité.** Le monde suit la hiérarchie Monde → Pays →
-   Province → Ville → Quartier → Bâtiment → Famille → Personne. Les vues lisent
-   cette hiérarchie ; elles ne créent pas une base parallèle. `cell_id` reste
-   la clé spatiale unique et les agrégations sont dérivées.
-2. **Le moteur raisonne en termes de monde.** Une conséquence de jeu découle
-   de causes simulées ; elle n'est pas ajoutée comme bonus arbitraire.
-3. **L'économie est physique.** Toute ressource a une origine, un transport,
-   un stockage et une destination. Rien ne se téléporte.
-4. **Vraisemblable, pas véridique.** Les grandes lignes géographiques et
-   historiques sont justes ; les valeurs locales peuvent être plausibles et
-   générées ; ce qui exige une source précise pour exister n'est pas simulé.
-5. **Les constantes sont nommées.** Une constante du moteur reçoit un nom et
-   un commentaire d'ordre de grandeur ; aucun nombre magique n'est enfoui dans
-   une règle du monde.
-6. **Les tests protègent le produit.** Un test couvre un invariant physique,
-   une règle de jeu visible, le déterminisme ou une non-régression concrète.
-   Un nouveau cas rejoint le fichier qui porte déjà l'invariant concerné.
-7. **Les contrôles dérivent leurs références.** Un échantillon vide échoue et
-   la sentinelle `-1`, jamais zéro, signifie « non calculé ».
+## Le workflow
 
-## Contribution
+1. Le propriétaire écrit un brief, seul ou avec qui il veut →
+   `briefs/NNN-slug.md`.
+2. Il le donne à qui il veut — Claude, Cursor, Codex — sur une branche.
+3. La CI joue les tests.
+4. Il lit le diff.
+5. Il fusionne.
 
-Toute personne, tout agent et tout outil autorisé à intervenir sur le dépôt
-peut lire et modifier n'importe quel fichier, planifier, coder, tester,
-documenter, relire et corriger. Aucun rôle, acteur, modèle ou fournisseur ne
-possède une action ou un document en exclusivité. Une même personne peut
-réaliser plusieurs ou toutes les étapes d'un changement.
+Pas de relecture obligatoire, pas de porte mécanique, pas de verdict, pas de
+niveau de risque, pas d'ordre d'enchaînement entre les lots.
 
-Les outils sous `hermes/`, `harness/` et `control-plane/` sont facultatifs. Ils
-peuvent aider à mesurer, vérifier ou automatiser un travail, mais ils ne sont
-ni une autorité ni un passage obligé. La CI GitHub exécute les tests et les
-contrôles de sécurité ; elle ne distribue pas les rôles.
+**La seule règle de rôle : celui qui a écrit le code ne dit pas s'il est
+recevable.** Celui qui le dit, c'est le propriétaire, parce que c'est lui qui
+fusionne.
 
-Chaque intervention préserve le code et les comportements existants hors du
-périmètre demandé. Avant de livrer, le contributeur examine le diff, lance les
-tests pertinents et met à jour la documentation factuelle nécessaire. Les
-changements locaux déjà présents et sans rapport avec la tâche sont conservés.
+## Le brief
 
-Workflow courant : choisir une tâche dans `ROADMAP.md` ou un brief existant,
-modifier les fichiers nécessaires, lancer les tests pertinents, mettre à jour
-la documentation factuelle, puis ouvrir une PR ou livrer le changement selon
-le contexte.
+Un fichier, cinq sections. C'est la seule source d'instruction d'un lot :
+aucun autre document ne le paraphrase.
 
-## Carte du dépôt
+```
+# Brief NNN — titre
 
-| chemin | contenu |
-|---|---|
-| `sim/` | moteur vivant et tests métier |
-| `data/` | carte figée et centres de province |
-| `viewer/` | vue mince sur les snapshots |
-| `tools/map/` | fabrication facultative de la carte |
-| `harness/` | briefs, livrables et vérificateurs facultatifs |
-| `hermes/` | rapports, propositions, mesures et tableau de bord |
-| `control-plane/` | automatisation facultative ForgePilot |
-| `docs/` | mode d'emploi, opérations et décisions historiques |
-| `.github/workflows/` | tests, sécurité et tâche manuelle du worker PC |
-
-Les anciens ADR, briefs, demandes et rapports conservent l'historique du
-projet. Leurs clauses de rôle ou de procédure sont historiques et ne
-constituent plus des règles actives. Les dossiers Unity et architecture
-retirés de l'arbre restent consultables au commit `da1596d`.
-
-## Commandes utiles
-
-```bash
-python3 -m sim
-python3 -m sim --ticks 0 --json
-.venv/bin/python -m pytest sim/tests/ -q
-.venv/bin/python -m pytest viewer/tests/ -q
-.venv/bin/python -m pytest harness/tests/ -q
-cd control-plane && ../.venv/bin/python -m unittest discover -s tests
-python3 tools/map/build_world.py
-python3 hermes/dashboard.py
+## But                    une phrase : ce que le monde saura faire après
+## Règle du monde         comment ça marche, en termes de monde ;
+                          cite la section de sim/MODELE.md dont ça découle
+## Périmètre              les fichiers autorisés en écriture, rien d'autre
+## Conditions de succès   SC1…SCn ; chacune nomme une commande qui peut échouer
+## Hors périmètre         ce que ce lot ne fait pas
 ```
 
-Sous Windows, utiliser `py` à la place de `python3`. Sur Linux, employer
-`python3` ou l'environnement virtuel du dépôt ; le Python système ne reçoit
-pas d'installation `pip --user`.
+Cinq façons de rater un brief :
+
+1. **Un lot = un changement.** Si deux parties pourraient être livrées et
+   jugées séparément, ce sont deux briefs. Le test : « si la moitié marche et
+   l'autre pas, est-ce que je fusionne ? » Si oui, couper.
+2. **Chaque critère nomme une commande, un fichier ou une valeur
+   observable**, et doit pouvoir échouer. « Le code est propre » n'est pas un
+   critère.
+3. **Tout compteur a un dénominateur dérivé des données.** Jamais un nombre
+   attendu écrit en dur. Un échantillon vide **échoue**, il ne passe pas.
+4. **Ne jamais demander de modifier un test existant.** Ajuster un contrôle
+   après avoir vu une mesure est une calibration déguisée. Un lot **ajoute**
+   ses cas au fichier qui porte déjà l'invariant concerné.
+5. **Tout brief qui touche au monde dit son niveau de fidélité** (1, 2 ou 3).
+
+---
+
+## Les trois principes non négociables
+
+1. **Une seule source de vérité.** Monde → Pays → Province → Ville →
+   Quartier → Bâtiment → Famille → Personne. Les vues lisent cette
+   hiérarchie ; elles ne deviennent jamais une base de données parallèle.
+
+2. **Le moteur raisonne en termes de monde, jamais de gameplay.**
+   Interdit : « si famine alors +20 % de criminalité ».
+   Exigé : ils ont faim → ils cherchent → certains volent → la criminalité
+   monte.
+
+3. **L'économie est physique.** Rien ne se téléporte. Tout a une origine, un
+   transport, un stockage, une destination.
+
+## Vraisemblable, pas véridique
+
+- **Niveau 1 — juste dans les grandes lignes. Obligatoire.** La Méditerranée
+  est là où elle est ; les Alpes sont des montagnes ; Venise est grande en
+  1400.
+- **Niveau 2 — plausible, généré, jamais sourcé.** Rendements, gisements
+  secondaires, population des villages, climat local. **Une anomalie de
+  niveau 2 n'est pas un défaut** : elle n'ouvre ni correctif, ni lot.
+- **Niveau 3 — pas simulé.** Ce qui a besoin d'une source pour exister
+  n'entre pas dans le jeu.
+
+Pas de nombre magique dans le code du moteur — la règle tient. Justifier
+chaque constante par une source — abandonné ; « ordre de grandeur plausible »
+en commentaire suffit.
+
+## La règle d'admission des tests
+
+Un test existe s'il protège **l'une de ces trois choses**, et seulement :
+
+1. un **invariant physique** (la masse se conserve, l'adjacence est
+   symétrique, une dette ne se rembourse pas plus vite que le surplus) ;
+2. une **règle de jeu visible** (on ne mange pas deux fois, on a faim, on
+   meurt) ;
+3. le **déterminisme** (même graine, même monde).
+
+Corollaire : **ne pas ajouter un fichier de test par lot.** Un lot ajoute ses
+cas au fichier qui porte déjà l'invariant concerné.
+
+Et la suite doit rester **jouable à la main avant chaque fusion**. Une suite
+qu'on n'attend pas est une suite qu'on ne joue pas.
+
+---
+
+## Les douze règles payées par un vrai défaut
+
+Chacune a coûté un défaut mesuré. Elles portent sur le code, pas sur le
+processus : elles survivent à tout changement de workflow.
+
+1. `py`, jamais `python` (sur la machine Windows du propriétaire, `python`
+   est un faux alias du Microsoft Store). Sur Linux : `python3`. Tenu
+   mécaniquement par `.claude/hooks/no_bare_python.py`.
+2. Un contrôle **dérive** sa référence ; il n'est jamais nommé d'après sa
+   cible. (Six récurrences historiques.)
+3. Un compteur dérive aussi.
+4. **Prouver le rouge d'abord.** Un contrôle qui ne peut pas rougir ne
+   prouve rien.
+5. Une garde placée après l'effet qu'elle doit empêcher ne protège rien.
+6. Un contrôle trop grossier coûte aussi cher qu'un contrôle laxiste.
+7. La présence n'est pas la fonction.
+8. Un zéro peut être une vraie mesure — sentinelle `-1`, jamais `0`, pour
+   « non calculé ».
+9. Une impossibilité se teste avant d'être invoquée : une commande et un
+   message d'erreur, sinon ce n'est pas un constat mais une abdication.
+10. Quand une donnée manque, l'agent l'invente en silence par défaut —
+    l'absence doit donc être **déclarable**, et le code doit refuser de
+    deviner.
+11. **Regarder les captures soi-même.** Quatre défauts majeurs ont été vus à
+    l'œil que des suites 100 % vertes n'ont jamais attrapés.
+12. Une empreinte de parité se cite par **nom**, jamais par valeur : elle
+    sera rebasée un jour, et le document qui porte la constante morte piège
+    tous les lots suivants.
+
+## Les six modes de défaillance diagnostiqués
+
+| # | mode de défaillance | contre-mesure structurelle |
+|---|---|---|
+| 1 | double clé primaire | UNE clé spatiale : `cell_id`, décidée avant tout code |
+| 2 | champ déclaré que personne n'écrit | `sim/tests/test_write_coverage.py` : chaque champ a un site d'écriture et un site de lecture, rouge sinon |
+| 3 | variable terminale (calculée, lue par personne) | avant d'ouvrir un levier, vérifier que sa conséquence atteint quelque chose de mesurable hors de son module |
+| 4 | la présentation réimplémente la simulation | la présentation LIT, elle ne décide jamais |
+| 5 | compteur codé en dur | un compteur dérive des données, ou il n'existe pas |
+| 6 | contrôle qui nomme sa propre référence | référence DÉRIVÉE de la mesure ; un échantillon vide doit ÉCHOUER, jamais passer |
+
+---
+
+## Où vit quoi
+
+| chemin | quoi |
+|---|---|
+| `sim/` | **le produit** — `python -m sim`. Voir `sim/README.md` et `sim/MODELE.md`. |
+| `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
+| `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
+| `briefs/` | un fichier par lot. |
+
+## Les archives
+
+L'outil qui fabrique la carte, les quarante lots déjà faits avec leurs
+preuves, l'ancien pilote et l'ancien harnais sont sortis de l'arbre de
+travail au dégraissage V1. Ils vivent dans l'historique git, au tag
+**`v0-avant-degraissage`** :
+
+```bash
+git show v0-avant-degraissage:<chemin>        # relire un fichier
+git checkout v0-avant-degraissage -- tools/   # récupérer l'outil carte
+git ls-tree --name-only v0-avant-degraissage  # voir ce qu'il y avait
+```
+
+La carte est figée : on ne refait pas `data/world-1400.json`. Le jour où il
+faudrait, l'outil se récupère par la commande ci-dessus.
+
+## Les commandes
+
+```bash
+python -m sim                            # le produit
+python -m sim --ticks 0 --json           # fumée : le monde s'amorce
+python -m pytest sim/tests/ -q           # les tests du jeu
+python -m pytest viewer/tests/ -q        # le regard mince
+
+# regarder le monde : photographier, puis ouvrir
+python -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
+python -m viewer --snapshot /tmp/monde.json
+```
+
+Le moteur et le regard sont en bibliothèque standard seule ; seuls les tests
+demandent `pytest`. Il n'y a pas de linter : les garde-fous du dépôt sont les
+tests et l'œil du propriétaire sur le diff.

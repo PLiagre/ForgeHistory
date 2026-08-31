@@ -1,5 +1,5 @@
 """
-Couverture d'écriture — brief 012, SC7 R2+R3 + extension.
+Couverture d'écriture : tout champ déclaré a un écrivain et un lecteur.
 
 Vérifie par analyse statique (AST) que :
 1. Chaque champ déclaré dans TOUTES les dataclasses de sim.model
@@ -13,7 +13,7 @@ Vérifie par analyse statique (AST) que :
    (Contre-preuve R2 : introspection attrape les nouvelles dataclasses.)
 
 3. World.adjacency est lu dans au moins un module du moteur.
-   (Extension SC7 brief 012 — contre-preuve : si le maillon commerce
+   (Contre-preuve : si le maillon commerce
    est retiré, la vérification de lecture échoue.)
 
 Deux tests unitaires séparés :
@@ -164,7 +164,7 @@ def test_all_dataclass_fields_have_write_and_read_sites():
 
 def test_adjacency_is_read_by_engine():
     """
-    Extension SC7 brief 012 : World.adjacency est lu dans au moins un
+    World.adjacency est lu dans au moins un
     module du moteur (engine.py ou world.py).
 
     Ce test va ROUGE si le maillon commerce (_apply_commerce) est retiré
@@ -194,7 +194,7 @@ def test_adjacency_is_read_by_engine():
 
 def test_write_coverage_counter_etendu():
     """
-    Compteur champs_modele_couverts_etendu (brief 012, SC7).
+    Compteur champs_modele_couverts_etendu.
 
     = nombre de champs couverts dans toutes les dataclasses de sim.model
       (écriture ET lecture vérifiées) + 1 si World.adjacency est lu.

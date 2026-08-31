@@ -6,7 +6,7 @@ Entrée unique de la simulation vivante, sans Unity.
     python -m sim --json
     python -m sim --ticks 0 --snapshot-json /tmp/world.json
 
-ADR-0016 : ce module est le produit qu'on lance. Unity est en veille.
+Ce module est le produit qu'on lance. Il tourne sans moteur de rendu.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from sim.snapshot_export import SnapshotExportError, export_snapshot
 from sim.model import lire_stock_marchandise
 from sim.world import World
 
-# Code de sortie pour un argument refusé — hors corps de fonction (SC9).
+# Code de sortie pour un argument refusé.
 EXIT_REFUS = 2
 
 
@@ -70,7 +70,7 @@ def run(ticks: int, seed: int) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Moteur ForgeHistory — simulation sans Unity (ADR-0016)."
+        description="Moteur ForgeHistory — la simulation, sans moteur de rendu."
     )
     parser.add_argument("--ticks", type=int, default=DEFAULT_CLI_TICKS)
     parser.add_argument("--seed", type=int, default=DEFAULT_CLI_SEED)

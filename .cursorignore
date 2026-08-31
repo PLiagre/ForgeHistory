@@ -1,45 +1,17 @@
 # Ce que l'agent Cursor n'indexe pas, et pourquoi.
-#
-# Mesuré le 2026-08-25 : l'arbre de travail pèse ~4,42 millions de jetons.
-# Les chemins ci-dessous en représentent ~3,72 millions, soit 84 %. Aucun
-# n'est du code source : ce sont des artefacts régénérables et une carte
-# produite par un outil. Les indexer brûlait le contexte sans rien apporter.
-#
-# Les trois entrées précédentes de ce fichier pointaient vers
-# `unity/game_unity/Captures/`, `pipeline/geo/capture/` et un dossier de
-# preuves du brief 003 : les trois chemins ont disparu au dégraissage
-# (ADR-0018). Ce fichier ne protégeait donc plus rien.
 
-# --- L'outil carte : hors du chemin quotidien (ADR-0018) ---
-# Son CODE reste indexable (pipeline.py, steps/, qa/, constants.py,
-# build_world.py, README.md, BUILD.md). Seuls ses produits sortent.
-tools/map/artifacts/          # ~1 517 000 jetons — régénérés par le pipeline
-tools/map/capture/            #   ~767 000 jetons — PNG de preuve
-tools/map/registry/           #   ~760 000 jetons — registre régénéré
-tools/map/logs/               #    ~14 000 jetons — journaux d'exécution
-tools/map/sources.lock        #    ~40 000 jetons — empreintes de 1 110 tuiles
-
-# --- La carte figée ---
-# ~623 000 jetons pour un seul fichier : aucune fenêtre de contexte ne le
-# tient, et une lecture partielle donne une vue fausse. Une question sur la
-# carte se pose par une COMMANDE, qui rend une mesure dérivée :
+# La carte figée : un seul fichier de 2,4 Mo qu'aucune fenêtre de contexte ne
+# tient, et dont une lecture partielle donne une vue fausse. Une question sur
+# la carte se pose par une COMMANDE, qui rend une mesure dérivée :
 #
-#   python -m sim --ticks 0 --json          # cellules, population, amorçage
-#   python -c "import json,collections; d=json.load(open('data/world-1400.json')); \
-#     print(sorted(d['cellules'][0]), d['classes_relief'], len(d['cellules']))"
+#   python -m sim --ticks 0 --json
+#   python -c "import json; d=json.load(open('data/world-1400.json')); \
+#     print(len(d['cellules']), len(d['adjacence']), d['classes_relief'])"
 #
 # Le schéma d'une cellule est documenté par `sim/world.py` et
 # `sim/snapshot_export.py`, tous deux indexables.
 data/world-1400.json
 
-# --- Caches d'exécution ---
+# Caches d'exécution.
 __pycache__/
 .pytest_cache/
-.forgepilot/
-
-# NE JAMAIS ajouter `forge-exchange/` ici. C'est le canal par lequel
-# ForgePilot tend un fichier à un agent : le rendre invisible rendrait le
-# bundle de revue et le plan illisibles à ceux qui doivent les lire, sans
-# qu'aucune erreur ne le dise. `.forgepilot/` ci-dessus a exactement produit
-# cet effet sur le lot 033. Un test le vérifie :
-# `control-plane/tests/test_exchange_channel.py`.

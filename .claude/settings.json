@@ -24,8 +24,32 @@
             "timeout": 5
           }
         ],
-        "description": "Garde technique locale : employer `python3` sous Linux ou `py` sous Windows.",
+        "description": "Bloque les invocations de `python` nu — faux alias du Store sur cette machine ; employer `py`.",
         "id": "pre:bash:no-bare-python"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_git_push.py\"",
+            "timeout": 30
+          }
+        ],
+        "description": "Bloque `git push` si sim/tests/ ou viewer/tests/ est rouge.",
+        "id": "pre:bash:guard-git-push"
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_vision_edit.py\"",
+            "timeout": 5
+          }
+        ],
+        "description": "Bloque les modifications de VISION.md sauf si FORGE_ALLOW_VISION_EDIT=1 est posé.",
+        "id": "pre:edit:guard-vision"
       }
     ]
   }

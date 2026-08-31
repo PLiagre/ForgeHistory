@@ -1,3 +1,3 @@
-"""Regard mince sur une photographie cellulaire (brief 028)."""
+"""Regard mince sur une photographie cellulaire."""
 
 __version__ = "0.1.0"

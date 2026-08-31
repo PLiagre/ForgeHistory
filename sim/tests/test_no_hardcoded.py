@@ -1,5 +1,5 @@
 """
-SC9 — Absence de littéraux numériques non nommés dans les fonctions de calcul.
+Absence de littéraux numériques non nommés dans les fonctions de calcul.
 
 Inspecte statiquement les fichiers sim/*.py (non-tests) et vérifie qu'aucune
 fonction ne contient de littéral numérique en dehors de l'ensemble structurel
@@ -78,7 +78,7 @@ def _collect_literals_in_functions(filepath: pathlib.Path) -> list:
 
 def test_no_hardcoded_numeric_literals():
     """
-    SC9 : vérifie l'absence de littéraux numériques non nommés dans
+    Vérifie l'absence de littéraux numériques non nommés dans
     les corps de fonctions de sim/*.py.
     Compteur : compteurs_en_dur_trouves (attendu = 0).
     """
@@ -95,6 +95,6 @@ def test_no_hardcoded_numeric_literals():
             print(f"  VIOLATION : {fname}:{func}:{lineno} → {val!r}")
 
     assert compteurs_en_dur_trouves == 0, (
-        f"SC9 : {compteurs_en_dur_trouves} littéral(ux) non nommé(s) trouvé(s) "
+        f"{compteurs_en_dur_trouves} littéral(ux) non nommé(s) trouvé(s) "
         f"dans les fonctions de calcul de sim/ : {all_violations}"
     )

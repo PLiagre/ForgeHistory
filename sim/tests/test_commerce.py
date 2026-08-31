@@ -1,7 +1,7 @@
 """
 Le commerce est physique : rien ne se téléporte, rien ne nourrit deux fois.
 
-Ce que ce fichier protège (ADR-0018) :
+Ce que ce fichier protège :
   - invariant physique : conservation stricte de la masse au transport ;
     les kg transportés sont exactement les kg arrivés ;
   - règle de jeu visible : un kg transféré ne nourrit qu'une fois, ne
@@ -39,7 +39,7 @@ def _run_commerce_ecart(world: World) -> float:
 from sim.engine import _apply_commerce, tick
 def _build_sc1_world(besoin_kg: float) -> tuple[World, int, int]:
     """
-    Construit le micro-monde SC1 avec trois cellules :
+    Construit le micro-monde à trois cellules :
     - Cellule 100 (témoin)  : food_stock_kg = besoin_kg, pas d'adjacence.
     - Cellule 101 (source)  : population = 0, food_stock_kg = besoin_kg.
     - Cellule 102 (receveuse): food_stock_kg = 0, food_deficit_kg = besoin_kg.
@@ -166,7 +166,7 @@ def _build_contested_source_world(edge_order: list[dict]) -> World:
 # --- test_commerce.py ---
 def test_deficit_accumule_quand_manque():
     """
-    SC3 + SC4 — food_deficit_kg est écrit (> 0) quand la consommation
+    food_deficit_kg est écrit (> 0) quand la consommation
     dépasse le stock initial disponible sur un tick complet.
 
     Cellule construite à la main, area_km2 = 1.0 km² (≥ minimum G3).
@@ -201,7 +201,7 @@ def test_deficit_accumule_quand_manque():
 # --- test_commerce.py ---
 def test_conservation_masse_transport():
     """
-    SC4 — Conservation stricte de la masse lors du commerce.
+    Conservation stricte de la masse lors du commerce.
 
     Mini-monde de 2 cellules adjacentes :
     - Cellule A : surplus (food_stock_kg > 0, food_deficit_kg = 0)
@@ -263,7 +263,7 @@ def test_conservation_masse_transport():
 # --- test_kg_transportes_est_arrives.py ---
 def test_kg_transportes_egal_deltas_positifs():
     """
-    SC5 / N2 — Topologie chaîne : seul le receveur direct (cellule 2) reçoit
+    Topologie chaîne : seul le receveur direct (cellule 2) reçoit
     de la nourriture. La cellule 3 (non adjacente à la source) ne reçoit rien
     via snapshot. total_transported = kg reçus par cellule 2, écart nul.
 
@@ -332,7 +332,7 @@ def test_kg_transportes_egal_deltas_positifs():
 # --- test_kg_transportes_est_arrives.py ---
 def test_kg_transportes_etoile():
     """
-    SC5 (cas supplémentaire) — Topologie étoile : une source, deux receveurs.
+    Topologie étoile : une source, deux receveurs.
     Aucun kg ne peut traverser deux arêtes dans cette topologie.
     Le test vérifie que total_transported = kg reçus par les deux receveurs.
     """
@@ -384,7 +384,7 @@ def test_kg_transportes_etoile():
 # --- test_tick_nourrit_une_fois.py ---
 def test_ecart_temoin_vs_receveuse():
     """
-    SC1 — Le commerce avant consommation garantit qu'un kg transféré ne nourrit
+    Le commerce avant consommation garantit qu'un kg transféré ne nourrit
     qu'une fois. L'écart de stock entre la cellule témoin (stock initial = besoin)
     et la cellule receveuse (stock = 0, reçoit besoin via commerce) doit être
     ≤ 1×10⁻⁹ kg après un tick complet (production désactivée).
@@ -395,7 +395,7 @@ def test_ecart_temoin_vs_receveuse():
     besoin_kg (déficit accumulé du tick précédent). Après le tick, son
     food_stock_kg final est le même que celui de la cellule témoin (tous deux
     ont consommé exactement leur besoin). Le food_deficit_kg peut différer
-    (récupération graduelle sur le déficit accumulé de la receveuse — SC4),
+    (récupération graduelle sur le déficit accumulé de la receveuse),
     ce qui est cohérent avec la physique : seul le stock alimentaire du tick
     courant est équivalent, pas l'historique de famine.
     """
@@ -425,7 +425,7 @@ def test_ecart_temoin_vs_receveuse():
 # --- test_tick_nourrit_une_fois.py ---
 def test_invariance_ordre_aretes():
     """
-    SC2 — L'état final est invariant à l'ordre des arêtes dans adjacency.
+    L'état final est invariant à l'ordre des arêtes dans adjacency.
 
     Scénario 1 — chaîne (existant) :
     Deux exécutions avec [1-2, 2-3] et [2-3, 1-2] doivent produire des
@@ -531,7 +531,7 @@ def test_recepteur_pas_sur_livre():
 
     Topologie : deux sources S1 et S2 (surplus ≥ besoin_R chacune) adjacentes
     au même receveur R.  Sans écrêtage, R recevrait 2 × besoin_R et terminerait
-    le tick avec un stock positif. Avec écrêtage (N3 brief 013 itération 2),
+    le tick avec un stock positif. Avec écrêtage,
     R reçoit exactement besoin_R, consomme tout, stock final = 0.
 
     Sans écrêtage (comportement attendu en échec) :
@@ -578,29 +578,29 @@ def test_recepteur_pas_sur_livre():
         "L'écrêtage côté receveur n'a pas borné le total reçu à son besoin."
     )
 
-# --- Brief 039 : commerce généralisé ---
+# --- Commerce généralisé : toute marchandise circule ---
 
-# Nom local au test : pas de constante moteur (brief 039, risque test_aucune_constante_terminale).
-_MARCHANDISE_ESSAI_SC3 = "__essai_commerce_039__"
-_CONSOMMATION_ESSAI_SC3 = 1.0 * TICK_DURATION_DAYS
+# Nom local au test : pas de constante moteur.
+_MARCHANDISE_ESSAI = "__essai_commerce__"
+_CONSOMMATION_ESSAI = 1.0 * TICK_DURATION_DAYS
 
 
 def _patch_consommation_essai(monkeypatch):
-    """Monkeypatch du seul accès nommé pour la marchandise d'essai SC3."""
+    """Monkeypatch du seul accès nommé pour la marchandise d'essai."""
     from sim import constants as k
 
     original = k.consommation_kg_par_habitant_par_tick
 
     def _patched(marchandise: str) -> float:
-        if marchandise == _MARCHANDISE_ESSAI_SC3:
-            return _CONSOMMATION_ESSAI_SC3
+        if marchandise == _MARCHANDISE_ESSAI:
+            return _CONSOMMATION_ESSAI
         return original(marchandise)
 
     monkeypatch.setattr(k, "consommation_kg_par_habitant_par_tick", _patched)
 
 
 def test_maillon_commerce_sans_nom_nourriture():
-    """SC2 — L'AST du maillon commerce ne nomme plus la marchandise alimentaire."""
+    """L'AST du maillon commerce ne nomme plus la marchandise alimentaire."""
     import ast
     import pathlib
 
@@ -637,7 +637,7 @@ def _build_sc3_micro_monde() -> tuple[World, int, int]:
         cell_id=201,
         area_km2=0.0,
         population=0,
-        stocks={MARCHANDISE_NOURRITURE: 200.0, _MARCHANDISE_ESSAI_SC3: 200.0},
+        stocks={MARCHANDISE_NOURRITURE: 200.0, _MARCHANDISE_ESSAI: 200.0},
         hunger_ticks=0,
         food_deficit_kg=0.0,
     )
@@ -654,34 +654,34 @@ def _build_sc3_micro_monde() -> tuple[World, int, int]:
 
 
 def test_marchandise_essai_circule_sans_ligne_supplementaire(monkeypatch):
-    """SC3 — Une marchandise d'essai consommée circule via l'accès nommé seul."""
+    """Une marchandise d'essai consommée circule via l'accès nommé seul."""
     from sim.model import lire_stock_marchandise
 
     _patch_consommation_essai(monkeypatch)
     world, _src, rcv = _build_sc3_micro_monde()
-    stock_avant = lire_stock_marchandise(world.cells[rcv], _MARCHANDISE_ESSAI_SC3)
+    stock_avant = lire_stock_marchandise(world.cells[rcv], _MARCHANDISE_ESSAI)
     assert stock_avant == -1.0
 
     _apply_commerce(world, [0.0])
 
-    stock_apres = lire_stock_marchandise(world.cells[rcv], _MARCHANDISE_ESSAI_SC3)
+    stock_apres = lire_stock_marchandise(world.cells[rcv], _MARCHANDISE_ESSAI)
     assert stock_apres > 0.0, (
         "La marchandise d'essai n'a pas circulé sans ligne ajoutée au maillon."
     )
 
 
 def test_capacite_arete_partagee_entre_marchandises(monkeypatch):
-    """SC3 — Sur une arête saturée, la somme des transferts égale la capacité lue."""
+    """Sur une arête saturée, la somme des transferts égale la capacité lue."""
     from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
 
     _patch_consommation_essai(monkeypatch)
     pop = 100
     besoin_alim = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-    besoin_essai = pop * _CONSOMMATION_ESSAI_SC3
+    besoin_essai = pop * _CONSOMMATION_ESSAI
 
     source = Cell(
         cell_id=301, area_km2=0.0, population=0,
-        stocks={MARCHANDISE_NOURRITURE: 500.0, _MARCHANDISE_ESSAI_SC3: 500.0},
+        stocks={MARCHANDISE_NOURRITURE: 500.0, _MARCHANDISE_ESSAI: 500.0},
         hunger_ticks=0, food_deficit_kg=0.0,
     )
     receveuse = Cell(
@@ -702,14 +702,14 @@ def test_capacite_arete_partagee_entre_marchandises(monkeypatch):
     )
     delta_essai = max(
         0.0,
-        lire_stock_marchandise(world.cells[302], _MARCHANDISE_ESSAI_SC3) - stock_essai_avant,
+        lire_stock_marchandise(world.cells[302], _MARCHANDISE_ESSAI) - stock_essai_avant,
     )
     somme_transferts = delta_alim + delta_essai
     capacite = TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
 
     # La généralisation est réelle : sans elle, sur le moteur de base, la
     # marchandise d'essai ne circule pas (delta_essai == 0) et ce contrôle
-    # échoue. C'est le rouge prouvé avant correction (SC3).
+    # échoue. C'est le rouge prouvé avant correction.
     assert delta_essai > 0, (
         f"marchandise d'essai non transportée : delta_essai={delta_essai} ; "
         f"la généralisation du commerce est absente"
@@ -724,12 +724,12 @@ def test_capacite_arete_partagee_entre_marchandises(monkeypatch):
 
 
 def test_conservation_masse_par_marchandise(monkeypatch):
-    """SC5 — Le commerce déplace sans créer ni détruire, par marchandise."""
+    """Le commerce déplace sans créer ni détruire, par marchandise."""
     from sim.model import lire_stock_marchandise
 
     _patch_consommation_essai(monkeypatch)
     world, _, _ = _build_sc3_micro_monde()
-    for marchandise in (MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI_SC3):
+    for marchandise in (MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI):
         somme_avant = sum(
             max(0.0, lire_stock_marchandise(c, marchandise))
             for c in world.cells.values()
@@ -751,7 +751,7 @@ def test_conservation_masse_par_marchandise(monkeypatch):
             max(0.0, lire_stock_marchandise(c, marchandise))
             for c in copie.cells.values()
         )
-        # SC5 : identité au bit près, sans tolérance — le commerce déplace,
+        # Identité au bit près, sans tolérance — le commerce déplace,
         # il ne crée ni ne détruit. Aucun seuil n'absorbe un écart.
         assert somme_apres == somme_avant, (
             f"ecart_de_masse pour {marchandise!r} : "
@@ -760,7 +760,7 @@ def test_conservation_masse_par_marchandise(monkeypatch):
 
 
 def test_commerce_ne_modifie_pas_food_deficit(monkeypatch):
-    """SC6 — Le maillon commerce ne touche jamais food_deficit_kg."""
+    """Le maillon commerce ne touche jamais food_deficit_kg."""
     _patch_consommation_essai(monkeypatch)
     world, _, _ = _build_sc3_micro_monde()
     deficits_avant = {cid: c.food_deficit_kg for cid, c in world.cells.items()}
@@ -772,7 +772,7 @@ def test_commerce_ne_modifie_pas_food_deficit(monkeypatch):
 
 
 def test_ordre_insertion_paniers_invariant(monkeypatch):
-    """SC7 — Deux ordres d'insertion des paniers donnent le même résultat."""
+    """Deux ordres d'insertion des paniers donnent le même résultat."""
     from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
 
     _patch_consommation_essai(monkeypatch)
@@ -793,19 +793,19 @@ def test_ordre_insertion_paniers_invariant(monkeypatch):
         adjacency = [{"a": 401, "b": 402, "kind": "land", "shared_length_m": 1000.0}]
         return World(cells={401: a, 402: b}, adjacency=adjacency)
 
-    w1 = _monde([MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI_SC3])
-    w2 = _monde([_MARCHANDISE_ESSAI_SC3, MARCHANDISE_NOURRITURE])
+    w1 = _monde([MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI])
+    w2 = _monde([_MARCHANDISE_ESSAI, MARCHANDISE_NOURRITURE])
     _apply_commerce(w1, [0.0])
     _apply_commerce(w2, [0.0])
 
-    for marchandise in (MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI_SC3):
+    for marchandise in (MARCHANDISE_NOURRITURE, _MARCHANDISE_ESSAI):
         s1 = lire_stock_marchandise(w1.cells[402], marchandise)
         s2 = lire_stock_marchandise(w2.cells[402], marchandise)
         assert abs(s1 - s2) <= TOLERANCE, (
             f"ordre d'insertion change le résultat pour {marchandise!r}: {s1} vs {s2}"
         )
 
-# --- Brief 040 : capacité d'arête selon le relief ---
+# --- Capacité d'arête selon le relief ---
 
 def _classes_relief_depuis_carte() -> list[str]:
     """Les cinq classes de relief dérivées de World.lire_carte()."""
@@ -825,7 +825,7 @@ def _classes_relief_depuis_carte() -> list[str]:
 
 def _build_micro_monde_relief_transport() -> tuple[World, int, dict[str, int]]:
     """
-    Micro-monde SC1 : une source en plaine, une receveuse par classe de relief.
+    Micro-monde : une source en plaine, une receveuse par classe de relief.
     Retourne le monde, l'id source et le mapping relief → cell_id receveuse.
     """
     from sim.model import ecrire_stock_marchandise
@@ -900,7 +900,7 @@ def _transfert_vers(world: World, receveuse_id: int) -> float:
 
 
 def test_cinq_facteurs_transport_suivent_ordre_strict():
-    """SC1 — Cinq transferts distincts, ordre strict des facteurs de transport."""
+    """Cinq transferts distincts, ordre strict des facteurs de transport."""
     from sim import constants as k
 
     world, _source_id, receveuses = _build_micro_monde_relief_transport()
@@ -943,7 +943,7 @@ def _build_monde_arete_relief(relief_a: str, relief_b: str) -> World:
 
 
 def test_goulot_relief_min_commande_capacite():
-    """SC2 — Le bout le plus difficile commande ; sens de lecture invariant."""
+    """Le bout le plus difficile commande ; sens de lecture invariant."""
     from sim import constants as k
 
     base = TRADE_CAPACITY_KG_PER_EDGE_PER_TICK
@@ -974,7 +974,7 @@ def test_goulot_relief_min_commande_capacite():
 
 
 def test_relief_inconnu_refuse_sur_monde_charge():
-    """SC6 — Relief inconnu sur monde chargé : erreur explicite avec cell_id et valeur."""
+    """Relief inconnu sur monde chargé : erreur explicite avec cell_id et valeur."""
     from sim.engine import ReliefInvalideError
 
     world = _build_monde_arete_relief("plaine", "plaine")
@@ -990,7 +990,7 @@ def test_relief_inconnu_refuse_sur_monde_charge():
 
 
 def test_sans_carte_capacite_transport_inchangee():
-    """SC6 — Sans carte, tick et commerce gardent la capacité de base."""
+    """Sans carte, tick et commerce gardent la capacité de base."""
     from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
 
     pop = 50
@@ -1015,7 +1015,7 @@ def test_sans_carte_capacite_transport_inchangee():
     assert stock <= TRADE_CAPACITY_KG_PER_EDGE_PER_TICK + TOLERANCE
 
 
-# --- Brief 041 — migration de famine ---
+# --- Migration de famine ---
 
 def _somme_populations(world: World) -> int:
     return sum(c.population for c in world.cells.values())
@@ -1068,7 +1068,7 @@ def _penuries_affamee_seule(world: World) -> dict[int, float]:
 
 
 def test_conservation_population_migration():
-    """SC1 — La migration déplace sans créer ni détruire d'habitants."""
+    """La migration déplace sans créer ni détruire d'habitants."""
     from sim.engine import _apply_migration
 
     world = _build_monde_migration_trois_cellules()
@@ -1081,7 +1081,7 @@ def test_conservation_population_migration():
 
 
 def test_depart_affame_vers_surplus_temoin_inchange():
-    """SC2 — L'affamée perd, la voisine gagne autant, le témoin ne bouge pas."""
+    """L'affamée perd, la voisine gagne autant, le témoin ne bouge pas."""
     from sim import constants as _constantes
     from sim.engine import _apply_migration
 
@@ -1101,7 +1101,7 @@ def test_depart_affame_vers_surplus_temoin_inchange():
 
 
 def test_zero_partant_sans_destination_surplus():
-    """SC3 — Affamée sans voisine en surplus : zéro partant mesuré."""
+    """Affamée sans voisine en surplus : zéro partant mesuré."""
     from sim.engine import _apply_migration
 
     affamee = Cell(
@@ -1124,7 +1124,7 @@ def test_zero_partant_sans_destination_surplus():
 
 
 def test_zero_partant_depuis_cellule_rassasiee():
-    """SC3 — Cellule rassasiée entourée de surplus : zéro partant."""
+    """Cellule rassasiée entourée de surplus : zéro partant."""
     from sim.engine import _apply_migration
 
     pop = 40
@@ -1149,7 +1149,7 @@ def test_zero_partant_depuis_cellule_rassasiee():
 
 
 def test_pas_immobilite_par_arrondi_migration():
-    """SC4 — Le report de fraction permet un départ en temps dérivé."""
+    """Le report de fraction permet un départ en temps dérivé."""
     import math
     from sim import constants as _constantes
     from sim.engine import _apply_migration
@@ -1185,7 +1185,7 @@ def test_pas_immobilite_par_arrondi_migration():
 
 
 def test_receveuse_ne_renvie_pas_meme_tick():
-    """SC5 — Une cellule qui reçoit des arrivants n'en envoie pas le même tick."""
+    """Une cellule qui reçoit des arrivants n'en envoie pas le même tick."""
     from sim.engine import _apply_migration
 
     pop = 80
@@ -1224,7 +1224,7 @@ def test_receveuse_ne_renvie_pas_meme_tick():
 
 
 def test_invariance_ordre_aretes_migration():
-    """SC5 — Même micro-monde, ordre d'adjacence inversé : état identique."""
+    """Même micro-monde, ordre d'adjacence inversé : état identique."""
     from sim.engine import _apply_migration
 
     def _jouer(adjacency: list[dict]) -> dict[int, int]:
@@ -1259,7 +1259,7 @@ def test_invariance_ordre_aretes_migration():
 
 
 def test_sentinelle_migration_remainder():
-    """SC6 — Sentinelle -1.0 sur Cell() nue ; 0.0 sur monde amorcé."""
+    """Sentinelle -1.0 sur Cell() nue ; 0.0 sur monde amorcé."""
     from sim.world import World
 
     assert Cell(cell_id=1, area_km2=1.0, population=1).migration_remainder == -1.0
@@ -1268,7 +1268,7 @@ def test_sentinelle_migration_remainder():
         assert cell.migration_remainder == 0.0
 
 
-# --- Brief 043 : capacité dérivée de shared_length_m ---
+# --- Capacité dérivée de shared_length_m ---
 
 def _longueurs_arete_monde_reel() -> tuple[float, float, float]:
     """Min, médiane et max des longueurs d'arête entre cellules du monde chargé."""
@@ -1363,7 +1363,7 @@ def _build_monde_longueurs_distinctes(
 
 
 def test_transferts_proportionnels_aux_longueurs_frontiere():
-    """SC1 — Les transferts suivent le rapport des longueurs de frontière."""
+    """Les transferts suivent le rapport des longueurs de frontière."""
     courte, mediane, longue = _longueurs_arete_monde_reel()
     world, receveuses = _build_monde_longueurs_distinctes(courte, mediane, longue)
     t_court = _transfert_commerce_vers(world, receveuses["courte"])
@@ -1381,7 +1381,7 @@ def test_transferts_proportionnels_aux_longueurs_frontiere():
 
 
 def test_expression_capacite_debit_km_fois_shared_length_m():
-    """SC2 — Le moteur multiplie DEBIT_KG_* et shared_length_m pour la capacité."""
+    """Le moteur multiplie DEBIT_KG_* et shared_length_m pour la capacité."""
     import ast
     from pathlib import Path
 
@@ -1405,7 +1405,7 @@ def test_expression_capacite_debit_km_fois_shared_length_m():
 
 
 def test_frontiere_ponctuelle_transport_zero():
-    """SC3 — shared_length_m=0 : zéro kg transporté, mesure réelle."""
+    """shared_length_m=0 : zéro kg transporté, mesure réelle."""
     from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
 
     pop = 50
@@ -1478,13 +1478,13 @@ def _ticks_survie_cellule_sans_production(debit_kg: float | None = None) -> int:
 
 
 def test_cellule_sans_production_survit_avec_capacite_derivee():
-    """SC5 — area_km2=0 : la population tient grâce au commerce dérivé."""
+    """area_km2=0 : la population tient grâce au commerce dérivé."""
     ticks = _ticks_survie_cellule_sans_production()
     assert ticks >= 5, f"population en baisse trop tôt : {ticks} ticks"
 
 
 def test_cellule_sans_production_depérit_avec_capacite_plate():
-    """SC5 garde — capacité plate injectée en mémoire : la cellule dépérit au premier tick."""
+    """Garde : capacité plate injectée en mémoire, la cellule dépérit au premier tick."""
     ticks = _ticks_survie_cellule_sans_production()
     assert ticks >= 5, f"population en baisse trop tôt avec capacité dérivée : {ticks} ticks"
     from sim import constants as _k
@@ -1508,7 +1508,7 @@ def test_cellule_sans_production_depérit_avec_capacite_plate():
 
 
 def test_longueur_frontiere_invalide_refusee():
-    """SC8 — Longueur non numérique sur arête dotée : erreur avec les deux cell_id."""
+    """Longueur non numérique sur arête dotée : erreur avec les deux cell_id."""
     import math
 
     from sim.engine import LongueurFrontiereInvalideError, _initialiser_capacite_aretes
@@ -1537,7 +1537,7 @@ def test_longueur_frontiere_invalide_refusee():
 
 
 def test_arete_sans_shared_length_m_repli_capacite_plate():
-    """SC8 — Clé absente : repli plat, pas d'erreur."""
+    """Clé absente : repli plat, pas d'erreur."""
     from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
 
     pop = 50
@@ -1563,7 +1563,7 @@ def test_arete_sans_shared_length_m_repli_capacite_plate():
     stock = lire_stock_marchandise(world.cells[9701], MARCHANDISE_NOURRITURE)
     assert stock > 0.0
     assert stock <= TRADE_CAPACITY_KG_PER_EDGE_PER_TICK + TOLERANCE
-# --- Brief 045 — migration lit le reste du tick ---
+# --- La migration lit le reste du tick ---
 
 
 def _paniers_monde(world: World) -> dict[int, dict[str, float]]:
@@ -1615,7 +1615,7 @@ def _build_monde_source_reste_dest(
 
 
 def test_migration_reste_positif_inferieur_a_ration():
-    """SC1 brief 045 — un reste positif inférieur à une ration est une destination."""
+    """Un reste positif inférieur à une ration est une destination."""
     from sim.constants import FRACTION_MIGRANTE_PAR_TICK
     from sim.engine import _apply_migration
 
@@ -1643,7 +1643,7 @@ def test_migration_reste_positif_inferieur_a_ration():
 
 
 def test_migration_stock_nul_ne_deplace_pas():
-    """SC2 brief 045 — stock post-consommation nul : zéro déplacement mesuré."""
+    """Stock post-consommation nul : zéro déplacement mesuré."""
     from sim.engine import _apply_migration
 
     pop_source = 100
@@ -1661,7 +1661,7 @@ def test_migration_stock_nul_ne_deplace_pas():
 
 
 def test_migration_sentinelle_negative_ne_deplace_pas():
-    """SC2 brief 045 — sentinelle négative : zéro déplacement mesuré."""
+    """Sentinelle négative : zéro déplacement mesuré."""
     from sim.engine import _apply_migration
 
     pop_source = 100
@@ -1692,7 +1692,7 @@ def test_migration_sentinelle_negative_ne_deplace_pas():
 
 
 def test_migration_poids_independants_de_la_population_destination():
-    """SC3 brief 045 — mêmes stocks, populations distinctes, mêmes poids."""
+    """Mêmes stocks, populations distinctes, mêmes poids."""
     from sim.constants import FRACTION_MIGRANTE_PAR_TICK
     from sim.engine import _apply_migration
 
@@ -1756,7 +1756,7 @@ def test_migration_poids_independants_de_la_population_destination():
 
 
 def test_migration_pondération_selon_stock_post_consommation():
-    """SC4 brief 045 — répartition selon le rapport des stocks post-consommation."""
+    """Répartition selon le rapport des stocks post-consommation."""
     from sim.constants import FRACTION_MIGRANTE_PAR_TICK
     from sim.engine import _apply_migration, _repartir_habitants_proportionnellement
 
@@ -1816,7 +1816,7 @@ def test_migration_pondération_selon_stock_post_consommation():
 
 
 def test_migration_invariance_ordre_aretes_reste_positif():
-    """SC5 brief 045 — inverser l'ordre des arêtes donne le même état."""
+    """Inverser l'ordre des arêtes donne le même état."""
     from sim.engine import _apply_migration
 
     def _jouer(adjacency: list[dict]) -> dict[int, int]:

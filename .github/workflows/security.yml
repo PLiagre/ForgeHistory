@@ -1,15 +1,12 @@
 name: security
 
-# Migration step 10: supply-chain and secret hygiene. Scoped to what is
-# robust and actually valuable for THIS repo:
-#   * actionlint -- static analysis of the workflows themselves (official
-#                   binary, no third-party action).
-#   * gitleaks   -- scan the working tree for committed secrets (official
-#                   binary, pinned version; `dir` = filesystem scan).
+# Un seul travail : refuser un secret committé. Le dépôt n'a plus de jeton
+# ni de configuration d'agent depuis le dégraissage V1, mais un secret entré
+# par accident dans un dépôt public ne se rattrape pas — ce contrôle coûte
+# vingt lignes et il reste.
 #
-# Deliberately omitted, honestly: dependency-review has nothing to review
-# (no versioned dependency manifests in this repo). All actions are pinned
-# to a full commit SHA, per the audit's supply-chain recommendation.
+# `actionlint` est parti avec le dégraissage : il gardait douze workflows,
+# il n'en reste plus que deux, triviaux.
 
 on:
   push:
@@ -20,18 +17,6 @@ permissions:
   contents: read
 
 jobs:
-  actionlint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Download actionlint
-        run: |
-          set -euo pipefail
-          curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash -o download-actionlint.bash
-          bash download-actionlint.bash
-      - name: Lint all workflows
-        run: ./actionlint -color
-
   gitleaks:
     runs-on: ubuntu-latest
     steps:

@@ -1,7 +1,7 @@
 # sim/
 
-Moteur de simulation ForgeHistory — **le produit vivant** (ADR-0016).
-Il tourne **sans Unity** :
+Moteur de simulation ForgeHistory — **le produit vivant**. Il tourne
+seul, sans moteur de rendu :
 
 ```
 .venv/bin/python -m sim
@@ -14,17 +14,12 @@ Il tourne **sans Unity** :
 climat. Ce n'est pas une seconde simulation. Le snapshot déclare lui-même,
 couche par couche, ce que le moteur consomme et ce qu'il ne consomme pas.
 
-Le nom du schéma n'est pas recopié ici : il est dans `sim/constants.py`, et
-un document qui porte une version morte piège le brief suivant (règle 12).
+Le nom du schéma n'est pas recopié ici : il est dans `sim/constants.py`.
+Un document qui porte une version morte piège le lot suivant (règle 12).
 
-La clé spatiale unique qui fonde tout ceci est décidée par
-`docs/adr/0003-single-spatial-primary-key.md`. Les briefs qui ont autorisé
-l'écriture de ce code sont archivés au commit `da1596d` (voir AGENTS.md,
-§ « Les archives »).
-
-La vision complète du moteur est dans [`VISION.md`](../VISION.md). Les
-principes de simulation (sept modes d'échec diagnostiqués) sont dans
-[`AGENTS.md`](../AGENTS.md).
+La vision du moteur est dans [`VISION.md`](../VISION.md), les règles dans
+[`AGENTS.md`](../AGENTS.md), et le fonctionnement du monde — formules,
+constantes, limites — dans [`MODELE.md`](MODELE.md).
 
 ---
 
@@ -38,9 +33,9 @@ principes de simulation (sept modes d'échec diagnostiqués) sont dans
 | `sim/world.py` | `World` — chargement depuis les artefacts G3, sérialisation |
 | `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
 | `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
-| `sim/__main__.py` | `python -m sim` — lance le monde, sans Unity |
+| `sim/__main__.py` | `python -m sim` — lance le monde |
 | `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`) |
-| `sim/MODELE.md` | Comment le monde fonctionne — modifiable par tout contributeur autorisé |
+| `sim/MODELE.md` | Comment le monde fonctionne : formules, constantes, limites |
 
 ---
 
@@ -86,18 +81,15 @@ suite de tests (artefacts de preuve, non collectés par pytest).
 
 ## Règles architecturales importantes
 
-- **ADR-0003** : `cell_id` est la seule clé spatiale. `Province` est une
-  agrégation dérivée — jamais un champ stocké. Voir
-  `docs/adr/0003-single-spatial-primary-key.md`. `sim/aggregation.py` met
-  cette règle en œuvre : la vue dérivée `Regroupement` y est déclarée, hors de
-  `sim.model`, et le déplacement d'un centre administratif recalcule
-  l'appartenance sans réécrire aucune cellule.
-- **Commerce inter-cellules physique** : les arêtes d'adjacence G3
-  (nombre lu dans `data/world-1400.json` / le fichier
-  d'adjacence, jamais recopié ici) sont lues par `_apply_commerce` à
-  chaque tick. Transfert borné par
-  `TRADE_CAPACITY_KG_PER_EDGE_PER_TICK`. Conservation stricte de la masse.
-  (Brief 012, SC4.)
+- **Une seule clé spatiale** : `cell_id`. `Province` est une agrégation
+  dérivée — jamais un champ stocké. `sim/aggregation.py` met cette règle en
+  œuvre : la vue dérivée `Regroupement` y est déclarée, hors de `sim.model`,
+  et le déplacement d'un centre administratif recalcule l'appartenance sans
+  réécrire aucune cellule.
+- **Commerce inter-cellules physique** : les arêtes d'adjacence (leur
+  nombre se lit dans `data/world-1400.json`, jamais recopié ici) sont lues
+  par `_apply_commerce` à chaque tick. Transfert borné par la capacité de
+  l'arête. Conservation stricte de la masse.
 - **Population agrégée** : pas encore de familles ou de personnes individuelles.
 - **stdlib uniquement** : le moteur n'a aucune dépendance tierce (pytest est
   réservé aux tests).

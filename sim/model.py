@@ -1,7 +1,7 @@
 """
 Modèle de données du moteur de simulation.
 
-Règle ADR-0003 : cell_id est la seule clé spatiale. Province est
+cell_id est la seule clé spatiale. Province est
 une agrégation dérivée — jamais un champ stocké sur une entité.
 """
 
@@ -12,7 +12,7 @@ from sim.constants import MARCHANDISE_NOURRITURE
 
 class _NoBadSpatialField:
     """
-    Classe de base qui applique l'ADR-0003 : aucun champ province_id
+    Classe de base qui tient la clé spatiale unique : aucun champ province_id
     (ou équivalent) ne peut être déclaré sur une entité spatiale.
 
     Toute sous-classe dataclass qui déclare un tel champ lèvera une
@@ -26,7 +26,7 @@ class _NoBadSpatialField:
             normalised = name.lower().replace("_", "")
             if normalised.startswith(self._FORBIDDEN_PREFIX):
                 raise TypeError(
-                    f"ADR-0003 : le champ '{name}' est interdit. "
+                    f"Le champ '{name}' est interdit. "
                     "Province est une agrégation dérivée, jamais un champ "
                     "stocké. Utilisez cell_id comme seule clé spatiale."
                 )

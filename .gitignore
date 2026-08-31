@@ -1,59 +1,17 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-node_modules/
 .DS_Store
 Thumbs.db
 *.log
-# ...except a brief's own proof artifacts. A gate verdict is only worth what
-# someone else can re-check, and `*.log` was silently swallowing 32 evidence
-# files across briefs 003-005: brief 003 is ACCEPT 9/9 in the working tree
-# and REJECT on a fresh clone of the same commit, because 14 of the 54 files
-# its manifest declares are not in version control. A rule written for build
-# noise was eating the proof.
-!harness/queue/briefs/**/deliverables/evidence/
-!harness/queue/briefs/**/deliverables/evidence/**
 
-# Per-machine permission overrides. Until now this file was untracked AND
-# unignored, so the effective permission set was neither auditable nor
-# reviewable -- it pre-approved `Bash(py -c ' *)`, i.e. arbitrary code
-# execution, on one machine only and in no one's diff.
-.claude/settings.local.json
-
-# Demo-local scratch output for harness/pipeline/demo/run_full_auto_demo.sh
-# (brief 006 Lot 006c, SC18) -- a disposable brief seed the demo writes on
-# every run, deliberately never the real harness/queue/briefs/ queue.
-harness/pipeline/demo/output/
-
-# Environnement virtuel Python local (dossier ou lien symbolique) -- jamais
-# versionné ; le lanceur documenté reste `py` sur Windows, `.venv/bin/python`
-# sur Linux (voir AGENTS.md). Sans barre finale, Git ignore aussi le lien
-# `.venv` créé dans certains worktrees Cursor.
+# Environnement virtuel Python local (dossier ou lien symbolique) — jamais
+# versionné ; le lanceur reste `py` sur Windows, `.venv/bin/python` sur Linux
+# (voir AGENTS.md). Sans barre finale, le lien `.venv` est ignoré lui aussi.
 .venv
 
-# État local facultatif de ForgePilot : sessions, résultats et worktrees.
-.forgepilot/
-
-# Canal d'échange ForgePilot -> agent : la copie du plan, du feedback ou du
-# bundle que l'agent doit LIRE. Git-ignoré comme `.forgepilot/`, mais jamais
-# cursor-ignoré — sinon le fichier existe et reste hors de portée de celui à
-# qui on le tend. `control-plane/tests/test_exchange_channel.py` tient les
-# deux conditions ensemble.
-forge-exchange/
-
-# Métadonnées de build régénérées par `pip install -e ./control-plane`
-# (installation locale du pilote, voir control-plane/README.md) : jamais
-# versionnées, et leur présence bloquait `forgepilot execute`, qui exige
-# un dépôt propre.
-control-plane/*.egg-info/
-
-# Veille quotidienne Hermes (cron) : fichier généré, jamais une source de
-# vérité. S'il était versionné, chaque run salirait le dépôt et ForgePilot
-# refuserait d'ouvrir un worktree.
-hermes/propositions/DERNIERE-VEILLE.md
-# Mémoire de la veille d'un jour à l'autre : la ligne du jeu et le HEAD qui
-# l'a produite. Mesure locale, jamais un artefact du dépôt.
-hermes/propositions/.veille-etat.json
-
-# Sources geographiques retelechargeables (ADR-0018) — jamais versionnees.
-tools/map/sources/
+# Réglages de permission propres à une machine. Ce fichier était autrefois ni
+# suivi ni ignoré : l'ensemble effectif des permissions n'apparaissait donc
+# dans aucun diff, et pré-approuvait l'exécution de code arbitraire sur une
+# seule machine.
+.claude/settings.local.json
