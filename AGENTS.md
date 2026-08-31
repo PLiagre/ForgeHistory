@@ -41,6 +41,11 @@ niveau de risque, pas d'ordre d'enchaînement entre les lots.
 recevable.** Celui qui le dit, c'est le propriétaire, parce que c'est lui qui
 fusionne.
 
+La marche à suivre — quel agent à quelle étape, quel prompt lui donner, sur
+quelle machine — est dans [`docs/WORKFLOW.md`](docs/WORKFLOW.md). Ce fichier-ci
+dit les **règles** ; celui-là dit **comment on s'y prend**. Aucun des deux ne
+paraphrase l'autre, et celui-ci fait foi.
+
 ## Le brief
 
 Un fichier, cinq sections. C'est la seule source d'instruction d'un lot :
@@ -57,7 +62,7 @@ aucun autre document ne le paraphrase.
 ## Hors périmètre         ce que ce lot ne fait pas
 ```
 
-Cinq façons de rater un brief :
+Six façons de rater un brief :
 
 1. **Un lot = un changement.** Si deux parties pourraient être livrées et
    jugées séparément, ce sont deux briefs. Le test : « si la moitié marche et
@@ -71,6 +76,9 @@ Cinq façons de rater un brief :
    après avoir vu une mesure est une calibration déguisée. Un lot **ajoute**
    ses cas au fichier qui porte déjà l'invariant concerné.
 5. **Tout brief qui touche au monde dit son niveau de fidélité** (1, 2 ou 3).
+6. **Le périmètre d'écriture n'autorise que ce que le travail décrit exige.**
+   Tout autre chemin est interdit, nommément. Un périmètre large est une
+   permission qu'on ne se souvient pas d'avoir donnée.
 
 ---
 
@@ -171,6 +179,7 @@ processus : elles survivent à tout changement de workflow.
 | `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
 | `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
 | `briefs/` | un fichier par lot. |
+| `docs/WORKFLOW.md` | la marche à suivre : les trois postes, les prompts, la feuille de suivi. |
 
 ## Les archives
 
