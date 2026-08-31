@@ -177,14 +177,9 @@ def production_kg(cell: Cell, yield_factor: float) -> float:
     production pendant le tick via `_carte_du_tick`. Sans carte, le chemin
     unitaire historique reste inchangé.
     """
-    base = (
-        cell.area_km2
-        * _constantes.FOOD_PRODUCTION_KG_PER_KM2_PER_TICK
-        * yield_factor
-    )
     if _carte_du_tick:
         return production_du_tick_kg(cell, yield_factor, _carte_du_tick)
-    return base
+    return _production_base_kg(cell, yield_factor)
 
 
 def production_moyenne_kg_par_tick(world) -> float:

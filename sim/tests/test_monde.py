@@ -1437,6 +1437,47 @@ def test_une_seule_definition_part_miniere():
     )
 
 
+def test_formule_agricole_suit_le_motif_relief():
+    """
+    SC5 — La formule agricole de base n'existe qu'à un seul endroit :
+    autant de lectrices de la constante de rendement au km² que de
+    lectrices de la table de relief, même parcours, même arbre.
+    """
+    modules = _modules_sim_hors_tests()
+    n_modules = len(modules)
+    print(f"modules_parcourus={n_modules}")
+    assert n_modules > 0, "échantillon vide : aucun module de sim/ hors tests"
+
+    noms_relief = _constantes_relief_table()
+    assert noms_relief, "référence vide : aucune constante de table de relief"
+    nom_production = "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK"
+
+    lecteurs_relief: set[str] = set()
+    lecteurs_prod: set[str] = set()
+    for fichier in modules:
+        source = fichier.read_text(encoding="utf-8")
+        lecteurs_relief |= _fonctions_qui_lisent(source, str(fichier), noms_relief)
+        lecteurs_prod |= _fonctions_qui_lisent(
+            source, str(fichier), {nom_production}
+        )
+
+    n_relief = len(lecteurs_relief)
+    n_prod = len(lecteurs_prod)
+    print(f"fonctions_lisant_table_relief={n_relief} {sorted(lecteurs_relief)}")
+    print(
+        f"fonctions_lisant_rendement_agricole={n_prod} {sorted(lecteurs_prod)}"
+    )
+
+    assert n_relief > 0, (
+        "référence vide : le parcours ne voit aucune lecture de la table "
+        "des facteurs de relief"
+    )
+    assert n_prod == n_relief, (
+        "la constante de rendement agricole n'a pas autant de lectrices "
+        f"que la table de relief : {n_prod} != {n_relief}"
+    )
+
+
 def test_moteur_consulte_part_miniere_par_fonction():
     """
     SC9 — Dénominateur dérivé des constantes lues par nom dans engine.py.
