@@ -345,9 +345,16 @@ py -m pytest sim/tests/ viewer/tests/ -q
   ni `_MondeEpreuve` soient touchés**. C'est le contrôle que ce lot risque le plus
   de casser, et il ne doit pas l'être en le modifiant ;
 - `DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK` **n'apparaît pas** comme attribut lu dans
-  `sim/engine.py` — le moteur passe par `debit_maritime_kg_par_km()`. Le compteur
-  des noms trouvés vaut **0**. C'est précisément ce qui empêche cette constante
-  d'être inerte sur un monde d'épreuve sans mer ;
+  `sim/engine.py` — le moteur passe par `debit_maritime_kg_par_km()`. Le contrôle
+  parcourt l'arbre syntaxique de `sim/engine.py` et dresse la liste des constantes
+  que le moteur lit par leur nom : cette liste est le **dénominateur**, dérivée du
+  fichier et jamais écrite ici. Une liste vide fait échouer le contrôle — un
+  parcours qui ne trouve aucune lecture ne prouve rien sur celle qu'il cherche. La
+  constante maritime est **absente** de cette liste, et `debit_maritime_kg_par_km`
+  est **présente** parmi les fonctions du même module que le moteur appelle : la
+  sonde voit donc quelque chose là où il y a quelque chose à voir. C'est
+  précisément ce qui empêche cette constante d'être inerte sur un monde d'épreuve
+  sans mer ;
 - `test_conservation_masse_transport`, `test_invariance_ordre_aretes`,
   `test_recepteur_pas_sur_livre` et `test_kg_transportes_egal_deltas_positifs`
   restent verts **sans modification** ;
@@ -360,7 +367,12 @@ py -m pytest sim/tests/ viewer/tests/ -q
 - deux exécutions de `py -m sim --ticks 365 --seed 0 --json` sont strictement
   identiques entre elles ;
 - aucune instruction `global` dans `sim/engine.py` ;
-- il n'y a toujours qu'un seul maillon commerce dans `sim/` ;
+- le nombre de maillons commerce que le parcours trouve dans `sim/` est **égal**
+  à celui que le même parcours compte sur `master` : ce lot **étend** le maillon
+  existant, il n'en ajoute pas un second. La référence est rejouée, jamais écrite
+  ici, et un parcours qui n'en trouve aucun fait échouer le contrôle au lieu de
+  passer — c'est la garde que porte déjà
+  `test_maillon_commerce_sans_nom_nourriture` ;
 - le nombre de tests collectés est au moins celui de `master`.
 
 ## Hors périmètre
