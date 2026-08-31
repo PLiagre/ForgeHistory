@@ -1271,14 +1271,50 @@ def _modules_sim_hors_tests() -> list[pathlib.Path]:
     )
 
 
-def _texte_master(relatif: str) -> str:
-    """Source d'un fichier sur origin/master, rejouée, jamais recopiée."""
-    proc = subprocess.run(
-        ["git", "show", f"origin/master:{relatif}"],
+_REF_MASTER: list[str] = []
+
+
+def _ref_master() -> str:
+    """
+    Réf git de master, fetchée si le clone ne la porte pas (CI à profondeur 1).
+    """
+    if _REF_MASTER:
+        return _REF_MASTER[0]
+    for ref in ("origin/master", "master"):
+        probe = subprocess.run(
+            ["git", "rev-parse", "--verify", ref],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if probe.returncode == 0:
+            _REF_MASTER.append(ref)
+            return ref
+    fetched = subprocess.run(
+        ["git", "fetch", "--depth=1", "origin", "master:refs/remotes/origin/master"],
         cwd=_REPO_ROOT,
-        check=True,
         capture_output=True,
         text=True,
+    )
+    assert fetched.returncode == 0, (
+        "impossible de rejouer master : "
+        f"git fetch origin master a échoué ({fetched.stderr.strip()})"
+    )
+    _REF_MASTER.append("origin/master")
+    return _REF_MASTER[0]
+
+
+def _texte_master(relatif: str) -> str:
+    """Source d'un fichier sur master, rejouée, jamais recopiée."""
+    ref = _ref_master()
+    proc = subprocess.run(
+        ["git", "show", f"{ref}:{relatif}"],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, (
+        f"master ne porte pas {relatif!r} ({proc.stderr.strip()})"
     )
     return proc.stdout
 
