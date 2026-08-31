@@ -1,5 +1,7 @@
 # ADR-0007: Split `mode: full_auto` into `full_auto_decision_only` and a reserved, fail-closed `full_auto`
 
+> **Statut actuel — 2026-08-30 : Archive historique. Les règles de rôle, d'identité, de fournisseur, de relecture, de verdict, de porte, d'orchestration et de fusion décrites ci-dessous sont obsolètes et n'imposent plus rien.**
+
 **Date**: 2026-08-10
 **Status**: accepted
 **Deciders**: project owner (2026-08-09 product decision, converted by brief

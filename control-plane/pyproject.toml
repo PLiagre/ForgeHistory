@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "forgepilot"
 version = "0.3.0"
-description = "Pilote durable pour Hermes, Claude Code et Cursor CLI"
+description = "Automatisation facultative pour les tâches ForgeHistory"
 requires-python = ">=3.11"
 dependencies = []
 

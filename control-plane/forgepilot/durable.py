@@ -573,9 +573,9 @@ def recover_iteration_result(
 ) -> dict[str, object]:
     """Rattache une correction retrouvée au run qui a produit son feedback.
 
-    Une correction manuelle n'est jamais présentée comme une sortie Cursor.
+    Une correction manuelle n'est jamais présentée comme une sortie du backend.
     Elle repart néanmoins par la préparation du candidat, les tests, la
-    publication et une nouvelle revue indépendante du SHA corrigé.
+    publication et un nouveau diagnostic facultatif du SHA corrigé.
     """
 
     state_path = run_state_path(repo, run_id)
@@ -989,8 +989,7 @@ def _push_candidate_and_pr(
             branch = git(worktree, "branch", "--show-current")
             effective_risk = _state_risk(state)
             body = (
-                "Produit par Cursor dans ForgePilot. "
-                "Fusion mécanique si juge PASS et checks verts (ADR-0017).\n\n"
+                "PR créée par l'automatisation facultative ForgePilot.\n\n"
                 f"Forge-Risk: {effective_risk}\n"
                 f"Forge-Brief: {state['task_name']}"
             )
@@ -1448,16 +1447,16 @@ def _review_current_head(
         and int(reviewing_failure.get("consecutive", 0)) >= 1
         and reviewing_failure.get("failure_kind") == "review_protocol"
     )
-    # Durcir le contrat ne suffisait pas : la relance repartait sur la même
-    # route et rendait la même signature. La politique peut déclarer une
-    # autre route pour cette seconde tentative ; sans déclaration, la route
-    # nominale est rejouée et l'état final le dit.
+    # Une seconde tentative peut employer la route facultative déclarée dans
+    # la politique. Elle peut être identique ou différente de la route
+    # nominale ; ForgePilot n'impose aucune séparation d'acteurs ou d'outils.
     profile = settings.policy.profile(risk)
     declared_fallback = profile.review_fallback
     fallback = declared_fallback if schema_retry else None
     nominal = profile.roles["reviewer"]
     route: dict[str, object] = {
         "kind": "fallback" if fallback is not None else "nominal",
+        "backend": (fallback or nominal).backend,
         "model": (fallback or nominal).model,
         "effort": (fallback or nominal).effort,
         "fallback_declared": declared_fallback is not None,
@@ -1484,6 +1483,7 @@ def _review_current_head(
             risk=risk,
             bundle_path=bundle_path,
             schema_retry=schema_retry,
+            backend_override=fallback.backend if fallback is not None else None,
             model=fallback.model if fallback is not None else None,
             effort=(fallback.effort or None) if fallback is not None else None,
         )
@@ -1586,9 +1586,9 @@ def _review_current_head(
                 f"constat{'s' if len(signatures) > 1 else ''} encore "
                 "ouvert) ; arrêt honnête du lot. Une troisième "
                 "itération sur le même plan ne changerait rien : c'est le "
-                "BRIEF qu'il faut relire, pas le code. Aucun témoin n'est "
-                "lancé automatiquement : remettre le dossier au propriétaire, "
-                "qui peut demander une revue manuelle hors Hermes et ForgePilot."
+                "BRIEF qu'il faut relire, pas le code. Aucun outil supplémentaire "
+                "n'est lancé automatiquement : conserver les preuves et choisir "
+                "librement de corriger, d'arrêter ou de demander un autre diagnostic."
             ),
         )
     feedback_path = write_feedback(
@@ -1802,7 +1802,7 @@ def _route_sentence(route: object) -> str:
     """Dit si la relance a changé de route, ou rejoué la même condition.
 
     Sans cette phrase, `BLOCKED_TOOLING` ne distingue pas les deux cas, et
-    le propriétaire ne sait pas s'il lui reste une route à déclarer.
+    l'utilisateur ne sait pas s'il lui reste une route à déclarer.
     """
 
     if not isinstance(route, dict):
@@ -1947,7 +1947,9 @@ def _resume_run_locked(
     if not task_path.is_file() or hashlib.sha256(task_path.read_bytes()).hexdigest() != state.get("task_sha256"):
         raise PilotError("Reprise refusée : le brief a changé depuis le démarrage.")
     if state.get("fusion") is not False:
-        raise PilotError("État invalide : ForgePilot ne possède jamais le droit de fusion.")
+        raise PilotError(
+            "État invalide : un run durable ne demande pas de fusion automatique."
+        )
     risk = _state_risk(state)
     if risk == "R0":
         return transition(

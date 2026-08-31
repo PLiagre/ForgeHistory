@@ -82,7 +82,7 @@ def test_accept_honest_brief(tmp_path):
     bd = build_honest_brief(tmp_path)
     result = run_audit(bd)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "VERDICT: ACCEPT" in result.stdout
+    assert "RESULT: COHERENT" in result.stdout
 
 
 # --- Nine red-case tests, one per check ---
@@ -96,7 +96,7 @@ def test_reject_missing_declared_file(tmp_path):
     result = run_audit(bd)
     assert result.returncode == 1
     assert "[FAIL] files_declared_exist" in result.stdout
-    assert "VERDICT: REJECT" in result.stdout
+    assert "RESULT: INCOHERENT" in result.stdout
 
 
 def test_reject_stale_deliverable(tmp_path):
@@ -176,7 +176,7 @@ def test_reject_bare_python_alias(tmp_path):
     assert "[FAIL] no_bare_python_alias" in result.stdout
 
 
-def test_reject_self_authored_verdict(tmp_path):
+def test_accept_same_author_for_work_and_report(tmp_path):
     bd = build_honest_brief(tmp_path)
     (bd / "verdict.md").write_text(
         "# Verdict\n\n**Author**: forge-generateur\n\n"
@@ -185,8 +185,8 @@ def test_reject_self_authored_verdict(tmp_path):
     )
 
     result = run_audit(bd)
-    assert result.returncode == 1
-    assert "[FAIL] verdict_is_not_self_authored" in result.stdout
+    assert result.returncode == 0
+    assert "[PASS] actor_identity_is_neutral" in result.stdout
 
 
 def test_reject_rubric_written_after_deliverables(tmp_path):
@@ -201,12 +201,12 @@ def test_reject_rubric_written_after_deliverables(tmp_path):
     assert "[FAIL] rubric_predates_deliverables" in result.stdout
 
 
-# --- Internal-error path: never treated as a pass ---
+# --- Une erreur interne n'est jamais présentée comme cohérente ---
 
 def test_nonexistent_directory_is_internal_error_not_pass(tmp_path):
     result = run_audit(tmp_path / "does-not-exist")
     assert result.returncode == 2
-    assert "VERDICT: ACCEPT" not in result.stdout
+    assert "RESULT: COHERENT" not in result.stdout
 
 
 # --- Regression: an offset-aware ISO-8601 Authored timestamp (trailing Z or
@@ -231,7 +231,7 @@ def test_offset_aware_authored_timestamp_does_not_crash_gate(tmp_path):
     )
     result = run_audit(bd)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "VERDICT: ACCEPT" in result.stdout
+    assert "RESULT: COHERENT" in result.stdout
 
 
 # --- Regression coverage: a spec/verdict document naming a check by its

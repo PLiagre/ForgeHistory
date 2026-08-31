@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
-"""hermes/dashboard.py — génère hermes/DASHBOARD.md, la vue d'ensemble lisible.
+"""Génère ``hermes/DASHBOARD.md``, une vue factuelle et facultative.
 
-C'est une VUE générée depuis les sources de vérité du dépôt — jamais une
-base parallèle (principe n°1 du projet) et jamais un fichier édité à la
-main.
-
-Depuis ADR-0018, la vue ne lit plus le mode du pipeline full-auto, la
-dépense CI, ni l'utilisation des backends Générateur : ces trois choses
-ont été supprimées avec le code qui les produisait.
+Le tableau de bord dérive des fichiers du dépôt et ne devient jamais une base
+parallèle. Il n'attribue aucun rôle et ne conditionne aucun changement.
 
 Sources :
 
@@ -20,8 +15,8 @@ enrichissent la vue quand on les fournit ; leur absence ne fait jamais
 d'inventer.
 
 Usage :
-  python hermes/dashboard.py
-  python hermes/dashboard.py --runs-json runs.json --prs-json prs.json
+  python3 hermes/dashboard.py
+  python3 hermes/dashboard.py --runs-json runs.json --prs-json prs.json
 """
 from __future__ import annotations
 
@@ -102,37 +97,36 @@ def generer(
     out: list[str] = []
     out.append("# Tableau de bord — ForgeHistory")
     out.append("")
-    out.append("> Vue générée par `hermes/dashboard.py` — **ne jamais l'éditer à la")
-    out.append("> main**. Régénérer avec `python hermes/dashboard.py`. Une vue")
-    out.append("> périmée reste périmée tant que personne ne la régénère.")
+    out.append("> Vue facultative générée par `hermes/dashboard.py`.")
+    out.append("> Régénérer avec `python3 hermes/dashboard.py` lorsque cette vue est utile.")
     out.append(">")
     out.append(f"> Générée le {now.strftime('%Y-%m-%d %H:%M UTC')}.")
     out.append("")
 
     out.append("## En bref")
     out.append("")
-    out.append("- **Produit** : `sim/` (`python -m sim`) + `viewer/` mince.")
+    out.append("- **Produit** : `sim/` (`python3 -m sim`) + `viewer/` mince.")
     out.append("- **Prochain pas produit** : un seul, dans [ROADMAP.md](../ROADMAP.md).")
-    out.append(f"- **Pilotage ouvert** : {len(demandes)} demande(s), "
+    out.append(f"- **Éléments ouverts** : {len(demandes)} demande(s), "
                f"{len(propositions)} proposition(s).")
-    out.append("- **Rôles** (ADR-0021) : Claude reste manuel pour le propriétaire ;")
-    out.append("  Hermes pilote sans l'invoquer ; Cursor planifie, exécute et relit.")
+    out.append("- **Contribution** : toute personne ou tout agent autorisé peut planifier,")
+    out.append("  modifier, tester, documenter et relire.")
     out.append("")
 
-    out.append("## Ce qui attend le propriétaire")
+    out.append("## Points ouverts")
     out.append("")
     attentes: list[str] = []
     if isinstance(prs, list):
         for pr in prs:
             numero = pr.get("number", "?")
             attentes.append(
-                f"- Fusionner (ou refuser) la PR #{numero} — « {pr.get('title', '?')} » "
+                f"- Examiner la PR #{numero} — « {pr.get('title', '?')} » "
                 f"(branche `{pr.get('headRefName', '?')}`)."
             )
     for item in propositions:
-        attentes.append(f"- Trancher la proposition `{item['path']}` — {item['titre']}.")
+        attentes.append(f"- Examiner la proposition `{item['path']}` — {item['titre']}.")
     for item in demandes:
-        attentes.append(f"- Trancher la demande `{item['path']}` — {item['titre']}.")
+        attentes.append(f"- Examiner la demande `{item['path']}` — {item['titre']}.")
     if not attentes:
         attentes.append("- Rien n'attend.")
     out.extend(attentes)
@@ -154,10 +148,9 @@ def generer(
 
     out.append("## Comment lire ce tableau")
     out.append("")
-    out.append("Boot Hermes : cette vue, les propositions OPEN,")
-    out.append("[ROADMAP.md](../ROADMAP.md), `forgepilot doctor`, puis")
-    out.append("`python -m sim --ticks 0 --json`.")
-    out.append("Les briefs terminés et les archives ne se lisent pas au démarrage.")
+    out.append("Lire [ROADMAP.md](../ROADMAP.md), puis mesurer le produit avec")
+    out.append("`python3 -m sim --ticks 0 --json`. Cette vue, les briefs et")
+    out.append("ForgePilot sont des aides facultatives.")
     out.append("")
     return "\n".join(out)
 

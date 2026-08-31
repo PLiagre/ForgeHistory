@@ -1,191 +1,30 @@
 #!/usr/bin/env bash
-# bootstrap-vps — préparer un VPS Linux neuf à piloter ForgeHistory.
-#
-# Ce script fait uniquement ce qui est local et réversible : cloner le
-# dépôt, créer l'environnement Python, installer ForgePilot et rendre la
-# skill visible à Hermes.
-#
-# Il ne fait JAMAIS à ta place :
-#   - installer un binaire par `curl | bash` ou `sudo`  ;
-#   - lancer une authentification (elles sont interactives) ;
-#   - définir un secret.
-# Il s'arrête et te donne la commande exacte à taper.
-#
-# Idempotent : relançable sans rien casser.
-#
-# Usage :  bash bootstrap-vps
-#          REPO_DIR=/srv/ForgeHistory bash bootstrap-vps
+# Prépare facultativement ForgePilot sur une machine Linux.
 
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/PLiagre/ForgeHistory.git}"
-REPO_DIR="${REPO_DIR:-$HOME/src/ForgeHistory}"
-HERMES_DIR="${HERMES_HOME:-$HOME/.hermes}"
-SKILL="forgehistory-suivi"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="${REPO_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
-vert()  { printf '\033[0;32m  ✓ %s\033[0m\n' "$*"; }
-jaune() { printf '\033[0;33m  ! %s\033[0m\n' "$*"; }
-rouge() { printf '\033[0;31m  ✗ %s\033[0m\n' "$*"; }
-titre() { printf '\n\033[1;34m── %s\033[0m\n' "$*"; }
-
-manque=0
-
-titre "1. Préalables"
-
-# ANTHROPIC_API_KEY doit être absent : ForgePilot refuse de démarrer sinon,
-# et sa présence bascule Claude Code de l'abonnement vers la facturation API.
-if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
-    rouge "ANTHROPIC_API_KEY est défini. ForgePilot refusera de démarrer."
-    rouge "  Retire-le de ton shell et de ~/.bashrc, puis relance."
-    exit 2
-fi
-vert "ANTHROPIC_API_KEY absent (c'est voulu)"
-
-for outil in git python3 curl; do
-    if command -v "$outil" >/dev/null 2>&1; then
-        vert "$outil présent"
-    else
-        rouge "$outil absent — installe-le avant de continuer"
-        manque=1
-    fi
+for tool in git python3; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "ERREUR : $tool est requis pour cette installation locale." >&2
+    exit 1
+  fi
 done
-# `python3` présent ne veut pas dire venv fonctionnel : sur Debian et Ubuntu
-# le module vit dans un paquet séparé, et l'échec n'apparaît qu'à la création
-# du venv, une fois le dépôt déjà cloné. On le sonde ici, pas plus tard.
-if ! python3 -c 'import ensurepip' >/dev/null 2>&1; then
-    PYV="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-    rouge "python3 est là, mais son module venv manque (ensurepip introuvable)."
-    rouge "  Installe-le :  sudo apt install python${PYV}-venv"
-    manque=1
-else
-    vert "module venv fonctionnel"
+
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+  echo "ERREUR : dépôt Git introuvable dans $REPO_DIR" >&2
+  exit 1
 fi
-
-(( manque == 0 )) || exit 1
-
-titre "2. Le dépôt"
-
-if [[ -d "$REPO_DIR/.git" ]]; then
-    vert "Dépôt déjà présent : $REPO_DIR"
-    git -C "$REPO_DIR" fetch --quiet origin || jaune "fetch impossible (auth GitHub pas encore faite ?)"
-    retard="$(git -C "$REPO_DIR" rev-list --count HEAD..origin/master 2>/dev/null || echo '?')"
-    # Refuser, pas prévenir. Ce script fait lui-même partie du dépôt : le
-    # lancer depuis une copie périmée installe des versions périmées, et
-    # `git pull` en cours d'exécution remplace le fichier que bash est en
-    # train de lire. Un avertissement se traverse ; un refus, non.
-    if [[ "$retard" != "0" && "$retard" != "?" ]]; then
-        rouge "$retard commit(s) de retard sur origin/master."
-        rouge "  Ce script est versionné dans le dépôt : le lancer depuis une copie"
-        rouge "  périmée installerait une version périmée. Mets à jour, puis relance :"
-        rouge ""
-        rouge "      git -C $REPO_DIR pull --ff-only"
-        exit 1
-    fi
-    vert "À jour sur origin/master"
-else
-    mkdir -p "$(dirname "$REPO_DIR")"
-    git clone "$REPO_URL" "$REPO_DIR"
-    vert "Dépôt cloné dans $REPO_DIR"
-fi
-
-titre "3. Environnement Python et ForgePilot"
 
 cd "$REPO_DIR"
-# On teste pip, pas python : un venv dont la création a échoué garde un
-# bin/python parfaitement exécutable et n'a aucun pip. Le tester reviendrait
-# à conclure « déjà là » sur un environnement inutilisable.
-if [[ -d .venv && ! -x .venv/bin/pip ]]; then
-    jaune "Environnement virtuel incomplet (pas de pip) — je le refais"
-    rm -rf .venv
+if [[ ! -x .venv/bin/python ]]; then
+  python3 -m venv .venv
 fi
-if [[ ! -x .venv/bin/pip ]]; then
-    python3 -m venv .venv
-    vert "Environnement virtuel créé"
-else
-    vert "Environnement virtuel déjà là"
-fi
-
-.venv/bin/pip install --quiet --upgrade pip
 .venv/bin/pip install --quiet -e ./control-plane
-vert "ForgePilot installé : $REPO_DIR/.venv/bin/forgepilot"
 
-titre "4. La skill Hermes"
-
-# Un lien, jamais une copie : la skill est versionnée dans le dépôt pour
-# suivre les décisions. Une copie dériverait en silence.
-mkdir -p "$HERMES_DIR/skills"
-CIBLE="$HERMES_DIR/skills/$SKILL"
-SOURCE="$REPO_DIR/hermes/skills/$SKILL"
-
-if [[ -L "$CIBLE" ]]; then
-    vert "Lien déjà en place : $CIBLE -> $(readlink "$CIBLE")"
-elif [[ -e "$CIBLE" ]]; then
-    rouge "$CIBLE existe et n'est pas un lien."
-    rouge "  C'est probablement une copie qui va dériver. Retire-la, puis relance."
-    manque=1
-else
-    ln -s "$SOURCE" "$CIBLE"
-    vert "Skill liée : $CIBLE -> $SOURCE"
-fi
-
-titre "5. Les binaires et leurs authentifications"
-
-declare -A INSTALL=(
-    [claude]="npm install -g @anthropic-ai/claude-code"
-    [agent]="curl https://cursor.com/install -fsS | bash"
-    [gh]="sudo apt-get install gh"
-)
-declare -A AUTH=(
-    [claude]="claude auth login       # compte Claude.ai Pro, PAS --console"
-    [agent]="agent login"
-    [gh]="gh auth login"
-)
-
-for bin in claude agent gh; do
-    if command -v "$bin" >/dev/null 2>&1; then
-        vert "$bin présent"
-    else
-        jaune "$bin absent    →  ${INSTALL[$bin]}"
-        manque=1
-    fi
-done
-
-titre "6. Vérification par ForgePilot lui-même"
-
-if (( manque == 0 )); then
-    if .venv/bin/forgepilot doctor --repo "$REPO_DIR" --check-auth; then
-        vert "doctor OK — le poste de pilotage est prêt"
-    else
-        jaune "doctor a refusé. Sa raison est le message ci-dessus — ce"
-        jaune "script ne la devine pas à sa place."
-        jaune ""
-        jaune "  Si c'est une authentification :"
-        for bin in claude agent gh; do printf '       %s\n' "${AUTH[$bin]}"; done
-        jaune ""
-        jaune "  Si c'est « Exec format error », le binaire existe mais cette"
-        jaune "  machine ne sait pas l'exécuter — mauvaise architecture, ou"
-        jaune "  fichier sans shebang (un talon d'installation, par exemple)."
-        jaune "  Pour voir lequel :"
-        jaune "       file \"\$(which claude)\" ; uname -m ; claude --version"
-        manque=1
-    fi
-else
-    jaune "Étapes manquantes ci-dessus — doctor non lancé."
-fi
-
-titre "Ensuite"
-
-if (( manque == 0 )); then
-    cat <<'FIN'
-  Tout est en place. Ouvre la session :
-
-     bash control-plane/forge-start
-     hermes chat -s forgehistory-suivi
-
-  Le -s n'est pas optionnel : sans lui, Hermes ne sait pas qu'il est
-  chef de projet.
-FIN
-else
-    printf '  Traite les points signalés, puis relance : bash control-plane/bootstrap-vps\n'
-    exit 1
-fi
+echo "ForgePilot installé : $REPO_DIR/.venv/bin/forgepilot"
+echo "Vérification locale : .venv/bin/forgepilot doctor --repo '$REPO_DIR'"
+echo "Les CLI externes et leurs authentifications ne sont nécessaires que pour"
+echo "les commandes qui les utilisent. Le développement du dépôt n'en dépend pas."

@@ -1,11 +1,10 @@
-#!/usr/bin/env py
+#!/usr/bin/env python3
 """
-PreToolUse hook (Bash matcher). Blocks bare `python` invocations.
+Garde locale facultative : bloque les appels ambigus à `python`.
 
-Hard-won rule 1: `py`, never `python` — the Microsoft Store alias for
-`python` on this machine is a fake stub that exits non-zero instead of
-running the interpreter. Reads the hook's JSON payload on stdin, checks
-tool_input.command, exits 2 (block) if found, else exits 0 (allow).
+Le dépôt emploie `python3` sous Linux et `py` sous Windows. Le garde lit la
+commande Bash dans le JSON reçu sur stdin, renvoie 2 si elle contient un
+appel nu à `python`, sinon 0.
 
 The matching itself lives in `harness/bare_python.py`, shared with
 `verdict_audit.py`'s `no_bare_python_alias` check — see that module for why
@@ -50,9 +49,8 @@ def main() -> int:
 
     if find_invocation(command):
         print(
-            "Blocked: bare `python` invocation detected. Use `py` instead "
-            "(see docs/rules/hard-won-rules.md, rule 1 — the Microsoft "
-            "Store `python` alias on this machine is a fake stub). "
+            "Blocked: bare `python` invocation detected. Use `python3` "
+            "under Linux or `py` under Windows. "
             "If you meant the word rather than the command, it is only "
             "blocked in command position — quote it or reword.",
             file=sys.stderr,

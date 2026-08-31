@@ -1,17 +1,17 @@
-#!/usr/bin/env py
+#!/usr/bin/env python3
 """
-harness/bare_python.py -- the one matcher for bare `python` invocations.
+harness/bare_python.py -- détection technique des appels ambigus à `python`.
 
-Hard-won rule 1: `py`, never `python` -- the Microsoft Store alias for
-`python` on this machine is a fake stub that exits non-zero instead of
-running the interpreter.
+Le nom nu `python` n'est pas portable : il peut désigner un alias absent ou
+le raccourci du Microsoft Store. Le dépôt emploie `python3` sous Linux et
+`py` sous Windows.
 
 Two callers enforce that rule, and both used to carry their own copy of a
 plain substring match:
 
-  * `.claude/hooks/no_bare_python.py` -- live, on every Bash command;
-  * `harness/verdict_audit.py` -- at gate time, over a brief's declared
-    commands and its deliverable text.
+  * `.claude/hooks/no_bare_python.py` -- garde locale facultative ;
+  * `harness/verdict_audit.py` -- diagnostic facultatif sur les commandes
+    déclarées dans un compte-rendu.
 
 A substring match is hard-won rule 6 in the flesh: too coarse costs as much
 as too lax. It blocked `grep -rn python docs/`, `git commit -m "drop python
@@ -26,9 +26,9 @@ assignment or a prefix word (sudo, env, time, xargs, if, do, ...), after
 `eval`, or inside an interpreter's run-this-string flag (`bash -c`,
 `pwsh -Command`). Anywhere else the word is data.
 
-Single module because the same defect living in two divergent copies is
-how the transcript counter stayed wrong (see harness/transcripts.py). It
-stays stdlib-only, so the gate keeps its no-dependency property.
+Le module partagé évite deux implémentations divergentes. Il reste limité à
+la bibliothèque standard afin d'être utilisable dans tous les environnements
+du dépôt.
 
 Known and accepted gap: an invocation assembled at runtime
 (`cmd="pyth"; ${cmd}on x`) or reached through a wrapper script is not seen.

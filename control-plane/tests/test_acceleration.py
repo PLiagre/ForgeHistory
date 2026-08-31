@@ -133,10 +133,12 @@ class GitRepoMixin:
 class PolicyTests(unittest.TestCase):
     def test_authoritative_policy_covers_controller_roles_profiles_and_timeouts(self):
         policy = load_policy()
-        self.assertEqual("hermes", policy.controller.backend)
-        self.assertEqual("nous_portal", policy.controller.provider)
-        self.assertFalse(policy.controller.can_review)
-        self.assertEqual("openai/gpt-5.4", policy.controller.model)
+        self.assertEqual("local", policy.controller.backend)
+        self.assertEqual("configurable", policy.controller.provider)
+        self.assertTrue(policy.controller.can_plan)
+        self.assertTrue(policy.controller.can_review)
+        self.assertTrue(policy.controller.can_merge)
+        self.assertEqual("", policy.controller.model)
         self.assertEqual("none", policy.witness.backend)
         self.assertEqual("", policy.witness.model)
         self.assertEqual("", policy.witness.effort)
@@ -149,18 +151,18 @@ class PolicyTests(unittest.TestCase):
             self.assertGreater(profile.timeouts.proof, 0)
             self.assertGreater(profile.timeouts.executor, 0)
 
-    def test_invalid_backend_is_refused_before_agents(self):
+    def test_unlisted_backend_is_accepted_as_configuration(self):
         source = Path(__file__).parents[1] / "workflow-policy.toml"
         body = source.read_text(encoding="utf-8").replace(
-            '[risks.R1.roles.executor]\nbackend = "cursor"',
-            '[risks.R1.roles.executor]\nbackend = "claude"',
+            '[risks.R1.roles.planner]\nbackend = "cursor"',
+            '[risks.R1.roles.planner]\nbackend = "outil-libre"',
             1,
         )
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "policy.toml"
             path.write_text(body, encoding="utf-8")
-            with self.assertRaisesRegex(PilotError, "Backend incompatible"):
-                load_policy(path)
+            policy = load_policy(path)
+        self.assertEqual("outil-libre", policy.risks["R1"].roles["planner"].backend)
 
     def test_missing_profile_is_refused(self):
         source = Path(__file__).parents[1] / "workflow-policy.toml"
@@ -219,15 +221,8 @@ class PolicyTests(unittest.TestCase):
             path.write_text(body, encoding="utf-8")
             return load_policy(path)
 
-    def test_authoritative_policy_declares_no_review_fallback_yet(self):
-        """La route de secours existe comme mécanisme, pas comme décision prise.
-
-        Nommer le second juge est un arbitrage du propriétaire : la
-        politique versionnée n'en déclare aucun, et la relance rejoue donc
-        la route nominale, comme avant. Ce test dit que l'absence est
-        voulue, pas oubliée — le jour où une route est déclarée, il tombe
-        et force à le constater.
-        """
+    def test_default_policy_declares_no_review_fallback(self):
+        """L'exemple reste simple ; une relance peut être ajoutée librement."""
 
         policy = load_policy()
         for name, profile in policy.risks.items():
@@ -252,46 +247,42 @@ class PolicyTests(unittest.TestCase):
         )
         self.assertIsNone(policy.risks["R2"].review_fallback)
 
-    def test_review_fallback_that_is_not_another_route_is_refused(self):
-        """Une route de secours identique rejouerait la condition qui a échoué."""
+    def test_review_fallback_may_reuse_the_nominal_route(self):
+        policy = self._load_written_policy(
+            self._policy_with(
+                '\n[risks.R1.review_fallback]\n'
+                'backend = "cursor"\n'
+                'model = "cursor-grok-4.6"\n'
+                'effort = "xhigh"\n'
+            )
+        )
+        self.assertEqual(
+            policy.risks["R1"].roles["reviewer"],
+            policy.risks["R1"].review_fallback,
+        )
 
-        with self.assertRaisesRegex(PilotError, "route identique"):
-            self._load_written_policy(
-                self._policy_with(
-                    '\n[risks.R1.review_fallback]\n'
-                    'backend = "cursor"\n'
-                    'model = "cursor-grok-4.6"\n'
-                    'effort = "xhigh"\n'
-                )
+    def test_review_fallback_may_change_backend_and_omit_the_model(self):
+        policy = self._load_written_policy(
+            self._policy_with(
+                '\n[risks.R1.review_fallback]\n'
+                'backend = "outil-libre"\n'
             )
+        )
+        secours = policy.risks["R1"].review_fallback
+        assert secours is not None
+        self.assertEqual("outil-libre", secours.backend)
+        self.assertEqual("", secours.model)
 
-    def test_review_fallback_cannot_change_backend_or_omit_the_model(self):
-        with self.assertRaisesRegex(PilotError, "change de backend"):
-            self._load_written_policy(
-                self._policy_with(
-                    '\n[risks.R1.review_fallback]\n'
-                    'backend = "none"\n'
-                )
+    def test_review_fallback_is_independent_of_the_nominal_configuration(self):
+        policy = self._load_written_policy(
+            self._policy_with(
+                '\n[risks.R0.review_fallback]\n'
+                'backend = "outil-libre"\n'
             )
-        with self.assertRaisesRegex(PilotError, "doit nommer un modèle"):
-            self._load_written_policy(
-                self._policy_with(
-                    '\n[risks.R1.review_fallback]\n'
-                    'backend = "cursor"\n'
-                    'effort = "high"\n'
-                )
-            )
-
-    def test_review_fallback_without_a_reviewer_is_refused(self):
-        with self.assertRaisesRegex(PilotError, "aucun relecteur"):
-            self._load_written_policy(
-                self._policy_with(
-                    '\n[risks.R0.review_fallback]\n'
-                    'backend = "cursor"\n'
-                    'model = "cursor-grok-4.6"\n'
-                    'effort = "high"\n'
-                )
-            )
+        )
+        secours = policy.risks["R0"].review_fallback
+        assert secours is not None
+        self.assertEqual("outil-libre", secours.backend)
 
     def test_broad_glob_that_can_touch_governance_is_r2(self):
         policy = load_policy()
@@ -306,7 +297,8 @@ class PolicyTests(unittest.TestCase):
             code = main(["doctor", "--repo", str(Path.cwd())])
         self.assertEqual(0, code)
         text = out.getvalue()
-        self.assertIn("nous_portal", text)
+        self.assertIn('"provider": "configurable"', text)
+        self.assertIn('"can_plan": true', text)
         self.assertIn('"R2"', text)
         self.assertNotIn("ANTHROPIC_API_KEY", text)
 
@@ -1561,15 +1553,15 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertEqual(2, final["iteration"]["plateau_count"])
             self.assertEqual(3, reviews)
 
-            # Aucun agent automatique ne relance un lot qui plafonne. Le
-            # message doit remettre explicitement le dossier au propriétaire.
+            # Aucun outil supplémentaire ne se lance tout seul. Le message
+            # doit laisser les suites possibles au contributeur courant.
             erreur = str(final.get("error") or "")
             print(f"message d'arret : {erreur}")
             self.assertIn(
-                "propriétaire",
+                "choisir librement",
                 erreur,
-                "L'arrêt pour non-convergence ne remet pas le dossier au "
-                f"propriétaire : {erreur!r}",
+                "L'arrêt pour non-convergence n'explicite pas les suites "
+                f"facultatives : {erreur!r}",
             )
             self.assertIn(
                 "BRIEF",
@@ -1851,12 +1843,12 @@ class DurableFlowTests(unittest.TestCase, GitRepoMixin):
             self.assertIn("aucune route de secours n'est déclarée", final["error"])
 
     def test_schema_retry_takes_the_declared_fallback_route(self):
-        """La relance change de juge quand la politique en déclare un.
+        """La relance emploie la route facultative déclarée.
 
         Le lot 034 a payé trois fois la même signature : même modèle, même
         contrat, même refus. Le contrat est durci depuis. Ce test prouve
-        l'autre moitié : la seconde tentative part sur la route déclarée
-        par la politique, et l'état final nomme cette route.
+        que la seconde tentative part sur la route configurée, et que l'état
+        final la nomme. Cette route pourrait aussi être la route nominale.
         """
 
         with tempfile.TemporaryDirectory() as tmp:

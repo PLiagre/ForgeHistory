@@ -1,9 +1,9 @@
 # tools/map/ — l'outil qui fabrique la carte
 
 > **Le jeu ne lit pas ce dossier.** Le jeu lit `data/world-1400.json`, la
-> carte figée, produite une fois par `python tools/map/build_world.py`
+> carte figée, produite une fois par `python3 tools/map/build_world.py`
 > (ADR-0018). Cet outil ne se ressort que si on refait la carte. Il est
-> hors du chemin quotidien : Hermes ne le lit pas au démarrage.
+> hors du chemin quotidien du moteur.
 >
 > La qualité (`qa/`) n'a pas été allégée : ces contrôles ne coûtent rien
 > tant qu'on ne les lance pas, et ils sont le seul filet si la carte est

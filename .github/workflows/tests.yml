@@ -1,16 +1,11 @@
 name: tests
 
-# ADR-0018 : un workflow de tests, plus le scan de sécurité.
-# ADR-0020 ajoute worker-pc.yml (ping workflow_dispatch, runner Windows).
-# Les douze workflows précédents orchestraient des rôles supprimés
-# (full-auto, machine d'audit, bot de fusion, aiguillage de risque).
-#
 # Cinq travaux :
 #   * sim-tests      -- le jeu : invariants physiques, règles visibles, déterminisme
 #   * viewer-tests   -- le regard mince : il lit le snapshot sans le réinventer
-#   * harness-tests  -- la porte mécanique et ses gardes
-#   * control-plane  -- ForgePilot, l'outil qui lance les lots
-#   * f0-demo        -- un faux compte-rendu doit être refusé par la porte
+#   * harness-tests  -- les vérificateurs facultatifs et leurs gardes techniques
+#   * control-plane  -- ForgePilot, l'automatisation facultative
+#   * f0-demo        -- l'exemple incohérent reste détecté
 #
 # Pourquoi le brief honnête n'est pas rejoué ici : son ACCEPT dépend des
 # dates de fichiers (la rubrique doit précéder les livrables), qu'un
@@ -56,7 +51,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: python -m pip install --upgrade pip pytest
-      - name: La porte mécanique et ses gardes
+      - name: Les vérificateurs facultatifs
         run: python -m pytest harness/tests/ -v
 
   control-plane-tests:
@@ -80,5 +75,5 @@ jobs:
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.13"
-      - name: Un faux compte-rendu doit être refusé
+      - name: Un compte-rendu incohérent doit être détecté
         run: python harness/demo/fake_brief_001/run_demo.py

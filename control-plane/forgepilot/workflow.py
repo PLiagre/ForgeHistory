@@ -38,10 +38,6 @@ from .publication import enforce_allowed_paths, stage_explicit_paths, working_tr
 
 
 CHAIN_STEPS = ("plan", "execute", "publish", "review")
-PROPOSITION_REFUSED = (
-    "Une proposition Hermes n'est pas une instruction. "
-    "Passer un brief (harness/queue/briefs/.../brief.md) ou un fichier de tâche."
-)
 CONTROLLER_SECRET_ENV = re.compile(
     r"(?:discord|github|^gh_|api[_-]?key|access[_-]?token|secret|password|authorization)",
     re.IGNORECASE,
@@ -89,12 +85,8 @@ def default_task_name(task: Path) -> str:
 
 
 def assert_task_is_instruction(task: Path) -> None:
-    """Refuse une proposition Hermes : ce n'est pas un brief."""
-    parts = [part.lower() for part in task.parts]
-    if "hermes" in parts and "propositions" in parts:
-        raise PilotError(PROPOSITION_REFUSED)
-    if task.name.upper().startswith("PROPOSITION-"):
-        raise PilotError(PROPOSITION_REFUSED)
+    """Accepte tout document de tâche lisible, quelle que soit son origine."""
+    _task_text(task)
 
 
 def resolve_role(
@@ -233,8 +225,8 @@ def plan_invocation(
                 "Le brief Cursor doit vivre dans le dépôt pour être lu par chemin."
             ) from exc
         authoritative_task = (
-            f"Lis intégralement `{task_reference}` dans le dépôt. Ce fichier est "
-            "l'unique tâche autoritaire : ne le résume pas avant de construire le plan."
+            f"Lis intégralement `{task_reference}` dans le dépôt. Ce fichier "
+            "contient la tâche courante du run."
         )
         prompt = _read_prompt("planner.md").replace("{{TASK}}", authoritative_task)
         cursor_model = grok_model_for_effort(resolved.model, resolved.effort)
@@ -251,7 +243,9 @@ def plan_invocation(
             effort=resolved.effort or None,
             backend="cursor",
         )
-    raise PilotError(f"Backend de planification automatique interdit : {backend!r}.")
+    raise PilotError(
+        f"Aucun adaptateur de planification ForgePilot n'est installé pour {backend!r}."
+    )
 
 
 def brief_review_invocation(
@@ -264,28 +258,11 @@ def brief_review_invocation(
     risk: str | None = None,
     schema_retry: bool = False,
 ) -> Invocation:
-    """
-    Fait relire le BRIEF avant qu'un exécutant démarre.
-
-    Le relecteur de PR arrive après que l'exécutant a travaillé — jusqu'à
-    deux heures au profil R2. Un brief qui contient deux lots, un critère
-    invérifiable ou une demande de modifier un test existant coûte alors un
-    aller-retour complet. Relu d'abord, il coûte le budget du relecteur.
-
-    Même backend et même effort que le relecteur de PR : c'est le même
-    travail de lecture adverse, sur un objet plus petit. Le brief est passé
-    par RÉFÉRENCE, jamais recopié dans la ligne de commande.
-
-    Ce n'est pas un jugement de lot : personne n'a encore produit quoi que ce
-    soit. La règle « celui qui produit ne prononce pas la recevabilité de son
-    propre travail » est respectée : l'auteur manuel du brief n'est jamais
-    son relecteur automatique.
-    """
+    """Produit, si demandé, un diagnostic borné sur une description de tâche."""
     backend = _role_backend(settings, risk, "reviewer")
     if backend == "none":
         raise PilotError(
-            "Aucun relecteur n'est configuré pour ce risque : un lot R0 ne "
-            "mobilise aucun agent, la relecture de brief n'a pas lieu d'être."
+            "Aucun backend de diagnostic n'est configuré pour ce profil."
         )
     resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
 
@@ -298,7 +275,7 @@ def brief_review_invocation(
             ) from exc
         corps = (
             f"Lis intégralement `{reference}` dans le dépôt. Ce fichier est "
-            "l'unique brief à relire ; ne le résume pas avant de juger."
+            "le document de tâche à analyser ; lis-le intégralement."
         )
         prompt = _read_prompt("brief-reviewer.md").replace("{{BRIEF}}", corps)
         prompt = (
@@ -320,7 +297,9 @@ def brief_review_invocation(
             backend="cursor",
         )
 
-    raise PilotError(f"Backend de relecture automatique interdit : {backend!r}.")
+    raise PilotError(
+        f"Aucun adaptateur de diagnostic ForgePilot n'est installé pour {backend!r}."
+    )
 
 
 def _stage_review_schema(repo: Path, *, near: Path | None = None) -> str:
@@ -364,11 +343,22 @@ def review_invocation(
     risk: str | None = None,
     bundle_path: Path | None = None,
     schema_retry: bool = False,
+    backend_override: str | None = None,
 ) -> Invocation:
-    backend = _role_backend(settings, risk, "reviewer")
+    backend = (
+        backend_override
+        if backend_override is not None
+        else _role_backend(settings, risk, "reviewer")
+    )
     if backend == "none":
         raise PilotError("Aucun relecteur n'est configuré pour ce risque.")
-    resolved = resolve_role(settings, "reviewer", model=model, effort=effort, risk=risk)
+    if backend_override is not None:
+        assert_valid_effort(effort or "")
+        resolved = RoleSettings(model=model or "", effort=effort or "")
+    else:
+        resolved = resolve_role(
+            settings, "reviewer", model=model, effort=effort, risk=risk
+        )
     argv: list[str]
     schema_near = bundle_path if bundle_path is not None else None
     if backend == "cursor" and bundle_path is not None:
@@ -383,8 +373,8 @@ def review_invocation(
         bundle_reference_path = stage_exchange(repo, bundle_path, "review-bundle")
         bundle_reference = (
             f"Lis intégralement le bundle de revue `{bundle_reference_path}` "
-            "dans ton espace de travail. Ce fichier est l'unique bundle "
-            "autoritaire ; rends ensuite le JSON de revue fermé. Si ce fichier "
+            "dans ton espace de travail. Ce fichier contient le matériau du "
+            "diagnostic ; rends ensuite le JSON fermé. Si ce fichier "
             "est illisible, rends `verdict` `BLOCKED` avec "
             "`blocked_reason` `material_unreadable` : une panne de transport "
             "n'est pas un jugement sur le produit."
@@ -457,7 +447,9 @@ def review_invocation(
             effort=resolved.effort or None,
             backend="cursor",
         )
-    raise PilotError(f"Backend de revue automatique interdit : {backend!r}.")
+    raise PilotError(
+        f"Aucun adaptateur de revue ForgePilot n'est installé pour {backend!r}."
+    )
 
 
 def _stage_reference(worktree: Path, source: Path, nom: str) -> str:
@@ -506,19 +498,19 @@ def executor_invocation(
             .replace(
                 "{{PLAN}}",
                 f"Lis intégralement `{plan_reference}` dans ton worktree. "
-                "Ce fichier est l'unique plan autoritaire.",
+                "Ce fichier contient le plan courant du run.",
             )
             .replace(
                 "{{FEEDBACK}}",
                 f"Lis intégralement `{feedback_reference}` dans ton worktree. "
-                "Ce fichier est l'unique feedback de la revue indépendante.",
+                "Ce fichier contient les constats disponibles pour l'itération.",
             )
         )
     else:
         prompt = _read_prompt("executor.md").replace(
             "{{PLAN}}",
             f"Lis intégralement `{plan_reference}` dans ton worktree. "
-            "Ce fichier est l'unique plan autoritaire.",
+            "Ce fichier contient le plan courant du run.",
         )
     resolved = resolve_role(settings, "executor", model=model, effort=None, risk=risk)
     argv = [
@@ -968,8 +960,7 @@ def publish_preview(
     if not git(repo, "status", "--porcelain"):
         raise PilotError("Aucun changement à publier.")
     body = (
-        "Produit par Cursor dans ForgePilot. "
-        "Fusion mécanique si juge PASS et checks verts (ADR-0017).\n\n"
+        "PR créée par l'automatisation facultative ForgePilot.\n\n"
         f"Forge-Risk: {risk}\n"
         f"Forge-Brief: {brief or title}"
     )
@@ -1074,7 +1065,7 @@ def chain_preview(
             "after": "worktree",
             "title": slug,
             "draft": True,
-            "note": "Produit par Cursor dans ForgePilot. Fusion mécanique si juge PASS et checks verts (ADR-0017).",
+            "note": "PR créée par l'automatisation facultative ForgePilot.",
         },
         "review": {
             "role": "reviewer",

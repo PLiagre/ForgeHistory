@@ -1,10 +1,9 @@
 # sim/MODELE.md — comment le monde fonctionne
 
-> **Tenu par Claude** (architecte du modèle, ADR-0018 ; il écrit aussi les
-> briefs depuis ADR-0019). Ce fichier dit comment le monde fonctionne — pas
-> quoi faire pour un lot donné : ça, c'est le brief. C'est d'ici que les
-> briefs sont découpés, et c'est pourquoi une affirmation fausse ici se
-> propage à tous les lots suivants.
+> Ce fichier décrit comment le monde fonctionne. Tout contributeur ou agent
+> autorisé peut le corriger lorsqu'une affirmation devient fausse. Une tâche
+> peut venir de la roadmap ou d'un brief existant ; aucun document ni acteur
+> n'en possède la rédaction.
 >
 > Il est rangé par **mécanisme**, jamais par numéro de brief : les briefs sont
 > archivés, leurs numéros ne veulent plus rien dire pour qui lit le moteur

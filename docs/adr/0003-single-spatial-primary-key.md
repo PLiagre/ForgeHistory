@@ -1,5 +1,7 @@
 # ADR-0003: The geographic cell as the single spatial primary key (Province as derived aggregation)
 
+> **Statut actuel — 2026-08-30 : La décision technique sur `cell_id` reste active. Toute clause de rôle ou de procédure est obsolète.**
+
 **Date**: 2026-07-29
 **Status**: accepted
 **Deciders**: project owner

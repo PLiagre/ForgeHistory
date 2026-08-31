@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -106,76 +105,19 @@ class PolicyRoutingTests(unittest.TestCase):
         self.assertFalse(hasattr(workflow, "witness_invocation"))
 
 
-class MergeGateTests(unittest.TestCase):
-    def _ready_state(self, repo: Path, verdict: str = "PASS") -> tuple[dict, Path]:
-        material = {
-            "verdict": verdict,
-            "head_sha": "abc",
-            "tree_sha": "tree",
-            "bundle": "bundle.json",
-        }
-        material_path = repo / "review.json"
-        material_path.write_text(json.dumps(material), encoding="utf-8")
-        (repo / "bundle.json").write_text(
-            json.dumps({"head_sha": "abc", "tree_sha": "tree"}), encoding="utf-8"
-        )
-        state = {
-            "step": "COMPLETE",
+class MergeHelperTests(unittest.TestCase):
+    def _state(self, repo: Path) -> dict:
+        return {
+            "step": "PUBLISHED",
             "head_sha": "abc",
             "pull_request": "https://example.test/pr/1",
             "worktree": str(repo),
             "branch": "agent/demo",
-            "candidate": {"tree_sha": "tree"},
-            "artifacts": {"review_material": str(material_path)},
-            "risk": {"effective": "R1"},
         }
-        return state, material_path
 
-    def test_merge_refuses_non_pass(self):
+    def test_merge_does_not_require_review_material(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
-            state, _ = self._ready_state(repo, verdict="FAIL")
-            with patch(
-                "forgepilot.merge.validate_verdict_material",
-                return_value={"verdict": "FAIL", "head_sha": "abc"},
-            ):
-                with self.assertRaisesRegex(PilotError, "juge"):
-                    assert_merge_ready(repo, state, repo / "state.json")
-
-    def test_merge_refuses_stop_label_and_red_checks(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
-            state, _ = self._ready_state(repo)
-            snapshot = {
-                "state": "OPEN",
-                "headRefOid": "abc",
-                "labels": [{"name": "do-not-merge"}],
-                "statusCheckRollup": [
-                    {"name": "sim-tests", "status": "COMPLETED", "conclusion": "SUCCESS"}
-                ],
-            }
-            with patch(
-                "forgepilot.merge.validate_verdict_material",
-                return_value={"verdict": "PASS", "head_sha": "abc"},
-            ), patch("forgepilot.merge._pr_snapshot", return_value=snapshot):
-                with self.assertRaisesRegex(PilotError, "label"):
-                    assert_merge_ready(repo, state, repo / "state.json")
-
-            snapshot["labels"] = []
-            snapshot["statusCheckRollup"] = [
-                {"name": "sim-tests", "status": "COMPLETED", "conclusion": "FAILURE"}
-            ]
-            with patch(
-                "forgepilot.merge.validate_verdict_material",
-                return_value={"verdict": "PASS", "head_sha": "abc"},
-            ), patch("forgepilot.merge._pr_snapshot", return_value=snapshot):
-                with self.assertRaisesRegex(PilotError, "checks"):
-                    assert_merge_ready(repo, state, repo / "state.json")
-
-    def test_merge_accepts_green_pass(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
-            state, _ = self._ready_state(repo)
             snapshot = {
                 "state": "OPEN",
                 "headRefOid": "abc",
@@ -184,10 +126,46 @@ class MergeGateTests(unittest.TestCase):
                     {"name": "sim-tests", "status": "COMPLETED", "conclusion": "SUCCESS"}
                 ],
             }
-            with patch(
-                "forgepilot.merge.validate_verdict_material",
-                return_value={"verdict": "PASS", "head_sha": "abc"},
-            ), patch("forgepilot.merge._pr_snapshot", return_value=snapshot):
-                ready = assert_merge_ready(repo, state, repo / "state.json")
-        self.assertEqual("PASS", ready["verdict"])
+            with patch("forgepilot.merge._pr_snapshot", return_value=snapshot):
+                ready = assert_merge_ready(repo, self._state(repo), repo / "state.json")
+        self.assertEqual("GREEN", ready["checks"])
         self.assertEqual("abc", ready["head_sha"])
+
+    def test_merge_reports_stop_label_and_red_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            state = self._state(repo)
+            snapshot = {
+                "state": "OPEN",
+                "headRefOid": "abc",
+                "labels": [{"name": "do-not-merge"}],
+                "statusCheckRollup": [
+                    {"name": "sim-tests", "status": "COMPLETED", "conclusion": "SUCCESS"}
+                ],
+            }
+            with patch("forgepilot.merge._pr_snapshot", return_value=snapshot):
+                with self.assertRaisesRegex(PilotError, "label"):
+                    assert_merge_ready(repo, state, repo / "state.json")
+
+            snapshot["labels"] = []
+            snapshot["statusCheckRollup"] = [
+                {"name": "sim-tests", "status": "COMPLETED", "conclusion": "FAILURE"}
+            ]
+            with patch("forgepilot.merge._pr_snapshot", return_value=snapshot):
+                with self.assertRaisesRegex(PilotError, "checks"):
+                    assert_merge_ready(repo, state, repo / "state.json")
+
+    def test_owner_review_label_does_not_create_an_identity_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            snapshot = {
+                "state": "OPEN",
+                "headRefOid": "abc",
+                "labels": [{"name": "owner-review"}],
+                "statusCheckRollup": [
+                    {"name": "sim-tests", "status": "COMPLETED", "conclusion": "SUCCESS"}
+                ],
+            }
+            with patch("forgepilot.merge._pr_snapshot", return_value=snapshot):
+                ready = assert_merge_ready(repo, self._state(repo), repo / "state.json")
+        self.assertEqual("GREEN", ready["checks"])

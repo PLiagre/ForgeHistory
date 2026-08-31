@@ -1,5 +1,7 @@
 # ADR-0008: Codex may hold the Évaluateur role, only in a third-party-triggered session, only when Claude is credit-capped
 
+> **Statut actuel — 2026-08-30 : Archive historique. Les règles de rôle, d'identité, de fournisseur, de relecture, de verdict, de porte, d'orchestration et de fusion décrites ci-dessous sont obsolètes et n'imposent plus rien.**
+
 **Date**: 2026-08-11
 **Status**: accepted
 **Deciders**: project owner (2026-08-11 decision, converted by brief 010 Lot 010a)

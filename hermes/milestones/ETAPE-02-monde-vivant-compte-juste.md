@@ -7,6 +7,10 @@ decided_by: propriétaire (instruction de passe 2026-08-14 — clôturer E2 si 0
 
 # Étape 02 — Le monde vivant compte juste
 
+> **Archive historique.** Les déclenchements d'audit, séparations de rôles et
+> portes mentionnés ci-dessous décrivent le workflow de 2026. Ils sont
+> obsolètes et n'imposent aucune procédure actuelle.
+
 Ce fichier **constate** la clôture du jalon E2 défini dans `ROADMAP.md`
 § « Grandes étapes — jalons d'audit ». Il n'instruit aucun brief (voir
 `CLAUDE.md` › Single Source of Instruction). Sa fusion sur `master`

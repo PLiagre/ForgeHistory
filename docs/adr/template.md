@@ -1,34 +1,36 @@
-# ADR-NNNN: [Decision Title]
+# ADR-NNNN — titre de la décision
 
-**Date**: YYYY-MM-DD
-**Status**: proposed | accepted | deprecated | superseded by ADR-NNNN
-**Deciders**: [who was involved]
+**Date** : AAAA-MM-JJ
+**Statut** : proposé | accepté | obsolète | remplacé par ADR-NNNN
+**Participants** : personnes ou agents ayant contribué à la décision
 
-## Context
+## Contexte
 
-What is the issue that we're seeing that is motivating this decision or
-change? [2-5 sentences describing the situation, constraints, and forces at
-play]
+Décrire le problème concret, les contraintes et les faits observés.
 
-## Decision
+## Décision
 
-What is the change that we're proposing and/or doing? [1-3 sentences stating
-the decision clearly]
+Décrire la décision technique ou fonctionnelle. Une décision ne réserve aucune
+action à un acteur, modèle ou fournisseur.
 
-## Alternatives Considered
+## Solutions envisagées
 
-### Alternative 1: [Name]
-- **Pros**: [benefits]
-- **Cons**: [drawbacks]
-- **Why not**: [specific reason this was rejected]
+### Solution 1 — nom
 
-## Consequences
+- avantages ;
+- inconvénients ;
+- raison du choix ou du rejet.
 
-### Positive
-- [benefit 1]
+## Conséquences
 
-### Negative
-- [trade-off 1]
+### Positives
 
-### Risks
-- [risk and mitigation]
+- bénéfice mesurable.
+
+### Négatives
+
+- coût ou limite connue.
+
+### Risques
+
+- risque et moyen de le détecter ou de le réduire.

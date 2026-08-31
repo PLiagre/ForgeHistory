@@ -1,20 +1,13 @@
-# Propositions Hermes
+# Propositions
 
-Améliorations **proposées** par Hermes (session ou cron quotidien).
-Ce n’est pas une file de briefs. Une proposition n’instruit personne.
+Ce dossier accueille des pistes de travail datées. Une proposition est une
+information, pas une instruction ni une file obligatoire.
 
-## Règles
+Tout contributeur ou agent autorisé peut en créer, l'amender, la transformer
+en tâche de roadmap ou la fermer. Le format et les statuts restent libres tant
+qu'ils sont compréhensibles ; le frontmatter existant peut être conservé pour
+le générateur du tableau de bord.
 
-- Format : `PROPOSITION-AAAAMMJJ-<slug>.md`, frontmatter `kind: proposition`.
-- Dire le constat, pourquoi ça compte, ce que le propriétaire pourrait
-  demander ensuite. Pas de conditions de succès d’exécutant, pas de
-  consigne de code.
-- Si un brief existe déjà, **pointer** vers lui. Ne pas le recopier.
-- Statuts : `OPEN` (à trancher) → `OWNER_INPUT_REQUIRED` (brief ou décision
-  demandé au propriétaire) →
-  `REFLECTED_IN_ROADMAP` ou `CLOSED`.
-- Au boot, Hermes ne lit que `status: OPEN`. Zéro OPEN = rien n'attend.
-  Au plus une proposition OPEN à la fois.
-- Un cron ne crée une proposition que s’il a **un constat nouveau**.
-  Sinon il met à jour `DERNIERE-VEILLE.md` seulement. Ce fichier est
-  **local** (gitignoré) : le cron ne doit jamais salir le dépôt.
+Le fichier local `DERNIERE-VEILLE.md` est ignoré par Git. Une veille planifiée
+ou manuelle peut le mettre à jour, sans modifier l'autorité de la roadmap ni
+du code.

@@ -1,5 +1,7 @@
 # ADR-0016: sim/ sans Unity est le produit vivant ; Hermes pilote et propose
 
+> **Statut actuel — 2026-08-30 : La décision technique faisant de `sim/` le produit vivant sans Unity reste active. Toute attribution de rôle ou procédure est obsolète.**
+
 **Date**: 2026-08-20
 **Status**: accepted
 **Deciders**: le propriétaire (décision orale du 2026-08-20), Cursor

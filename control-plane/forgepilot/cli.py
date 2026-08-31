@@ -79,7 +79,7 @@ def parser() -> argparse.ArgumentParser:
     doctor.add_argument("--repo", type=_path, default=Path.cwd())
     doctor.add_argument("--check-auth", action="store_true")
 
-    plan = commands.add_parser("plan", help="faire préparer un plan par le planificateur Cursor")
+    plan = commands.add_parser("plan", help="préparer un plan avec le backend configuré")
     plan.add_argument("task", type=_path)
     plan.add_argument("--repo", type=_path, default=Path.cwd())
     plan.add_argument("--model")
@@ -87,7 +87,7 @@ def parser() -> argparse.ArgumentParser:
     plan.add_argument("--risk", choices=("R0", "R1", "R2"))
     plan.add_argument("--run", action="store_true")
 
-    execute = commands.add_parser("execute", help="faire exécuter un plan par Cursor")
+    execute = commands.add_parser("execute", help="exécuter un plan dans un worktree")
     execute.add_argument("plan", type=_path)
     execute.add_argument("--repo", type=_path, default=Path.cwd())
     execute.add_argument("--base")
@@ -111,7 +111,7 @@ def parser() -> argparse.ArgumentParser:
     iterate.add_argument("--risk", choices=("R0", "R1", "R2"))
     iterate.add_argument("--run", action="store_true")
 
-    review = commands.add_parser("review", help="faire relire un diff par le relecteur Cursor")
+    review = commands.add_parser("review", help="produire un diagnostic facultatif sur un diff")
     review.add_argument("plan", type=_path)
     review.add_argument("--repo", type=_path, default=Path.cwd())
     review.add_argument("--base")
@@ -121,7 +121,7 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--risk", choices=("R0", "R1", "R2"))
     review.add_argument("--run", action="store_true")
 
-    publish_parser = commands.add_parser("publish", help="ouvrir une draft PR après Cursor")
+    publish_parser = commands.add_parser("publish", help="ouvrir une draft PR")
     publish_parser.add_argument("--repo", type=_path, default=Path.cwd())
     publish_parser.add_argument("--base")
     publish_parser.add_argument("--title", required=True)
@@ -132,7 +132,7 @@ def parser() -> argparse.ArgumentParser:
 
     enchaine = commands.add_parser(
         "enchaine",
-        help="plan, execute, publish, review — une commande, pas de fusion",
+        help="automatiser plan, exécution, publication et diagnostic",
     )
     enchaine.add_argument("task", type=_path)
     enchaine.add_argument("--repo", type=_path, default=Path.cwd())
@@ -201,12 +201,12 @@ def parser() -> argparse.ArgumentParser:
     recover_iteration.add_argument(
         "--approach-changed",
         action="store_true",
-        help="forcer une revue complète de la correction manuelle",
+        help="forcer un diagnostic complet de la correction manuelle",
     )
 
     recover_review = commands.add_parser(
         "recover-review",
-        help="rejouer uniquement la revue du SHA candidat, sans replanifier ni réexécuter",
+        help="rejouer uniquement le diagnostic du SHA candidat",
     )
     recover_review.add_argument("run_id")
     recover_review.add_argument("--repo", type=_path, default=Path.cwd())
@@ -219,7 +219,7 @@ def parser() -> argparse.ArgumentParser:
 
     continue_merged = commands.add_parser(
         "continue-after-merge",
-        help="poursuivre une correction après fusion externe du SHA relu",
+        help="poursuivre une correction après fusion externe du SHA examiné",
     )
     continue_merged.add_argument("run_id")
     continue_merged.add_argument("--repo", type=_path, default=Path.cwd())
@@ -227,7 +227,7 @@ def parser() -> argparse.ArgumentParser:
 
     verdict = commands.add_parser(
         "verdict",
-        help="rendre le matériau de revue lié au SHA sous forme Markdown",
+        help="rendre le diagnostic lié au SHA sous forme Markdown",
     )
     verdict.add_argument("run_id", nargs="?", default="latest")
     verdict.add_argument("--repo", type=_path, default=Path.cwd())
@@ -236,7 +236,7 @@ def parser() -> argparse.ArgumentParser:
 
     brief_review = commands.add_parser(
         "brief-review",
-        help="faire relire un brief AVANT de lancer un exécutant",
+        help="analyser facultativement une description de tâche",
     )
     brief_review.add_argument("brief", type=_path)
     brief_review.add_argument("--repo", type=_path, default=Path.cwd())
@@ -248,7 +248,7 @@ def parser() -> argparse.ArgumentParser:
 
     merge = commands.add_parser(
         "merge",
-        help="fusionner si juge PASS et checks verts sur le SHA jugé",
+        help="vérifier l'état technique d'une PR puis, avec --run, la fusionner",
     )
     merge.add_argument("run_id", nargs="?", default="latest")
     merge.add_argument("--repo", type=_path, default=Path.cwd())

@@ -1,16 +1,9 @@
 # ROADMAP — ForgeHistory
 
-> **Propriétaire de ce document : Hermes (chef de projet).** Toute évolution
-> de la feuille de route passe par une demande écrite sous `hermes/requests/`
-> (format : `hermes/README.md`), tranchée par le propriétaire, puis reflétée
-> ici par Hermes. Personne d'autre ne réécrit ce fichier sur le fond ;
-> une correction factuelle (statut devenu faux) est permise à tout acteur,
-> en la signalant dans le message de commit.
->
 > La vision produit (ce que le jeu **est**) vit dans [VISION.md](VISION.md)
 > et prime en cas de conflit. Ce fichier dit **où on en est** et **dans quel
-> ordre on avance** — jamais ce qu'il faut faire pour un brief donné (ça,
-> c'est le brief lui-même).
+> ordre on avance**. Tout contributeur ou agent autorisé peut le corriger et
+> le tenir à jour.
 
 ## Le jeu — cinq couches, dans l'ordre
 
@@ -56,38 +49,23 @@ Les couches viennent de `VISION.md` § « Roadmap par couches ». Statut au
 | **F2** — Moteur `sim/` couche 1 | amorçage, tick, survie, province, snapshot | **en cours** — relief, climat, gisements, marchandises multi-commerce, natalité et migration joués |
 | **F3+** — Couches 2 à 5 | Villes, États, Armées, Batailles | à venir |
 
-## Le workflow — Claude manuel, jamais orchestré (ADR-0021)
+## Workflow courant
 
-> Le propriétaire fournit un brief, éventuellement écrit avec Claude manuel →
-> Hermes le fait relire puis le lance → Cursor
-> l'exécute et ouvre une PR → les tests passent et la porte mécanique
-> vérifie le compte-rendu → le propriétaire fusionne.
+1. Choisir une tâche ci-dessous ou dans un brief existant.
+2. Modifier directement les fichiers nécessaires.
+3. Lancer les tests pertinents.
+4. Mettre à jour la documentation factuelle si nécessaire.
+5. Ouvrir une PR ou livrer le changement selon le contexte.
 
-- **Hermes** (Sol 5.6, VPS) : roadmap, suivi, mesure le besoin, remet au
-  propriétaire tout brief manquant, fait relire les briefs fournis et lance
-  Cursor. N'écrit pas de brief, ne code pas, ne fusionne pas, ne juge pas et
-  ne lance jamais Claude/Anthropic.
-- **Cursor** (Grok 4.6 pour le plan, Composer pour le code) : exécute,
-  ouvre la PR, se relit dans une invocation neuve.
-- **Claude manuel** : le propriétaire peut l'utiliser directement pour écrire
-  un brief, tenir `sim/MODELE.md` ou demander une revue consultative. Aucun
-  backend, cron, agent ou témoin Hermes/ForgePilot ne l'invoque.
-
-Règle de fond conservée : celui qui produit ne prononce pas la recevabilité
-de son propre travail.
-
-Le déroulé d'un lot, étape par étape et commande par commande, est dans
-[`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
-
-Trois workflows GitHub : les tests, le scan de sécurité, et le ping du
-worker PC (`workflow_dispatch` seulement, ADR-0020). Il n'y a plus de
-pipeline full-auto, plus de bot de fusion, plus de machine d'états d'audit.
+N'importe quel contributeur ou agent autorisé peut accomplir toutes ces
+étapes. Les aides de `hermes/`, `harness/` et `control-plane/` sont
+facultatives. La CI GitHub conserve les tests et le scan de sécurité. Le mode
+d'emploi court est dans [`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
 
 ## Prochaines étapes (dans l'ordre)
 
-Neuf lots écrits attendent sous `harness/queue/briefs/`. La liste
-ci-dessous est un **renvoi**, pas une instruction : ce qu'il faut faire pour
-un lot est dans son `brief.md`, et nulle part ailleurs.
+Les lots écrits sous `harness/queue/briefs/` restent disponibles comme tâches
+ou archives. La liste ci-dessous résume leur objectif produit.
 
 | # | lot | en une phrase |
 |---|---|---|
@@ -125,11 +103,14 @@ sur un phénomène que le moteur ne peut pas produire, et son critère
 d'acceptation serait invérifiable. Le lot 043 est ce qui lève le blocage ; le
 bourg s'écrira après lui, sur une mesure et non sur une intention.
 
-Côté pilotage : cron quotidien de lecture et de mesure ; une proposition
-seulement s'il y a un constat nouveau. Le déroulé d'un lot est dans
-[`docs/MODE-EMPLOI.md`](docs/MODE-EMPLOI.md).
+Les mesures et automatisations de suivi peuvent être lancées au besoin. Elles
+ne conditionnent pas l'avancement du produit.
 
 ## Historique des révisions
+
+> Cette section conserve les décisions et répartitions de rôles appliquées à
+> l'époque. Elles sont historiques ; le workflow courant est celui décrit plus
+> haut.
 
 | date | auteur | changement |
 |---|---|---|

@@ -1,4 +1,8 @@
-from __future__ import annotations
+"""Neutralité des fournisseurs.
+
+Le nom historique du fichier est conservé pour la continuité de la suite.
+Il ne teste plus l'exclusion d'un fournisseur.
+"""
 
 import io
 from pathlib import Path
@@ -8,58 +12,66 @@ from unittest.mock import patch
 
 from forgepilot.cli import main, parser
 from forgepilot.config import load_settings
+from forgepilot.policy import load_policy
 from forgepilot.workflow import missing_binaries
 
 
-class NoClaudeRuntimeTests(unittest.TestCase):
-    def test_policy_disables_witness_and_rejects_every_claude_backend(self):
+class ProviderNeutralityTests(unittest.TestCase):
+    def test_default_controller_has_no_reserved_capability(self):
         settings = load_settings()
-        self.assertIsNotNone(settings.policy)
         assert settings.policy is not None
-        self.assertEqual("none", settings.policy.witness.backend)
-        backends = {
-            role.backend
-            for profile in settings.policy.risks.values()
-            for role in profile.roles.values()
-        }
-        backends.add(settings.policy.witness.backend)
-        self.assertNotIn("claude", backends)
+        controller = settings.policy.controller
+        self.assertEqual("configurable", controller.provider)
+        self.assertTrue(controller.can_plan)
+        self.assertTrue(controller.can_review)
+        self.assertTrue(controller.can_merge)
 
-    def test_runtime_and_config_contain_no_claude_invocation_settings(self):
-        root = Path(__file__).parents[1]
-        runtime = "\n".join(
-            (root / "forgepilot" / name).read_text(encoding="utf-8")
-            for name in ("workflow.py", "cli.py", "config.py")
+    def test_policy_parser_accepts_an_unlisted_backend(self):
+        source = Path(__file__).parents[1] / "workflow-policy.toml"
+        text = source.read_text(encoding="utf-8")
+        text = text.replace(
+            '[risks.R1.roles.planner]\nbackend = "cursor"',
+            '[risks.R1.roles.planner]\nbackend = "outil-libre"',
+            1,
         )
-        runtime += "\n" + (root / "config.toml").read_text(encoding="utf-8")
-        self.assertNotIn("claude_binary", runtime)
-        self.assertNotIn("claude_model", runtime)
-        self.assertNotIn("_claude_argv(", runtime)
-        self.assertNotIn('["claude",', runtime)
+        with tempfile.TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "policy.toml"
+            policy_path.write_text(text, encoding="utf-8")
+            policy = load_policy(policy_path)
+        self.assertEqual("outil-libre", policy.profile("R1").roles["planner"].backend)
 
-    def test_cli_help_never_designates_claude_for_a_cursor_role(self):
-        """Le grep de motifs d'appel laissait passer le texte lu par Hermes.
+    def test_policy_parser_accepts_any_controller_provider(self):
+        source = Path(__file__).parents[1] / "workflow-policy.toml"
+        text = source.read_text(encoding="utf-8").replace(
+            'provider = "configurable"', 'provider = "fournisseur-libre"', 1
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "policy.toml"
+            policy_path.write_text(text, encoding="utf-8")
+            policy = load_policy(policy_path)
+        self.assertEqual("fournisseur-libre", policy.controller.provider)
 
-        `plan` et `review` se sont annoncés « par Claude Code » alors que la
-        politique les route vers Cursor : aucune invocation Claude n'était
-        possible, mais l'aide contredisait ADR-0021 sous les yeux du pilote.
-        """
-        aides = [
-            (choix.dest, choix.help)
+    def test_cli_help_reserves_no_action_to_a_provider(self):
+        helps = "\n".join(
+            choice.help or ""
             for action in parser()._actions
-            for choix in getattr(action, "_choices_actions", ())
-        ]
-        self.assertIn("plan", [dest for dest, _ in aides])
-        for dest, aide in aides:
-            self.assertNotIn("claude", (aide or "").lower(), f"aide de {dest!r}")
+            for choice in getattr(action, "_choices_actions", ())
+        ).lower()
+        self.assertNotIn("par claude", helps)
+        self.assertNotIn("réservé à", helps)
 
-    def test_prompts_never_name_claude_as_the_agent(self):
-        for prompt in sorted((Path(__file__).parents[1] / "prompts").glob("*.md")):
-            self.assertNotIn(
-                "claude", prompt.read_text(encoding="utf-8").lower(), prompt.name
-            )
+    def test_prompts_do_not_require_separate_people(self):
+        prompts = Path(__file__).parents[1] / "prompts"
+        combined = "\n".join(
+            path.read_text(encoding="utf-8").lower()
+            for path in sorted(prompts.glob("*.md"))
+        )
+        self.assertNotIn("unique exécutant", combined)
+        self.assertNotIn("relecteur indépendant", combined)
+        self.assertNotIn("ne juge pas son propre", combined)
+        self.assertIn("peut aussi avoir participé", combined)
 
-    def test_missing_binaries_never_checks_claude(self):
+    def test_missing_binaries_checks_only_the_configured_helper(self):
         settings = load_settings()
         checked: list[str] = []
 
@@ -71,35 +83,26 @@ class NoClaudeRuntimeTests(unittest.TestCase):
             self.assertEqual([], list(missing_binaries(settings)))
         self.assertEqual(["git", "gh", settings.cursor_binary], checked)
 
-    def test_doctor_check_auth_never_calls_claude_or_anthropic(self):
+    def test_doctor_checks_only_configured_authentication_helpers(self):
         calls: list[list[str]] = []
+        output = io.StringIO()
         with tempfile.TemporaryDirectory() as tmp, patch(
             "forgepilot.cli.missing_binaries", return_value=[]
         ), patch("forgepilot.cli.git", return_value="master"), patch(
             "forgepilot.cli.run_command",
             side_effect=lambda command, **_: calls.append(list(command)),
-        ), patch.dict("os.environ", {"ANTHROPIC_API_KEY": "ignored"}, clear=False), patch(
-            "sys.stdout", new_callable=io.StringIO
-        ):
+        ), patch("sys.stdout", output):
             code = main(["doctor", "--repo", tmp, "--check-auth"])
-
         self.assertEqual(0, code)
-        flattened = " ".join(part for call in calls for part in call).lower()
-        self.assertNotIn("claude", flattened)
-        self.assertNotIn("anthropic", flattened)
         self.assertEqual([["agent", "status"], ["gh", "auth", "status"]], calls)
 
-    def test_witness_entry_point_is_removed(self):
+    def test_no_extra_witness_orchestration_is_added(self):
         subparsers = next(
-            action for action in parser()._actions if hasattr(action, "choices") and action.choices
+            action
+            for action in parser()._actions
+            if hasattr(action, "choices") and action.choices
         )
-        assert subparsers.choices is not None
         self.assertNotIn("witness", subparsers.choices)
-
-    def test_witness_invocation_api_is_absent(self):
-        from forgepilot import workflow
-
-        self.assertFalse(hasattr(workflow, "witness_invocation"))
 
 
 if __name__ == "__main__":

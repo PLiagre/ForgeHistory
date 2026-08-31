@@ -4,22 +4,10 @@ import json
 from pathlib import Path
 
 from .process import PilotError, git, resolve_binary, run_command
-from .review import validate_verdict_material
 from .state import load_state, run_state_path
 
 
-STOP_LABELS = frozenset({"do-not-merge", "no-merge", "blocked", "owner-review"})
-
-
-def _material_path(state: dict[str, object], state_path: Path) -> Path:
-    artifacts = state.get("artifacts")
-    material_value = artifacts.get("review_material") if isinstance(artifacts, dict) else None
-    if not isinstance(material_value, str):
-        raise PilotError("Aucun matériau de revue archivé ; fusion refusée.")
-    material_path = Path(material_value)
-    if not material_path.is_absolute():
-        material_path = state_path.parent / material_path
-    return material_path
+STOP_LABELS = frozenset({"do-not-merge", "no-merge", "blocked"})
 
 
 def _pr_snapshot(repo: Path, pull_request: str) -> dict[str, object]:
@@ -83,15 +71,11 @@ def assert_merge_ready(
     state: dict[str, object],
     state_path: Path,
 ) -> dict[str, object]:
-    if state.get("step") != "COMPLETE":
-        raise PilotError(
-            f"Fusion refusée : état {state.get('step')!r} ; le juge n'a pas clos le lot."
-        )
-    material = validate_verdict_material(repo, state, _material_path(state, state_path))
-    if material.get("verdict") != "PASS":
-        raise PilotError(
-            f"Fusion refusée : juge {material.get('verdict')!r}, PASS exigé."
-        )
+    """Vérifie seulement l'état technique courant de la PR.
+
+    Aucun rapport de revue ni identité d'auteur n'est exigé. Cette commande
+    reste un assistant facultatif ; elle ne remplace pas les droits GitHub.
+    """
     pull_request = state.get("pull_request")
     if not isinstance(pull_request, str) or not pull_request:
         raise PilotError("Fusion refusée : PR absente.")
@@ -116,7 +100,7 @@ def assert_merge_ready(
     return {
         "pull_request": pull_request,
         "head_sha": head_sha,
-        "verdict": "PASS",
+        "checks": "GREEN",
         "worktree": str(cwd),
     }
 
