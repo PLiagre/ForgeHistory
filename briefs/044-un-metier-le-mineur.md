@@ -12,13 +12,40 @@ tout, et la mine tournait en plus de l'agriculture, gratuitement.
 part non agricole d'une cellule : aujourd'hui elle vaut zéro partout, et son
 échantillon est vide. Il est indépendant du 046.
 
-Ce qui rend ce lot caduc : si la production agricole d'une cellule dépend déjà
-du nombre de ses habitants affectés à autre chose, il n'y a rien à faire ici.
+Ce qui rend la réparation ci-dessous caduque : si la constante de rendement
+agricole n'est plus lue qu'à un seul endroit de `sim/`, il n'y a rien à faire.
 
 ```bash
-grep -rn "part_miniere" sim/
+grep -rn "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK" sim/*.py
 py -m sim --ticks 365 --seed 0 --json
 ```
+
+## État du lot, et ce qui reste
+
+**Le lot est exécuté et fusionné** (PR #184) : une part des habitants d'une
+cellule à gisement a cessé de cultiver, et le monde le mesure. La « Règle du
+monde » ci-dessous est désormais le compte rendu de ce qui tourne, pas une
+commande à rejouer.
+
+Ce brief rouvre **une réparation, et rien d'autre**. Deux défauts ont survécu à
+la relecture finale :
+
+1. **La formule agricole de base existe en deux exemplaires** :
+   `sim/engine.py:126-132`, dans `_production_base_kg`, et
+   `sim/engine.py:180-184`, recopiée dans `production_kg`. La duplication est
+   **antérieure** à ce lot — elle vient du chemin unitaire historique. Ce lot ne
+   l'a pas créée : il a écrit le contrôle qui devait l'attraper, et ce contrôle
+   ne l'a pas attrapée.
+2. **SC5 comparait le nombre de formules à `master`**, qui porte la duplication.
+   Deux égale deux : le contrôle restait vert sur une propriété fausse. Une
+   référence rejouée sur `master` ne peut pas voir un défaut que `master`
+   contient déjà — c'est le sixième mode de défaillance d'AGENTS.md sous une
+   forme neuve, où le contrôle nomme sa référence en la recopiant sur l'état du
+   jour.
+
+Ce que la réparation **ne rouvre pas** : la règle du monde, les constantes, la
+part minière, l'extraction, et les conditions déjà prouvées par l'exécution
+fusionnée.
 
 ## Règle du monde
 
@@ -98,6 +125,22 @@ désormais sur la **part minière** de cette population. Le même gisement, sur 
 cellule deux fois plus peuplée, rend deux fois plus — c'était déjà vrai — mais il
 rend maintenant ce que ses mineurs, et eux seuls, produisent.
 
+### 5. La réparation : une seule formule, et un contrôle qui sait rougir
+
+`production_kg` recopie le noyau que `_production_base_kg` porte déjà. Les deux
+copies calculent le même produit — surface × rendement au km² × facteur de
+rendement — et rien ne les tient ensemble : le jour où l'une gagne un facteur,
+l'autre le perd en silence. C'est déjà arrivé ici, en petit : le chemin sans
+carte de `production_kg` ignore la part minière que la formule du tick applique.
+
+`production_kg` appelle donc `_production_base_kg` au lieu de le recopier. La
+constante de rendement agricole n'est plus lue qu'à **un** endroit.
+
+**La réparation est neutre en sortie** : même arithmétique, mêmes facteurs, même
+ordre. Si le monde produit un kilogramme de plus ou de moins après, ce n'est pas
+une réparation mais un changement de règle, et le brief est à réécrire par son
+auteur.
+
 ### Ce que ça produit sans être écrit
 
 Une cellule à gisement cultive moins. Sa production baisse, sa dette alimentaire
@@ -116,17 +159,31 @@ production que le tick — il tient compte de l'atténuation sans qu'on le lui d
 
 ## Périmètre
 
-En écriture : `sim/engine.py`, `sim/constants.py`, et `sim/tests/test_monde.py`
-— ce dernier **uniquement pour y ajouter des cas**.
+En écriture : `sim/engine.py`, **pour cette déduplication et rien d'autre**, et
+`sim/tests/test_monde.py` **uniquement pour y ajouter** le contrôle dérivé que
+SC5 demande.
+
+**Un préalable, qui n'appartient pas à ce lot.** La dernière assertion de
+`test_une_seule_definition_part_miniere`, `formules_ici == formules_master`, est
+le défaut lui-même : elle épingle le moteur sur la forme que `master` porte
+aujourd'hui, duplication comprise. Elle devient rouge à l'instant où la
+duplication tombe — mesuré, `1 != 2`. Elle ne peut donc pas rester, et un lot ne
+retouche pas un test existant : **elle se retire par un geste séparé, avant la
+réparation**, comme la prémisse du minerai l'a été au commit `91cea39`. Le reste
+de ce contrôle — modules parcourus, motif relief, jeux de richesse — n'est pas
+concerné et reste en place.
+
+Si ce préalable n'a pas été fait, la réparation **s'arrête et le dit**. Elle ne
+retouche pas l'assertion elle-même.
 
 **Aucun test existant n'est modifié, renommé, supprimé ni relâché**, dans aucun
 fichier, `sim/tests/test_monde.py` compris. Si un test existant devient rouge,
-c'est le code de ce lot qui est faux, ou c'est ce brief : on s'arrête et on le
-dit — on ne touche pas au test.
+c'est le code de cette réparation qui est faux, ou c'est ce brief : on s'arrête
+et on le dit — on ne touche pas au test.
 
-Tout autre chemin est interdit, nommément : `sim/world.py`, `sim/model.py`,
-`sim/snapshot_export.py`, `sim/__main__.py`, `sim/aggregation.py`,
-`sim/tests/test_survie.py`, `sim/tests/test_commerce.py`,
+Tout autre chemin est interdit, nommément : `sim/constants.py`, `sim/world.py`,
+`sim/model.py`, `sim/snapshot_export.py`, `sim/__main__.py`,
+`sim/aggregation.py`, `sim/tests/test_survie.py`, `sim/tests/test_commerce.py`,
 `sim/tests/test_write_coverage.py`, `sim/tests/test_determinisme.py`,
 `sim/tests/test_province.py`, `sim/tests/test_no_hardcoded.py`, la carte figée,
 le visualiseur, et ce brief.
@@ -134,7 +191,13 @@ le visualiseur, et ce brief.
 ## Conditions de succès
 
 Les comparaisons « avant / après » se font contre `master` rejoué au démarrage du
-lot, jamais contre un nombre recopié d'ici.
+lot, jamais contre un nombre recopié d'ici — **sauf là où `master` est justement
+ce qu'on répare**, et SC5 dit pourquoi.
+
+**SC1 à SC4 et SC6 à SC9 ont été prouvées par l'exécution fusionnée** (#184) :
+elles sont le compte rendu de ce qui tourne et doivent rester vertes. La
+réparation porte sur **SC5, réécrite ci-dessous parce qu'elle ne savait pas
+rougir**, et sur **SC10, nouvelle**.
 
 ### SC1 — Une cellule à gisement cultive moins
 
@@ -183,27 +246,37 @@ Un contrôle parcourt l'arbre syntaxique des modules de `sim/` hors tests. Le
 nombre de modules parcourus est dérivé du répertoire, et un parcours qui n'en
 trouve aucun échoue au lieu de conclure.
 
-Ce contrôle ne se compare à aucun nombre écrit ici : il dérive ses trois
-références.
+**Ce qui a raté la première fois** : la troisième référence était `master`
+rejoué. Or `master` porte la duplication qu'elle devait interdire, et deux égale
+deux. Une référence recopiée sur l'état du jour ne peut pas voir un défaut que
+cet état contient : elle mesure la conformité à ce qui est, pas à ce qui doit
+être. La référence se prend donc **ailleurs que dans le nombre observé**, sur un
+motif du même arbre dont le brief affirme qu'il est correct — celui que la § 2
+prend déjà pour modèle : une constante, une fonction qui la lit.
+
+Le contrôle ne se compare à aucun nombre écrit ici.
 
 - **La part minière se calcule à un seul endroit.** Le nombre de fonctions qui
   lisent `PART_MINIERE_PAR_GISEMENT` ou `PART_MINIERE_MAXIMALE` est **égal** au
-  nombre de fonctions qui lisent la table des facteurs de relief — le motif que
-  la § 2 prend pour modèle — compté par le même parcours sur le même arbre. Si ce
-  second compte est nul, la référence est vide et le contrôle échoue : un
-  parcours qui ne sait pas voir le motif de référence ne prouve rien sur sa
-  copie.
-- **Les facteurs de richesse ne sont pas dupliqués.** Le nombre de jeux de
-  facteurs indexés par les classes de richesse — classes dérivées de la carte,
-  jamais recopiées — est **égal** à celui que le même parcours compte sur
-  `master`. Un comptage nul d'un côté ou de l'autre fait échouer le contrôle.
-- **Aucune seconde formule de production alimentaire n'apparaît.** Le nombre de
-  formules que le parcours trouve est **égal** à celui qu'il compte sur `master`.
-  Un comptage nul fait échouer le contrôle.
+  nombre de fonctions qui lisent la table des facteurs de relief, compté par le
+  même parcours sur le même arbre.
+- **La formule agricole de base n'existe qu'à un seul endroit.** Le nombre de
+  fonctions qui lisent la constante de rendement agricole au km² est **égal** au
+  même nombre de lectrices de la table de relief. C'est la référence qui
+  manquait, et elle ne dépend d'aucun comptage observé.
+- **Les facteurs de richesse ne sont pas dupliqués.** Cette référence reste celle
+  que l'exécution fusionnée a implémentée — le même parcours rejoué sur `master`.
+  La corriger de la même façon exigerait de retoucher une assertion existante et
+  verte, ce qu'un lot ne fait pas. C'est une **dette notée ici**, pas un oubli.
 
-Les deux références rejouées sur `master` disent ce que ce lot a le droit de
-faire : il **ajoute** une définition de la part minière, et il **n'ajoute** ni
-jeu de facteurs de richesse, ni formule de production.
+Si le parcours ne trouve aucune lectrice de la table de relief, la référence est
+vide et le contrôle échoue : un parcours qui ne sait pas voir le motif de
+référence ne prouve rien sur ses copies.
+
+**Rouge prouvé d'abord, et c'est le cœur de la réparation** : sur le `master`
+d'aujourd'hui, la deuxième égalité est **fausse** — la constante de rendement
+agricole a deux lectrices là où la table de relief n'en a qu'une. Le contrôle
+doit rougir **avant** la déduplication, et sa sortie en échec est citée.
 
 ### SC6 — L'extraction suit les mineurs, pas la population
 
@@ -263,9 +336,21 @@ git diff master -- sim/tests/ | grep "^-" | grep -v "^---"
   parmi les fonctions du même module que le moteur appelle : la sonde voit donc
   quelque chose là où il y a quelque chose à voir ;
 - deux exécutions de `py -m sim --ticks 365 --seed 0 --json` sont strictement
-  identiques entre elles, et différentes de celle de `master` ;
+  identiques entre elles. La différence avec `master` a mesuré l'exécution
+  initiale, qui changeait le monde ; pour la réparation c'est SC10 qui
+  s'applique, et elle exige exactement l'inverse ;
 - aucune instruction `global` dans `sim/engine.py` ;
 - le nombre de tests collectés est strictement supérieur à celui de `master`.
+
+### SC10 — La réparation ne change pas le monde
+
+La sortie de `py -m sim --ticks 365 --seed 0 --json` est **identique** à celle
+rejouée sur `master`. C'est ce qui sépare une réparation de forme d'un
+changement de règle : la déduplication ne déplace rien.
+
+La comparaison se fait contre `master` rejoué, jamais contre un nombre recopié
+d'ici. Un écart, fût-il d'un kilogramme, fait échouer la réparation au lieu
+d'être expliqué après coup.
 
 ## Hors périmètre
 
@@ -278,4 +363,8 @@ git diff master -- sim/tests/ | grep "^-" | grep -v "^---"
 - la définition d'un bourg ou d'une ville — c'est le lot 047 ;
 - le schéma du snapshot, sa version, le visualiseur ;
 - la calibration d'un test existant après observation, et toute autre retouche
-  d'un test existant, quel qu'en soit le motif.
+  d'un test existant, quel qu'en soit le motif ;
+- rouvrir la règle du monde, les constantes ou la part minière : la réparation
+  est de forme, pas de fond ;
+- corriger la troisième référence de SC5, celle des facteurs de richesse : elle
+  exigerait de retoucher une assertion existante et verte, donc un geste séparé.
