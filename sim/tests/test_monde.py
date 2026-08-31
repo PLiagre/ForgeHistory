@@ -1258,65 +1258,198 @@ def test_plafond_part_miniere():
     assert prod > 0.0
 
 
-def test_une_seule_definition_part_miniere():
-    """
-    SC5 — Une seule fonction calcule la part minière ; un seul jeu de
-    facteurs de richesse ; une seule formule de production alimentaire.
-    """
-    import ast
+import ast
 
+
+def _modules_sim_hors_tests() -> list[pathlib.Path]:
+    """Modules de sim/ hors tests ; le dénominateur se dérive du répertoire."""
     sim_dir = pathlib.Path(__file__).parent.parent
-    modules = sorted(
+    return sorted(
         p
         for p in sim_dir.rglob("*.py")
         if "tests" not in p.relative_to(sim_dir).parts
     )
-    assert modules, "échantillon vide : aucun module de sim/ hors tests"
 
-    defs_part: list[tuple[str, str]] = []
-    defs_richesse: list[tuple[str, str]] = []
-    defs_production: list[tuple[str, str]] = []
-    lectures_nom_dans_engine = 0
-    noms_interdits = {"PART_MINIERE_PAR_GISEMENT", "PART_MINIERE_MAXIMALE"}
 
+def _texte_master(relatif: str) -> str:
+    """Source d'un fichier sur origin/master, rejouée, jamais recopiée."""
+    proc = subprocess.run(
+        ["git", "show", f"origin/master:{relatif}"],
+        cwd=_REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return proc.stdout
+
+
+def _noms_lus_dans(node: ast.AST) -> set[str]:
+    lus: set[str] = set()
+    for child in ast.walk(node):
+        if isinstance(child, ast.Attribute) and not isinstance(child.ctx, ast.Store):
+            lus.add(child.attr)
+        elif isinstance(child, ast.Name) and not isinstance(child.ctx, ast.Store):
+            lus.add(child.id)
+    return lus
+
+
+def _fonctions_qui_lisent(source: str, filename: str, noms: set[str]) -> set[str]:
+    arbre = ast.parse(source, filename=filename)
+    trouvees: set[str] = set()
+    for node in ast.walk(arbre):
+        if isinstance(node, ast.FunctionDef) and _noms_lus_dans(node) & noms:
+            trouvees.add(f"{pathlib.Path(filename).name}:{node.name}")
+    return trouvees
+
+
+def _jeux_indexes_par(source: str, classes: set[str]) -> int:
+    """Nombre de dictionnaires dont les clés couvrent les classes données."""
+    if not classes:
+        return 0
+    arbre = ast.parse(source)
+    n = 0
+    for node in ast.walk(arbre):
+        if not isinstance(node, ast.Dict):
+            continue
+        cles = {
+            k.value
+            for k in node.keys
+            if isinstance(k, ast.Constant) and isinstance(k.value, str)
+        }
+        if classes <= cles:
+            n += 1
+    return n
+
+
+def _constantes_relief_table() -> set[str]:
+    """Noms des constantes qui composent la table des facteurs de relief."""
+    from sim import constants as _k
+
+    return {
+        nom
+        for nom in dir(_k)
+        if nom.startswith("FACTEUR_RELIEF_") and nom.isupper()
+    }
+
+
+def test_une_seule_definition_part_miniere():
+    """
+    SC5 — Trois références dérivées : la part minière se calcule autant
+    de fois que le motif relief ; les jeux de richesse et les formules
+    de production restent ceux de master.
+    """
+    modules = _modules_sim_hors_tests()
+    n_modules = len(modules)
+    print(f"modules_parcourus={n_modules}")
+    assert n_modules > 0, "échantillon vide : aucun module de sim/ hors tests"
+
+    noms_part = {"PART_MINIERE_PAR_GISEMENT", "PART_MINIERE_MAXIMALE"}
+    noms_relief = _constantes_relief_table()
+    assert noms_relief, "référence vide : aucune constante de table de relief"
+    nom_production = "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK"
+
+    _, _, classes_carte = _agreger_gisements_carte(World.lire_carte())
+    assert classes_carte, "échantillon vide : aucune classe de richesse sur la carte"
+
+    lecteurs_part: set[str] = set()
+    lecteurs_relief: set[str] = set()
+    formules_ici = 0
+    jeux_ici = 0
+    formules_master = 0
+    jeux_master = 0
+
+    sim_dir = pathlib.Path(__file__).parent.parent
     for fichier in modules:
-        arbre = ast.parse(fichier.read_text(encoding="utf-8"), filename=str(fichier))
-        for node in ast.walk(arbre):
-            if isinstance(node, ast.FunctionDef):
-                if "part_miniere" in node.name:
-                    defs_part.append((fichier.name, node.name))
-                if node.name.startswith("facteurs_richesse"):
-                    defs_richesse.append((fichier.name, node.name))
-                for child in ast.walk(node):
-                    nom = None
-                    if isinstance(child, ast.Attribute):
-                        nom = child.attr
-                    elif isinstance(child, ast.Name):
-                        nom = child.id
-                    if nom == "FOOD_PRODUCTION_KG_PER_KM2_PER_TICK":
-                        defs_production.append((fichier.name, node.name))
-            if fichier.name == "engine.py" and isinstance(node, ast.Attribute):
-                if node.attr in noms_interdits and not isinstance(node.ctx, ast.Store):
-                    lectures_nom_dans_engine += 1
+        source = fichier.read_text(encoding="utf-8")
+        lecteurs_part |= _fonctions_qui_lisent(source, str(fichier), noms_part)
+        lecteurs_relief |= _fonctions_qui_lisent(source, str(fichier), noms_relief)
+        formules_ici += len(
+            _fonctions_qui_lisent(source, str(fichier), {nom_production})
+        )
+        jeux_ici += _jeux_indexes_par(source, classes_carte)
 
-    print(f"modules_parcourus={len(modules)}")
-    print(f"defs_part={defs_part}")
-    print(f"defs_richesse={defs_richesse}")
-    print(f"defs_production={defs_production}")
-    print(f"lectures_nom_dans_engine={lectures_nom_dans_engine}")
+        relatif = "sim/" + str(fichier.relative_to(sim_dir))
+        source_master = _texte_master(relatif)
+        formules_master += len(
+            _fonctions_qui_lisent(source_master, relatif, {nom_production})
+        )
+        jeux_master += _jeux_indexes_par(source_master, classes_carte)
 
-    assert len(defs_part) == 1, (
-        f"plus d'une fonction calcule la part minière : {defs_part}"
+    n_part = len(lecteurs_part)
+    n_relief = len(lecteurs_relief)
+    print(f"fonctions_lisant_part_miniere={n_part} {sorted(lecteurs_part)}")
+    print(f"fonctions_lisant_table_relief={n_relief} {sorted(lecteurs_relief)}")
+    print(f"jeux_richesse_ici={jeux_ici} jeux_richesse_master={jeux_master}")
+    print(f"formules_prod_ici={formules_ici} formules_prod_master={formules_master}")
+
+    assert n_relief > 0, (
+        "référence vide : le parcours ne voit aucune lecture de la table "
+        "des facteurs de relief"
     )
-    assert len(defs_richesse) == 1, (
-        f"second jeu de facteurs de richesse : {defs_richesse}"
+    assert n_part == n_relief, (
+        "la part minière ne se calcule pas au même nombre d'endroits que "
+        f"le motif relief : {n_part} != {n_relief}"
     )
-    uniques_prod = sorted(set(defs_production))
-    assert len(uniques_prod) == 1, (
-        f"plus d'une formule de production alimentaire : {uniques_prod}"
+    assert jeux_ici > 0 and jeux_master > 0, (
+        f"comptage nul des jeux de richesse : ici={jeux_ici} master={jeux_master}"
     )
-    assert lectures_nom_dans_engine == 0, (
-        "sim/engine.py lit PART_MINIERE_* par son nom"
+    assert jeux_ici == jeux_master, (
+        f"un second jeu de facteurs de richesse apparaît : {jeux_ici} != {jeux_master}"
+    )
+    assert formules_ici > 0 and formules_master > 0, (
+        f"comptage nul des formules de production : ici={formules_ici} "
+        f"master={formules_master}"
+    )
+    assert formules_ici == formules_master, (
+        "une seconde formule de production alimentaire apparaît : "
+        f"{formules_ici} != {formules_master}"
+    )
+
+
+def test_moteur_consulte_part_miniere_par_fonction():
+    """
+    SC9 — Dénominateur dérivé des constantes lues par nom dans engine.py.
+    PART_MINIERE_* n'y figurent pas ; part_miniere_de est parmi les appels.
+    """
+    import sim.constants as _k
+
+    engine_path = pathlib.Path(__file__).resolve().parents[1] / "engine.py"
+    source = engine_path.read_text(encoding="utf-8")
+    arbre = ast.parse(source, filename=str(engine_path))
+
+    numeriques = {
+        nom
+        for nom in dir(_k)
+        if nom.isupper() and isinstance(getattr(_k, nom), (int, float))
+    }
+    lues = {
+        node.attr
+        for node in ast.walk(arbre)
+        if isinstance(node, ast.Attribute)
+        and node.attr in numeriques
+        and not isinstance(node.ctx, ast.Store)
+    }
+    print(f"constantes_lues_par_nom={len(lues)} {sorted(lues)}")
+    assert lues, (
+        "dénominateur vide : le parcours ne voit aucune constante lue par nom"
+    )
+    assert "PART_MINIERE_PAR_GISEMENT" not in lues
+    assert "PART_MINIERE_MAXIMALE" not in lues
+
+    appels = {
+        node.func.attr
+        for node in ast.walk(arbre)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "_constantes"
+    }
+    print(f"fonctions_appelees_sur_constantes={sorted(appels)}")
+    assert appels, (
+        "la sonde ne voit aucun appel à sim.constants : elle ne prouve rien"
+    )
+    assert "part_miniere_de" in appels, (
+        "part_miniere_de n'est pas parmi les fonctions que le moteur appelle"
     )
 
 
