@@ -179,11 +179,31 @@ des constantes, jamais écrit.
 
 ### SC5 — Une seule définition
 
-Un contrôle parcourt l'arbre syntaxique des modules de `sim/` hors tests et
-échoue si plus d'une fonction calcule la part minière, ou si un second jeu de
-facteurs de richesse apparaît. Le nombre de modules parcourus est dérivé du
-répertoire. De même, il n'y a toujours qu'une seule formule de production
-alimentaire.
+Un contrôle parcourt l'arbre syntaxique des modules de `sim/` hors tests. Le
+nombre de modules parcourus est dérivé du répertoire, et un parcours qui n'en
+trouve aucun échoue au lieu de conclure.
+
+Ce contrôle ne se compare à aucun nombre écrit ici : il dérive ses trois
+références.
+
+- **La part minière se calcule à un seul endroit.** Le nombre de fonctions qui
+  lisent `PART_MINIERE_PAR_GISEMENT` ou `PART_MINIERE_MAXIMALE` est **égal** au
+  nombre de fonctions qui lisent la table des facteurs de relief — le motif que
+  la § 2 prend pour modèle — compté par le même parcours sur le même arbre. Si ce
+  second compte est nul, la référence est vide et le contrôle échoue : un
+  parcours qui ne sait pas voir le motif de référence ne prouve rien sur sa
+  copie.
+- **Les facteurs de richesse ne sont pas dupliqués.** Le nombre de jeux de
+  facteurs indexés par les classes de richesse — classes dérivées de la carte,
+  jamais recopiées — est **égal** à celui que le même parcours compte sur
+  `master`. Un comptage nul d'un côté ou de l'autre fait échouer le contrôle.
+- **Aucune seconde formule de production alimentaire n'apparaît.** Le nombre de
+  formules que le parcours trouve est **égal** à celui qu'il compte sur `master`.
+  Un comptage nul fait échouer le contrôle.
+
+Les deux références rejouées sur `master` disent ce que ce lot a le droit de
+faire : il **ajoute** une définition de la part minière, et il **n'ajoute** ni
+jeu de facteurs de richesse, ni formule de production.
 
 ### SC6 — L'extraction suit les mineurs, pas la population
 
@@ -234,9 +254,14 @@ git diff master -- sim/tests/ | grep "^-" | grep -v "^---"
   `test_le_moteur_ne_lie_aucune_constante_par_valeur`,
   `test_aucune_constante_terminale` et `test_no_hardcoded_numeric_literals`
   restent verts, **sans que `_MondeEpreuve` soit touché** ;
-- aucun des noms `PART_MINIERE_PAR_GISEMENT` ni `PART_MINIERE_MAXIMALE`
-  n'apparaît comme attribut lu dans `sim/engine.py` ; le compteur des noms
-  trouvés vaut **0** ;
+- le contrôle parcourt l'arbre syntaxique de `sim/engine.py` et dresse la liste
+  des constantes que le moteur lit par leur nom : cette liste est le
+  **dénominateur**, dérivée du fichier et jamais écrite ici. Une liste vide fait
+  échouer le contrôle — un parcours qui ne trouve aucune lecture ne prouve rien
+  sur celles qu'il cherche. Ni `PART_MINIERE_PAR_GISEMENT` ni
+  `PART_MINIERE_MAXIMALE` n'y figurent, et `part_miniere_de` est **présente**
+  parmi les fonctions du même module que le moteur appelle : la sonde voit donc
+  quelque chose là où il y a quelque chose à voir ;
 - deux exécutions de `py -m sim --ticks 365 --seed 0 --json` sont strictement
   identiques entre elles, et différentes de celle de `master` ;
 - aucune instruction `global` dans `sim/engine.py` ;
