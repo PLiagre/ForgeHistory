@@ -166,6 +166,41 @@ def facteurs_richesse_extraction() -> dict[str, float]:
     }
 
 
+# Part de la population qu'un gisement notable occupe ; niveau 2.
+PART_MINIERE_PAR_GISEMENT = 0.05
+
+# Plafond : une cellule ne devient jamais entièrement minière. Invariant,
+# pas un réglage de confort — sans lui une cellule chargée de gisements
+# majeurs verrait toute sa population descendre à la mine.
+PART_MINIERE_MAXIMALE = 0.30
+
+
+def part_miniere_de(gisements, facteurs_richesse) -> float:
+    """
+    Part de la population occupée par les gisements de la cellule.
+
+    Relit PART_MINIERE_PAR_GISEMENT et PART_MINIERE_MAXIMALE à chaque appel.
+    Un gisement incomplet (sans ressource ou sans richesse) est ignoré.
+    Une richesse hors des trois classes ne compte pas : le moteur la refuse
+    à l'extraction.
+    """
+    if not gisements:
+        return 0.0
+    total = 0.0
+    part_par = PART_MINIERE_PAR_GISEMENT
+    plafond = PART_MINIERE_MAXIMALE
+    for gisement in gisements:
+        if not isinstance(gisement, dict):
+            continue
+        if gisement.get("ressource") is None or gisement.get("richesse") is None:
+            continue
+        richesse = gisement.get("richesse")
+        if richesse not in facteurs_richesse:
+            continue
+        total += part_par * facteurs_richesse[richesse]
+    return min(plafond, total)
+
+
 # --- Relief dans le rendement (fidélité niveau 2) ---
 
 # Facteurs de production par classe de relief : ordres de grandeur plausibles

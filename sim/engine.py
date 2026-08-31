@@ -107,6 +107,22 @@ def _facteur_saison_pour_cellule(cell: Cell, carte: dict, jour: int) -> float:
     return _constantes.facteur_saison(duree)
 
 
+def _gisements_de(cell: Cell, carte: dict):
+    """Liste des gisements de la cellule, ou None si la carte n'en porte pas."""
+    raw = carte.get(cell.cell_id)
+    if raw is None:
+        return None
+    return raw.get("gisements")
+
+
+def _facteur_agricole(cell: Cell, carte: dict) -> float:
+    """Part qui reste aux champs : 1 moins la part minière de la cellule."""
+    return 1.0 - _constantes.part_miniere_de(
+        _gisements_de(cell, carte),
+        _constantes.facteurs_richesse_extraction(),
+    )
+
+
 def _production_base_kg(cell: Cell, yield_factor: float) -> float:
     """Noyau commun de l'unique formule de production alimentaire."""
     return (
@@ -123,18 +139,20 @@ def production_du_tick_kg(
     jour: int | None = None,
 ) -> float:
     """
-    Production alimentaire d'une cellule pendant un tick, avec relief et saison
-    lus depuis la carte passée en argument.
+    Production alimentaire d'une cellule pendant un tick, avec relief, saison
+    et part minière lus depuis la carte passée en argument.
 
-    `jour` facultatif : sans jour, seul le relief module la production (appels
+    `jour` facultatif : sans jour, relief et part minière seulement (appels
     historiques à trois arguments). Avec un jour explicite, le facteur saisonnier
     s'ajoute — premier jour de l'année via `jour_de_tick(None)`.
     """
     base = _production_base_kg(cell, yield_factor)
     relief = _facteur_relief_pour_cellule(cell, carte)
+    agricole = _facteur_agricole(cell, carte)
+    produit = base * relief * agricole
     if jour is None:
-        return base * relief
-    return base * relief * _facteur_saison_pour_cellule(cell, carte, jour)
+        return produit
+    return produit * _facteur_saison_pour_cellule(cell, carte, jour)
 
 
 def _production_du_tick_kg_saison_moyenne(
@@ -142,13 +160,8 @@ def _production_du_tick_kg_saison_moyenne(
 ) -> float:
     """Même formule que le tick, avec le facteur saisonnier moyen sur l'année."""
     ete_h, hiver_h = _lire_solstices(cell, carte)
-    base = _production_base_kg(cell, yield_factor)
     saison_moyenne = _constantes.facteur_saison_moyen_annuel(ete_h, hiver_h)
-    return (
-        base
-        * _facteur_relief_pour_cellule(cell, carte)
-        * saison_moyenne
-    )
+    return production_du_tick_kg(cell, yield_factor, carte) * saison_moyenne
 
 
 def production_kg(cell: Cell, yield_factor: float) -> float:
@@ -170,7 +183,7 @@ def production_kg(cell: Cell, yield_factor: float) -> float:
         * yield_factor
     )
     if _carte_du_tick:
-        return base * _facteur_relief_pour_cellule(cell, _carte_du_tick)
+        return production_du_tick_kg(cell, yield_factor, _carte_du_tick)
     return base
 
 
@@ -198,8 +211,10 @@ def _extraction_du_tick_kg(cell: Cell, carte: dict) -> dict[str, float]:
     """
     Kilogrammes extraits ce tick, regroupés par ressource.
 
-    Ignore les enregistrements sans clé ressource ou richesse (sonde snapshot).
-    Refuse une richesse présente mais hors des trois classes dérivées.
+    Le débit porte sur la part minière de la population, pas sur la
+    population entière. Ignore les enregistrements sans clé ressource ou
+    richesse (sonde snapshot). Refuse une richesse présente mais hors des
+    trois classes dérivées.
     """
     raw = carte.get(cell.cell_id)
     if raw is None:
@@ -210,8 +225,9 @@ def _extraction_du_tick_kg(cell: Cell, carte: dict) -> dict[str, float]:
 
     facteurs = _constantes.facteurs_richesse_extraction()
     debit_unitaire = _constantes.extraction_kg_par_habitant_par_tick()
-    par_ressource: dict[str, float] = {}
+    part = _constantes.part_miniere_de(gisements, facteurs)
 
+    valides = []
     for gisement in gisements:
         if not isinstance(gisement, dict):
             continue
@@ -224,11 +240,24 @@ def _extraction_du_tick_kg(cell: Cell, carte: dict) -> dict[str, float]:
             raise RichesseGisementInvalideError(
                 f"cell_id={cell.cell_id} gisement={gisement_id!r} richesse={richesse!r}"
             )
-        extraction = (
-            cell.population
-            * debit_unitaire
-            * facteurs[richesse]
-        )
+        valides.append(gisement)
+
+    if not valides:
+        return {}
+
+    poids = []
+    poids_total = 0.0
+    for gisement in valides:
+        p_g = _constantes.part_miniere_de([gisement], facteurs)
+        poids.append((gisement.get("ressource"), p_g))
+        poids_total += p_g
+
+    par_ressource: dict[str, float] = {}
+    if part == 0.0 or poids_total == 0.0:
+        return {}
+    mineurs = cell.population * part
+    for ressource, p_g in poids:
+        extraction = mineurs * debit_unitaire * (p_g / poids_total)
         par_ressource[ressource] = par_ressource.get(ressource, 0.0) + extraction
 
     return par_ressource
