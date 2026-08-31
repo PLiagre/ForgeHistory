@@ -116,7 +116,7 @@ La commande qui donne cet état. Elle ne porte aucune cible : c'est le rapport
 lui-même qui se lit, et il vieillit à chaque lot de transport.
 
 ```bash
-.venv/bin/python -c "
+py -c "
 import statistics
 from collections import defaultdict
 from sim.world import World
@@ -137,7 +137,7 @@ print('nourrissables_par_import', sum(1 for r in ratios if r >= 1.0))
 print('couverture_par_import_mediane', statistics.median(ratios))
 print('couverture_par_import_maximale', max(ratios))
 "
-.venv/bin/python -m sim --ticks 365 --seed 0 --json
+py -m sim --ticks 365 --seed 0 --json
 ```
 
 **Ce que le mur produit, et qui se vérifie en jouant le moteur : rien ne
@@ -183,7 +183,7 @@ Trois faits, mesurés le 2026-08-30 et à rejouer plutôt qu'à croire :
   fermée, et rien ne le signale.
 
 ```bash
-.venv/bin/python -c "
+py -c "
 import collections, json
 doc = json.load(open('data/world-1400.json', encoding='utf-8'))
 ids = {c['cell_id'] for c in doc['cellules']}
@@ -536,7 +536,7 @@ suivrait sans qu'on y touche.
 
 C'est voulu — un monde qui démarre à l'équilibre exact ne montre ni famine ni
 commerce. Aucun chiffre mesuré n'est cité ici : voir « Ce qui dit que le monde
-vit », plus bas, et `python -m sim --ticks 20 --json` pour l'état du jour.
+vit », plus bas, et `py -m sim --ticks 20 --json` pour l'état du jour.
 
 ---
 
@@ -775,7 +775,7 @@ tous faux, de deux à trente fois, parce qu'ils dataient d'un moteur deux
 révisions plus vieux — et ce document est celui d'où les lots sont découpés.
 
 Aucune valeur mesurée n'est donc citée comme une propriété du modèle. Pour
-connaître l'état du monde : `python -m sim --ticks 20 --json`.
+connaître l'état du monde : `py -m sim --ticks 20 --json`.
 
 ---
 

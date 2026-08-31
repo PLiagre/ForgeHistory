@@ -1,10 +1,6 @@
 # Brief 044 — Un métier : le mineur
 
-**Authored**: 2026-08-26T10:40:00Z
-**Author**: Claude
-**Risque**: R1 — mécanique produit bornée dans `sim/`, sans migration de données ni changement de modèle structurel.
-
-## But unique
+## But
 
 Faire qu'une part des habitants d'une cellule à gisement **cesse de cultiver**
 pour extraire. Ce qu'ils sortent de la mine, ils ne le sortent pas des champs.
@@ -12,51 +8,30 @@ pour extraire. Ce qu'ils sortent de la mine, ils ne le sortent pas des champs.
 C'est la première division du travail du jeu : jusqu'ici tout le monde faisait
 tout, et la mine tournait en plus de l'agriculture, gratuitement.
 
-Ce lot ne crée aucun métier autre que celui-là, n'invente ni salaire, ni marché,
-ni classe sociale, et ne fait pas circuler le minerai.
+**Ce lot ouvre le 047** (« le bourg est une agrégation dérivée »), qui compte la
+part non agricole d'une cellule : aujourd'hui elle vaut zéro partout, et son
+échantillon est vide. Il est indépendant du 046.
 
-## Dépendance
-
-**Ce lot suppose le lot 038 fusionné.** Sans extraction, il n'y a pas de mineur.
-
-## Fondement dans le modèle
-
-`sim/MODELE.md`, § « Le rendement agricole et sa variabilité » — la production
-que ce lot atténue — et § « Ce qui dit que le monde vit », qui explique pourquoi
-le plafond de survie suit tout seul. Si l'une de ces sections a changé depuis la
-rédaction de ce brief, le relire avant de le lancer.
-
-`sim/MODELE.md` est hors périmètre de ce lot. La mise à jour de la section
-citée après fusion est une dette de l'architecte du modèle (Claude), pas de
-l'exécutant.
-
-## État de départ mesuré
-
-Les commandes qui donnent l'état — à rejouer ; aucun de leurs résultats n'est
-recopié ici comme cible :
+Ce qui rend ce lot caduc : si la production agricole d'une cellule dépend déjà
+du nombre de ses habitants affectés à autre chose, il n'y a rien à faire ici.
 
 ```bash
-.venv/bin/python -m sim --ticks 365 --seed 0 --json
-grep -rn "EXTRACTION_KG_PAR_HABITANT_PAR_TICK" sim/
-.venv/bin/python -m pytest sim/tests/ -q
+grep -rn "part_miniere" sim/
+py -m sim --ticks 365 --seed 0 --json
 ```
-
-Le SHA de base du lot est le `master` du jour où il est lancé ; le mesureur
-l'enregistre et compare contre lui.
-
-**Le fait qualitatif qui rend ce lot caduc** : si la production agricole d'une
-cellule dépend déjà du nombre de ses habitants affectés à autre chose, il n'y a
-rien à faire ici.
 
 ## Règle du monde
 
+Découle de [`sim/MODELE.md`](../sim/MODELE.md), § « Le rendement agricole et sa
+variabilité » — la production que ce lot atténue — et § « Ce qui dit que le
+monde vit », qui explique pourquoi le plafond de survie suit tout seul. Si l'une
+de ces sections a changé depuis, la relire avant de lancer.
+
 **Fidélité niveau 2** : la part de la population qu'un gisement occupe est un
 ordre de grandeur plausible, généré, jamais sourcé. Une répartition locale
-surprenante n'est pas un défaut historique et n'ouvre ni correctif, ni brief.
+surprenante n'est pas un défaut et n'ouvre ni correctif, ni lot.
 
-Le mécanisme, en trois pas.
-
-**1. Un gisement occupe des bras.**
+### 1. Un gisement occupe des bras
 
 ```
 part_miniere = min(PART_MINIERE_MAXIMALE,
@@ -66,23 +41,29 @@ part_miniere = min(PART_MINIERE_MAXIMALE,
 
 | constante | valeur | ce que c'est |
 |---|---:|---|
-| `PART_MINIERE_PAR_GISEMENT` | 0.05 | part de la population qu'un gisement notable occupe — niveau 2 |
-| `PART_MINIERE_MAXIMALE` | 0.30 | plafond : une cellule ne devient jamais entièrement minière — niveau 2 |
+| `PART_MINIERE_PAR_GISEMENT` | 0.05 | part de la population qu'un gisement notable occupe |
+| `PART_MINIERE_MAXIMALE` | 0.30 | plafond : une cellule ne devient jamais entièrement minière |
 
-Les facteurs de richesse sont ceux, déjà nommés, que le lot 038 a introduits :
-un gisement majeur occupe plus de bras qu'un mineur, et il rend plus. Ils ne
-sont **pas** dupliqués.
+Les facteurs de richesse sont ceux qui existent déjà : un gisement majeur occupe
+plus de bras et rend plus. Ils ne sont **pas** dupliqués.
 
-**Motif 033 — constantes invisibles pour le monde d'épreuve.**
-`_MondeEpreuve` n'a pas de gisement. Un nom `PART_MINIERE_PAR_GISEMENT` ou
-`PART_MINIERE_MAXIMALE` écrit dans `sim/engine.py` entrerait dans le
-dénominateur de `test_chaque_constante_du_moteur_change_le_monde` et n'y
-bougerait rien.
+**Le plafond est un invariant, pas un réglage de confort.** Sans lui, une cellule
+chargée de gisements majeurs verrait toute sa population descendre à la mine et
+mourir de faim au-dessus d'un filon d'argent. Ce n'est pas invraisemblable —
+c'est arrivé — mais le modèle n'a pas de quoi le raconter, et un monde où c'est
+le cas par construction n'apprend rien.
 
-Donc : ces deux constantes ne sont **pas** lues par leur nom dans
-`sim/engine.py`. Elles vivent dans `sim/constants.py`. Le moteur consulte
-la part minière via **une seule fonction** de ce module, relue à chaque
-appel, le même motif que `facteurs_production_par_relief()` :
+### 2. Ces deux constantes se lisent par une fonction, jamais par leur nom
+
+`_MondeEpreuve`, dans `sim/tests/test_write_coverage.py`, n'a pas de gisement.
+Une constante lue par son nom dans `sim/engine.py` y serait **inerte** : elle
+entrerait dans le dénominateur de `test_chaque_constante_du_moteur_change_le_monde`
+sans rien y faire bouger, et ce contrôle deviendrait rouge. C'est exactement le
+piège que le lot 043 a payé.
+
+Donc les deux constantes vivent dans `sim/constants.py`, et le moteur consulte la
+part minière par **une seule fonction** de ce module, relue à chaque appel — le
+même motif que `facteurs_production_par_relief()` :
 
 ```
 def part_miniere_de(gisements, facteurs_richesse) -> float:
@@ -91,105 +72,68 @@ def part_miniere_de(gisements, facteurs_richesse) -> float:
 
 Interdit dans `engine.py` : `_constantes.PART_MINIERE_PAR_GISEMENT` ou
 `_constantes.PART_MINIERE_MAXIMALE`. Autorisé : `_constantes.part_miniere_de(...)`.
-Les facteurs de richesse restent ceux du 038, via la même table, sans
-second jeu.
 
-**Le plafond est un invariant, pas un réglage de confort** : sans lui, une
-cellule chargée de gisements majeurs verrait toute sa population descendre à la
-mine et mourir de faim au-dessus d'un filon d'argent. Ce n'est pas invraisemblable
-— c'est arrivé — mais le modèle n'a pas encore de quoi le raconter, et un monde
-où c'est le cas par construction n'apprend rien.
+Élargir `_MondeEpreuve` pour lui donner un gisement n'est **pas** la solution
+retenue, et le périmètre l'interdit.
 
-**2. Les bras à la mine ne sont pas aux champs.**
+### 3. Les bras à la mine ne sont pas aux champs
 
 ```
 production agricole de la cellule = production_actuelle × (1 - part_miniere)
 ```
 
-Cette atténuation entre dans l'unique formule de production, à côté du facteur
-de relief et du facteur de saison. Il n'y a toujours **qu'une** formule de
+Cette atténuation entre dans l'unique formule de production, à côté du facteur de
+relief et du facteur de saison. Il n'y a toujours **qu'une** formule de
 production alimentaire dans `sim/`.
 
-**3. Ce qu'ils extraient est proportionnel à ceux qui extraient.** Le débit
-d'extraction du lot 038, aujourd'hui calculé sur la population entière, se
-calcule désormais sur la **part minière** de cette population. Le même gisement,
-sur une cellule deux fois plus peuplée, rend deux fois plus — c'était déjà vrai
-— mais il rend maintenant ce que ses mineurs, et eux seuls, produisent.
+### 4. Ce qu'ils extraient est proportionnel à ceux qui extraient
 
-**Ce que cette règle produit sans être écrite.** Une cellule à gisement
-cultive moins. Sa production agricole baisse ; sa dette alimentaire monte
-si la ration ne suit pas. Aucune règle ne dit « les villes minières
-importent leur nourriture ». Le commerce à capacité plate peut rester trop
-petit pour les nourrir : ce lot **ne mesure pas un flux**. Il mesure la
-production et la dette. Le lot 043 n'est pas requis.
+Le débit d'extraction, aujourd'hui calculé sur la population entière, se calcule
+désormais sur la **part minière** de cette population. Le même gisement, sur une
+cellule deux fois plus peuplée, rend deux fois plus — c'était déjà vrai — mais il
+rend maintenant ce que ses mineurs, et eux seuls, produisent.
 
-## Source de vérité et raccord au moteur
+### Ce que ça produit sans être écrit
+
+Une cellule à gisement cultive moins. Sa production baisse, sa dette alimentaire
+monte si la ration ne suit pas. Aucune règle ne dit « les villes minières
+importent leur nourriture » ; le commerce peut rester trop petit pour les
+nourrir. Ce lot **ne mesure pas un flux** : il mesure la production et la dette.
+
+### Où ça se raccorde
 
 Les gisements, leur richesse et leur ressource viennent **uniquement** de
-`world.carte[cell_id]["gisements"]`, la même source que le lot 038.
+`world.carte[cell_id]["gisements"]`. La part minière se calcule à **un seul
+endroit**, lu à la fois par la production agricole et par l'extraction : deux
+calculs séparés dériveraient l'un de l'autre au premier changement. Le plafond de
+survie, `production_moyenne_kg_par_tick()`, reste dérivé de la **même** formule de
+production que le tick — il tient compte de l'atténuation sans qu'on le lui dise.
 
-La part minière se calcule à **un seul endroit**, lu à la fois par la production
-agricole et par l'extraction. Deux calculs séparés dériveraient l'un de l'autre
-au premier changement.
+## Périmètre
 
-Le plafond de survie, `production_moyenne_kg_par_tick()`, reste dérivé de la
-**même** formule de production que le tick : il tient compte de l'atténuation
-minière sans qu'on ait à le lui dire.
+En écriture : `sim/engine.py`, `sim/constants.py`, et `sim/tests/test_monde.py`
+pour y **ajouter** des cas — avec l'unique exception ci-dessous.
 
-## Périmètre d'écriture
+**Exception, et une seule.** `test_minerai_ne_change_pas_la_nourriture` et son
+assertion `changes == 0` reposent sur la prémisse qu'un gisement ne change pas la
+production alimentaire. Cette prémisse est **supersédée** par la règle de ce lot.
+Il est permis de substituer ce seul contrôle, et de le renommer, pour qu'il
+protège la nouvelle règle : garder le scénario comparatif dérivé de la carte, et
+remplacer l'attente d'égalité par l'attente d'une baisse strictement constatée
+dans les cellules porteuses. Interdit de le supprimer sans le remplacer, de
+toucher un autre test, ou de relâcher une autre assertion. Ce n'est pas une
+calibration après observation : c'est le retrait d'une prémisse que la règle
+métier de ce lot rend fausse.
 
-Fichiers produit autorisés :
-
-- `sim/engine.py` ;
-- `sim/constants.py` ;
-- `sim/tests/test_monde.py`, uniquement pour **ajouter** les cas qui protègent
-  cette règle visible, avec l'unique exception ci-dessous ; toutes les autres
-  assertions déjà présentes restent inchangées.
-
-**Exception unique pour le contrôle hérité du lot 038.** Le contrôle
-`test_minerai_ne_change_pas_la_nourriture` et son assertion `changes == 0`
-reposent sur la prémisse du lot 038 selon laquelle un gisement ne change pas la
-production alimentaire. Cette prémisse est explicitement **supersédée** par la
-nouvelle règle du lot 044 : les habitants affectés à la mine cessent de
-cultiver, donc une cellule à gisement produit moins de nourriture.
-
-Il est permis de substituer ce seul contrôle, et de le renommer si nécessaire,
-afin qu'il protège la nouvelle règle au lieu de l'ancienne. La substitution
-doit conserver le scénario comparatif dérivé de la carte et remplacer
-l'attente d'égalité par l'attente d'une baisse strictement constatée dans les
-cellules porteuses de gisement. Il est interdit de supprimer ce contrôle sans
-le remplacer, de modifier ou renommer un autre test existant, ou de relâcher
-une autre assertion. Cette substitution n'est pas une calibration après
-observation : elle retire une prémisse rendue fausse par la règle métier même
-du présent lot.
-
-**Preuve rouge sur le SHA de base.** Avant toute modification du produit,
-l'exécutant applique uniquement cette substitution de contrôle à l'arbre du
-SHA de base enregistré, puis exécute ce contrôle isolément. Il doit échouer en
-montrant que le SHA de base conserve `changes == 0`, alors que le contrôle
-substitué exige une baisse stricte. Le SHA exact, la commande et la sortie en
-échec sont archivés dans `generator-log.md`.
-
-**Preuve verte après changement.** Après la modification du produit, le même
-contrôle substitué doit passer sans nouvel ajustement, puis
-`.venv/bin/python -m pytest sim/tests/ -q` doit être vert. Tous les autres
-tests existants restent inchangés et verts.
-
-Livrables du lot autorisés :
-
-- `harness/queue/briefs/044-un-metier-le-mineur/deliverables/manifest.json` ;
-- `harness/queue/briefs/044-un-metier-le-mineur/deliverables/generator-log.md` ;
-- `harness/queue/briefs/044-un-metier-le-mineur/deliverables/measure_044.py` ;
-- les sorties textuelles déterministes produites par ce mesureur dans le même
-  dossier `deliverables/`.
-
-Tout autre chemin est interdit. En particulier : ne modifier ni `sim/world.py`,
-ni `sim/model.py`, ni `sim/snapshot_export.py`, ni `sim/__main__.py`, ni
-`sim/aggregation.py`, ni `sim/tests/test_survie.py`, ni `sim/tests/test_commerce.py`,
-ni la carte figée, ni le visualiseur, ni l'outil de fabrication de la carte, ni
-ce brief, ni sa grille, ni un `verdict.md`.
+Tout autre chemin est interdit, nommément : `sim/world.py`, `sim/model.py`,
+`sim/snapshot_export.py`, `sim/__main__.py`, `sim/aggregation.py`,
+`sim/tests/test_survie.py`, `sim/tests/test_commerce.py`,
+`sim/tests/test_write_coverage.py`, la carte figée, le visualiseur, et ce brief.
 
 ## Conditions de succès
+
+Les comparaisons « avant / après » se font contre `master` rejoué au démarrage du
+lot, jamais contre un nombre recopié d'ici.
 
 ### SC1 — Une cellule à gisement cultive moins
 
@@ -199,149 +143,89 @@ gisement. Les deux cellules sont **dérivées de la carte** : une porteuse et un
 non porteuse de même classe de relief. Si aucune paire de ce genre n'existe, le
 contrôle échoue au lieu de la fabriquer.
 
-**Le rouge est prouvé avant la correction** : sur le SHA de base, ces deux
-cellules produisent exactement la même chose.
+**Rouge prouvé d'abord** : sur `master`, ces deux cellules produisent exactement
+la même chose.
 
 ### SC2 — La richesse ordonne l'atténuation
 
 À population égale, la part minière suit strictement l'ordre des richesses :
-majeure au-dessus de notable, notable au-dessus de mineure. Les trois classes
-sont dérivées de la carte ; si l'une manque, le contrôle échoue au lieu de la
-sauter.
+majeure > notable > mineure. Les trois classes sont dérivées de la carte ; si
+l'une manque, le contrôle échoue au lieu de la sauter.
 
-### SC3 — Le plafond de part minière tient
+### SC3 — Le plafond tient
 
 Une cellule à laquelle on ajoute, en mémoire, assez de gisements majeurs pour
 dépasser le plafond garde une part minière **exactement** égale au plafond, et
 continue de produire de la nourriture. Le nombre de gisements ajoutés est dérivé
 des constantes, jamais écrit.
 
-### SC4 — Une seule définition de la part minière
+### SC4 — Une seule définition
 
 Un contrôle parcourt l'arbre syntaxique des modules de `sim/` hors tests et
-échoue si plus d'une fonction calcule la part minière. Le nombre de modules
-parcourus est dérivé du répertoire.
-
-De même, il n'y a toujours qu'une seule formule de production alimentaire.
+échoue si plus d'une fonction calcule la part minière, ou si un second jeu de
+facteurs de richesse apparaît. Le nombre de modules parcourus est dérivé du
+répertoire. De même, il n'y a toujours qu'une seule formule de production
+alimentaire.
 
 ### SC5 — L'extraction suit les mineurs, pas la population
 
 À gisement identique, la quantité extraite est **proportionnelle à la part
-minière** de la population, et non à la population entière. Le contrôle le
-vérifie en comparant deux cellules dont les parts minières diffèrent d'un facteur
-dérivé de leurs gisements respectifs.
+minière**, non à la population entière. Le contrôle compare deux cellules dont
+les parts minières diffèrent d'un facteur dérivé de leurs gisements.
 
-Une cellule dont la part minière serait nulle n'extrait rien. Ce zéro est une
+Une cellule dont la part minière est nulle n'extrait rien. Ce zéro est une
 **mesure réelle** : le maillon a été joué et a compté zéro. La sentinelle « non
-calculé » du projet est `-1`, jamais `0`.
+calculé » est `-1`, jamais `0`.
 
 ### SC6 — Les cellules minières produisent moins et s'endettent plus
 
-Sur le monde réel joué à un horizon dérivé, pour l'ensemble des cellules que
-la carte déclare porteuses d'au moins un gisement :
+Sur le monde réel joué à un horizon dérivé, pour l'ensemble des cellules que la
+carte déclare porteuses d'au moins un gisement :
 
-- la somme de leurs productions agricoles est **strictement inférieure** à
-  celle rejouée sur le SHA de base ;
-- la somme de leurs `food_deficit_kg` est **strictement supérieure** à celle
-  rejouée sur le SHA de base.
+- la somme de leurs productions agricoles est **strictement inférieure** à celle
+  rejouée sur `master` ;
+- la somme de leurs `food_deficit_kg` est **strictement supérieure**.
 
-Les deux mesures de base sont archivées avant l'édition et relues. Aucun
-nombre du présent brief n'est recopié. On ne mesure **pas** les kilogrammes
-reçus par le commerce.
+On ne mesure **pas** les kilogrammes reçus par le commerce.
 
-**Le rouge est prouvé avant la correction** : sur le SHA de base, les deux
-écarts sont nuls.
+**Rouge prouvé d'abord** : sur `master`, les deux écarts sont nuls.
 
 ### SC7 — Le plafond de survie reste dérivé, et il tient
 
-Les trois propriétés de régime de `sim/tests/test_survie.py` restent vertes
-**sans modification de ce fichier**. Le plafond employé descend tout seul, parce
-qu'il appelle la même formule de production que le tick : c'est ce que ce
-couplage a été écrit pour garantir.
-
-Une vérification supplémentaire est faite à un horizon cinq fois plus long, pour
-montrer que l'effet se stabilise.
+Les propriétés de régime de `sim/tests/test_survie.py` restent vertes **sans que
+ce fichier soit modifié**. Le plafond descend tout seul parce qu'il appelle la
+même formule de production que le tick : c'est ce que ce couplage a été écrit
+pour garantir. Vérifier aussi à un horizon cinq fois plus long, pour montrer que
+l'effet se stabilise.
 
 ### SC8 — Les invariants existants restent intacts
 
-- `.venv/bin/python -m pytest sim/tests/ -q` est vert ;
-- `test_le_moteur_ne_lie_aucune_constante_par_valeur`,
-  `test_chaque_constante_du_moteur_change_le_monde`,
+```bash
+py -m pytest sim/tests/ viewer/tests/ -q
+```
+
+- vert, et la liste des tests en échec est **vide**, comparée à celle de `master`
+  plutôt que supposée ;
+- `test_chaque_constante_du_moteur_change_le_monde`,
+  `test_le_moteur_ne_lie_aucune_constante_par_valeur`,
   `test_aucune_constante_terminale` et `test_no_hardcoded_numeric_literals`
-  restent verts ;
-- les facteurs de richesse du lot 038 ne sont pas dupliqués : un contrôle échoue
-  si un second jeu de facteurs apparaît ;
-- aucun des noms `PART_MINIERE_PAR_GISEMENT`, `PART_MINIERE_MAXIMALE` n'apparaît
-  comme attribut lu dans `sim/engine.py` — le motif 033 tient ;
-- deux exécutions de `.venv/bin/python -m sim --ticks 365 --seed 0 --json` sont
-  strictement identiques entre elles, et différentes de la référence rejouée sur
-  le SHA de base ;
-- aucune instruction `global` n'apparaît dans `sim/engine.py`.
-
-## Compteurs exigés
-
-Le mesureur `deliverables/measure_044.py` reconstruit chaque compteur ; il ne
-porte aucun résultat en dur.
-
-| compteur | source d'échantillon | dénominateur dérivé |
-|---|---|---|
-| `cellules_avec_gisement_carte` | agrégation Python des `gisements` rendus par `World.lire_carte()` | nombre total de cellules réellement mesurées |
-| `paires_comparables_derivees` | cellules porteuses et non porteuses de même classe de relief | `cellules_avec_gisement_carte` |
-| `production_agricole_avec_gisement` | production mesurée sur la cellule porteuse de chaque paire | `paires_comparables_derivees` |
-| `production_agricole_sans_gisement` | production mesurée sur la cellule témoin de chaque paire | `paires_comparables_derivees` |
-| `parts_minieres_ordonnees` | part minière calculée, une fois par classe de richesse dérivée | nombre de classes de richesse réellement mesurées |
-| `part_miniere_au_plafond` | cellule surchargée de gisements en mémoire | plafond nommé, lu par le module |
-| `definitions_de_part_miniere` | parcours de l'arbre syntaxique des modules de `sim/` hors tests | nombre de modules réellement parcourus |
-| `formules_de_production_agricole` | même parcours | nombre de modules réellement parcourus |
-| `jeux_de_facteurs_de_richesse` | même parcours | nombre de modules réellement parcourus |
-| `extraction_part_miniere_nulle` | cellule dont la part minière est nulle, un tick joué | nombre de ticks réellement joués |
-| `production_agricole_minieres_avant` | monde réel rejoué sur le SHA de base, cellules porteuses | nombre de cellules minières réellement mesurées |
-| `production_agricole_minieres_apres` | même mesure après changement | nombre de cellules minières réellement mesurées |
-| `dette_alimentaire_minieres_avant` | monde réel rejoué sur le SHA de base, `food_deficit_kg` des porteuses | nombre de cellules minières réellement mesurées |
-| `dette_alimentaire_minieres_apres` | même mesure après changement | nombre de cellules minières réellement mesurées |
-| `noms_de_constantes_part_miniere_dans_engine` | parcours de l'arbre syntaxique de `sim/engine.py` | nombre de noms du motif 033 réellement cherchés |
-| `fraction_survie_horizon_long` | monde réel joué à cinq fois l'horizon du contrôle existant | population de départ réellement mesurée |
-| `tests_sim_verts` | collecte pytest après changement | nombre de tests collectés |
-
-`definitions_de_part_miniere`, `formules_de_production_agricole` et
-`jeux_de_facteurs_de_richesse` doivent valoir **1**.
-`extraction_part_miniere_nulle` doit valoir **0**, et ce zéro est une mesure
-réelle. La sentinelle « non calculé » du projet est `-1`, jamais `0`.
-`fraction_survie_horizon_long` doit être strictement positive.
-`production_agricole_minieres_apres` doit être strictement inférieure à
-`production_agricole_minieres_avant`.
-`dette_alimentaire_minieres_apres` doit être strictement supérieure à
-`dette_alimentaire_minieres_avant`.
-`noms_de_constantes_part_miniere_dans_engine` doit valoir **0**.
-
-## Livrables et porte mécanique
-
-Le dossier `deliverables/` contient au minimum :
-
-- `manifest.json`, avec les commandes exactes et les compteurs ci-dessus ;
-- `generator-log.md`, en français clair : le rouge prouvé de SC1, les fichiers
-  modifiés, les commandes jouées, les résultats et les limites ;
-- `measure_044.py`, rejouable depuis la racine avec `.venv/bin/python`.
-
-Les chemins du manifeste sont relatifs au dossier du brief. Les sorties
-comparées avant/après utilisent `must_differ_from_git` avec la référence Git du
-SHA de base, pas une copie `.orig` fabriquée après coup.
+  restent verts, **sans que `_MondeEpreuve` soit touché** ;
+- aucun des noms `PART_MINIERE_PAR_GISEMENT` ni `PART_MINIERE_MAXIMALE`
+  n'apparaît comme attribut lu dans `sim/engine.py` ; le compteur des noms
+  trouvés vaut **0** ;
+- deux exécutions de `py -m sim --ticks 365 --seed 0 --json` sont strictement
+  identiques entre elles, et différentes de celle de `master` ;
+- aucune instruction `global` dans `sim/engine.py` ;
+- le nombre de tests collectés est au moins celui de `master`.
 
 ## Hors périmètre
 
-- `sim/MODELE.md` (dette de l'architecte après fusion) ;
+- `sim/MODELE.md` — la mise à jour après fusion est une dette de l'architecte du
+  modèle, pas de l'exécutant ;
 - tout métier autre que le mineur ;
 - le salaire, le prix, le marché, la propriété, la classe sociale ;
 - la transformation du minerai, la fonte, l'artisanat ;
-- le déplacement des mineurs vers les gisements ;
-- l'épuisement d'un gisement ;
-- la définition d'un bourg ou d'une ville ;
-- le schéma du snapshot, sa version, et le visualiseur ;
-- calibration d'un test existant après observation ;
-- Unity, architecture, sécurité, CI, ForgePilot et fusion.
-
-## Interdictions pour l'exécutant
-
-L'exécutant n'écrit pas de `verdict.md`, ne modifie ni ce brief ni
-`eval-rubric.md`, ne juge pas son propre travail, ne fusionne rien et ne pousse
-pas directement sur `master`.
+- le déplacement des mineurs vers les gisements ; l'épuisement d'un gisement ;
+- la définition d'un bourg ou d'une ville — c'est le lot 047 ;
+- le schéma du snapshot, sa version, le visualiseur ;
+- la calibration d'un test existant après observation.
