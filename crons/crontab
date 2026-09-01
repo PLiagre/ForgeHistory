@@ -1,9 +1,28 @@
 # crontab — un réveil par rôle, Europe/Paris
 # installer : sudo cp crons/crontab /etc/cron.d/forgeatelier
+#
+# Aucun flock ici : il est *dans* tour.sh, un par rôle. Un flock global
+# sérialiserait deux rôles qui n'ont rien à se dire.
+# Aucune clé d'API ici non plus : une clé ferait payer l'API à l'unité
+# au lieu de l'abonnement. tour.sh les retire de l'environnement des
+# agents, ce fichier n'a pas à en poser.
+# ATELIER_INVOQUER est volontairement absent : on regarde d'abord.
 SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin:/bin
 ATELIER_PROJET=/srv/ForgeHistory
 ATELIER_ROOT=/opt/ForgeAtelier
+ATELIER_TIMEOUT=1800
+
+# Un agent, un worktree (voir crons/installer-profils.sh --dry-run).
+ATELIER_WORKDIR_briefer=/srv/ForgeHistory-briefer
+ATELIER_WORKDIR_planifier=/srv/ForgeHistory-planifier
+ATELIER_WORKDIR_coder=/srv/ForgeHistory-coder
+ATELIER_WORKDIR_relire=/srv/ForgeHistory-relire
+
+# Facultatif : si llmquota est installé, il est lu tout seul. Sinon
+# ATELIER_QUOTA_CMD nomme la commande qui rend un entier (-1 = inconnu).
+# ATELIER_QUOTA_CMD=llmquota restant
+# ATELIER_RESERVE_planifier=1   # Grok laisse sa marge à Composer
 
 15 6  * * * ubuntu /opt/ForgeAtelier/crons/veille.sh
 0  7  * * * ubuntu /opt/ForgeAtelier/crons/pilote.sh
