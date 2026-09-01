@@ -65,6 +65,7 @@ def test_apercu_sans_ecriture(tmp_path: Path):
     assert apercu.executant == "cursor"
     assert apercu.relecteur == "codex"
     assert apercu.executant != apercu.relecteur
+    assert apercu.worktree == str(racine.parent / f"{racine.name}-001-un-changement")
     assert not (racine / ".atelier").exists()
     assert list(racine.glob("atelier-echange/**/*")) == []
 

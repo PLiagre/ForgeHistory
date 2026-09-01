@@ -87,7 +87,7 @@ def preparer(brief: Path, racine_projet: Path) -> Apercu:
         raise CycleErreur("périmètre sans fichier nommé")
 
     branche = f"{produit.prefixe_branche}{lot}"
-    destination = produit.racine.parent / f"{produit.nom.lower()}-{lot}"
+    destination = produit.racine.parent / f"{produit.racine.name}-{lot}"
     exec_prompt, rev_prompt = _prompts(brief, lot)
     executant = pour(produit.roles.execution)
     relecteur = pour(produit.roles.controle)
