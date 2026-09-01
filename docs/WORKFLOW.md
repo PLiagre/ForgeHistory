@@ -5,6 +5,9 @@ aucune fusion. Branche orpheline en attendant le dépôt détaché :
 
 https://github.com/PLiagre/ForgeHistory/tree/cursor/forgeatelier-ced6
 
+Comment brancher Hermes et les crons indépendants :
+[docs/MISE-EN-PLACE.md](https://github.com/PLiagre/ForgeHistory/blob/cursor/forgeatelier-ced6/docs/MISE-EN-PLACE.md).
+
 Ce fichier ne paraphrase ni [AGENTS.md](../AGENTS.md) ni l'atelier. Il
 dit seulement comment **ce** produit s'y branche.
 
