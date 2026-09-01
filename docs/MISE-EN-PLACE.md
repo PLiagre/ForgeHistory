@@ -20,18 +20,24 @@ Cursor la trouvera à 14 h, ou demain, ou jamais — ça ne bloque pas Claude.
 
 Claude écrit le brief **et** relit le diff : c'est légal. Il n'a pas
 écrit le code. Les deux jobs partagent le quota Pro : on les écarte
-de dix heures. Si le matin a tout mangé, le cron du soir voit le
-quota et sort `RIEN` / échec — il ne reste pas planté.
+de dix heures.
 
-Grok n'est **pas** sur le chemin critique. Composer code à partir du
-brief. Si Grok n'a rien produit, Composer s'en fiche.
+Grok n'est **pas** sur le chemin critique de Composer. Mais il est sur
+le même **compteur** : les deux tirent Cursor Pro. La boîte découple
+l'ordre, elle ne découple pas la ressource. D'où la réserve, plus bas.
 
----
+## Ce qui décide de la facture, et qu'on ne voit pas
 
-## ChatGPT Plus nourrit-il Hermes ?
+Une variable d'environnement suffit à faire payer l'API à l'unité au
+lieu de l'abonnement : `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`,
+`CURSOR_API_KEY`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`. On ne veut pas
+découvrir la réponse sur la facture : **`tour.sh` et `pilote.sh` les
+retirent** de l'environnement de l'agent qu'ils lancent, et le crontab
+n'en pose aucune.
 
-Oui, **à une condition** : tu branches Hermes en `openai-codex`
-(OAuth ChatGPT), pas avec une clé `OPENAI_API_KEY`.
+Hermes n'utilise **pas** l'OAuth Anthropic : Pro le refuse, Max
+facture l'extra hors forfait. `crons/installer-profils.sh` refuse
+d'écrire un profil qui nommerait un fournisseur Anthropic.
 
 ```bash
 hermes model          # OpenAI → ChatGPT / Codex Subscription
@@ -40,11 +46,9 @@ hermes auth list      # tu veux openai-codex + oauth
 
 Tu ne lances **pas** Codex CLI à côté. Hermes *est* l'usage ChatGPT
 du VPS. Un modèle léger pour le pilote (il dialogue, il dépose une
-carte, il ne code pas).
-
-Si tu veux garder Codex comme relecteur de brief, il te faut un
-quatrième quota (API, ou un autre compte). Avec tes trois abos,
-on ne le fait pas.
+carte, il ne code pas). Si tu veux garder Codex comme relecteur de
+brief, il te faut un quatrième quota. Avec tes trois abos, on ne le
+fait pas.
 
 ---
 
@@ -64,24 +68,31 @@ Chaque cron :
 
 1. `python3 -m atelier prochain --role <lui> --projet /srv/ForgeHistory`
 2. `RIEN` → exit 0
-3. sinon il fait **sa** tâche, timeout, puis `avancer` ou `echouer`
+3. sinon il imprime l'invocation exacte, la lance (sous drapeau), puis
+   `python3 -m atelier avancer` **ou** `python3 -m atelier echouer`
 4. il n'appelle pas le cron suivant
 
-Le seul humain dans la boucle : tu lis la PR et tu fusionnes.
-Ça n'est pas un point de blocage *entre agents*.
+**Une carte qu'on a invoquée ne reste jamais en place.** Elle avance ou
+elle tombe dans `echec/` avec sa raison. Une carte qu'on n'a *pas*
+invoquée — boîte vide, quota épuisé, rôle déjà pris, drapeau baissé —
+reste intacte : on n'a rien dépensé, il n'y a rien à déclarer.
+
+Le seul humain dans la boucle : tu lis la PR et tu fusionnes. Ça n'est
+pas un point de blocage *entre agents*.
 
 ---
 
 ## Horaires (Europe/Paris)
 
+Le fichier prêt à poser est [`crons/crontab`](../crons/crontab).
+
 ```cron
-# /etc/cron.d/atelier  — un flock par rôle, jamais un flock global
 15 6  * * * ubuntu /opt/ForgeAtelier/crons/veille.sh
-0  7  * * * ubuntu ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/pilote.sh
-30 8  * * * ubuntu ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/tour.sh briefer
-0  10 * * * ubuntu ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/tour.sh planifier
-0  14 * * * ubuntu ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/tour.sh coder
-0  19 * * * ubuntu ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/tour.sh relire
+0  7  * * * ubuntu /opt/ForgeAtelier/crons/pilote.sh
+30 8  * * * ubuntu /opt/ForgeAtelier/crons/tour.sh briefer
+0  10 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh planifier
+0  14 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh coder
+0  19 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh relire
 ```
 
 | heure | script | agent | s'il n'a rien |
@@ -93,26 +104,71 @@ Le seul humain dans la boucle : tu lis la PR et tu fusionnes.
 | 14:00 | `coder` | Cursor Composer | `RIEN` |
 | 19:00 | `relire` | Claude Pro | `RIEN` |
 
-`flock` par rôle : deux *briefer* ne se marchent pas. Un *briefer* et
-un *coder* tournent ensemble sans se parler.
+Le `flock` est **dans** `tour.sh`, un par rôle
+(`$ATELIER_VERROUS/atelier-<rôle>.lock`). Deux *briefer* ne se marchent
+pas ; un *briefer* et un *coder* tournent ensemble. Un rôle déjà pris
+imprime « un tour est déjà en cours » et sort 0 : la carte sera là au
+prochain réveil. Jamais un flock global.
+
+`ATELIER_TIMEOUT` (1800 s par défaut) borne chaque agent. Un agent qui
+pend rend 124 : la carte va dans `echec/`, pas dans les limbes.
+
+---
+
+## La garde de quota, facultative
+
+Si `llmquota` est installé, `tour.sh` le lit tout seul. Sinon, rien ne
+se passe et **on continue** : un quota qu'on n'a pas mesuré vaut `-1`,
+jamais `0`. C'est un fait absent, pas un zéro.
+
+```bash
+ATELIER_QUOTA_CMD="llmquota restant"   # doit rendre un entier sur stdout
+ATELIER_RESERVE_planifier=1            # Grok laisse sa marge à Composer
+```
+
+L'atelier attend un entier ; tout le reste (texte, silence, erreur) est
+lu comme « inconnu ». Si ton `llmquota` parle une autre langue, pose
+`ATELIER_QUOTA_CMD` : c'est une commande à toi, pas une dépendance.
+
+Quand le restant tombe **à la réserve ou en dessous**, le rôle sort 0 et
+laisse la carte. Le rôle facultatif (`planifier`) a une réserve de 1 par
+défaut : il cède le compteur Cursor à `coder`, qui, lui, est sur le
+chemin. Les autres rôles ont une réserve de 0.
+
+llmquota *lit*. Il ne lance rien, et l'atelier ne l'installe pas.
 
 ---
 
 ## Worktrees : un agent, un répertoire
 
 ```bash
-cd /srv
-git -C ForgeHistory worktree add ../fh-claude  -b claude/briefs origin/master
-git -C ForgeHistory worktree add ../fh-grok    -b grok/plan     origin/master
-git -C ForgeHistory worktree add ../fh-composer -b agent/courant origin/master
+./crons/installer-profils.sh --dry-run   # imprime les worktrees et les profils
 ```
 
-Claude revue : mode lecture (`claude -p` sans écrire le code). Composer
-est le seul qui pousse `agent/NNN-slug` et ouvre la PR.
+Trois agents sur le même clone se marchent dessus. Chaque rôle a son
+répertoire (`ATELIER_WORKDIR_<rôle>`, posé par le crontab) et Hermes a
+un profil par rôle qui pointe le même chemin.
 
-Un seul lot de **code** à la fois par fichier : `atelier verrou`.
-044 occupe `engine.py` ? 046 attend dans `a-coder/`. Le cron coder
-prend 047 s'il est disjoint, ou sort `RIEN`.
+Un seul lot de **code** à la fois par fichier. Le `coder` pose le verrou
+avant d'invoquer Composer, et `prochain --role coder` **saute** une
+carte dont un fichier est déjà tenu par un autre lot : 044 occupe
+`sim/engine.py` ? 046 attend dans `a-coder`, le cron prend 047 s'il est
+disjoint, ou sort `RIEN`. Les autres rôles n'écrivent pas de code : un
+verrou ne les suspend pas.
+
+Le périmètre du verrou vient du **brief**, pas de la carte : si la carte
+ne nomme aucun fichier, l'atelier lit la section `Périmètre` du brief.
+S'il n'y en a pas, il refuse — il ne devine pas.
+
+**Après ta fusion, rends les fichiers :**
+
+```bash
+python3 -m atelier verrous --projet /srv/ForgeHistory
+python3 -m atelier lever   --projet /srv/ForgeHistory --lot 044-un-metier-le-mineur
+```
+
+Sans ça, le lot suivant qui touche `sim/engine.py` attendra un lot déjà
+fusionné.
 
 ---
 
@@ -125,11 +181,19 @@ Sur le VPS, **une fois**.
 2. `cd /srv/ForgeHistory && git pull` — le fichier `atelier.toml` doit
    être là (PR de branchement).
 3. Authentifier **trois** binaires, pas plus :
-   - `hermes model` → ChatGPT / Codex OAuth
+   - `hermes model` → ChatGPT / Codex OAuth (**pas** Anthropic)
    - `claude` → Claude Pro (OAuth du compte Pro)
    - `agent login` → Cursor Pro
-4. Poser le crontab ci-dessus **sans** `ATELIER_INVOQUER=1`.
-5. Déposer une carte à la main et regarder :
+4. Les profils et les worktrees :
+
+```bash
+ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/installer-profils.sh --dry-run
+# compare la syntaxe à `hermes profile --help` de ta version, puis :
+ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/installer-profils.sh --run
+```
+
+5. Poser le crontab **sans** `ATELIER_INVOQUER=1`.
+6. Déposer une carte à la main et regarder :
 
 ```bash
 python3 -m atelier deposer --projet /srv/ForgeHistory \
@@ -141,9 +205,26 @@ ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/tour.sh coder
 # doit imprimer l'invocation Cursor, sans lancer
 ```
 
-6. Quand tu as vu trois matins de `RIEN` / d'impressions justes :
+7. Quand tu as vu trois matins de `RIEN` / d'impressions justes :
    `ATELIER_INVOQUER=1` sur **un seul** cron, le `coder` d'un brief
    déjà relu par toi. Pas les six d'un coup.
+
+---
+
+## Superpowers : une note, pas une dépendance
+
+Superpowers apporte des *skills* rejouables (worktrees, rouge-vert,
+relecture par un autre). Installe-le si tu veux, sur le compte de
+l'agent, à la main :
+
+```bash
+superpowers install    # ou la commande de ta version
+```
+
+L'atelier ne l'installe pas, ne le teste pas, et ne tombe pas s'il est
+absent. Et surtout : **son brainstorm ne remplace pas le brief.** Le
+brief reste la seule source d'instruction d'un lot ; une seconde langue
+de planification redevient une source parallèle.
 
 ---
 
@@ -156,16 +237,20 @@ Une carte, une proposition, le tableau de bord. **Pas** :
 - un jugement de recevabilité (Claude relit, toi tu fusionnes)
 - `git merge`
 
-Le prompt du pilote, chaque matin :
+Le prompt du pilote n'est pas recopié ici : il est construit par
+`atelier/backends.py` et tu peux le lire tel qu'il partira.
 
-```text
-Tu es le pilote. Tu ne codes pas. Tu ne fusionnes pas.
-Lis ROADMAP.md. S'il manque un brief pour le prochain lot
-dont le périmètre est libre, dépose une carte a-briefer
-avec python3 -m atelier deposer … et arrête-toi.
-S'il n'y a rien à demander, écris RIEN et arrête-toi.
-N'invoque ni claude ni agent.
+```bash
+python3 -m atelier invocation --role pilote --projet /srv/ForgeHistory
+python3 -m atelier invocation --role coder  --projet /srv/ForgeHistory \
+    --lot 044-un-metier-le-mineur --brief briefs/044-un-metier-le-mineur.md
 ```
+
+Un seul endroit compose une ligne de commande d'agent, et c'est du
+Python testé. Le cron l'exécute, il ne l'invente pas. Le prompt du
+relecteur lui refuse les outils qui écrivent, poussent ou fusionnent :
+« celui qui a écrit le code ne dit pas s'il est recevable » ne tient que
+si le relecteur n'a pas la main qui écrit.
 
 ---
 
@@ -175,8 +260,11 @@ N'invoque ni claude ni agent.
 |---|---|
 | Hermes qui lance `agent` dans la même commande | lot 035 |
 | Composer qui `wait` Grok | Grok est facultatif |
+| Grok qui vide le quota Cursor avant 14 h | la réserve du rôle facultatif |
 | Claude revue qui attend des tests verts | la CI GitHub le dit ; Claude relit le diff tel quel |
 | Un flock global | deux rôles ne doivent pas se sérialiser |
+| Une carte prise qui reste dans sa boîte | elle avance ou elle échoue |
+| Un verrou que personne ne lève | `atelier lever` après ta fusion |
 | Fusion automatique | le propriétaire regarde (règle 11) |
 
 Le seul « blocage » accepté : **toi**, le soir, sur une PR. Les crons
