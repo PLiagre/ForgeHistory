@@ -116,5 +116,8 @@ Rien n'est perdu : tout vit dans l'historique git, au tag
 `v0-avant-degraissage` (voir [AGENTS.md](AGENTS.md) § « Les archives »).
 
 Ce qui reste : la vision, le modèle, le moteur, ses tests, le regard mince,
-la carte, et les briefs. Le workflow tient en cinq lignes dans
-[AGENTS.md](AGENTS.md), et c'est le propriétaire qui le pilote.
+la carte, et les briefs. Le workflow automatique ne revient pas ici : il
+vit dans **ForgeAtelier** (branche `cursor/forgeatelier-ced6`, à détacher
+dès que le dépôt GitHub existe — voir `docs/PUBLIER.md` là-bas). Ce dépôt
+se branche avec [`atelier.toml`](atelier.toml). Le propriétaire fusionne
+toujours.

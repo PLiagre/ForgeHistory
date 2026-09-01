@@ -41,10 +41,13 @@ niveau de risque, pas d'ordre d'enchaînement entre les lots.
 recevable.** Celui qui le dit, c'est le propriétaire, parce que c'est lui qui
 fusionne.
 
-La marche à suivre — quel agent à quelle étape, quel prompt lui donner, sur
-quelle machine — est dans [`docs/WORKFLOW.md`](docs/WORKFLOW.md). Ce fichier-ci
-dit les **règles** ; celui-là dit **comment on s'y prend**. Aucun des deux ne
-paraphrase l'autre, et celui-ci fait foi.
+La marche à suivre — quel agent à quelle étape, quel prompt, sur quelle
+machine — vit dans **[ForgeAtelier](https://github.com/PLiagre/ForgeHistory/tree/cursor/forgeatelier-ced6)**
+(`python3 -m atelier`). Ce fichier-ci dit les **règles du jeu** ; l'atelier
+dit **comment on s'y prend**. Aucun des deux ne paraphrase l'autre, et
+celui-ci fait foi pour le monde. Le branchement de ce dépôt est
+[`atelier.toml`](atelier.toml). Un rappel local tient dans
+[`docs/WORKFLOW.md`](docs/WORKFLOW.md).
 
 ## Le brief
 
@@ -179,7 +182,8 @@ processus : elles survivent à tout changement de workflow.
 | `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
 | `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
 | `briefs/` | un fichier par lot. |
-| `docs/WORKFLOW.md` | la marche à suivre : les trois postes, les prompts, la feuille de suivi. |
+| `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier. |
+| `docs/WORKFLOW.md` | rappel local : les trois postes de *ce* produit, et le lien vers l'atelier. |
 
 ## Les archives
 

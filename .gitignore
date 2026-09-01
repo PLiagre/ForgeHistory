@@ -14,4 +14,6 @@ Thumbs.db
 # suivi ni ignoré : l'ensemble effectif des permissions n'apparaissait donc
 # dans aucun diff, et pré-approuvait l'exécution de code arbitraire sur une
 # seule machine.
-.claude/settings.local.json
+# Atelier : état des runs, verrous, canal d'échange. Jamais versionné.
+.atelier/
+atelier-echange/
