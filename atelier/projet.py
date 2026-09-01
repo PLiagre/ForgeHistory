@@ -18,14 +18,24 @@ class Roles:
     controle: str
 
     def __post_init__(self) -> None:
-        if self.ecriture == self.controle:
-            raise ProjetIncomplet(
-                "l'écriture et le contrôle ne peuvent pas être le même agent"
-            )
+        # La règle est : « celui qui a écrit le CODE ne dit pas s'il est
+        # recevable ». Écrire un brief n'est pas écrire du code — un
+        # même agent peut donc briefer le matin et relire le diff le
+        # soir. Interdire `ecriture == controle` serait plus strict que
+        # la règle, et forcerait le branchement à nommer un quatrième
+        # abonnement que le propriétaire n'a pas.
         if self.execution == self.controle:
             raise ProjetIncomplet(
-                "l'exécution et le contrôle ne peuvent pas être le même agent"
+                "l'exécution et le contrôle ne peuvent pas être le même agent : "
+                "celui qui a écrit le code ne dit pas s'il est recevable"
             )
+
+    def vers_dict(self) -> dict[str, str]:
+        return {
+            "ecriture": self.ecriture,
+            "execution": self.execution,
+            "controle": self.controle,
+        }
 
 
 @dataclass(frozen=True)
