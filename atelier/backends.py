@@ -157,7 +157,13 @@ def _source_unique(brief: str) -> str:
 
 
 def prompt_du_role(
-    role: str, *, lot: str | None, brief: str | None, projet: str
+    role: str,
+    *,
+    lot: str | None,
+    brief: str | None,
+    projet: str,
+    pr: int | None = None,
+    branche: str | None = None,
 ) -> str:
     if role not in ROLES_INVOCABLES:
         raise BackendErreur(f"rôle inconnu : {role} (connus : {', '.join(ROLES_INVOCABLES)})")
@@ -193,13 +199,26 @@ def prompt_du_role(
         return (
             f"Exécute le lot {lot} de {projet}. {_source_unique(brief)} "
             "N'écris que dans les fichiers que sa section Périmètre autorise. "
-            "Ouvre une PR à la fin ; tu ne fusionnes pas."
+            "Ouvre une PR à la fin ; tu ne fusionnes pas. Puis écris son "
+            "numéro, seul, dans atelier-echange/pr.txt (crée le dossier s'il "
+            "manque) : c'est par là que le relecteur saura quoi relire."
         )
+    # Le numéro de PR n'est pas une consigne : c'est une coordonnée. Il dit
+    # où regarder, pas quoi faire. Sans lui, on nomme la branche — on
+    # n'invente jamais un numéro.
+    if pr and branche:
+        cible = f"la PR {pr}, sur la branche {branche}"
+    elif pr:
+        cible = f"la PR {pr}"
+    elif branche:
+        cible = f"la branche {branche}"
+    else:
+        cible = f"le lot {lot}"
     return (
-        f"Relis le diff du lot {lot} de {projet}. Tu n'as pas écrit ce code : "
-        "tu ne le corriges pas, tu n'écris aucun fichier, tu ne pousses rien, "
-        f"tu ne fusionnes pas. {_source_unique(brief)} Rends un avis qui cite "
-        "le périmètre et les conditions de succès."
+        f"Relis le diff du lot {lot} de {projet} : {cible}. Tu n'as pas écrit "
+        "ce code : tu ne le corriges pas, tu n'écris aucun fichier, tu ne "
+        f"pousses rien, tu ne fusionnes pas. {_source_unique(brief)} Rends un "
+        "avis qui cite le périmètre et les conditions de succès."
     )
 
 
@@ -210,13 +229,17 @@ def argv_du_role(
     projet: str,
     lot: str | None = None,
     brief: str | None = None,
+    pr: int | None = None,
+    branche: str | None = None,
 ) -> list[str]:
     """L'argv exact du rôle. Construit ici, exécuté par le cron, jamais ici."""
     backend = backend_du_role(role, roles)
     argv = [
         backend.binaire,
         "-p",
-        prompt_du_role(role, lot=lot, brief=brief, projet=projet),
+        prompt_du_role(
+            role, lot=lot, brief=brief, projet=projet, pr=pr, branche=branche
+        ),
     ]
     modele = backend.modeles.get(role)
     if modele:

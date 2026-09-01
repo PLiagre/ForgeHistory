@@ -122,6 +122,16 @@ Chaque cron :
    `python3 -m atelier avancer` **ou** `python3 -m atelier echouer`
 4. il n'appelle pas le cron suivant
 
+Le **numéro de PR** fait le dernier saut par le canal d'échange :
+l'exécutant écrit son numéro dans `atelier-echange/pr.txt`, le cron le
+lit, le range dans la carte et **efface le fichier** — un numéro périmé
+ne s'attache pas au lot suivant. À 19 h, le relecteur reçoit « la PR 44,
+sur la branche `agent/044-mineur` ». Sans numéro, il reçoit la branche
+seule : l'atelier n'invente pas de coordonnée.
+
+Ce numéro n'est pas une consigne. Il dit *où regarder*, pas *quoi
+faire* — le brief reste la seule source d'instruction.
+
 **Une carte qu'on a invoquée ne reste jamais en place.** Elle avance ou
 elle tombe dans `echec/` avec sa raison. Une carte qu'on n'a *pas*
 invoquée — boîte vide, quota épuisé, rôle déjà pris, drapeau baissé —
@@ -216,6 +226,17 @@ Le périmètre du verrou vient du **brief**, pas de la carte : si la carte
 ne nomme aucun fichier, l'atelier lit la section `Périmètre` du brief.
 S'il n'y en a pas, il refuse — il ne devine pas.
 
+**Une file bloquée n'est pas une file vide.** Si toutes les cartes de
+`a-coder` réclament un fichier déjà tenu, le cron sort `RIEN` (code 0,
+c'est normal) mais dit sur stderr *qui* tient *quoi* :
+
+```
+046-mer attend : sim/engine.py est tenu par 044-un-metier-le-mineur
+aucune carte libre — `atelier lever --lot <lot>` après ta fusion.
+```
+
+Une file réellement vide, elle, ne dit rien. Le silence reste le silence.
+
 **Après ta fusion, rends les fichiers :**
 
 ```bash
@@ -270,6 +291,47 @@ ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/tour.sh coder
 7. Quand tu as vu trois matins de `RIEN` / d'impressions justes :
    `ATELIER_INVOQUER=1` sur **un seul** cron, le `coder` d'un brief
    déjà relu par toi. Pas les six d'un coup.
+
+---
+
+## Le jour où tu bascules
+
+Une commande, avant de poser le drapeau :
+
+```bash
+python3 -m atelier pret --projet /srv/ForgeHistory
+```
+
+Elle lit le `PATH` et le disque. **Elle n'invoque personne** — regarder
+n'est pas dépenser, même avec `ATELIER_INVOQUER=1`.
+
+```
+PASS  branchement — ForgeHistory (/srv/ForgeHistory/atelier.toml)
+PASS  binaire agent (planifier, coder) — /usr/local/bin/agent
+PASS  binaire claude (briefer, relire) — /usr/local/bin/claude
+PASS  binaire hermes (pilote) — /usr/local/bin/hermes
+PASS  le relecteur n'a pas la main qui écrit
+PASS  flock — présent
+PASS  timeout — présent
+PASS  dossier des verrous — /tmp
+?     quota — non lisible ; un inconnu ne se compte pas pour zéro
+PASS  boîte a-coder — 1 carte(s)
+?     ATELIER_INVOQUER n'est pas posé — mode à sec
+```
+
+Trois marques, et une seule bloque :
+
+| marque | ce que ça veut dire |
+|---|---|
+| `PASS` | mesuré, et bon |
+| `FAIL` | mesuré, et bloquant — code de sortie 1 |
+| `?` | **non mesuré**. Ce n'est pas un échec, et ce n'est pas un feu vert. |
+
+Un quota qu'on ne sait pas lire est un `?`, jamais un `0`. Un relecteur
+sans garde de lecture seule est un `?` : ça tourne, mais tu sais ce que
+tu acceptes.
+
+Quand `pret` sort 0, tu peux armer un cron. Pas avant.
 
 ---
 

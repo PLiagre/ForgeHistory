@@ -54,6 +54,25 @@ et un `case` dans `tour.sh`. Il en reste un : le produit.
   c'est ce qui tient avec trois abonnements. Codex tire le même quota
   ChatGPT que Hermes.
 
+## Lot 003 — le tour boucle, et on peut basculer
+
+Le sujet « workflow » est fermé : le tour se referme sans le
+propriétaire, et une commande dit si on peut l'armer.
+
+- Le **numéro de PR** fait le dernier saut. L'exécutant l'écrit dans
+  `atelier-echange/pr.txt`, le cron le range dans la carte et efface le
+  fichier. Le relecteur reçoit « la PR 44, sur la branche
+  `agent/044-mineur` » — ou la branche seule, jamais un numéro inventé.
+- Une **file bloquée se déclare** : `RIEN` sur stdout, et sur stderr qui
+  tient quel fichier. Une file vide reste silencieuse.
+- `atelier pret --projet …` répond avant la bascule : branchement,
+  binaires des quatre rôles, `flock`, `timeout`, dossier des verrous,
+  quota, boîtes, état du drapeau. `PASS` / `FAIL` / `?`, et `?` n'est
+  pas un feu vert. Il ne lance aucun agent.
+
+Ce qui reste au propriétaire n'a pas changé : il lit la PR, il fusionne,
+et il rend les fichiers avec `atelier lever`.
+
 ## Ce que l'atelier ne sait pas encore faire
 
 - **Reprendre un juge.** Après un JSON de revue illisible, changer
@@ -61,8 +80,12 @@ et un `case` dans `tour.sh`. Il en reste un : le produit.
 - **Lire un quota vivant.** L'atelier consomme `llmquota` s'il est
   là, mais ne sonde aucun fournisseur lui-même. Reste une référence,
   pas une dépendance.
-- **Ouvrir la PR depuis l'atelier.** C'est Composer qui l'ouvre ; le
-  numéro ne revient pas encore dans la carte tout seul.
+- **Ouvrir ou lire la PR depuis l'atelier.** Composer l'ouvre et écrit
+  son numéro dans le canal ; l'atelier le transporte sans jamais parler
+  à GitHub.
+- **Lever un verrou tout seul après une fusion.** L'atelier ne sait pas
+  ce que le propriétaire a fusionné. Il dit quand un verrou bloque ;
+  `atelier lever` reste un geste humain.
 - **Convoquer un conseil.** Le protocole FACT / INFERENCE / ASSUMPTION
   / UNKNOWN est décrit ; il n'est pas une commande.
 - **Un second produit.** Seul ForgeHistory a un profil.
@@ -72,6 +95,15 @@ et un `case` dans `tour.sh`. Il en reste un : le produit.
 
 ## Ordre
 
-Un lot d'atelier à la fois. Le prochain qui vaut le coup : **faire
-revenir le numéro de PR dans la carte**, pour que `relire` sache quoi
-relire sans que tu le lui dises. Ensuite seulement, la reprise de juge.
+Un lot d'atelier à la fois. Les trois premiers ont fermé le sujet du
+workflow : le contrat (v0), l'invocation (001), la source unique des
+rôles (002), la boucle et la bascule (003).
+
+La suite n'est plus du code, c'est de l'exploitation : poser
+`atelier.toml` dans le produit, faire passer `atelier pret`, puis armer
+**un** cron — le `coder` d'un brief que tu as relu. Hermes pilote à
+partir de là.
+
+Le prochain lot de code qui vaudra le coup, quand l'exploitation aura
+parlé : **reprendre un juge** après une revue illisible, sans relancer
+le lot.
