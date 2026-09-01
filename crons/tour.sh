@@ -56,7 +56,22 @@ lot="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE" --champ lot
 brief="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE" --champ brief)"
 
 echo "carte $ROLE : $carte"
-python3 -m atelier invocation --role "$ROLE" --projet "$PROJET" --lot "$lot" --brief "$brief"
+if ! python3 -m atelier invocation --role "$ROLE" --projet "$PROJET" \
+        --lot "$lot" --brief "$brief"; then
+    echo "$ROLE : branchement illisible, aucun agent lancé." >&2
+    exit 1
+fi
+
+# « Celui qui a écrit le code ne dit pas s'il est recevable » ne tient
+# que si le relecteur n'a pas la main qui écrit. Si le binaire que le
+# branchement désigne ne sait pas qu'on la lui retire, on le dit — dans
+# les deux modes, parce que le mode à sec est fait pour voir.
+if [[ "$ROLE" == "relire" ]]; then
+    garde="$(python3 -m atelier poste --projet "$PROJET" --role relire --champ lecture_seule)"
+    if [[ "$garde" != "tenue" ]]; then
+        echo "relire : ce relecteur n'a pas de garde de lecture seule — il garde la main qui écrit." >&2
+    fi
+fi
 
 # --- l'interrupteur ------------------------------------------------------
 if [[ "${ATELIER_INVOQUER:-0}" != "1" ]]; then
@@ -68,10 +83,12 @@ fi
 # llmquota lit, il ne lance rien. S'il est absent, on continue : un quota
 # inconnu vaut -1, il ne se compte pas comme 0. S'il dit 0, la carte reste
 # où elle est et le rôle se recouche.
-case "$ROLE" in
-    briefer|relire) ABO="claude-pro" ;;
-    planifier|coder) ABO="cursor-pro" ;;
-esac
+# Quel abonnement ce rôle consomme : le branchement du produit le dit,
+# pas une table de ce script. Deux rôles peuvent tirer le même compteur.
+if ! ABO="$(python3 -m atelier poste --projet "$PROJET" --role "$ROLE" --champ abo)"; then
+    echo "$ROLE : branchement illisible, aucun agent lancé." >&2
+    exit 1
+fi
 QUOTA_CMD="${ATELIER_QUOTA_CMD:-}"
 if [[ -z "$QUOTA_CMD" ]] && command -v llmquota >/dev/null 2>&1; then
     QUOTA_CMD="llmquota"

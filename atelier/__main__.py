@@ -13,7 +13,7 @@ from .etat import FusionInterdite
 
 
 ROLES = list(boite.ROLES)
-ROLES_INVOCABLES = list(backends.POSTES_DU_ROLE)
+ROLES_INVOCABLES = list(backends.ROLES_INVOCABLES)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -110,6 +110,17 @@ def _parser() -> argparse.ArgumentParser:
 
     fumee = sous.add_parser("fumee", help="la commande de fumée du dépôt produit")
     fumee.add_argument("--projet", required=True)
+
+    poste = sous.add_parser(
+        "poste", help="qui tient un rôle, d'après le branchement du produit"
+    )
+    poste.add_argument("--projet", required=True)
+    poste.add_argument("--role", required=True, choices=ROLES_INVOCABLES)
+    poste.add_argument(
+        "--champ",
+        choices=["backend", "binaire", "abo", "modele", "lecture_seule"],
+        help="n'imprimer qu'un champ (le shell n'a pas à tenir de table)",
+    )
     return parser
 
 
@@ -318,12 +329,21 @@ def _cmd_echouer(args: argparse.Namespace) -> int:
     return 0
 
 
+def _roles_du_produit(chemin: str) -> dict[str, str]:
+    """Qui tient quel poste. Une seule réponse, et elle est dans le produit."""
+    return projet.charger(chemin).roles.vers_dict()
+
+
 def _cmd_invocation(args: argparse.Namespace) -> int:
     try:
         argv = backends.argv_du_role(
-            args.role, projet=args.projet, lot=args.lot, brief=args.brief
+            args.role,
+            roles=_roles_du_produit(args.projet),
+            projet=args.projet,
+            lot=args.lot,
+            brief=args.brief,
         )
-    except backends.BackendErreur as exc:
+    except (backends.BackendErreur, projet.ProjetIncomplet, KeyError) as exc:
         print(f"FAIL  {exc}", file=sys.stderr)
         return 1
     if args.nul:
@@ -361,6 +381,28 @@ def _cmd_verrouiller(args: argparse.Namespace) -> int:
 def _cmd_lever(args: argparse.Namespace) -> int:
     verrou.lever(Path(args.projet), args.lot)
     print(f"verrou levé : {args.lot}")
+    return 0
+
+
+def _cmd_poste(args: argparse.Namespace) -> int:
+    try:
+        poste = backends.poste_du_role(args.role, _roles_du_produit(args.projet))
+    except (backends.BackendErreur, projet.ProjetIncomplet, KeyError) as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    champs = {
+        "backend": poste.backend,
+        "binaire": poste.binaire,
+        "abo": poste.abo,
+        "modele": poste.modele or "",
+        "lecture_seule": poste.lecture_seule,
+    }
+    if args.champ:
+        print(champs[args.champ])
+        return 0
+    print(f"role          {poste.role}")
+    for nom, valeur in champs.items():
+        print(f"{nom:<13} {valeur}")
     return 0
 
 
@@ -408,6 +450,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_lever(args)
     if args.commande == "fumee":
         return _cmd_fumee(args)
+    if args.commande == "poste":
+        return _cmd_poste(args)
     return 1
 
 

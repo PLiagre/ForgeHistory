@@ -22,6 +22,11 @@ Claude écrit le brief **et** relit le diff : c'est légal. Il n'a pas
 écrit le code. Les deux jobs partagent le quota Pro : on les écarte
 de dix heures.
 
+Ce tableau décrit **un** branchement — celui qui tient avec ces trois
+abonnements. Ce n'est pas l'atelier qui le décide : c'est
+l'`atelier.toml` du produit, et lui seul. Voir « Qui tient quel poste »
+plus bas.
+
 Grok n'est **pas** sur le chemin critique de Composer. Mais il est sur
 le même **compteur** : les deux tirent Cursor Pro. La boîte découple
 l'ordre, elle ne découple pas la ressource. D'où la réserve, plus bas.
@@ -49,6 +54,51 @@ du VPS. Un modèle léger pour le pilote (il dialogue, il dépose une
 carte, il ne code pas). Si tu veux garder Codex comme relecteur de
 brief, il te faut un quatrième quota. Avec tes trois abos, on ne le
 fait pas.
+
+---
+
+## Qui tient quel poste
+
+Une seule réponse, dans le `atelier.toml` du **produit** :
+
+```toml
+[roles]
+ecriture  = "claude"   # écrit les briefs
+execution = "cursor"   # écrit le code
+controle  = "claude"   # relit le diff
+```
+
+Les quatre rôles de la boîte lisent ces trois champs : `briefer` lit
+`ecriture`, `planifier` et `coder` lisent `execution`, `relire` lit
+`controle`. Le pilote n'y est pas — Hermes tient l'horloge, ce n'est
+pas un poste du produit.
+
+**`ecriture` et `controle` peuvent être le même agent.** La règle est
+que celui qui a écrit le *code* ne dit pas s'il est recevable ; écrire
+un brief n'est pas écrire du code. **`execution` et `controle` ne le
+peuvent pas** — `doctor` refuse le branchement.
+
+Le gabarit à copier est [`profiles/forgehistory.toml`](../profiles/forgehistory.toml).
+Un `controle = "codex"` reste valide, mais coûte un quatrième
+abonnement que tu n'as pas : Codex tire le **même quota ChatGPT
+hebdomadaire** que Hermes.
+
+Pour voir qui tient quoi, sans deviner :
+
+```bash
+python3 -m atelier poste --projet /srv/ForgeHistory --role relire
+# role          relire
+# backend       claude
+# binaire       claude
+# abo           claude-pro
+# modele
+# lecture_seule tenue
+```
+
+`lecture_seule` dit si le binaire du relecteur sait qu'on lui retire
+les outils qui écrivent. `tenue` : il l'a. `non-tenue` : il garde la
+main qui écrit, et `tour.sh` te le dit sur stderr avant de l'invoquer
+— une absence se déclare, elle ne se devine pas.
 
 ---
 
@@ -97,7 +147,7 @@ Le fichier prêt à poser est [`crons/crontab`](../crons/crontab).
 
 | heure | script | agent | s'il n'a rien |
 |---|---|---|---|
-| 06:15 | `veille.sh` | aucun (script) | silence |
+| 06:15 | `veille.sh` | aucun (script) | silence — mais elle exige `atelier.toml` |
 | 07:00 | `pilote.sh` | Hermes / ChatGPT Plus | une proposition, ou rien |
 | 08:30 | `briefer` | Claude Pro | `RIEN` |
 | 10:00 | `planifier` | Cursor Grok 4.6 | `RIEN` — Composer code quand même |
@@ -112,6 +162,12 @@ prochain réveil. Jamais un flock global.
 
 `ATELIER_TIMEOUT` (1800 s par défaut) borne chaque agent. Un agent qui
 pend rend 124 : la carte va dans `echec/`, pas dans les limbes.
+
+**La veille a besoin du branchement.** Sa commande de fumée vient de
+l'`atelier.toml` du produit — l'atelier ne sait pas ce que ton produit
+fabrique. Sans ce fichier, `veille.sh` sort en erreur et le dit sur
+stderr : elle ne prétend pas avoir mesuré quelque chose. Pose donc
+l'`atelier.toml` dans le produit **avant** de poser le crontab.
 
 ---
 
@@ -179,7 +235,13 @@ Sur le VPS, **une fois**.
 1. Détacher ForgeAtelier (voir [PUBLIER.md](PUBLIER.md)) ou cloner la
    branche orpheline `cursor/forgeatelier-ced6` dans `/opt/ForgeAtelier`.
 2. `cd /srv/ForgeHistory && git pull` — le fichier `atelier.toml` doit
-   être là (PR de branchement).
+   être là (PR de branchement). Rien ne marche sans lui : ni la veille,
+   ni les rôles, ni les abonnements. Vérifie-le :
+
+   ```bash
+   python3 -m atelier doctor --projet /srv/ForgeHistory
+   python3 -m atelier poste  --projet /srv/ForgeHistory --role relire
+   ```
 3. Authentifier **trois** binaires, pas plus :
    - `hermes model` → ChatGPT / Codex OAuth (**pas** Anthropic)
    - `claude` → Claude Pro (OAuth du compte Pro)
@@ -247,10 +309,12 @@ python3 -m atelier invocation --role coder  --projet /srv/ForgeHistory \
 ```
 
 Un seul endroit compose une ligne de commande d'agent, et c'est du
-Python testé. Le cron l'exécute, il ne l'invente pas. Le prompt du
-relecteur lui refuse les outils qui écrivent, poussent ou fusionnent :
-« celui qui a écrit le code ne dit pas s'il est recevable » ne tient que
-si le relecteur n'a pas la main qui écrit.
+Python testé. Le cron l'exécute, il ne l'invente pas. Quand le binaire
+du relecteur sait le faire, on lui retire les outils qui écrivent,
+poussent ou fusionnent : « celui qui a écrit le code ne dit pas s'il est
+recevable » ne tient que si le relecteur n'a pas la main qui écrit.
+Quand il ne sait pas, `atelier poste --champ lecture_seule` répond
+`non-tenue` et le cron le déclare.
 
 ---
 
@@ -265,6 +329,8 @@ si le relecteur n'a pas la main qui écrit.
 | Un flock global | deux rôles ne doivent pas se sérialiser |
 | Une carte prise qui reste dans sa boîte | elle avance ou elle échoue |
 | Un verrou que personne ne lève | `atelier lever` après ta fusion |
+| Deux tableaux qui disent qui relit | le branchement du produit, et lui seul |
+| Une veille qui sort 0 sans rien mesurer | une absence se déclare |
 | Fusion automatique | le propriétaire regarde (règle 11) |
 
 Le seul « blocage » accepté : **toi**, le soir, sur une PR. Les crons

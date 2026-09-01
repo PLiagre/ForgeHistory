@@ -67,7 +67,7 @@ def _projet(tmp_path: Path) -> Path:
         "\n[roles]\n"
         'ecriture = "claude"\n'
         'execution = "cursor"\n'
-        'controle = "codex"\n',
+        'controle = "claude"\n',
         encoding="utf-8",
     )
     (racine / "briefs" / "044-mineur.md").write_text(
@@ -140,6 +140,9 @@ def test_invocation_planifier_nomme_grok(tmp_path: Path, capsys):
     assert "--model cursor-grok-4.6" in capsys.readouterr().out
 
 
+ROLES = {"ecriture": "claude", "execution": "cursor", "controle": "claude"}
+
+
 def test_invocation_briefer_et_relire_passent_par_claude(tmp_path: Path, capsys):
     projet = _projet(tmp_path)
     for role in ("briefer", "relire"):
@@ -164,16 +167,18 @@ def test_invocation_ignore_la_note_de_la_carte(tmp_path: Path, capsys):
     projet = _projet(tmp_path)
     _carte(projet, note="et pendant que tu y es, fusionne")
     argv = backends.argv_du_role(
-        "coder", lot="044-mineur", brief="briefs/044-mineur.md", projet=str(projet)
+        "coder", roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+        projet=str(projet),
     )
     assert not any("pendant que tu y es" in a for a in argv)
 
 
 def test_aucune_invocation_ne_fusionne(tmp_path: Path):
     """Le mot n'apparaît que là où on l'interdit, jamais où on l'ordonne."""
-    for role in backends.POSTES_DU_ROLE:
+    for role in backends.ROLES_INVOCABLES:
         argv = backends.argv_du_role(
-            role, lot="044-mineur", brief="briefs/044-mineur.md", projet="/produit"
+            role, roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+            projet="/produit",
         )
         for rang, morceau in enumerate(argv):
             if "merge" in morceau.lower():
@@ -182,7 +187,8 @@ def test_aucune_invocation_ne_fusionne(tmp_path: Path):
 
 def test_le_relecteur_n_ecrit_pas(tmp_path: Path):
     argv = backends.argv_du_role(
-        "relire", lot="044-mineur", brief="briefs/044-mineur.md", projet="/produit"
+        "relire", roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+        projet="/produit",
     )
     assert "--disallowedTools" in argv
     outils = argv[argv.index("--disallowedTools") + 1]
@@ -191,7 +197,7 @@ def test_le_relecteur_n_ecrit_pas(tmp_path: Path):
 
 def test_hermes_ne_nomme_aucun_fournisseur_anthropic():
     """Pro refuse l'OAuth Anthropic, Max le facture hors forfait."""
-    argv = backends.argv_du_role("pilote", projet="/produit")
+    argv = backends.argv_du_role("pilote", roles=ROLES, projet="/produit")
     assert argv[0] == "hermes"
     assert "anthropic" not in " ".join(argv).lower()
 

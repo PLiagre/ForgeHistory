@@ -34,6 +34,26 @@ Ce qui a changé de forme, et pourquoi
 Le drapeau reste baissé par défaut. Lancer Cursor hors d'un contrat
 durable a déjà coûté un lot.
 
+## Lot 002 — les rôles viennent du branchement
+
+Le lot 001 avait laissé trois endroits qui répondaient à « qui relit » :
+l'`atelier.toml` du produit, une table `POSTES_DU_ROLE` dans l'atelier,
+et un `case` dans `tour.sh`. Il en reste un : le produit.
+
+- `atelier poste --projet … --role relire` dit le binaire, l'abonnement,
+  le modèle et l'état de la garde de lecture seule. `tour.sh` le lit au
+  lieu de tenir sa propre table.
+- La validation des rôles cesse d'être plus stricte que la règle :
+  `ecriture == controle` est permis (écrire un brief n'est pas écrire du
+  code), `execution == controle` reste refusé.
+- Un relecteur dont le binaire ne sait pas qu'on lui retire les outils
+  qui écrivent est déclaré `non-tenue`, sur stderr, avant l'invocation.
+- La veille sort en erreur quand le branchement est introuvable, au lieu
+  de sortir 0 sans rien avoir mesuré.
+- Le gabarit `profiles/forgehistory.toml` dit `controle = "claude"` :
+  c'est ce qui tient avec trois abonnements. Codex tire le même quota
+  ChatGPT que Hermes.
+
 ## Ce que l'atelier ne sait pas encore faire
 
 - **Reprendre un juge.** Après un JSON de revue illisible, changer
@@ -46,6 +66,9 @@ durable a déjà coûté un lot.
 - **Convoquer un conseil.** Le protocole FACT / INFERENCE / ASSUMPTION
   / UNKNOWN est décrit ; il n'est pas une commande.
 - **Un second produit.** Seul ForgeHistory a un profil.
+- **Retirer la main qui écrit à tous les relecteurs.** Seul `claude` a
+  un drapeau connu ; pour `agent` et `codex`, l'atelier déclare qu'il ne
+  sait pas, il ne fait pas semblant.
 
 ## Ordre
 

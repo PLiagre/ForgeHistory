@@ -9,5 +9,10 @@ ATELIER="${ATELIER_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 export PYTHONPATH="${ATELIER}${PYTHONPATH:+:$PYTHONPATH}"
 cd "$PROJET" || exit 0
 
-fumee="$(python3 -m atelier fumee --projet "$PROJET")" || exit 0
+# Une absence se déclare. Un branchement introuvable n'est pas un
+# succès : sans lui, la veille ne mesure rien du tout.
+if ! fumee="$(python3 -m atelier fumee --projet "$PROJET")"; then
+    echo "veille : branchement illisible ($PROJET/atelier.toml) — rien n'a été mesuré." >&2
+    exit 1
+fi
 eval "$fumee" >/dev/null
