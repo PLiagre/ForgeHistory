@@ -11,7 +11,9 @@ description: >
 
 Le **format** du brief et les cinq façons de le rater sont dans
 [`AGENTS.md`](../../../AGENTS.md) § « Le brief ». Ce fichier ne les recopie
-pas : il dit comment s'y prendre.
+pas : il dit comment s'y prendre. La skill générique du cycle vit dans
+ForgeAtelier (`skills/ecrire-un-brief`) ; celle-ci ajoute ce que seul
+ce dépôt sait : citer `sim/MODELE.md`.
 
 Avant d'écrire, lire dans cet ordre : `AGENTS.md` (les règles, les douze
 règles payées, les six modes de défaillance, les trois niveaux de fidélité),
