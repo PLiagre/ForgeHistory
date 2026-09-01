@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
-from . import couches, cycle, etat, porte, projet, quota, verrou
+from . import boite, couches, cycle, etat, porte, projet, quota, verrou
 from .etat import FusionInterdite
 
 
@@ -44,6 +45,20 @@ def _parser() -> argparse.ArgumentParser:
         nargs="+",
         help="paires agent=restant (restant=-1 si inconnu)",
     )
+
+    prochain = sous.add_parser(
+        "prochain",
+        help="prochaine carte d'un rôle ; RIEN et code 0 si la boîte est vide",
+    )
+    prochain.add_argument("--projet", required=True)
+    prochain.add_argument("--role", required=True, choices=["briefer", "planifier", "coder", "relire"])
+
+    deposer = sous.add_parser("deposer", help="poser une carte dans une boîte")
+    deposer.add_argument("--projet", required=True)
+    deposer.add_argument("--etat", required=True)
+    deposer.add_argument("--lot", required=True)
+    deposer.add_argument("--brief", required=True)
+    deposer.add_argument("--fichier", action="append", default=[])
     return parser
 
 
@@ -170,6 +185,33 @@ def _cmd_hop(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_prochain(args: argparse.Namespace) -> int:
+    try:
+        carte = boite.prochain(Path(args.projet), args.role)
+    except boite.BoiteErreur as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    if carte is None:
+        print("RIEN")
+        return 0
+    print(json.dumps(carte.vers_dict(), ensure_ascii=False))
+    return 0
+
+
+def _cmd_deposer(args: argparse.Namespace) -> int:
+    try:
+        cible = boite.deposer(
+            Path(args.projet),
+            args.etat,
+            boite.Carte(lot=args.lot, brief=args.brief, fichiers=list(args.fichier)),
+        )
+    except boite.BoiteErreur as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    print(cible)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.commande == "couches":
@@ -188,6 +230,10 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_fusionner()
     if args.commande == "hop":
         return _cmd_hop(args)
+    if args.commande == "prochain":
+        return _cmd_prochain(args)
+    if args.commande == "deposer":
+        return _cmd_deposer(args)
     return 1
 
 

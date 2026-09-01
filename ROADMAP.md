@@ -5,10 +5,16 @@
 Les sept couches sont nommées. Le cycle tient sans invoquer d'agent.
 La porte mécanique refuse un brief infirme. Le verrou refuse deux
 lots sur le même fichier. Le canal d'échange existe. `fusionner`
-sort en erreur. Un quota manquant vaut `-1`.
+sort en erreur. Un quota manquant vaut `-1`. La **boîte aux lettres**
+existe : un rôle dont la file est vide sort `RIEN` (code 0), et le
+planificateur n'est pas sur le chemin du coder.
 
 C'est volontairement incomplet : lancer Cursor hors d'un contrat
-durable a déjà coûté un lot. v0 *prépare* ; il ne dépense pas.
+durable a déjà coûté un lot. v0 *prépare* ; `ATELIER_INVOQUER=1`
+n'est pas posé.
+
+La mise en place VPS (Hermes + crons indépendants) est dans
+[docs/MISE-EN-PLACE.md](docs/MISE-EN-PLACE.md).
 
 ## Ce que l'atelier ne sait pas encore faire
 

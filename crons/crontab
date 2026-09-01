@@ -1,0 +1,13 @@
+# crontab — un réveil par rôle, Europe/Paris
+# installer : sudo cp crons/crontab /etc/cron.d/forgeatelier
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+ATELIER_PROJET=/srv/ForgeHistory
+ATELIER_ROOT=/opt/ForgeAtelier
+
+15 6  * * * ubuntu /opt/ForgeAtelier/crons/veille.sh
+0  7  * * * ubuntu /opt/ForgeAtelier/crons/pilote.sh
+30 8  * * * ubuntu /opt/ForgeAtelier/crons/tour.sh briefer
+0  10 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh planifier
+0  14 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh coder
+0  19 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh relire
