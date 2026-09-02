@@ -54,10 +54,17 @@ if [[ "$carte" == "RIEN" ]]; then
 fi
 lot="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE" --champ lot)"
 brief="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE" --champ brief)"
+pr="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE" --champ pr)"
+
+# Le numéro de PR est une coordonnée, pas une consigne : il dit au
+# relecteur où regarder. S'il n'y en a pas, on nomme la branche.
+inv=(--role "$ROLE" --projet "$PROJET" --lot "$lot" --brief "$brief")
+if [[ -n "$pr" ]]; then
+    inv+=(--pr "$pr")
+fi
 
 echo "carte $ROLE : $carte"
-if ! python3 -m atelier invocation --role "$ROLE" --projet "$PROJET" \
-        --lot "$lot" --brief "$brief"; then
+if ! python3 -m atelier invocation "${inv[@]}"; then
     echo "$ROLE : branchement illisible, aucun agent lancé." >&2
     exit 1
 fi
@@ -137,10 +144,7 @@ if [[ "$ROLE" == "coder" ]]; then
 fi
 
 # --- l'invocation --------------------------------------------------------
-mapfile -d '' -t argv < <(
-    python3 -m atelier invocation --role "$ROLE" --projet "$PROJET" \
-        --lot "$lot" --brief "$brief" --nul
-)
+mapfile -d '' -t argv < <(python3 -m atelier invocation "${inv[@]}" --nul)
 
 # Une clé d'API bascule la facture de l'abonnement vers l'unité. On ne
 # veut pas découvrir la réponse sur la facture : le cron les retire.
@@ -159,7 +163,21 @@ set -e
 
 # --- une carte prise ne reste jamais en place ----------------------------
 if [[ $code -eq 0 ]]; then
-    if python3 -m atelier avancer --projet "$PROJET" --role "$ROLE" --lot "$lot" >/dev/null; then
+    # L'exécutant a ouvert la PR : on prend son numéro et on le retire du
+    # canal, pour qu'un numéro périmé ne suive pas le lot suivant. On ne
+    # touche au canal que si le tour a réussi.
+    suite=()
+    if [[ "$ROLE" == "coder" && -f "$WORKDIR/atelier-echange/pr.txt" ]]; then
+        numero="$(tr -cd '0-9' < "$WORKDIR/atelier-echange/pr.txt")"
+        rm -f "$WORKDIR/atelier-echange/pr.txt"
+        if [[ -n "$numero" ]]; then
+            suite+=(--pr "$numero")
+        else
+            echo "coder : atelier-echange/pr.txt ne portait aucun numéro." >&2
+        fi
+    fi
+    if python3 -m atelier avancer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
+            ${suite[@]+"${suite[@]}"} >/dev/null; then
         echo "$ROLE : $lot avancé."
         exit 0
     fi

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
+import shutil
 import sys
 from pathlib import Path
 
@@ -91,6 +93,7 @@ def _parser() -> argparse.ArgumentParser:
     invocation.add_argument("--projet", required=True)
     invocation.add_argument("--lot")
     invocation.add_argument("--brief")
+    invocation.add_argument("--pr", type=int, help="la PR à relire, si on la connaît")
     invocation.add_argument(
         "--nul",
         action="store_true",
@@ -121,6 +124,11 @@ def _parser() -> argparse.ArgumentParser:
         choices=["backend", "binaire", "abo", "modele", "lecture_seule"],
         help="n'imprimer qu'un champ (le shell n'a pas à tenir de table)",
     )
+
+    pret = sous.add_parser(
+        "pret", help="tout est-il en place pour poser ATELIER_INVOQUER=1 ?"
+    )
+    pret.add_argument("--projet", required=True)
     return parser
 
 
@@ -247,6 +255,30 @@ def _cmd_hop(args: argparse.Namespace) -> int:
     return 0
 
 
+def _declarer_file_bloquee(racine: Path, role: str) -> None:
+    """Une file vide reste silencieuse. Une file tenue par un verrou parle."""
+    try:
+        cartes = boite.lister(racine, boite.BOITE_DU_ROLE[role])
+        poses = verrou.charger(racine).poses
+    except (boite.BoiteErreur, verrou.Collision):
+        return
+    if not cartes:
+        return
+    tenus = {fichier: pose.lot for pose in poses for fichier in pose.fichiers}
+    for carte in cartes:
+        for fichier in sorted(carte.fichiers):
+            tenu_par = tenus.get(Path(fichier).as_posix())
+            if tenu_par and tenu_par != carte.lot:
+                print(
+                    f"{carte.lot} attend : {fichier} est tenu par {tenu_par}",
+                    file=sys.stderr,
+                )
+    print(
+        "aucune carte libre — `atelier lever --lot <lot>` après ta fusion.",
+        file=sys.stderr,
+    )
+
+
 def _cmd_prochain(args: argparse.Namespace) -> int:
     try:
         carte = boite.prochain(Path(args.projet), args.role)
@@ -254,6 +286,8 @@ def _cmd_prochain(args: argparse.Namespace) -> int:
         print(f"FAIL  {exc}", file=sys.stderr)
         return 1
     if carte is None:
+        if args.role == boite.ROLE_QUI_ECRIT:
+            _declarer_file_bloquee(Path(args.projet), args.role)
         print("RIEN")
         return 0
     if args.champ:
@@ -336,12 +370,16 @@ def _roles_du_produit(chemin: str) -> dict[str, str]:
 
 def _cmd_invocation(args: argparse.Namespace) -> int:
     try:
+        produit = projet.charger(args.projet)
+        branche = f"{produit.prefixe_branche}{args.lot}" if args.lot else None
         argv = backends.argv_du_role(
             args.role,
-            roles=_roles_du_produit(args.projet),
+            roles=produit.roles.vers_dict(),
             projet=args.projet,
             lot=args.lot,
             brief=args.brief,
+            pr=args.pr,
+            branche=branche,
         )
     except (backends.BackendErreur, projet.ProjetIncomplet, KeyError) as exc:
         print(f"FAIL  {exc}", file=sys.stderr)
@@ -406,6 +444,102 @@ def _cmd_poste(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_pret(args: argparse.Namespace) -> int:
+    """Ce qu'on regarde avant de poser ATELIER_INVOQUER=1.
+
+    On lit le PATH et le disque. On n'invoque personne : regarder n'est
+    pas dépenser. Un inconnu se marque `?`, jamais `FAIL` — l'atelier ne
+    compte pas ce qu'il n'a pas mesuré.
+    """
+    lignes: list[tuple[str, str]] = []
+
+    def dire(marque: str, texte: str) -> None:
+        lignes.append((marque, texte))
+
+    try:
+        produit = projet.charger(args.projet)
+    except projet.ProjetIncomplet as exc:
+        print(f"FAIL  branchement — {exc}")
+        return 1
+    dire("PASS", f"branchement — {produit.nom} ({produit.racine}/atelier.toml)")
+
+    roles = produit.roles.vers_dict()
+    tenus: dict[str, list[str]] = {}
+    for role in backends.ROLES_INVOCABLES:
+        try:
+            poste = backends.poste_du_role(role, roles)
+        except backends.BackendErreur as exc:
+            dire("FAIL", f"rôle {role} — {exc}")
+            continue
+        tenus.setdefault(poste.binaire, []).append(role)
+    for binaire, roles_tenus in sorted(tenus.items()):
+        porte = ", ".join(roles_tenus)
+        chemin = shutil.which(binaire)
+        if chemin:
+            dire("PASS", f"binaire {binaire} ({porte}) — {chemin}")
+        else:
+            dire("FAIL", f"binaire {binaire} ({porte}) — introuvable dans le PATH")
+
+    try:
+        garde = backends.poste_du_role("relire", roles).lecture_seule
+    except backends.BackendErreur:
+        garde = "non-tenue"
+    if garde == "tenue":
+        dire("PASS", "le relecteur n'a pas la main qui écrit")
+    else:
+        dire("?", "le relecteur garde la main qui écrit — garde non-tenue")
+
+    for outil in ("flock", "timeout"):
+        if shutil.which(outil):
+            dire("PASS", f"{outil} — présent")
+        else:
+            dire("FAIL", f"{outil} — absent : le cron tournerait sans garde")
+
+    # Regarder n'est pas créer : si le dossier n'existe pas encore, on
+    # demande à son plus proche parent s'il accepterait qu'on l'y pose.
+    verrous = Path(os.environ.get("ATELIER_VERROUS") or os.environ.get("TMPDIR") or "/tmp")
+    ancetre = verrous
+    while not ancetre.exists() and ancetre != ancetre.parent:
+        ancetre = ancetre.parent
+    if os.access(ancetre, os.W_OK):
+        suffixe = "" if verrous.is_dir() else " (sera créé au premier tour)"
+        dire("PASS", f"dossier des verrous — {verrous}{suffixe}")
+    else:
+        dire("FAIL", f"dossier des verrous — {verrous} : {ancetre} n'est pas inscriptible")
+
+    if os.environ.get("ATELIER_QUOTA_CMD") or shutil.which("llmquota"):
+        dire("PASS", "quota — lisible")
+    else:
+        dire("?", "quota — non lisible ; un inconnu ne se compte pas pour zéro")
+
+    for role in boite.ROLES:
+        nom = f"ATELIER_WORKDIR_{role}"
+        chemin = os.environ.get(nom)
+        if not chemin:
+            continue
+        if Path(chemin).is_dir():
+            dire("PASS", f"{nom} — {chemin}")
+        else:
+            dire("FAIL", f"{nom} — {chemin} n'existe pas")
+
+    for etat in ("a-briefer", "a-planifier", "a-coder", "a-relire", "echec", "faite"):
+        try:
+            combien = len(boite.lister(produit.racine, etat))
+        except boite.BoiteErreur as exc:
+            dire("FAIL", f"boîte {etat} — {exc}")
+            continue
+        dire("PASS", f"boîte {etat} — {combien} carte(s)")
+
+    if os.environ.get("ATELIER_INVOQUER") == "1":
+        dire("PASS", "ATELIER_INVOQUER=1 — l'invocation est armée")
+    else:
+        dire("?", "ATELIER_INVOQUER n'est pas posé — mode à sec")
+
+    for marque, texte in lignes:
+        print(f"{marque:<5} {texte}")
+    return 1 if any(m == "FAIL" for m, _ in lignes) else 0
+
+
 def _cmd_fumee(args: argparse.Namespace) -> int:
     try:
         produit = projet.charger(args.projet)
@@ -452,6 +586,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_fumee(args)
     if args.commande == "poste":
         return _cmd_poste(args)
+    if args.commande == "pret":
+        return _cmd_pret(args)
     return 1
 
 
