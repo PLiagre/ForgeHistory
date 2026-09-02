@@ -25,6 +25,7 @@ PILOTE = RACINE / "crons" / "pilote.sh"
 PROFILS = RACINE / "crons" / "installer-profils.sh"
 VEILLE = RACINE / "crons" / "veille.sh"
 CRONTAB = RACINE / "crons" / "crontab"
+REVEIL = RACINE / "crons" / "reveil.sh"
 
 besoin_bash = pytest.mark.skipif(shutil.which("bash") is None, reason="bash absent")
 
@@ -539,8 +540,50 @@ def test_crontab_vps_garde_les_heures_de_paris_depuis_utc():
     texte = CRONTAB.read_text(encoding="utf-8")
     assert "TZ=Europe/Paris" in texte
     for heure in ("06:15", "07:00", "08:30", "10:00", "14:00", "19:00"):
-        assert f'"{heure}"' in texte
-    assert texte.count(r"date +\%H:\%M") == 6
+        assert f"reveil.sh {heure}" in texte
+    assert "ATELIER_LOGS=/home/hermes/.atelier/logs" in texte
+
+
+@besoin_bash
+def test_reveil_hors_horaire_reste_silencieux(tmp_path: Path):
+    faux = tmp_path / "bin"
+    _faux(faux, "date", 'echo "12:00"\n')
+    env = dict(os.environ)
+    env["PATH"] = f"{faux}:/usr/bin:/bin"
+    env["ATELIER_LOGS"] = str(tmp_path / "journaux")
+    r = subprocess.run(
+        ["bash", str(REVEIL), "14:00", "coder"],
+        env=env, text=True, capture_output=True, timeout=30,
+    )
+    assert r.returncode == 0
+    assert r.stdout == "" and r.stderr == ""
+    assert not (tmp_path / "journaux").exists()
+
+
+@besoin_bash
+def test_reveil_a_l_heure_lance_et_journalise(tmp_path: Path):
+    faux = tmp_path / "bin"
+    _faux(
+        faux,
+        "date",
+        'if [[ "${1:-}" == "+%H:%M" ]]; then echo "14:00"; else echo "instant"; fi\n',
+    )
+    atelier = tmp_path / "atelier"
+    temoin = tmp_path / "tour.txt"
+    _faux(atelier / "crons", "tour.sh", f'echo "$*" > "{temoin}"\nexit 7\n')
+    env = dict(os.environ)
+    env["PATH"] = f"{faux}:/usr/bin:/bin"
+    env["ATELIER_ROOT"] = str(atelier)
+    env["ATELIER_LOGS"] = str(tmp_path / "journaux")
+    r = subprocess.run(
+        ["bash", str(REVEIL), "14:00", "coder"],
+        env=env, text=True, capture_output=True, timeout=30,
+    )
+    assert r.returncode == 7
+    assert temoin.read_text(encoding="utf-8").strip() == "coder"
+    journal = (tmp_path / "journaux" / "coder.log").read_text(encoding="utf-8")
+    assert "instant" in journal
+    assert "coder : code 7" in journal
 
 
 # -------------------------------------------------------------- la veille

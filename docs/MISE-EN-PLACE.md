@@ -148,20 +148,29 @@ Le fichier prêt à poser est [`crons/crontab`](../crons/crontab).
 Le VPS ForgeHistory est en UTC et son cron Debian ne sait pas appliquer un
 fuseau par crontab. Les lignes se réveillent donc chaque heure, puis comparent
 l'heure locale sous `TZ=Europe/Paris` avant d'exécuter le rôle. Cela conserve
-les mêmes heures pendant les changements saisonniers.
+les mêmes heures pendant les changements saisonniers. `crons/reveil.sh`
+conserve l'heure, la sortie et le code de retour dans
+`/home/hermes/.atelier/logs/` : l'observation ne dépend ni d'un serveur de
+courrier ni des droits de lecture du journal système.
 
 ```cron
-15 * * * * hermes # garde 06:15 Europe/Paris, puis veille.sh
-0  * * * * hermes # garde 07:00 Europe/Paris, puis pilote.sh
-30 * * * * hermes # garde 08:30 Europe/Paris, puis tour.sh briefer
-0  * * * * hermes # garde 10:00 Europe/Paris, puis tour.sh planifier
-0  * * * * hermes # garde 14:00 Europe/Paris, puis tour.sh coder
-0  * * * * hermes # garde 19:00 Europe/Paris, puis tour.sh relire
+15 * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 06:15 veille
+0  * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 07:00 pilote
+30 * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 08:30 briefer
+0  * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 10:00 planifier
+0  * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 14:00 coder
+0  * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 19:00 relire
 ```
 
 Le `PATH` du crontab commence par `/srv/ForgeHistory/.venv/bin` et
 `/home/hermes/.local/bin` : le Python système reste intact et les trois
 binaires d'abonnement sont visibles sous l'utilisateur `hermes`.
+
+Lire les dernières observations sans privilège administrateur :
+
+```bash
+tail -n 40 /home/hermes/.atelier/logs/*.log
+```
 
 | heure | script | agent | s'il n'a rien |
 |---|---|---|---|

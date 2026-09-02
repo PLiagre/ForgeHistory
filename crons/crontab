@@ -13,6 +13,7 @@ TZ=Europe/Paris
 ATELIER_PROJET=/srv/ForgeHistory
 ATELIER_ROOT=/opt/ForgeAtelier
 ATELIER_TIMEOUT=1800
+ATELIER_LOGS=/home/hermes/.atelier/logs
 
 # Un agent, un worktree (voir crons/installer-profils.sh --dry-run).
 ATELIER_WORKDIR_briefer=/srv/ForgeHistory-briefer
@@ -25,13 +26,11 @@ ATELIER_WORKDIR_relire=/srv/ForgeHistory-relire
 # ATELIER_QUOTA_CMD=llmquota restant
 # ATELIER_RESERVE_planifier=1   # Grok laisse sa marge à Composer
 
-# Le cron Debian de ce VPS suit le fuseau système UTC. `TZ` règle
-# l'environnement des commandes, mais pas leurs heures de réveil. Chaque
-# ligne se réveille donc une fois par heure et ne travaille qu'à son heure
-# locale. Les `%` sont échappés parce que cron leur donne un sens spécial.
-15 * * * * hermes if [[ "$(date +\%H:\%M)" == "06:15" ]]; then exec /opt/ForgeAtelier/crons/veille.sh; fi
-0  * * * * hermes if [[ "$(date +\%H:\%M)" == "07:00" ]]; then exec /opt/ForgeAtelier/crons/pilote.sh; fi
-30 * * * * hermes if [[ "$(date +\%H:\%M)" == "08:30" ]]; then exec /opt/ForgeAtelier/crons/tour.sh briefer; fi
-0  * * * * hermes if [[ "$(date +\%H:\%M)" == "10:00" ]]; then exec /opt/ForgeAtelier/crons/tour.sh planifier; fi
-0  * * * * hermes if [[ "$(date +\%H:\%M)" == "14:00" ]]; then exec /opt/ForgeAtelier/crons/tour.sh coder; fi
-0  * * * * hermes if [[ "$(date +\%H:\%M)" == "19:00" ]]; then exec /opt/ForgeAtelier/crons/tour.sh relire; fi
+# Le cron Debian de ce VPS suit le fuseau système UTC. `reveil.sh` compare
+# l'heure locale, puis écrit la sortie et le code dans ATELIER_LOGS.
+15 * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 06:15 veille
+0  * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 07:00 pilote
+30 * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 08:30 briefer
+0  * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 10:00 planifier
+0  * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 14:00 coder
+0  * * * * hermes /opt/ForgeAtelier/crons/reveil.sh 19:00 relire
