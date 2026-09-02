@@ -249,13 +249,21 @@ def prompt_du_role(
             "de PR, tu ne fusionnes pas."
         )
     if role == "coder":
+        sur_branche = (
+            f" La branche {branche} est déjà extraite dans ce répertoire : "
+            "reste dessus et ouvre la PR depuis cette branche."
+            if branche
+            else ""
+        )
         return (
             f"Exécute le lot {lot} de {projet}. {_source_unique(brief)} "
             "N'écris que dans les fichiers que sa section Périmètre autorise"
-            f"{', plus la fiche du lot dans ' + feuille if feuille else ''}. "
+            f"{', plus la fiche du lot dans ' + feuille if feuille else ''}."
+            f"{sur_branche} "
             "Ouvre une PR à la fin ; tu ne fusionnes pas. Puis écris son "
             "numéro, seul, dans atelier-echange/pr.txt (crée le dossier s'il "
-            "manque) : c'est par là que le relecteur saura quoi relire."
+            "manque) : une ligne, un entier positif, rien d'autre — pas "
+            "« PR #44 ». C'est par là que le relecteur saura quoi relire."
             f"{_fiche_du_lot(lot, feuille, 'livre')}"
         )
     # Le numéro de PR n'est pas une consigne : c'est une coordonnée. Il dit

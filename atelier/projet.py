@@ -65,6 +65,12 @@ class Projet:
             )
         return self.feuille
 
+    def branche_du_lot(self, lot: str) -> str:
+        """La branche du lot, dérivée de `[projet].prefixe_branche`. Jamais recopiée."""
+        if not lot.strip():
+            raise ProjetIncomplet("un lot vide n'a pas de branche : l'atelier ne la devine pas")
+        return f"{self.prefixe_branche}{lot}"
+
 
 def charger(racine: Path) -> Projet:
     racine = Path(racine).resolve()

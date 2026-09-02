@@ -12,7 +12,7 @@ from pathlib import Path
 
 import subprocess
 
-from . import backends, boite, couches, cycle, etat, feuille, porte, projet, quota, verrou
+from . import backends, boite, couches, cycle, echange, etat, feuille, porte, projet, quota, verrou, worktree
 from .etat import FusionInterdite
 
 
@@ -169,6 +169,36 @@ def _parser() -> argparse.ArgumentParser:
         "pret", help="tout est-il en place pour poser ATELIER_INVOQUER=1 ?"
     )
     pret.add_argument("--projet", required=True)
+
+    branche = sous.add_parser(
+        "branche",
+        help="la branche du lot, dérivée de prefixe_branche ; --run l'extrait",
+    )
+    branche.add_argument("--projet", required=True)
+    branche.add_argument("--lot", required=True)
+    branche.add_argument(
+        "--worktree",
+        help="worktree du rôle ; obligatoire avec --run (jamais le clone du produit)",
+    )
+    branche.add_argument(
+        "--run",
+        action="store_true",
+        help="créer ou extraire la branche dans le worktree ; sans --run, on imprime",
+    )
+
+    pr = sous.add_parser(
+        "pr",
+        help="lire un numéro de PR dans un fichier d'échange ; refuse tout autre format",
+    )
+    pr.add_argument("--fichier", required=True, help="chemin de atelier-echange/pr.txt")
+    pr.add_argument(
+        "--branche",
+        help="si gh répond, la PR doit être sur cette branche ; sinon la sonde se tait",
+    )
+    pr.add_argument(
+        "--worktree",
+        help="dépôt depuis lequel sonder gh (remote origin) ; ignoré sans --branche",
+    )
     return parser
 
 
@@ -421,7 +451,7 @@ def _feuille_relative(produit: projet.Projet) -> str | None:
 def _cmd_invocation(args: argparse.Namespace) -> int:
     try:
         produit = projet.charger(args.projet)
-        branche = f"{produit.prefixe_branche}{args.lot}" if args.lot else None
+        branche = produit.branche_du_lot(args.lot) if args.lot else None
         argv = backends.argv_du_role(
             args.role,
             roles=produit.roles.vers_dict(),
@@ -611,6 +641,54 @@ def _cmd_pret(args: argparse.Namespace) -> int:
     for marque, texte in lignes:
         print(f"{marque:<5} {texte}")
     return 1 if any(m == "FAIL" for m, _ in lignes) else 0
+
+
+def _cmd_branche(args: argparse.Namespace) -> int:
+    """Sans --run : imprime le nom. Avec --run : l'extrait dans le worktree du rôle."""
+    try:
+        produit = projet.charger(args.projet)
+        nom = produit.branche_du_lot(args.lot)
+    except projet.ProjetIncomplet as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    if not args.run:
+        print(nom)
+        return 0
+    if not args.worktree:
+        print(
+            "FAIL  --run exige --worktree : l'atelier ne bascule pas la branche "
+            "du clone du produit",
+            file=sys.stderr,
+        )
+        return 1
+    cible = Path(args.worktree).resolve()
+    if cible == produit.racine.resolve():
+        print(
+            "FAIL  le worktree du rôle ne peut pas être le clone du produit "
+            f"({cible}) : pose ATELIER_WORKDIR_coder",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        worktree.preparer_lot(cible, nom, produit.branche_base)
+    except worktree.WorktreeErreur as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    print(nom)
+    return 0
+
+
+def _cmd_pr(args: argparse.Namespace) -> int:
+    try:
+        numero = echange.lire_numero_pr(Path(args.fichier))
+        if args.branche:
+            racine = Path(args.worktree) if args.worktree else Path(args.fichier).parent.parent
+            echange.verifier_pr_branche_optionnel(numero, args.branche, racine)
+    except echange.EchangeErreur as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    print(numero)
+    return 0
 
 
 def _charger_feuille(chemin_projet: str) -> tuple[projet.Projet, feuille.Feuille]:
@@ -811,6 +889,10 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_poste(args)
     if args.commande == "pret":
         return _cmd_pret(args)
+    if args.commande == "branche":
+        return _cmd_branche(args)
+    if args.commande == "pr":
+        return _cmd_pr(args)
     if args.commande == "feuille":
         if args.action == "valider":
             return _cmd_feuille_valider(args)
