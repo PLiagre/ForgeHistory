@@ -24,6 +24,7 @@ MODULES: dict[str, Couche] = {
     "atelier.worktree": Couche.EXECUTION,
     "atelier.cycle": Couche.ORCHESTRATION,
     "atelier.etat": Couche.ORCHESTRATION,
+    "atelier.feuille": Couche.ORCHESTRATION,
     "atelier.verrou": Couche.COORDINATION,
     "atelier.quota": Couche.COORDINATION,
     "atelier.echange": Couche.COORDINATION,

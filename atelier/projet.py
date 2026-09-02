@@ -48,10 +48,22 @@ class Projet:
     branche_base: str
     prefixe_branche: str
     roles: Roles
+    # La feuille de route du produit, où vit le registre des lots. `None`
+    # si le branchement ne la nomme pas : le pilote refuse alors de
+    # décider, il ne cherche pas un ROADMAP.md au hasard.
+    feuille: Path | None = None
 
     @property
     def etat_dir(self) -> Path:
         return self.racine / ".atelier"
+
+    def feuille_ou_refus(self) -> Path:
+        if self.feuille is None:
+            raise ProjetIncomplet(
+                "le branchement ne nomme pas [projet].feuille : l'atelier ne devine "
+                "pas où vit le registre des lots (chez ForgeHistory : ROADMAP.md)"
+            )
+        return self.feuille
 
 
 def charger(racine: Path) -> Projet:
@@ -95,4 +107,5 @@ def charger(racine: Path) -> Projet:
             execution=str(roles_brut["execution"]),
             controle=str(roles_brut["controle"]),
         ),
+        feuille=racine / str(bloc["feuille"]) if bloc.get("feuille") else None,
     )

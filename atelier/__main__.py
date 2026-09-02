@@ -10,7 +10,9 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import backends, boite, couches, cycle, etat, porte, projet, quota, verrou
+import subprocess
+
+from . import backends, boite, couches, cycle, etat, feuille, porte, projet, quota, verrou
 from .etat import FusionInterdite
 
 
@@ -95,10 +97,48 @@ def _parser() -> argparse.ArgumentParser:
     invocation.add_argument("--brief")
     invocation.add_argument("--pr", type=int, help="la PR à relire, si on la connaît")
     invocation.add_argument(
+        "--decision",
+        help="pour le pilote : la sortie de `atelier piloter`, transmise telle quelle",
+    )
+    invocation.add_argument(
         "--nul",
         action="store_true",
         help="séparer les arguments par NUL, pour un tableau shell",
     )
+
+    feuille_p = sous.add_parser(
+        "feuille", help="le registre des lots de la feuille de route du produit"
+    )
+    feuille_sous = feuille_p.add_subparsers(dest="action", required=True)
+    valider = feuille_sous.add_parser(
+        "valider", help="FAIL sur toute incohérence feuille / briefs / cartes ; 0 sinon"
+    )
+    valider.add_argument("--projet", required=True)
+    valider.add_argument(
+        "--base", help="révision git de référence : vérifie aussi les transitions"
+    )
+    valider.add_argument("--branche", help="la branche de la PR, pour reconnaître une PR de lot")
+    valider.add_argument("--pr", type=int, help="le numéro de la PR, s'il est connu")
+    etat_p = feuille_sous.add_parser("etat", help="chaque lot, son état écrit et son état dérivé")
+    etat_p.add_argument("--projet", required=True)
+    marquer = feuille_sous.add_parser("marquer", help="faire avancer la fiche d'un lot")
+    marquer.add_argument("--projet", required=True)
+    marquer.add_argument("--lot", required=True, help="le numéro (046) ou le slug du lot")
+    marquer.add_argument("--etat", required=True, choices=list(feuille.ETATS))
+    marquer.add_argument("--pr", type=int, action="append", default=[])
+
+    piloter = sous.add_parser(
+        "piloter",
+        help="ce que la feuille de route commande de déposer ; --run dépose",
+    )
+    piloter.add_argument("--projet", required=True)
+    piloter.add_argument("--run", action="store_true")
+
+    reprendre = sous.add_parser(
+        "reprendre", help="retirer la carte d'un lot de echec/ pour que le pilote le redépose"
+    )
+    reprendre.add_argument("--projet", required=True)
+    reprendre.add_argument("--lot", required=True)
 
     verrouiller = sous.add_parser(
         "verrouiller", help="tenir les fichiers d'une carte avant d'écrire"
@@ -368,6 +408,16 @@ def _roles_du_produit(chemin: str) -> dict[str, str]:
     return projet.charger(chemin).roles.vers_dict()
 
 
+def _feuille_relative(produit: projet.Projet) -> str | None:
+    """Le chemin de la feuille tel que le prompt le cite : relatif au produit."""
+    if produit.feuille is None:
+        return None
+    try:
+        return produit.feuille.relative_to(produit.racine).as_posix()
+    except ValueError:
+        return produit.feuille.as_posix()
+
+
 def _cmd_invocation(args: argparse.Namespace) -> int:
     try:
         produit = projet.charger(args.projet)
@@ -380,6 +430,8 @@ def _cmd_invocation(args: argparse.Namespace) -> int:
             brief=args.brief,
             pr=args.pr,
             branche=branche,
+            feuille=_feuille_relative(produit),
+            decision=args.decision,
         )
     except (backends.BackendErreur, projet.ProjetIncomplet, KeyError) as exc:
         print(f"FAIL  {exc}", file=sys.stderr)
@@ -522,13 +574,34 @@ def _cmd_pret(args: argparse.Namespace) -> int:
         else:
             dire("FAIL", f"{nom} — {chemin} n'existe pas")
 
-    for etat in ("a-briefer", "a-planifier", "a-coder", "a-relire", "echec", "faite"):
+    boites = (
+        "a-briefer", boite.SUIVANT["briefer"], "a-planifier", "a-coder", "a-relire",
+        "faite", feuille.BOITE_FUSIONNEE, "echec",
+    )
+    for etat in boites:
         try:
             combien = len(boite.lister(produit.racine, etat))
         except boite.BoiteErreur as exc:
             dire("FAIL", f"boîte {etat} — {exc}")
             continue
         dire("PASS", f"boîte {etat} — {combien} carte(s)")
+
+    # Le pilote décide d'après la feuille de route : sans elle, il n'a
+    # rien à décider, et on le dit avant d'armer.
+    if produit.feuille is None:
+        dire("?", "feuille de route — [projet].feuille non nommé : le pilote ne déposera rien")
+    else:
+        try:
+            f = feuille.lire(produit.feuille)
+            erreurs = feuille.verifier(f, produit.racine, produit.briefs)
+            erreurs += feuille.verifier_cartes(f, produit.racine)
+        except feuille.FeuilleErreur as exc:
+            dire("FAIL", f"feuille de route — {exc}")
+        else:
+            if erreurs:
+                dire("FAIL", f"feuille de route — {len(erreurs)} incohérence(s) : `atelier feuille valider`")
+            else:
+                dire("PASS", f"feuille de route — {_feuille_relative(produit)}, {len(f.fiches)} lot(s), cohérente")
 
     if os.environ.get("ATELIER_INVOQUER") == "1":
         dire("PASS", "ATELIER_INVOQUER=1 — l'invocation est armée")
@@ -538,6 +611,162 @@ def _cmd_pret(args: argparse.Namespace) -> int:
     for marque, texte in lignes:
         print(f"{marque:<5} {texte}")
     return 1 if any(m == "FAIL" for m, _ in lignes) else 0
+
+
+def _charger_feuille(chemin_projet: str) -> tuple[projet.Projet, feuille.Feuille]:
+    produit = projet.charger(chemin_projet)
+    return produit, feuille.lire(produit.feuille_ou_refus())
+
+
+def _feuille_de_base(produit: projet.Projet, base: str) -> feuille.Feuille:
+    """La feuille telle que la révision `base` la porte, lue par git."""
+    rel = _feuille_relative(produit)
+    proc = subprocess.run(
+        ["git", "-C", str(produit.racine), "show", f"{base}:{rel}"],
+        capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        raise feuille.FeuilleErreur(
+            f"impossible de lire {rel} à la révision {base} : {proc.stderr.strip()}"
+        )
+    return feuille.lire_texte(proc.stdout, Path(f"{base}:{rel}"))
+
+
+def _cmd_feuille_valider(args: argparse.Namespace) -> int:
+    try:
+        produit, apres = _charger_feuille(args.projet)
+        erreurs = feuille.verifier(apres, produit.racine, produit.briefs)
+        erreurs += feuille.verifier_cartes(apres, produit.racine)
+        note_base = ""
+        if args.base:
+            try:
+                avant = _feuille_de_base(produit, args.base)
+            except feuille.FeuilleErreur as exc:
+                if feuille.REPERE_DEBUT not in str(exc):
+                    raise
+                # La révision de base n'a pas encore de registre : c'est la
+                # première feuille. On ne vérifie pas des transitions depuis
+                # rien, et on le dit plutôt que de faire semblant.
+                note_base = f" ; {args.base} sans registre : première feuille, transitions non vérifiées"
+            else:
+                erreurs += feuille.transitions(
+                    avant, apres,
+                    prefixe_branche=produit.prefixe_branche,
+                    branche=args.branche,
+                    pr=args.pr,
+                )
+    except (projet.ProjetIncomplet, feuille.FeuilleErreur) as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    if not apres.fiches:
+        # Un registre vide n'est pas un registre cohérent : c'est un
+        # échantillon vide, et il échoue.
+        erreurs.append(f"{apres.chemin} — le registre ne porte aucune fiche")
+    for erreur in erreurs:
+        print(f"FAIL  {erreur}", file=sys.stderr)
+    if erreurs:
+        return 1
+    print(f"PASS  {_feuille_relative(produit)} — {len(apres.fiches)} lot(s), feuille cohérente{note_base}")
+    return 0
+
+
+def _cmd_feuille_etat(args: argparse.Namespace) -> int:
+    try:
+        produit, f = _charger_feuille(args.projet)
+        lignes = [
+            (fiche.lot, fiche.etat, feuille.etat_effectif(fiche, f, produit.racine))
+            for fiche in f.fiches
+        ]
+    except (projet.ProjetIncomplet, feuille.FeuilleErreur, verrou.Collision) as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    if not lignes:
+        print("FAIL  le registre ne porte aucune fiche", file=sys.stderr)
+        return 1
+    largeur = max(len(lot) for lot, _, _ in lignes)
+    for lot, ecrit, derive in lignes:
+        print(f"{lot:<{largeur}}  {ecrit:<10} {derive}")
+    return 0
+
+
+def _cmd_feuille_marquer(args: argparse.Namespace) -> int:
+    try:
+        produit = projet.charger(args.projet)
+        chemin = produit.feuille_ou_refus()
+        texte = chemin.read_text(encoding="utf-8")
+        nouveau = feuille.marquer(texte, args.lot, args.etat, tuple(args.pr), chemin)
+    except (projet.ProjetIncomplet, feuille.FeuilleErreur, OSError) as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    chemin.write_text(nouveau, encoding="utf-8")
+    fiche = feuille.lire(chemin).fiche(args.lot)
+    assert fiche is not None
+    prs = ", ".join(map(str, fiche.prs)) or feuille.VIDE
+    print(f"{fiche.lot}  état : {fiche.etat} · PR : {prs}")
+    return 0
+
+
+def _cmd_piloter(args: argparse.Namespace) -> int:
+    """La décision du matin, calculée. Sans --run, rien n'est déposé."""
+    try:
+        produit, f = _charger_feuille(args.projet)
+        racine = produit.racine
+        lignes: list[str] = []
+        for r in feuille.rapprochements(f, racine):
+            if args.run:
+                feuille.appliquer(racine, r)
+            verbe = "rapproché " if args.run else "rapprocher"
+            levee = " ; verrou levé" if r.lever_verrou and args.run else ""
+            lignes.append(f"{verbe} {r.lot} : {r.source} → {r.destination} ({r.raison}){levee}")
+        erreurs = feuille.verifier(f, racine, produit.briefs)
+        if args.run:
+            erreurs += feuille.verifier_cartes(f, racine)
+        else:
+            # À sec, on juge les cartes comme si les rapprochements étaient faits.
+            deja = {(r.lot, r.source) for r in feuille.rapprochements(f, racine)}
+            erreurs += [
+                e for e in feuille.verifier_cartes(f, racine)
+                if not any(e.startswith(f"carte {lot} dans {source}") for lot, source in deja)
+            ]
+        if erreurs:
+            for ligne in lignes:
+                print(ligne)
+            for erreur in erreurs:
+                print(f"FAIL  {erreur}", file=sys.stderr)
+            print("FAIL  feuille incohérente : aucune carte déposée", file=sys.stderr)
+            return 1
+        if not f.fiches:
+            print(f"FAIL  {f.chemin} — le registre ne porte aucune fiche", file=sys.stderr)
+            return 1
+        for d in feuille.decider(f, racine):
+            if args.run:
+                feuille.deposer(racine, d)
+            verbe = "déposé   " if args.run else "déposer  "
+            fichiers = f"  ({', '.join(d.fichiers)})" if d.fichiers else ""
+            lignes.append(f"{verbe} {d.boite:<10} {d.lot}  {d.brief}{fichiers}")
+    except (projet.ProjetIncomplet, feuille.FeuilleErreur, boite.BoiteErreur, verrou.Collision) as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    if not lignes:
+        print("RIEN")
+        return 0
+    for ligne in lignes:
+        print(ligne)
+    if not args.run:
+        print("sans --run : rien n'est déposé.")
+    return 0
+
+
+def _cmd_reprendre(args: argparse.Namespace) -> int:
+    racine = Path(args.projet)
+    try:
+        carte = boite.lire(racine, "echec", args.lot)
+    except boite.BoiteErreur as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    (boite.racine_boite(racine) / "echec" / f"{args.lot}.json").unlink()
+    print(f"{args.lot} retiré de echec/ (raison : {carte.note or 'aucune'}) — le pilote peut le redéposer.")
+    return 0
 
 
 def _cmd_fumee(args: argparse.Namespace) -> int:
@@ -588,6 +817,17 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_poste(args)
     if args.commande == "pret":
         return _cmd_pret(args)
+    if args.commande == "feuille":
+        if args.action == "valider":
+            return _cmd_feuille_valider(args)
+        if args.action == "etat":
+            return _cmd_feuille_etat(args)
+        if args.action == "marquer":
+            return _cmd_feuille_marquer(args)
+    if args.commande == "piloter":
+        return _cmd_piloter(args)
+    if args.commande == "reprendre":
+        return _cmd_reprendre(args)
     return 1
 
 

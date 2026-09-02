@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Hermes : dépose une carte, ou s'arrête. Il n'invoque ni Claude ni
-# Cursor, et il n'est le cerveau de personne — il tient l'identité et
-# l'horloge. Comme tour.sh, il ne dépense rien sans ATELIER_INVOQUER=1.
+# Hermes : reçoit la décision du matin, il ne la prend pas.
+#
+# La décision — quelle carte déposer, quelle carte rapprocher, ou RIEN —
+# est calculée par `atelier piloter` en Python, d'après la feuille de
+# route du produit. Hermes n'invoque ni Claude ni Cursor, n'invente ni
+# numéro de lot ni statut ; il tient l'identité et l'horloge, et résume
+# au propriétaire ce que l'atelier a trouvé. Comme tour.sh, rien ne se
+# dépose et rien ne se dépense sans ATELIER_INVOQUER=1.
 set -euo pipefail
 
 PROJET="${ATELIER_PROJET:-/srv/ForgeHistory}"
@@ -29,25 +34,68 @@ fi
 nom_workdir="ATELIER_WORKDIR_pilote"
 cd "${!nom_workdir:-$PROJET}"
 
-python3 -m atelier invocation --role pilote --projet "$PROJET"
+# --- la feuille de route du jour -----------------------------------------
+# Le pilote lit la feuille de master, pas celle d'hier : un lot fusionné
+# la veille au soir doit être vu livré ce matin. Une avance rapide
+# seulement ; si elle échoue (dépôt modifié, pas de réseau), on le dit et
+# on décide sur ce qu'on a — on n'écrase rien.
+if [[ "${ATELIER_SANS_PULL:-0}" != "1" ]] && git -C "$PROJET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if ! git -C "$PROJET" pull --ff-only --quiet 2>/dev/null; then
+        echo "pilote : la feuille n'a pas pu être mise à jour (git pull --ff-only a échoué) — décision sur l'état local." >&2
+    fi
+fi
+
+# --- la décision, à sec --------------------------------------------------
+# Elle se calcule et s'imprime dans les deux modes : le mode à sec est
+# fait pour la voir. Une feuille incohérente est un FAIL : on le montre,
+# on ne dépose rien, et on le remonte au propriétaire.
+set +e
+decision="$(python3 -m atelier piloter --projet "$PROJET" 2>&1)"
+code_decision=$?
+set -e
+printf '%s\n' "$decision"
+
+python3 -m atelier invocation --role pilote --projet "$PROJET" --decision "$decision"
 
 if [[ "${ATELIER_INVOQUER:-0}" != "1" ]]; then
-    echo "ATELIER_INVOQUER n'est pas posé : aucun agent lancé."
+    echo "ATELIER_INVOQUER n'est pas posé : aucune carte déposée, aucun agent lancé."
+    exit "$code_decision"
+fi
+
+# --- sous drapeau : déposer, puis dire -----------------------------------
+if [[ $code_decision -eq 0 ]]; then
+    set +e
+    decision="$(python3 -m atelier piloter --projet "$PROJET" --run 2>&1)"
+    code_decision=$?
+    set -e
+    printf '%s\n' "$decision"
+fi
+
+# Rien à déposer, rien à signaler : Hermes n'a rien à dire, on ne le paie pas.
+if [[ $code_decision -eq 0 && "$decision" == "RIEN" ]]; then
     exit 0
 fi
 
 if ! command -v hermes >/dev/null 2>&1; then
-    echo "hermes absent — RIEN" >&2
-    exit 0
+    echo "hermes absent — la décision reste dans ce journal." >&2
+    exit "$code_decision"
 fi
 
 mapfile -d '' -t argv < <(
-    python3 -m atelier invocation --role pilote --projet "$PROJET" --nul
+    python3 -m atelier invocation --role pilote --projet "$PROJET" --decision "$decision" --nul
 )
 
 # OPENAI_API_KEY ferait payer l'API à l'unité au lieu de l'abo ChatGPT
 # Plus (OAuth openai-codex). Les clés Anthropic n'ont rien à faire ici :
 # Hermes n'est pas le cerveau de Claude.
-exec env -u OPENAI_API_KEY -u OPENAI_BASE_URL -u ANTHROPIC_API_KEY \
-         -u ANTHROPIC_AUTH_TOKEN -u CURSOR_API_KEY \
-     timeout "$DELAI" "${argv[@]}"
+set +e
+env -u OPENAI_API_KEY -u OPENAI_BASE_URL -u ANTHROPIC_API_KEY \
+    -u ANTHROPIC_AUTH_TOKEN -u CURSOR_API_KEY \
+    timeout "$DELAI" "${argv[@]}"
+code_hermes=$?
+set -e
+# Une feuille incohérente reste un échec du tour, même si Hermes l'a résumée.
+if [[ $code_decision -ne 0 ]]; then
+    exit "$code_decision"
+fi
+exit "$code_hermes"
