@@ -1,6 +1,7 @@
 (function () {
   var state = {
     snapshot: null,
+    dashboard: null,
     compare: null,
     layers: [],
     layer: "population",
@@ -135,15 +136,121 @@
     return state.layers[0];
   }
 
-  function showJour(doc) {
-    var el = document.getElementById("jour");
-    if (!el) {
+  function formatNombre(n) {
+    if (typeof n !== "number" || !isFinite(n)) {
+      return String(n);
+    }
+    if (Math.abs(n - Math.round(n)) < 1e-9) {
+      return Math.round(n).toLocaleString("fr-FR");
+    }
+    if (Math.abs(n) >= 100) {
+      return Math.round(n).toLocaleString("fr-FR");
+    }
+    return n.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  }
+
+  function texteChamp(champ) {
+    if (!champ || champ.etat === "absent") {
+      return { texte: "absent", absent: true };
+    }
+    if (champ.etat === "non_calcule") {
+      return { texte: "non calculé", absent: true };
+    }
+    return { texte: formatNombre(champ.valeur), absent: false };
+  }
+
+  function remplirKpi(id, champ) {
+    var carte = document.getElementById(id);
+    if (!carte) {
       return;
     }
-    if (doc.jour_de_tick === undefined || doc.jour_de_tick === null) {
-      el.textContent = "Jour de l'année : absent";
+    var el = carte.querySelector("[data-role=value]");
+    var lu = texteChamp(champ);
+    el.textContent = lu.texte;
+    if (lu.absent) {
+      carte.classList.add("absent");
     } else {
-      el.textContent = "Jour de l'année : " + String(doc.jour_de_tick);
+      carte.classList.remove("absent");
+    }
+  }
+
+  function showKpis() {
+    var monde = state.dashboard && state.dashboard.monde;
+    if (!monde) {
+      return;
+    }
+    remplirKpi("kpi-tick", monde.tick);
+    remplirKpi("kpi-jour", monde.jour_de_tick);
+    remplirKpi("kpi-population", monde.population);
+    remplirKpi("kpi-cellules", monde.cellules);
+    remplirKpi("kpi-affamees", monde.cellules_affamees);
+    remplirKpi("kpi-stock", monde.stock_nourriture_kg);
+    remplirKpi("kpi-transport", monde.kg_transportes);
+  }
+
+  function showCouche() {
+    var couches = state.dashboard && state.dashboard.couches;
+    var stats = couches && couches[state.layer];
+    var minEl = document.getElementById("layer-min");
+    var maxEl = document.getElementById("layer-max");
+    var histo = document.getElementById("histogram");
+    var counts = document.getElementById("layer-counts");
+    var prov = document.getElementById("provinces");
+    if (!stats) {
+      minEl.textContent = "min : absent";
+      maxEl.textContent = "max : absent";
+      histo.className = "histo absent";
+      histo.textContent = "absent";
+      counts.textContent = "";
+      prov.innerHTML = "<p class=\"absent\">absent</p>";
+      return;
+    }
+    var vmin = texteChamp(stats.min);
+    var vmax = texteChamp(stats.max);
+    minEl.textContent = "min : " + vmin.texte;
+    maxEl.textContent = "max : " + vmax.texte;
+
+    histo.innerHTML = "";
+    histo.className = "histo";
+    if (!stats.histogramme || stats.histogramme.etat === "absent") {
+      histo.className = "histo absent";
+      histo.textContent = "absent";
+    } else {
+      var effectifs = stats.histogramme.effectifs || [];
+      var pic = 0;
+      effectifs.forEach(function (n) {
+        if (n > pic) {
+          pic = n;
+        }
+      });
+      effectifs.forEach(function (n) {
+        var barre = document.createElement("div");
+        barre.className = "barre";
+        var haut = pic ? Math.max(4, Math.round(68 * n / pic)) : 4;
+        barre.style.height = haut + "px";
+        barre.title = formatNombre(n);
+        histo.appendChild(barre);
+      });
+    }
+
+    counts.textContent =
+      formatNombre(stats.n_valeurs) + " valeurs · " +
+      formatNombre(stats.n_zeros) + " zéros · " +
+      formatNombre(stats.n_absents) + " absents · " +
+      formatNombre(stats.n_non_calcules) + " non calculés";
+
+    if (!stats.provinces || stats.provinces.etat === "absent") {
+      prov.innerHTML = "<p class=\"absent\">province absente du snapshot</p>";
+    } else {
+      var lignes = stats.provinces.lignes || [];
+      var html = "<table><thead><tr><th>Province</th><th>Total</th><th>Cellules</th></tr></thead><tbody>";
+      lignes.forEach(function (ligne) {
+        html += "<tr><td>" + ligne.nom + "</td><td>" +
+          formatNombre(ligne.somme) + "</td><td>" +
+          formatNombre(ligne.n) + "</td></tr>";
+      });
+      html += "</tbody></table>";
+      prov.innerHTML = html;
     }
   }
 
@@ -180,12 +287,38 @@
         ctx.stroke();
       });
     });
+    if (state.selected) {
+      ctx.strokeStyle = "#f0c14b";
+      ctx.lineWidth = 2;
+      rings(state.selected.geometry).forEach(function (ring) {
+        ctx.beginPath();
+        ring.forEach(function (pt, index) {
+          var p = project(pt[0], pt[1], canvas);
+          if (index === 0) {
+            ctx.moveTo(p.x, p.y);
+          } else {
+            ctx.lineTo(p.x, p.y);
+          }
+        });
+        ctx.closePath();
+        ctx.stroke();
+      });
+    }
   }
 
   function showDetails(cell) {
     var box = document.getElementById("details");
     var hint = document.getElementById("hint");
-    hint.textContent = "";
+    var layer = currentLayer();
+    var valeur = readField(cell, layer.path);
+    var etat = classify(valeur);
+    if (etat === "absent") {
+      hint.textContent = "Couche " + layer.label + " : absent";
+    } else if (etat === "non_calcule") {
+      hint.textContent = "Couche " + layer.label + " : non calculé";
+    } else {
+      hint.textContent = "Couche " + layer.label + " : " + formatNombre(Number(valeur));
+    }
     box.innerHTML = "";
     Object.keys(cell).sort().forEach(function (key) {
       if (key === "geometry") {
@@ -197,8 +330,10 @@
       var value = cell[key];
       if (value === null) {
         dd.textContent = "absent";
+        dd.className = "absent";
       } else if (value === -1 || value === -1.0) {
         dd.textContent = "non calculé";
+        dd.className = "absent";
       } else if (typeof value === "object") {
         dd.textContent = JSON.stringify(value);
       } else {
@@ -253,8 +388,26 @@
     select.value = state.layer;
     select.onchange = function () {
       state.layer = select.value;
+      showCouche();
+      if (state.selected) {
+        showDetails(state.selected);
+      }
       draw();
     };
+  }
+
+  function resizeCanvas() {
+    var canvas = document.getElementById("map");
+    var wrap = document.getElementById("map-wrap");
+    var w = Math.max(wrap.clientWidth, 1);
+    var h = Math.max(wrap.clientHeight, 1);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    if (state.snapshot) {
+      draw();
+    }
   }
 
   function bindMap() {
@@ -277,6 +430,7 @@
         if (cell) {
           state.selected = cell;
           showDetails(cell);
+          draw();
         }
       }
       state.dragging = false;
@@ -291,26 +445,38 @@
       state.lastY = event.offsetY;
       draw();
     });
+    window.addEventListener("resize", resizeCanvas);
   }
 
   function boot() {
     Promise.all([
       fetch("snapshot.json").then(function (res) { return res.json(); }),
-      fetch("meta.json").then(function (res) { return res.json(); })
-    ]).then(function (pair) {
-      state.snapshot = pair[0];
+      fetch("meta.json").then(function (res) { return res.json(); }),
+      fetch("dashboard.json").then(function (res) {
+        if (!res.ok) {
+          throw new Error("dashboard.json : " + res.status);
+        }
+        return res.json();
+      })
+    ]).then(function (triple) {
+      state.snapshot = triple[0];
+      state.dashboard = triple[2];
       state.layers = deriveLayers(state.snapshot);
       state.bounds = computeBounds(state.snapshot.cells);
-      showJour(state.snapshot);
       fillLayers();
+      showKpis();
+      showCouche();
       bindMap();
-      draw();
-      if (pair[1].has_compare) {
+      resizeCanvas();
+      if (triple[1].has_compare) {
         return fetch("compare.json").then(function (res) { return res.json(); });
       }
       return null;
     }).then(function (compare) {
       state.compare = compare;
+    }).catch(function (err) {
+      var el = document.getElementById("unavailable");
+      el.textContent = "refus : " + String(err);
     });
   }
 

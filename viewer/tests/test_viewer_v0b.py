@@ -223,3 +223,188 @@ def test_schema_inconnu_nomme_attendu(tmp_path: Path):
     msg = str(exc.value)
     assert "inconnu" in msg
     assert "attendu" in msg
+
+
+# --- Brief 048 : le dashboard lit, il n'invente pas ---
+
+
+def test_agregats_echantillon_vide_echoue():
+    from viewer.snapshot_loader import EchantillonVide, agregats_monde
+
+    with pytest.raises(EchantillonVide):
+        agregats_monde({"cells": []})
+    with pytest.raises(EchantillonVide):
+        agregats_monde({})
+
+
+def test_agregats_monde_derivent_du_snapshot():
+    from viewer.snapshot_loader import agregats_monde
+    from sim.constants import MARCHANDISE_NOURRITURE
+
+    world = World.charger(0)
+    document = build_snapshot_document(world, 0, 0)
+    cellules = document["cells"]
+    assert cellules, "échantillon vide : le monde chargé n'a aucune cellule"
+
+    pop_attendue = sum(int(c["population"]) for c in cellules)
+    affamees_attendues = sum(
+        1
+        for c in cellules
+        if classify(c.get("hunger_ticks")) not in {ABSENT, NON_CALCULE}
+        and c["hunger_ticks"] > 0
+    )
+    stocks_lus = [
+        float(c["stocks"][MARCHANDISE_NOURRITURE])
+        for c in cellules
+        if isinstance(c.get("stocks"), dict)
+        and MARCHANDISE_NOURRITURE in c["stocks"]
+        and classify(c["stocks"][MARCHANDISE_NOURRITURE]) not in {ABSENT, NON_CALCULE}
+    ]
+    assert stocks_lus, "échantillon vide : aucune cellule n'a de nourriture mesurée"
+
+    kpis = agregats_monde(document)
+    assert kpis["cellules"]["etat"] == "mesure"
+    assert kpis["cellules"]["valeur"] == len(cellules)
+    assert kpis["population"]["etat"] == "mesure"
+    assert kpis["population"]["valeur"] == pop_attendue
+    assert kpis["population"]["cellules_lues"] == len(cellules)
+    assert kpis["cellules_affamees"]["etat"] == "mesure"
+    assert kpis["cellules_affamees"]["valeur"] == affamees_attendues
+    assert kpis["stock_nourriture_kg"]["etat"] == "mesure"
+    assert kpis["stock_nourriture_kg"]["valeur"] == pytest.approx(sum(stocks_lus))
+    assert kpis["stock_nourriture_kg"]["cellules_lues"] == len(stocks_lus)
+
+
+def test_absence_declaree_pas_inventee():
+    from viewer.snapshot_loader import agregats_couche, agregats_monde
+
+    document = {
+        "tick": 3,
+        "cells": [
+            {
+                "cell_id": 1,
+                "population": 10,
+                "stocks": {"nourriture": -1.0},
+                "hunger_ticks": -1,
+            },
+            {
+                "cell_id": 2,
+                "population": 4,
+                "stocks": {},
+            },
+        ],
+    }
+    assert "kg_transportes" not in document
+    kpis = agregats_monde(document)
+    assert kpis["kg_transportes"]["etat"] == "absent"
+    assert "valeur" not in kpis["kg_transportes"]
+    assert kpis["stock_nourriture_kg"]["etat"] == "absent"
+    assert kpis["jour_de_tick"]["etat"] == "absent"
+    couche = agregats_couche(document, "population")
+    assert couche["provinces"]["etat"] == "absent"
+
+
+def test_tick_et_jour_sont_distincts():
+    from viewer.snapshot_loader import agregats_monde
+
+    world = World.charger(0)
+    document = build_snapshot_document(world, 0, 365)
+    assert document["cells"], "échantillon vide"
+    kpis = agregats_monde(document)
+    assert kpis["tick"]["etat"] == "mesure"
+    assert kpis["tick"]["valeur"] == 365
+    assert kpis["tick"]["valeur"] != kpis["jour_de_tick"].get("valeur")
+    assert kpis["jour_de_tick"]["etat"] == "mesure"
+    assert kpis["jour_de_tick"]["valeur"] == document["jour_de_tick"]
+    sans_jour = dict(document)
+    del sans_jour["jour_de_tick"]
+    kpis_sans = agregats_monde(sans_jour)
+    assert kpis_sans["tick"]["valeur"] == 365
+    assert kpis_sans["jour_de_tick"]["etat"] == "absent"
+
+
+def test_dashboard_html_porte_les_kpis():
+    html = (_VIEWER / "static" / "index.html").read_text(encoding="utf-8")
+    for identifiant in (
+        "kpis",
+        "kpi-tick",
+        "kpi-jour",
+        "kpi-population",
+        "kpi-cellules",
+        "kpi-affamees",
+        "kpi-stock",
+        "kpi-transport",
+        "layer-min",
+        "layer-max",
+        "histogram",
+        "provinces",
+    ):
+        assert f'id="{identifiant}"' in html, f"identifiant manquant : {identifiant}"
+    assert "id=\"panel\"" in html
+    assert "id=\"map\"" in html
+
+
+def test_agregats_couche_derivent_du_snapshot():
+    from viewer.snapshot_loader import agregats_couche
+
+    world = World.charger(0)
+    document = build_snapshot_document(world, 0, 0)
+    cellules = document["cells"]
+    assert cellules, "échantillon vide"
+    populations = [int(c["population"]) for c in cellules]
+    couche = agregats_couche(document, "population")
+    assert couche["min"]["etat"] == "mesure"
+    assert couche["max"]["etat"] == "mesure"
+    assert couche["min"]["valeur"] == min(populations)
+    assert couche["max"]["valeur"] == max(populations)
+    assert couche["histogramme"]["etat"] == "mesure"
+    effectifs = couche["histogramme"]["effectifs"]
+    assert effectifs, "échantillon vide : histogramme sans barre"
+    assert sum(effectifs) == len(populations)
+    noms = {
+        c["province"]["name"]
+        for c in cellules
+        if isinstance(c.get("province"), dict) and c["province"].get("name")
+    }
+    assert noms, "échantillon vide : aucune province dans le snapshot"
+    assert couche["provinces"]["etat"] == "mesure"
+    assert {p["nom"] for p in couche["provinces"]["lignes"]} == noms
+    pop_par_nom = {}
+    for cell in cellules:
+        nom = cell["province"]["name"]
+        pop_par_nom[nom] = pop_par_nom.get(nom, 0) + int(cell["population"])
+    lu = {p["nom"]: p["somme"] for p in couche["provinces"]["lignes"]}
+    assert lu == pop_par_nom
+
+    vide = agregats_couche(
+        {"cells": [{"cell_id": 1, "stocks": {}}]},
+        "nourriture",
+    )
+    assert vide["histogramme"]["etat"] == "absent"
+    assert vide["min"]["etat"] == "absent"
+
+
+def test_dashboard_json_sert_les_agregats(tmp_path: Path):
+    import threading
+    from urllib.request import urlopen
+
+    from viewer.server import serve
+    from viewer.snapshot_loader import construire_dashboard, serialize_dashboard
+
+    world = World.charger(0)
+    snap = tmp_path / "a.json"
+    export_snapshot(world, 0, 0, snap)
+    document = load_snapshot(snap)
+    attendu = serialize_dashboard(construire_dashboard(document))
+    payload = snap.read_bytes()
+    server = serve("127.0.0.1", 0, payload, None)
+    fil = threading.Thread(target=server.serve_forever, daemon=True)
+    fil.start()
+    host, port = server.server_address[:2]
+    try:
+        with urlopen(f"http://{host}:{port}/dashboard.json") as reponse:
+            obtenu = reponse.read()
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert obtenu == attendu

@@ -115,6 +115,11 @@ quoi faire quand ça casse — est décrit après le registre.
 
 <!-- lots:debut -->
 
+## Présentation
+
+### [048 — Tableau de bord : stats mêlées à la carte](briefs/048-dashboard-stats-carte.md)
+état : pret · couche : — · dépend de : — · PR : —
+
 ## Couche 2 — ouverte
 
 ### [046 — La mer est un port commun](briefs/046-la-mer-est-un-port-commun.md)

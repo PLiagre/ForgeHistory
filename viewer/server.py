@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
+from viewer.snapshot_loader import EchantillonVide, construire_dashboard, serialize_dashboard
+
 _STATIC = Path(__file__).resolve().parent / "static"
 
 
@@ -20,7 +22,14 @@ class SnapshotServer(ThreadingHTTPServer):
     ) -> None:
         self.snapshot_a = snapshot_a
         self.snapshot_b = snapshot_b
+        self._dashboard: Optional[bytes] = None
         super().__init__(address, _Handler)
+
+    def dashboard_bytes(self) -> bytes:
+        if self._dashboard is None:
+            document = json.loads(self.snapshot_a.decode("utf-8"))
+            self._dashboard = serialize_dashboard(construire_dashboard(document))
+        return self._dashboard
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -46,6 +55,14 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(404, b"absent\n", "text/plain; charset=utf-8")
                 return
             self._send(200, self.server.snapshot_b, "application/json; charset=utf-8")
+            return
+        if path == "/dashboard.json":
+            try:
+                payload = self.server.dashboard_bytes()
+            except EchantillonVide as exc:
+                self._send(409, f"{exc}\n".encode("utf-8"), "text/plain; charset=utf-8")
+                return
+            self._send(200, payload, "application/json; charset=utf-8")
             return
         if path == "/meta.json":
             payload = json.dumps(
