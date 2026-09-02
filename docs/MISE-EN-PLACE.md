@@ -271,9 +271,14 @@ Sur le VPS, **une fois**.
 
 ```bash
 ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/installer-profils.sh --dry-run
-# compare la syntaxe à `hermes profile --help` de ta version, puis :
+# vérifie les commandes imprimées, puis :
 ATELIER_PROJET=/srv/ForgeHistory /opt/ForgeAtelier/crons/installer-profils.sh --run
 ```
+
+Le script vise Hermes 0.21 : il clone le profil `default`, puis règle
+`terminal.cwd` avec `hermes --profile ROLE config set`. Le pilote utilise
+`hermes --profile pilote -z PROMPT` ; `-p` n'est pas un drapeau de prompt
+chez Hermes, il sélectionne un profil.
 
 5. Poser le crontab **sans** `ATELIER_INVOQUER=1`.
 6. Déposer une carte à la main et regarder :

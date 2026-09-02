@@ -234,13 +234,15 @@ def argv_du_role(
 ) -> list[str]:
     """L'argv exact du rôle. Construit ici, exécuté par le cron, jamais ici."""
     backend = backend_du_role(role, roles)
-    argv = [
-        backend.binaire,
-        "-p",
-        prompt_du_role(
-            role, lot=lot, brief=brief, projet=projet, pr=pr, branche=branche
-        ),
-    ]
+    prompt = prompt_du_role(
+        role, lot=lot, brief=brief, projet=projet, pr=pr, branche=branche
+    )
+    if role == "pilote":
+        # Depuis Hermes 0.20, -p/--profile choisit un profil. Le mode
+        # non interactif qui reçoit un prompt est -z/--oneshot.
+        argv = [backend.binaire, "--profile", "pilote", "-z", prompt]
+    else:
+        argv = [backend.binaire, "-p", prompt]
     modele = backend.modeles.get(role)
     if modele:
         argv += ["--model", modele]
