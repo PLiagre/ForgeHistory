@@ -9,9 +9,8 @@
 #   ./crons/installer-profils.sh --dry-run   # imprime, n'écrit rien (défaut)
 #   ./crons/installer-profils.sh --run       # exécute les mêmes lignes
 #
-# La syntaxe exacte de `hermes profile` change d'une version à l'autre :
-# le mode à sec existe pour que tu la compares à `hermes profile --help`
-# avant de l'exécuter.
+# La syntaxe utilisée est celle d'Hermes 0.21 : création par `profile
+# create`, puis réglage dans le profil sélectionné par `--profile`.
 set -euo pipefail
 
 MODE="${1:---dry-run}"
@@ -44,9 +43,8 @@ parcourir() {
     local action="$1" role cwd
     for role in "${ROLES_HERMES[@]}"; do
         cwd="$(repertoire_de "$role")"
-        "$action" hermes profile create "$role"
-        "$action" hermes profile set "$role" terminal.cwd "$cwd"
-        "$action" hermes profile set "$role" workdir "$cwd"
+        "$action" hermes profile create "$role" --clone-from default
+        "$action" hermes --profile "$role" config set terminal.cwd "$cwd"
     done
 }
 

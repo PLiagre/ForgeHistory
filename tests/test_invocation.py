@@ -198,7 +198,7 @@ def test_le_relecteur_n_ecrit_pas(tmp_path: Path):
 def test_hermes_ne_nomme_aucun_fournisseur_anthropic():
     """Pro refuse l'OAuth Anthropic, Max le facture hors forfait."""
     argv = backends.argv_du_role("pilote", roles=ROLES, projet="/produit")
-    assert argv[0] == "hermes"
+    assert argv[:4] == ["hermes", "--profile", "pilote", "-z"]
     assert "anthropic" not in " ".join(argv).lower()
 
 
@@ -451,6 +451,7 @@ def test_le_pilote_sous_drapeau_appelle_hermes_sans_cle(tmp_path: Path):
     assert r.returncode == 0, r.stderr
     trace = temoin.read_text(encoding="utf-8")
     assert "cles=[||]" in trace
+    assert "--profile pilote -z" in trace
     assert "n'invoque" in trace
 
 
@@ -469,9 +470,9 @@ def test_installer_profils_dry_run_imprime_et_n_ecrit_rien(tmp_path: Path):
     )
     assert r.returncode == 0, r.stderr
     for role in ("pilote", "briefer", "coder", "relire"):
-        assert f"hermes profile create {role}" in r.stdout
-        assert f"terminal.cwd" in r.stdout
-    assert "workdir" in r.stdout
+        assert f"hermes profile create {role} --clone-from default" in r.stdout
+        assert f"hermes --profile {role} config set terminal.cwd" in r.stdout
+    assert "ATELIER_WORKDIR_coder=/srv/ForgeHistory-coder" in r.stdout
     assert not (maison / ".hermes").exists()
 
 
@@ -499,6 +500,25 @@ def test_installer_profils_run_refuse_sans_hermes(tmp_path: Path):
     )
     assert r.returncode != 0
     assert not (tmp_path / ".hermes").exists()
+
+
+@besoin_bash
+def test_installer_profils_run_utilise_la_syntaxe_hermes_021(tmp_path: Path):
+    faux = tmp_path / "bin"
+    temoin = tmp_path / "hermes.txt"
+    _mouchard(faux, "hermes", temoin)
+    env = dict(os.environ)
+    env["PATH"] = f"{faux}:/usr/bin:/bin"
+    env["HOME"] = str(tmp_path)
+    env["ATELIER_PROJET"] = "/srv/ForgeHistory"
+    r = subprocess.run(
+        ["bash", str(PROFILS), "--run"], env=env, text=True, capture_output=True, timeout=30
+    )
+    assert r.returncode == 0, r.stderr
+    trace = temoin.read_text(encoding="utf-8")
+    for role in ("pilote", "briefer", "coder", "relire"):
+        assert f"profile create {role} --clone-from default" in trace
+        assert f"--profile {role} config set terminal.cwd" in trace
 
 
 # -------------------------------------------------------------- la veille
