@@ -57,7 +57,9 @@ décide jamais.
 
 ### Ce que le monde ne sait pas encore faire
 
-- **Fabriquer.** Le minerai extrait reste du minerai : rien ne le transforme.
+- **Fabriquer.** Le minerai extrait reste du minerai : rien ne le
+  transforme, et une marchandise que personne ne mange n'a jamais de
+  demandeur — le fer s'accumule là où il sort. C'est le lot 049.
 - **Utiliser la mer.** Les arêtes maritimes de la carte sont écartées en
   silence. Plus d'une cellule sur trois n'a aucun voisin terrestre : elle ne
   peut ni recevoir ni donner un kilogramme. C'est le lot 046.
@@ -127,6 +129,9 @@ quoi faire quand ça casse — est décrit après le registre.
 
 ### [047 — Le bourg est une agrégation dérivée](briefs/047-le-bourg-est-une-agregation-derivee.md)
 état : pret · couche : 2 · dépend de : 044 · PR : —
+
+### [049 — Fabriquer : le minerai devient un objet](briefs/049-fabriquer-le-minerai-devient-un-objet.md)
+état : a-briefer · couche : 2 · dépend de : 044 · PR : —
 
 ## Livrés depuis le dégraissage V1
 
