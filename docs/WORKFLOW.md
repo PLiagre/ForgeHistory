@@ -28,7 +28,7 @@ fusionne pas. Les prompts des postes sont les skills de l'atelier.
 |---|---|---|---|
 | **Écriture** | Claude Code · Claude Pro | écrit et amende les briefs sous `briefs/` | exécuter un lot qu'il a briefé |
 | **Exécution** | Cursor · Grok 4.6 High | exécute un brief sur `agent/NNN-slug`, ouvre la PR | juger son travail, fusionner |
-| **Contrôle** | Codex · GPT-5.6 | relit le brief, relit le diff | corriger ce qu'il relit |
+| **Contrôle** | Claude Code · Claude Pro | relit le brief, relit le diff | corriger ce qu'il relit |
 
 Le relecteur n'est jamais l'auteur. Le propriétaire fusionne.
 

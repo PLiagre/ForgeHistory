@@ -12,4 +12,4 @@ prefixe_branche = "agent/"
 [roles]
 ecriture = "claude"
 execution = "cursor"
-controle = "codex"
+controle = "claude"
