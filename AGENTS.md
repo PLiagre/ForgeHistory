@@ -22,11 +22,13 @@ commentaires. Phrases courtes. Un terme technique s'explique une fois.
 
 ## Le cycle
 
-1. Le propriétaire choisit un brief du dépôt produit.
-2. Un agent qui n'exécutera pas le lot le relit.
-3. Un autre agent l'exécute dans un worktree, sur une branche à lui.
+1. Le propriétaire place un lot dans la feuille de route du produit ;
+   `atelier piloter` en dérive la prochaine carte, il ne la devine pas.
+2. Un agent écrit le brief et ouvre sa PR ; le propriétaire fusionne.
+3. Un autre agent l'exécute dans un worktree, sur une branche à lui, et
+   fait passer la fiche du lot à `livre` dans sa PR.
 4. Un agent qui n'a pas écrit le code relit le diff.
-5. La CI du dépôt produit joue les tests.
+5. La CI du dépôt produit joue les tests et valide la feuille.
 6. Le propriétaire fusionne.
 
 Pas de fusion ici. Pas de verdict qui remplace l'œil.
@@ -65,10 +67,20 @@ python3 -m atelier portes --brief /chemin/du/brief.md
 python3 -m atelier start /chemin/du/brief.md --projet /chemin/du/produit
 python3 -m atelier start /chemin/du/brief.md --projet /chemin/du/produit --run
 python3 -m atelier status --projet /chemin/du/produit
+python3 -m atelier feuille valider --projet /chemin/du/produit
+python3 -m atelier piloter --projet /chemin/du/produit
 python3 -m pytest tests/ -q
 ```
 
-Sans `--run`, `start` est un aperçu.
+Sans `--run`, `start` et `piloter` sont des aperçus.
+
+## La feuille de route
+
+L'état d'un lot s'écrit à un seul endroit : sa fiche dans le registre de
+la feuille de route du produit (`[projet].feuille`). L'atelier la lit,
+la valide, et en dérive la prochaine carte ; il ne lit jamais de prose
+pour décider. Le format des fiches, les six états et les transitions
+vivent avec le registre, dans le dépôt produit.
 
 ## Tests
 
@@ -76,7 +88,8 @@ Un test existe s'il protège l'une de ces trois choses, et seulement :
 
 1. un **invariant du cycle** (auteur ≠ relecteur, pas de fusion,
    canal d'échange git-invisible et lisible, un fichier n'est pas
-   dans deux lots actifs)
+   dans deux lots actifs, une fiche incohérente échoue et une
+   transition interdite est refusée)
 2. une **règle visible** (sans `--run` rien n'est écrit ; un quota
    inconnu vaut `-1`)
 3. le **déterminisme** de la porte mécanique (même brief, même refus)

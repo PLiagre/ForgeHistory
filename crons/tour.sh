@@ -165,15 +165,16 @@ set -e
 if [[ $code -eq 0 ]]; then
     # L'exécutant a ouvert la PR : on prend son numéro et on le retire du
     # canal, pour qu'un numéro périmé ne suive pas le lot suivant. On ne
-    # touche au canal que si le tour a réussi.
+    # touche au canal que si le tour a réussi. Le briefer ouvre lui aussi
+    # une PR — celle du brief — et la range de la même façon.
     suite=()
-    if [[ "$ROLE" == "coder" && -f "$WORKDIR/atelier-echange/pr.txt" ]]; then
+    if [[ ( "$ROLE" == "coder" || "$ROLE" == "briefer" ) && -f "$WORKDIR/atelier-echange/pr.txt" ]]; then
         numero="$(tr -cd '0-9' < "$WORKDIR/atelier-echange/pr.txt")"
         rm -f "$WORKDIR/atelier-echange/pr.txt"
         if [[ -n "$numero" ]]; then
             suite+=(--pr "$numero")
         else
-            echo "coder : atelier-echange/pr.txt ne portait aucun numéro." >&2
+            echo "$ROLE : atelier-echange/pr.txt ne portait aucun numéro." >&2
         fi
     fi
     if python3 -m atelier avancer --projet "$PROJET" --role "$ROLE" --lot "$lot" \

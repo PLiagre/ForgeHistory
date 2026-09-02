@@ -156,6 +156,39 @@ def _source_unique(brief: str) -> str:
     )
 
 
+def _fiche_du_lot(lot: str, feuille: str | None, etat: str) -> str:
+    """La consigne qui fait avancer la fiche du lot dans la feuille de route.
+
+    La fiche du lot fait partie du périmètre implicite de sa PR : c'est
+    par elle que la feuille se met à jour au moment exact de la fusion,
+    sans correction manuelle après coup. La commande est déterministe ;
+    la retouche à la main est le repli, pour un agent sans l'atelier
+    dans son PATH.
+    """
+    if not feuille:
+        return ""
+    if etat == "livre":
+        commande = (
+            f"python3 -m atelier feuille marquer --projet . --lot {lot} "
+            "--etat livre --pr <numéro de la PR>"
+        )
+        repli = (
+            f"remplace « état : pret » par « état : livre » sur la fiche {lot} "
+            f"de {feuille} et écris le numéro de la PR dans son champ « PR »"
+        )
+    else:
+        commande = f"python3 -m atelier feuille marquer --projet . --lot {lot} --etat {etat}"
+        repli = (
+            f"remplace « état : a-briefer » par « état : {etat} » sur la fiche {lot} "
+            f"de {feuille}"
+        )
+    return (
+        f" Dans la même PR, fais avancer la fiche du lot dans {feuille} : "
+        f"`{commande}` — ou, à défaut, {repli}. Cette fiche fait partie de ton "
+        "périmètre ; aucune autre fiche ne bouge."
+    )
+
+
 def prompt_du_role(
     role: str,
     *,
@@ -164,16 +197,32 @@ def prompt_du_role(
     projet: str,
     pr: int | None = None,
     branche: str | None = None,
+    feuille: str | None = None,
+    decision: str | None = None,
 ) -> str:
     if role not in ROLES_INVOCABLES:
         raise BackendErreur(f"rôle inconnu : {role} (connus : {', '.join(ROLES_INVOCABLES)})")
     if role == "pilote":
+        # Le pilote ne lit pas la feuille de route : `atelier piloter` l'a
+        # lue pour lui, en Python, et a déjà déposé ce qu'il y avait à
+        # déposer. Hermes reçoit la décision, il ne la prend pas — il
+        # n'invente ni numéro de lot, ni statut, ni chemin.
+        if decision and decision.strip():
+            compte_rendu = (
+                "Voici la décision de l'atelier ce matin, calculée par "
+                f"`python3 -m atelier piloter --projet {projet}` :\n{decision.strip()}\n"
+            )
+        else:
+            compte_rendu = "L'atelier n'a transmis aucune décision ce matin.\n"
         return (
             f"Tu es le pilote de {projet}. Tu ne codes pas, tu ne fusionnes pas, "
-            "tu n'invoques ni claude ni agent. Lis ROADMAP.md. S'il manque un "
-            "brief pour un lot au périmètre libre, dépose une carte avec "
-            f"python3 -m atelier deposer --projet {projet} --etat a-briefer "
-            "--lot NNN-slug --brief briefs/NNN-slug.md --fichier <fichier> "
+            "tu n'invoques ni claude ni agent, tu ne déposes ni ne déplaces aucune "
+            "carte : l'atelier l'a déjà fait. "
+            f"{compte_rendu}"
+            "Tu n'inventes ni numéro de lot, ni statut, ni chemin de brief, ni "
+            "liste de fichiers. Si la décision signale une erreur (FAIL) ou une "
+            "incohérence, écris pour le propriétaire un résumé de trois phrases au "
+            "plus dans atelier-echange/pilote.txt (crée le dossier s'il manque), "
             "puis arrête-toi. Sinon écris RIEN et arrête-toi."
         )
     if not lot or not brief:
@@ -184,9 +233,13 @@ def prompt_du_role(
     if role == "briefer":
         return (
             f"Écris le brief du lot {lot} de {projet}, dans le fichier {brief}. "
-            "Suis le format de brief du dépôt produit. Tu ne codes pas, tu "
-            "n'ouvres pas de PR, tu ne fusionnes pas, tu n'invoques aucun "
-            "autre agent."
+            "Suis le format de brief du dépôt produit. Travaille sur une branche "
+            f"brief/{lot}, ouvre une PR à la fin ; tu ne fusionnes pas. Puis écris "
+            "son numéro, seul, dans atelier-echange/pr.txt (crée le dossier s'il "
+            "manque)."
+            f"{_fiche_du_lot(lot, feuille, 'pret')} "
+            "Tu ne codes pas, tu n'exécutes pas ce lot, tu n'invoques aucun autre "
+            "agent."
         )
     if role == "planifier":
         return (
@@ -198,10 +251,12 @@ def prompt_du_role(
     if role == "coder":
         return (
             f"Exécute le lot {lot} de {projet}. {_source_unique(brief)} "
-            "N'écris que dans les fichiers que sa section Périmètre autorise. "
+            "N'écris que dans les fichiers que sa section Périmètre autorise"
+            f"{', plus la fiche du lot dans ' + feuille if feuille else ''}. "
             "Ouvre une PR à la fin ; tu ne fusionnes pas. Puis écris son "
             "numéro, seul, dans atelier-echange/pr.txt (crée le dossier s'il "
             "manque) : c'est par là que le relecteur saura quoi relire."
+            f"{_fiche_du_lot(lot, feuille, 'livre')}"
         )
     # Le numéro de PR n'est pas une consigne : c'est une coordonnée. Il dit
     # où regarder, pas quoi faire. Sans lui, on nomme la branche — on
@@ -214,11 +269,17 @@ def prompt_du_role(
         cible = f"la branche {branche}"
     else:
         cible = f"le lot {lot}"
+    fiche = (
+        f" Vérifie aussi que la fiche du lot dans {feuille} passe à « livre » avec "
+        "ce numéro de PR, et qu'aucune autre fiche ne bouge."
+        if feuille
+        else ""
+    )
     return (
         f"Relis le diff du lot {lot} de {projet} : {cible}. Tu n'as pas écrit "
         "ce code : tu ne le corriges pas, tu n'écris aucun fichier, tu ne "
         f"pousses rien, tu ne fusionnes pas. {_source_unique(brief)} Rends un "
-        "avis qui cite le périmètre et les conditions de succès."
+        f"avis qui cite le périmètre et les conditions de succès.{fiche}"
     )
 
 
@@ -231,11 +292,14 @@ def argv_du_role(
     brief: str | None = None,
     pr: int | None = None,
     branche: str | None = None,
+    feuille: str | None = None,
+    decision: str | None = None,
 ) -> list[str]:
     """L'argv exact du rôle. Construit ici, exécuté par le cron, jamais ici."""
     backend = backend_du_role(role, roles)
     prompt = prompt_du_role(
-        role, lot=lot, brief=brief, projet=projet, pr=pr, branche=branche
+        role, lot=lot, brief=brief, projet=projet, pr=pr, branche=branche,
+        feuille=feuille, decision=decision,
     )
     if role == "pilote":
         # Depuis Hermes 0.20, -p/--profile choisit un profil. Le mode

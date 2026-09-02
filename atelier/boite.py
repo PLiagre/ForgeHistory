@@ -25,8 +25,13 @@ BOITE_DU_ROLE = {
     "relire": "a-relire",
 }
 
+# Le briefer écrit dans son propre worktree et ouvre une PR : le brief
+# n'est sur master qu'une fois fusionné par le propriétaire. Sa carte
+# ne va donc ni à a-planifier ni à a-coder — le coder ne trouverait pas
+# le brief. Elle attend la fusion ; le pilote dépose ensuite la carte
+# du coder d'après la feuille de route (`atelier piloter`).
 SUIVANT = {
-    "briefer": "a-coder",       # pas a-planifier : Composer n'attend pas Grok
+    "briefer": "brief-a-fusionner",
     "planifier": "a-coder",     # s'il passe, il enrichit la même file
     "coder": "a-relire",
     "relire": "faite",

@@ -39,11 +39,15 @@ def test_echec_ne_bloque_pas_l_autre_role(tmp_path: Path):
     assert boite.lister(tmp_path, "echec")[0].note == "quota claude épuisé"
 
 
-def test_avancer_briefer_va_au_coder_pas_au_planificateur(tmp_path: Path):
+def test_avancer_briefer_attend_la_fusion_du_brief(tmp_path: Path):
+    # Le brief est en PR : ni le planificateur ni le coder ne le trouveraient
+    # sur master. La carte attend la fusion ; le pilote redéposera d'après
+    # la feuille de route.
     boite.deposer(tmp_path, "a-briefer", _carte())
     cible = boite.avancer(tmp_path, "briefer", "044-mineur")
-    assert cible.parent.name == "a-coder"
+    assert cible.parent.name == "brief-a-fusionner"
     assert boite.prochain(tmp_path, "planifier") is None
+    assert boite.prochain(tmp_path, "coder") is None
 
 
 def test_cli_rien_sort_zero(tmp_path: Path):

@@ -17,6 +17,7 @@ import pytest
 
 from atelier import backends, boite
 from atelier.__main__ import main
+from tests.test_porte import BRIEF_SAIN
 
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -66,6 +67,7 @@ def _projet(tmp_path: Path) -> Path:
         'fumee = "echo fumee-ok"\n'
         'branche_base = "master"\n'
         'prefixe_branche = "agent/"\n'
+        'feuille = "ROADMAP.md"\n'
         "\n[roles]\n"
         'ecriture = "claude"\n'
         'execution = "cursor"\n'
@@ -73,7 +75,17 @@ def _projet(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (racine / "briefs" / "044-mineur.md").write_text(
-        "# Brief 044\n\n## Périmètre\n\n- `sim/engine.py`\n", encoding="utf-8"
+        BRIEF_SAIN.replace("# Brief 001", "# Brief 044").replace("`src/foo.py`", "`sim/engine.py`"),
+        encoding="utf-8",
+    )
+    # Une feuille de route cohérente avec un lot prêt : le pilote a une
+    # décision à prendre, calculée, et de quoi la dire à Hermes.
+    (racine / "ROADMAP.md").write_text(
+        "# ROADMAP\n\n<!-- lots:debut -->\n\n"
+        "### [044 — Le mineur](briefs/044-mineur.md)\n"
+        "état : pret · couche : 1 · dépend de : — · PR : —\n\n"
+        "<!-- lots:fin -->\n",
+        encoding="utf-8",
     )
     return racine
 

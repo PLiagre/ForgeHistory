@@ -1,9 +1,9 @@
 ---
 name: ecrire-un-brief
 description: >
-  Écrire le brief d'un lot. Un fichier, cinq sections. Ne code rien,
-  n'ouvre pas de branche. Le fond (ce que le monde saura faire) est
-  une affaire du dépôt produit, pas de l'atelier.
+  Écrire le brief d'un lot. Un fichier, cinq sections, une PR. Ne code
+  rien. Le fond (ce que le monde saura faire) est une affaire du dépôt
+  produit, pas de l'atelier.
 ---
 
 # Écrire un brief
@@ -19,5 +19,14 @@ prendre, pas ce qu'est le monde.
 5. Ne pas demander de modifier un test existant.
 6. Si le lot touche au monde du produit, dire le niveau de fidélité
    que *ce* produit définit.
+7. Dans le périmètre, les fichiers autorisés dans leur phrase, les
+   fichiers interdits dans la leur — jamais les deux dans la même :
+   l'atelier lit les premiers pour poser le verrou et écarte les
+   seconds.
 
-Ne code rien. N'ouvre pas de branche. Tu n'exécuteras pas ce lot.
+Le brief part dans une PR, sur une branche à lui, et la fiche du lot
+dans la feuille de route du produit passe à `pret` dans la même PR
+(`python3 -m atelier feuille marquer --projet . --lot NNN --etat pret`).
+Le propriétaire fusionne ; c'est cette fusion qui rend le lot codable.
+
+Ne code rien. Tu n'exécuteras pas ce lot.
