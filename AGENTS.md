@@ -69,10 +69,14 @@ python3 -m atelier start /chemin/du/brief.md --projet /chemin/du/produit --run
 python3 -m atelier status --projet /chemin/du/produit
 python3 -m atelier feuille valider --projet /chemin/du/produit
 python3 -m atelier piloter --projet /chemin/du/produit
+python3 -m atelier branche --projet /chemin/du/produit --lot 047-slug
+python3 -m atelier branche --projet /chemin/du/produit --lot 047-slug \
+    --worktree /chemin/du/worktree-coder --run
+python3 -m atelier pr --fichier /chemin/atelier-echange/pr.txt
 python3 -m pytest tests/ -q
 ```
 
-Sans `--run`, `start` et `piloter` sont des aperçus.
+Sans `--run`, `start`, `piloter` et `branche` sont des aperçus.
 
 ## La feuille de route
 

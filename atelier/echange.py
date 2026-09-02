@@ -8,10 +8,18 @@ revue illisible (lot 033 de ForgeHistory).
 from __future__ import annotations
 
 import hashlib
+import json
+import re
+import shutil
+import subprocess
 from pathlib import Path
 
 
 NOM_DOSSIER = "atelier-echange"
+FICHIER_PR = "pr.txt"
+# Un entier positif, et rien d'autre. On ne concatène pas les chiffres
+# d'un texte quelconque : « PR #123 » n'est pas un numéro.
+_ENTIER_POSITIF = re.compile(r"^[1-9][0-9]*$")
 
 
 class EchangeErreur(ValueError):
@@ -63,3 +71,68 @@ def git_ignore_le_canal(racine: Path) -> bool:
     """Le canal a sa propre garde `*`. Il ne s'appuie pas sur le dépôt."""
     garde = dossier(racine) / ".gitignore"
     return garde.is_file() and "*" in garde.read_text(encoding="utf-8")
+
+
+def chemin_pr(racine: Path) -> Path:
+    return dossier(racine) / FICHIER_PR
+
+
+def lire_numero_pr(fichier: Path) -> int:
+    """Le fichier, après trim, ne porte qu'un entier positif.
+
+    Absent, vide, « PR #123 », « 0 », plusieurs lignes : refus.
+    On n'extrait pas les chiffres d'un texte libre.
+    """
+    cible = Path(fichier)
+    if not cible.is_file():
+        raise EchangeErreur(f"{FICHIER_PR} est absent : pas de numéro de PR")
+    texte = cible.read_text(encoding="utf-8").strip()
+    if not texte:
+        raise EchangeErreur(f"{FICHIER_PR} est vide : pas de numéro de PR")
+    if not _ENTIER_POSITIF.fullmatch(texte):
+        apercu = texte.replace("\n", "\\n")
+        if len(apercu) > 80:
+            apercu = apercu[:77] + "..."
+        raise EchangeErreur(
+            f"{FICHIER_PR} ne porte pas un entier positif unique (reçu {apercu!r})"
+        )
+    return int(texte)
+
+
+def verifier_pr_branche_optionnel(numero: int, branche: str, racine: Path) -> str | None:
+    """Si gh répond, la PR doit être sur `branche`. Sinon on se tait.
+
+    La sonde parle à GitHub : elle exige un remote, un binaire `gh`, et
+    souvent une authentification. Un échec de sonde n'est pas un défaut
+    du lot — on ne bloque pas le tour. Un désaccord *confirmé* l'est.
+    Retourne None si la sonde n'a pas tranché, la branche distante si
+    elle correspond, et lève si elle diffère.
+    """
+    if shutil.which("gh") is None:
+        return None
+    origine = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=racine, text=True, capture_output=True, check=False,
+    )
+    if origine.returncode != 0 or "github.com" not in origine.stdout:
+        return None
+    try:
+        vue = subprocess.run(
+            ["gh", "pr", "view", str(numero), "--json", "headRefName"],
+            cwd=racine, text=True, capture_output=True, check=False, timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if vue.returncode != 0 or not vue.stdout.strip():
+        return None
+    try:
+        nom = json.loads(vue.stdout).get("headRefName")
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(nom, str) or not nom:
+        return None
+    if nom != branche:
+        raise EchangeErreur(
+            f"la PR {numero} est sur la branche {nom}, pas {branche}"
+        )
+    return nom

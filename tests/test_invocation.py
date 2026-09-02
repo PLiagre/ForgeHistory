@@ -17,6 +17,7 @@ import pytest
 
 from atelier import backends, boite
 from atelier.__main__ import main
+from tests.depot import installer, worktree_role
 from tests.test_porte import BRIEF_SAIN
 
 
@@ -43,7 +44,13 @@ def _faux(dossier: Path, nom: str, corps: str) -> Path:
     return cible
 
 
-def _mouchard(dossier: Path, nom: str, temoin: Path, code: int = 0) -> Path:
+def _mouchard(dossier: Path, nom: str, temoin: Path, code: int = 0, pr: int | None = None) -> Path:
+    pr_corps = ""
+    if pr is not None:
+        pr_corps = (
+            "mkdir -p atelier-echange\n"
+            f"printf '%s\\n' '{pr}' > atelier-echange/pr.txt\n"
+        )
     return _faux(
         dossier,
         nom,
@@ -51,6 +58,7 @@ def _mouchard(dossier: Path, nom: str, temoin: Path, code: int = 0) -> Path:
         f'printf "cles=[%s|%s|%s]\\n" '
         f'"${{ANTHROPIC_API_KEY:-}}" "${{CURSOR_API_KEY:-}}" "${{OPENAI_API_KEY:-}}"'
         f' >> "{temoin}"\n'
+        f"{pr_corps}"
         f"exit {code}\n",
     )
 
@@ -117,6 +125,14 @@ def _env(projet: Path, faux: Path, verrous: Path, **extra: str) -> dict[str, str
     return env
 
 
+def _coder_env(projet: Path, faux: Path, verrous: Path, tmp_path: Path, **extra: str) -> dict[str, str]:
+    """Un worktree de rôle distinct du clone : le cron refuse de basculer le produit."""
+    installer(projet)
+    worktree_role(projet, tmp_path / "coder")
+    extra.setdefault("ATELIER_WORKDIR_coder", str(tmp_path / "coder"))
+    return _env(projet, faux, verrous, **extra)
+
+
 def _tour(role: str, env: dict[str, str], script: Path = TOUR) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["bash", str(script), role] if script is TOUR else ["bash", str(script)],
@@ -174,6 +190,8 @@ def test_invocation_cite_le_brief_comme_seule_source(tmp_path: Path, capsys):
     sortie = capsys.readouterr().out
     assert "briefs/044-mineur.md" in sortie
     assert "SEULE source" in sortie
+    assert "agent/044-mineur" in sortie
+    assert "entier positif" in sortie
 
 
 def test_invocation_ignore_la_note_de_la_carte(tmp_path: Path, capsys):
@@ -274,9 +292,9 @@ def test_le_coder_lance_composer_et_avance_la_carte(tmp_path: Path):
     _carte(projet)
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
     temoin = tmp_path / "temoin.txt"
-    _mouchard(faux, "agent", temoin)
+    _mouchard(faux, "agent", temoin, pr=44)
     _mouchard(faux, "claude", tmp_path / "claude.txt")
-    r = _tour("coder", _env(projet, faux, verrous, ATELIER_INVOQUER="1"))
+    r = _tour("coder", _coder_env(projet, faux, verrous, tmp_path, ATELIER_INVOQUER="1"))
     assert r.returncode == 0, r.stderr
     trace = temoin.read_text(encoding="utf-8")
     assert "--model composer-2.5" in trace
@@ -293,9 +311,9 @@ def test_les_cles_d_api_ne_passent_pas_a_l_agent(tmp_path: Path):
     _carte(projet)
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
     temoin = tmp_path / "temoin.txt"
-    _mouchard(faux, "agent", temoin)
-    env = _env(
-        projet, faux, verrous,
+    _mouchard(faux, "agent", temoin, pr=44)
+    env = _coder_env(
+        projet, faux, verrous, tmp_path,
         ATELIER_INVOQUER="1",
         ANTHROPIC_API_KEY="sk-ant-secret",
         CURSOR_API_KEY="cur-secret",
@@ -314,7 +332,7 @@ def test_un_agent_qui_echoue_range_la_carte_en_echec(tmp_path: Path):
     _carte(projet)
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
     _mouchard(faux, "agent", tmp_path / "temoin.txt", code=3)
-    r = _tour("coder", _env(projet, faux, verrous, ATELIER_INVOQUER="1"))
+    r = _tour("coder", _coder_env(projet, faux, verrous, tmp_path, ATELIER_INVOQUER="1"))
     assert r.returncode != 0
     assert _boite_de(projet, "a-coder") == []
     assert _boite_de(projet, "echec") == ["044-mineur"]
@@ -327,7 +345,7 @@ def test_un_agent_qui_pend_finit_en_echec(tmp_path: Path):
     _carte(projet)
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
     _faux(faux, "agent", "sleep 30\n")
-    r = _tour("coder", _env(projet, faux, verrous, ATELIER_INVOQUER="1", ATELIER_TIMEOUT="1"))
+    r = _tour("coder", _coder_env(projet, faux, verrous, tmp_path, ATELIER_INVOQUER="1", ATELIER_TIMEOUT="1"))
     assert r.returncode != 0
     assert _boite_de(projet, "echec") == ["044-mineur"]
     assert "délai" in boite.lister(projet, "echec")[0].note
@@ -370,9 +388,9 @@ def test_quota_inconnu_ne_compte_pas_pour_zero(tmp_path: Path):
     _carte(projet)
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
     temoin = tmp_path / "temoin.txt"
-    _mouchard(faux, "agent", temoin)
+    _mouchard(faux, "agent", temoin, pr=44)
     _faux(faux, "llmquota", "echo 'je ne sais pas'\n")
-    r = _tour("coder", _env(projet, faux, verrous, ATELIER_INVOQUER="1"))
+    r = _tour("coder", _coder_env(projet, faux, verrous, tmp_path, ATELIER_INVOQUER="1"))
     assert r.returncode == 0, r.stderr
     assert temoin.exists()
 
@@ -383,8 +401,8 @@ def test_llmquota_absent_ne_bloque_pas(tmp_path: Path):
     _carte(projet)
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
     temoin = tmp_path / "temoin.txt"
-    _mouchard(faux, "agent", temoin)
-    r = _tour("coder", _env(projet, faux, verrous, ATELIER_INVOQUER="1"))
+    _mouchard(faux, "agent", temoin, pr=44)
+    r = _tour("coder", _coder_env(projet, faux, verrous, tmp_path, ATELIER_INVOQUER="1"))
     assert r.returncode == 0, r.stderr
     assert temoin.exists()
 
@@ -397,9 +415,9 @@ def test_le_planificateur_cede_le_quota_au_coder(tmp_path: Path):
     _carte(projet, etat="a-coder")
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
     temoin = tmp_path / "temoin.txt"
-    _mouchard(faux, "agent", temoin)
+    _mouchard(faux, "agent", temoin, pr=44)
     _faux(faux, "llmquota", "echo 1\n")
-    env = _env(projet, faux, verrous, ATELIER_INVOQUER="1")
+    env = _coder_env(projet, faux, verrous, tmp_path, ATELIER_INVOQUER="1")
 
     plan = _tour("planifier", env)
     assert plan.returncode == 0, plan.stderr

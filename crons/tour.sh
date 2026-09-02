@@ -68,6 +68,10 @@ if ! python3 -m atelier invocation "${inv[@]}"; then
     echo "$ROLE : branchement illisible, aucun agent lancé." >&2
     exit 1
 fi
+if [[ "$ROLE" == "coder" ]]; then
+    echo -n "branche du lot : "
+    python3 -m atelier branche --projet "$PROJET" --lot "$lot"
+fi
 
 # « Celui qui a écrit le code ne dit pas s'il est recevable » ne tient
 # que si le relecteur n'a pas la main qui écrit. Si le binaire que le
@@ -134,12 +138,41 @@ if [[ "$ROLE" != "briefer" ]]; then
     fi
 fi
 
+echouer_le_lot() {
+    # Une carte prise ne reste jamais en place. Le fichier d'échange
+    # disparaît pour ne pas contaminer le lot suivant. Le verrou du
+    # coder se lève sur tous les chemins d'échec.
+    local raison="$1"
+    rm -f "$WORKDIR/atelier-echange/pr.txt"
+    python3 -m atelier echouer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
+        --raison "$raison" >/dev/null
+    if [[ "$ROLE" == "coder" ]]; then
+        python3 -m atelier lever --projet "$PROJET" --lot "$lot" >/dev/null
+    fi
+    echo "$raison" >&2
+    exit 1
+}
+
 # Seul le coder écrit du code : lui seul tient les fichiers.
 if [[ "$ROLE" == "coder" ]]; then
     if ! python3 -m atelier verrouiller --projet "$PROJET" --role coder --lot "$lot"; then
         python3 -m atelier echouer --projet "$PROJET" --role coder --lot "$lot" \
             --raison "verrou refusé : un autre lot tient un fichier du périmètre" >/dev/null
         exit 1
+    fi
+    # Un numéro périmé ne doit jamais être relu si l'agent n'écrit rien.
+    rm -f "$WORKDIR/atelier-echange/pr.txt"
+    # La branche du lot, avant d'invoquer Cursor : le worktree du rôle
+    # n'est pas la branche du lot.
+    if ! attendue="$(python3 -m atelier branche --projet "$PROJET" --lot "$lot" \
+            --worktree "$WORKDIR" --run)"; then
+        echouer_le_lot "$ROLE : impossible de préparer la branche du lot $lot"
+    fi
+    if ! courante="$(git -C "$WORKDIR" branch --show-current)"; then
+        echouer_le_lot "$ROLE : impossible de lire la branche courante de $WORKDIR"
+    fi
+    if [[ "$courante" != "$attendue" ]]; then
+        echouer_le_lot "$ROLE : branche courante « $courante », attendue « $attendue » — aucun agent lancé"
     fi
 fi
 
@@ -163,19 +196,23 @@ set -e
 
 # --- une carte prise ne reste jamais en place ----------------------------
 if [[ $code -eq 0 ]]; then
-    # L'exécutant a ouvert la PR : on prend son numéro et on le retire du
-    # canal, pour qu'un numéro périmé ne suive pas le lot suivant. On ne
-    # touche au canal que si le tour a réussi. Le briefer ouvre lui aussi
-    # une PR — celle du brief — et la range de la même façon.
     suite=()
-    if [[ ( "$ROLE" == "coder" || "$ROLE" == "briefer" ) && -f "$WORKDIR/atelier-echange/pr.txt" ]]; then
-        numero="$(tr -cd '0-9' < "$WORKDIR/atelier-echange/pr.txt")"
+    if [[ "$ROLE" == "coder" ]]; then
+        # Un code 0 ne suffit pas : sans entier positif, la carte n'entre
+        # jamais dans a-relire. On ne concatène pas les chiffres d'un texte.
+        if ! numero="$(python3 -m atelier pr --fichier "$WORKDIR/atelier-echange/pr.txt" \
+                --branche "$attendue" --worktree "$WORKDIR")"; then
+            echouer_le_lot "$ROLE : $lot n'a pas déposé de numéro de PR valide dans atelier-echange/pr.txt"
+        fi
         rm -f "$WORKDIR/atelier-echange/pr.txt"
-        if [[ -n "$numero" ]]; then
+        suite+=(--pr "$numero")
+    elif [[ "$ROLE" == "briefer" && -f "$WORKDIR/atelier-echange/pr.txt" ]]; then
+        if numero="$(python3 -m atelier pr --fichier "$WORKDIR/atelier-echange/pr.txt")"; then
             suite+=(--pr "$numero")
         else
-            echo "$ROLE : atelier-echange/pr.txt ne portait aucun numéro." >&2
+            echo "$ROLE : atelier-echange/pr.txt ne portait pas un entier positif unique." >&2
         fi
+        rm -f "$WORKDIR/atelier-echange/pr.txt"
     fi
     if python3 -m atelier avancer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
             ${suite[@]+"${suite[@]}"} >/dev/null; then
@@ -184,15 +221,9 @@ if [[ $code -eq 0 ]]; then
     fi
     # L'agent a tourné : la carte ne reste pas en place, sinon le rôle
     # la retrouve demain et la repaie demain.
-    raison="$ROLE : $lot n'a pas pu avancer (la file suivante l'a déjà ?)"
+    echouer_le_lot "$ROLE : $lot n'a pas pu avancer (la file suivante l'a déjà ?)"
 elif [[ $code -eq 124 ]]; then
-    raison="$ROLE : délai dépassé (${DELAI}s)"
+    echouer_le_lot "$ROLE : délai dépassé (${DELAI}s)"
 else
-    raison="$ROLE : l'agent a rendu le code $code"
+    echouer_le_lot "$ROLE : l'agent a rendu le code $code"
 fi
-python3 -m atelier echouer --projet "$PROJET" --role "$ROLE" --lot "$lot" --raison "$raison" >/dev/null
-if [[ "$ROLE" == "coder" ]]; then
-    python3 -m atelier lever --projet "$PROJET" --lot "$lot" >/dev/null
-fi
-echo "$raison" >&2
-exit 1
