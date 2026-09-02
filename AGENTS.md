@@ -80,8 +80,27 @@ Six façons de rater un brief :
    ses cas au fichier qui porte déjà l'invariant concerné.
 5. **Tout brief qui touche au monde dit son niveau de fidélité** (1, 2 ou 3).
 6. **Le périmètre d'écriture n'autorise que ce que le travail décrit exige.**
-   Tout autre chemin est interdit, nommément. Un périmètre large est une
-   permission qu'on ne se souvient pas d'avoir donnée.
+ Tout autre chemin est interdit, nommément. Un périmètre large est une
+ permission qu'on ne se souvient pas d'avoir donnée. Les fichiers
+ autorisés dans leur phrase, les interdits dans la leur : l'atelier lit
+ les premiers pour poser le verrou et écarte les seconds.
+
+## La feuille de route
+
+L'état d'un lot ne s'écrit qu'à **un** endroit : sa fiche dans le registre
+de [ROADMAP.md](ROADMAP.md), qui décrit aussi les états, les transitions et
+qui tient chaque geste. Trois règles tiennent ici :
+
+1. **Un lot n'existe que s'il a une fiche.** Un brief sans fiche est un
+ orphelin, une fiche `pret` sans brief est un mensonge : les deux
+ rougissent.
+2. **La fiche d'un lot fait partie du périmètre implicite de sa PR**, et
+ rien d'autre de `ROADMAP.md`. La PR du brief la passe à `pret` ; la PR du
+ lot la passe à `livre` avec son numéro. C'est ce qui fait que `master` ne
+ dit « livré » qu'après la fusion, jamais avant.
+3. **La machine ne lit pas la prose.** `python3 -m atelier feuille valider
+ --projet .` est la seule lecture qui compte ; la CI la joue sur chaque
+ PR, avec les transitions contre `master`.
 
 ---
 
@@ -182,6 +201,7 @@ processus : elles survivent à tout changement de workflow.
 | `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
 | `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
 | `briefs/` | un fichier par lot. |
+| `ROADMAP.md` | où on en est, et le registre des lots — la seule représentation de l'état d'un lot. |
 | `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier. |
 | `docs/WORKFLOW.md` | rappel local : les trois postes de *ce* produit, et le lien vers l'atelier. |
 
@@ -211,6 +231,11 @@ py -m sim                                # le produit
 py -m sim --ticks 0 --json               # fumée : le monde s'amorce
 py -m pytest sim/tests/ -q               # les tests du jeu
 py -m pytest viewer/tests/ -q            # le regard mince
+
+# la feuille de route : cohérente ? où en est chaque lot ?
+# (l'atelier sur le PYTHONPATH — voir docs/WORKFLOW.md)
+py -m atelier feuille valider --projet .
+py -m atelier feuille etat --projet .
 
 # regarder le monde : photographier, puis ouvrir
 py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
