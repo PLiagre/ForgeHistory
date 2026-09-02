@@ -45,31 +45,28 @@ if [[ "${ATELIER_SANS_PULL:-0}" != "1" ]] && git -C "$PROJET" rev-parse --is-ins
     fi
 fi
 
-# --- la décision, à sec --------------------------------------------------
-# Elle se calcule et s'imprime dans les deux modes : le mode à sec est
-# fait pour la voir. Une feuille incohérente est un FAIL : on le montre,
-# on ne dépose rien, et on le remonte au propriétaire.
-set +e
-decision="$(python3 -m atelier piloter --projet "$PROJET" 2>&1)"
-code_decision=$?
-set -e
-printf '%s\n' "$decision"
-
-python3 -m atelier invocation --role pilote --projet "$PROJET" --decision "$decision"
-
+# --- la décision ---------------------------------------------------------
+# Calculée en Python, à sec sans drapeau, pour de vrai avec. Le mode à sec
+# est fait pour voir : la décision et l'invocation exacte qui partirait.
+# Une feuille incohérente est un FAIL : rien n'est déposé, et c'est cela
+# qu'Hermes reçoit à résumer au propriétaire.
 if [[ "${ATELIER_INVOQUER:-0}" != "1" ]]; then
+    set +e
+    decision="$(python3 -m atelier piloter --projet "$PROJET" 2>&1)"
+    code_decision=$?
+    set -e
+    printf '%s\n' "$decision"
+    python3 -m atelier invocation --role pilote --projet "$PROJET" --decision "$decision"
     echo "ATELIER_INVOQUER n'est pas posé : aucune carte déposée, aucun agent lancé."
     exit "$code_decision"
 fi
 
 # --- sous drapeau : déposer, puis dire -----------------------------------
-if [[ $code_decision -eq 0 ]]; then
-    set +e
-    decision="$(python3 -m atelier piloter --projet "$PROJET" --run 2>&1)"
-    code_decision=$?
-    set -e
-    printf '%s\n' "$decision"
-fi
+set +e
+decision="$(python3 -m atelier piloter --projet "$PROJET" --run 2>&1)"
+code_decision=$?
+set -e
+printf '%s\n' "$decision"
 
 # Rien à déposer, rien à signaler : Hermes n'a rien à dire, on ne le paie pas.
 if [[ $code_decision -eq 0 && "$decision" == "RIEN" ]]; then

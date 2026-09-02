@@ -718,16 +718,10 @@ def _cmd_piloter(args: argparse.Namespace) -> int:
             verbe = "rapproché " if args.run else "rapprocher"
             levee = " ; verrou levé" if r.lever_verrou and args.run else ""
             lignes.append(f"{verbe} {r.lot} : {r.source} → {r.destination} ({r.raison}){levee}")
+        # Une carte qu'un rapprochement déplace n'est pas une incohérence :
+        # `verifier_cartes` ne la compte pas, à sec comme sous --run.
         erreurs = feuille.verifier(f, racine, produit.briefs)
-        if args.run:
-            erreurs += feuille.verifier_cartes(f, racine)
-        else:
-            # À sec, on juge les cartes comme si les rapprochements étaient faits.
-            deja = {(r.lot, r.source) for r in feuille.rapprochements(f, racine)}
-            erreurs += [
-                e for e in feuille.verifier_cartes(f, racine)
-                if not any(e.startswith(f"carte {lot} dans {source}") for lot, source in deja)
-            ]
+        erreurs += feuille.verifier_cartes(f, racine)
         if erreurs:
             for ligne in lignes:
                 print(ligne)

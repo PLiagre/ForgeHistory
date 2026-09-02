@@ -457,12 +457,12 @@ def rapprochements(feuille: Feuille, racine: Path) -> list[Rapprochement]:
             if fiche.etat == "livre":
                 resultat.append(Rapprochement(
                     lot, nom_boite, BOITE_FUSIONNEE, lever_verrou=True,
-                    raison=f"le lot est livré (PR {', '.join(map(str, fiche.prs))})",
+                    raison=f"la fiche dit « livre », PR {', '.join(map(str, fiche.prs))}",
                 ))
             elif nom_boite == BOITE_BRIEF_A_FUSIONNER and fiche.etat == "pret":
                 resultat.append(Rapprochement(
                     lot, nom_boite, BOITE_FUSIONNEE, lever_verrou=False,
-                    raison="le brief est fusionné (le lot est « pret »)",
+                    raison="la fiche dit « pret » : le brief est fusionné",
                 ))
     return resultat
 
