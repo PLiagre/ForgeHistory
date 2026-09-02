@@ -145,15 +145,23 @@ pas un point de blocage *entre agents*.
 ## Horaires (Europe/Paris)
 
 Le fichier prêt à poser est [`crons/crontab`](../crons/crontab).
+Le VPS ForgeHistory est en UTC et son cron Debian ne sait pas appliquer un
+fuseau par crontab. Les lignes se réveillent donc chaque heure, puis comparent
+l'heure locale sous `TZ=Europe/Paris` avant d'exécuter le rôle. Cela conserve
+les mêmes heures pendant les changements saisonniers.
 
 ```cron
-15 6  * * * ubuntu /opt/ForgeAtelier/crons/veille.sh
-0  7  * * * ubuntu /opt/ForgeAtelier/crons/pilote.sh
-30 8  * * * ubuntu /opt/ForgeAtelier/crons/tour.sh briefer
-0  10 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh planifier
-0  14 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh coder
-0  19 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh relire
+15 * * * * hermes # garde 06:15 Europe/Paris, puis veille.sh
+0  * * * * hermes # garde 07:00 Europe/Paris, puis pilote.sh
+30 * * * * hermes # garde 08:30 Europe/Paris, puis tour.sh briefer
+0  * * * * hermes # garde 10:00 Europe/Paris, puis tour.sh planifier
+0  * * * * hermes # garde 14:00 Europe/Paris, puis tour.sh coder
+0  * * * * hermes # garde 19:00 Europe/Paris, puis tour.sh relire
 ```
+
+Le `PATH` du crontab commence par `/srv/ForgeHistory/.venv/bin` et
+`/home/hermes/.local/bin` : le Python système reste intact et les trois
+binaires d'abonnement sont visibles sous l'utilisateur `hermes`.
 
 | heure | script | agent | s'il n'a rien |
 |---|---|---|---|

@@ -24,6 +24,7 @@ TOUR = RACINE / "crons" / "tour.sh"
 PILOTE = RACINE / "crons" / "pilote.sh"
 PROFILS = RACINE / "crons" / "installer-profils.sh"
 VEILLE = RACINE / "crons" / "veille.sh"
+CRONTAB = RACINE / "crons" / "crontab"
 
 besoin_bash = pytest.mark.skipif(shutil.which("bash") is None, reason="bash absent")
 
@@ -519,6 +520,27 @@ def test_installer_profils_run_utilise_la_syntaxe_hermes_021(tmp_path: Path):
     for role in ("pilote", "briefer", "coder", "relire"):
         assert f"profile create {role} --clone-from default" in trace
         assert f"--profile {role} config set terminal.cwd" in trace
+
+
+def test_crontab_vps_emploie_le_compte_et_les_binaires_reels():
+    texte = CRONTAB.read_text(encoding="utf-8")
+    assert " ubuntu " not in texte
+    assert "/srv/ForgeHistory/.venv/bin" in texte
+    assert "/home/hermes/.local/bin" in texte
+    commandes = [ligne for ligne in texte.splitlines() if "/opt/ForgeAtelier/crons/" in ligne]
+    assert len(commandes) == 6
+    assert all(" hermes " in ligne for ligne in commandes)
+    assert not any(
+        ligne.startswith("ATELIER_INVOQUER=") for ligne in texte.splitlines()
+    )
+
+
+def test_crontab_vps_garde_les_heures_de_paris_depuis_utc():
+    texte = CRONTAB.read_text(encoding="utf-8")
+    assert "TZ=Europe/Paris" in texte
+    for heure in ("06:15", "07:00", "08:30", "10:00", "14:00", "19:00"):
+        assert f'"{heure}"' in texte
+    assert texte.count(r"date +\%H:\%M") == 6
 
 
 # -------------------------------------------------------------- la veille
