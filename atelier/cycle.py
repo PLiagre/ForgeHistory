@@ -43,6 +43,20 @@ def _lot_depuis(brief: Path) -> str:
     return match.group(1)
 
 
+# Une phrase du périmètre qui contient l'un de ces mots nomme ce que le
+# lot n'a PAS le droit de toucher (règle 6 du produit : « tout autre chemin
+# est interdit, nommément »). Ses fichiers ne sont pas des fichiers du lot.
+# La convention côté brief : les fichiers autorisés dans leur phrase, les
+# interdits dans la leur — jamais les deux dans la même.
+_MOTS_D_EXCLUSION = re.compile(
+    r"interdit|pas modifiable|ne sont pas touchés|n'est pas touché",
+    re.IGNORECASE,
+)
+# Une phrase finit par un point suivi d'un blanc : le point d'un nom de
+# fichier (`sim/engine.py`) est suivi d'une lettre, il ne coupe pas.
+_PHRASE = re.compile(r"(?<=[.!?])\s+")
+
+
 def _fichiers_du_perimetre(brief: Path) -> list[str]:
     texte = brief.read_text(encoding="utf-8")
     match = re.search(
@@ -52,11 +66,17 @@ def _fichiers_du_perimetre(brief: Path) -> list[str]:
     )
     if not match:
         return []
-    vus: list[str] = []
-    for nom in _FICHIER.findall(match.group(1)):
-        if nom not in vus:
-            vus.append(nom)
-    return vus
+    autorises: list[str] = []
+    exclus: set[str] = set()
+    for phrase in _PHRASE.split(match.group(1)):
+        noms = _FICHIER.findall(phrase)
+        if _MOTS_D_EXCLUSION.search(phrase):
+            exclus.update(noms)
+            continue
+        for nom in noms:
+            if nom not in autorises:
+                autorises.append(nom)
+    return [nom for nom in autorises if nom not in exclus]
 
 
 def _prompts(brief: Path, lot: str) -> tuple[str, str]:

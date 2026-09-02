@@ -122,6 +122,55 @@ def test_auteur_egal_relecteur_refuse():
         )
 
 
+BRIEF_AVEC_INTERDITS = """# Brief 046 — la mer
+
+## But
+Une phrase.
+
+## Règle du monde
+Aucun fondement.
+
+## Périmètre
+
+En écriture : `sim/engine.py`, `sim/constants.py` **uniquement** pour déclarer
+un panier, et `sim/tests/test_commerce.py` pour y **ajouter** des cas.
+
+**`sim/tests/test_write_coverage.py` n'est pas modifiable.** Élargir le monde
+d'épreuve n'est pas la solution retenue.
+
+Tout autre chemin est interdit, nommément : `sim/MODELE.md`, `sim/model.py`,
+`sim/aggregation.py`, la carte figée `data/world-1400.json`, et ce brief.
+
+## Conditions de succès
+
+### SC1 — une commande
+```bash
+python3 -m pytest sim/tests/ -q
+```
+
+## Hors périmètre
+Rien d'autre.
+"""
+
+
+def test_le_perimetre_ne_compte_pas_les_fichiers_interdits(tmp_path: Path):
+    """Un périmètre nomme aussi ce qu'il interdit (règle 6 du produit).
+
+    Le verrou ne doit tenir que les fichiers autorisés : sinon le lot 046
+    tiendrait `sim/aggregation.py`, qui est le périmètre du 047, et les
+    deux lots « disjoints » se bloqueraient l'un l'autre.
+    """
+    from atelier.cycle import _fichiers_du_perimetre
+
+    brief = tmp_path / "046-la-mer.md"
+    brief.write_text(BRIEF_AVEC_INTERDITS, encoding="utf-8")
+    fichiers = _fichiers_du_perimetre(brief)
+    assert fichiers, "échantillon vide"
+    assert fichiers == ["sim/engine.py", "sim/constants.py", "sim/tests/test_commerce.py"]
+    for interdit in ("sim/aggregation.py", "sim/tests/test_write_coverage.py", "data/world-1400.json"):
+        assert interdit not in fichiers
+
+
 def test_brief_infirme_bloque_le_cycle(tmp_path: Path):
     racine = _produit(tmp_path)
     brief = racine / "briefs" / "001-un-changement.md"
