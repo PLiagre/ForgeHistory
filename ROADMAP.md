@@ -118,7 +118,7 @@ quoi faire quand ça casse — est décrit après le registre.
 ## Présentation
 
 ### [048 — Tableau de bord : stats mêlées à la carte](briefs/048-dashboard-stats-carte.md)
-état : pret · couche : — · dépend de : — · PR : —
+état : livre · couche : — · dépend de : — · PR : 201
 
 ## Couche 2 — ouverte
 
