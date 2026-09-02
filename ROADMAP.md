@@ -15,7 +15,7 @@ prime en cas de conflit. Le fonctionnement du monde vit dans
 | # | couche | statut |
 |---|---|---|
 | 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **faite, et elle tourne** |
-| 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | **ouverte** — trois briefs écrits |
+| 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | **ouverte** — 044 livré, 046 et 047 prêts |
 | 3 | **États** — fiscalité, lois, diplomatie, technologies, culture, religion | non commencée |
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencée |
 | 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencée |
@@ -67,24 +67,21 @@ manquent pour qu'elle puisse exister, et chacune a son brief écrit :
 
 | brief | ce qu'il ouvre |
 |---|---|
-| [044 — un métier : le mineur](briefs/044-un-metier-le-mineur.md) | la première division du travail : les mineurs ne labourent pas |
-| [046 — la mer est un port commun](briefs/046-la-mer-est-un-port-commun.md) | les cellules côtières cessent d'être hermétiques |
-| [047 — le bourg est une agrégation dérivée](briefs/047-le-bourg-est-une-agregation-derivee.md) | compter la part non agricole d'une cellule, sans la déclarer |
+| [044 — un métier : le mineur](briefs/044-un-metier-le-mineur.md) | **livré** par la PR #184 ; réparation de formule livrée par la PR #188 |
+| [046 — la mer est un port commun](briefs/046-la-mer-est-un-port-commun.md) | **prêt** — les cellules côtières cessent d'être hermétiques |
+| [047 — le bourg est une agrégation dérivée](briefs/047-le-bourg-est-une-agregation-derivee.md) | **prêt** — compter la part non agricole d'une cellule, sans la déclarer |
 
-**044 part seul, en premier.** Deux raisons distinctes :
+**044 est fusionné.** Sa dépendance est satisfaite : la part non agricole est
+désormais non nulle sur les cellules minières, et la réparation de la formule
+agricole est également livrée.
 
-- 047 en **dépend** — le bourg compte une part non agricole que le métier doit
-  d'abord créer, et son contrôle d'échantillon échoue tant qu'elle vaut zéro ;
-- 046 **entre en collision** avec lui — les deux écrivent dans `sim/engine.py`
-  et `sim/constants.py`. Ils ne dépendent pas l'un de l'autre, mais ils ne
-  peuvent pas s'écrire en même temps.
+**046 et 047 peuvent partir en parallèle.** Leurs périmètres sont disjoints
+(`engine.py`, `constants.py`, `world.py`, `test_commerce.py` contre
+`aggregation.py`, `test_province.py`). Aucun des deux n'attend l'autre.
 
-Une fois 044 fusionné, **046 et 047 partent en parallèle** : leurs périmètres
-sont disjoints (`engine.py`, `constants.py`, `world.py`, `test_commerce.py`
-contre `aggregation.py`, `test_province.py`).
-
-Les trois sont au format court d'[AGENTS.md](AGENTS.md) : un fichier, cinq
-sections, prêts à être lancés tels quels.
+Les briefs 046 et 047 sont au format court d'[AGENTS.md](AGENTS.md) : un
+fichier, cinq sections, prêts à être lancés tels quels. Le brief 044 conserve
+le compte rendu de son exécution et de sa réparation.
 
 ### Le mur, et pourquoi il est en train de tomber
 
