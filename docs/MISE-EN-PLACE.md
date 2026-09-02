@@ -102,16 +102,51 @@ main qui écrit, et `tour.sh` te le dit sur stderr avant de l'invoquer
 
 ---
 
+## La feuille de route décide, le pilote dépose
+
+Qui a besoin d'un brief, qui est prêt à coder, qui attend qui : ça ne se
+devine pas dans de la prose. Le dépôt produit tient un **registre des
+lots** dans sa feuille de route (`[projet].feuille` de l'`atelier.toml`,
+chez ForgeHistory `ROADMAP.md`) — une fiche par lot, un état parmi six,
+ses dépendances, ses PR. Le format et le cycle sont décrits là-bas, à
+côté du registre ; ici on dit seulement ce que l'atelier en fait.
+
+```bash
+python3 -m atelier feuille valider --projet /srv/ForgeHistory   # FAIL sur toute incohérence
+python3 -m atelier feuille etat    --projet /srv/ForgeHistory   # chaque lot, état écrit + dérivé
+python3 -m atelier piloter         --projet /srv/ForgeHistory   # la décision du matin, à sec
+```
+
+`piloter` fait trois choses, dans cet ordre, en Python et sans agent :
+
+1. **rapprocher** — une carte encore en boîte pour un lot que la feuille
+   dit `livre` a été fusionnée par toi : elle passe dans `fusionnee/` et
+   son verrou est rendu. Idem pour la carte d'un brief dont la fiche est
+   passée à `pret`. Tu n'as plus à `atelier lever` après une fusion ;
+2. **valider** — une feuille incohérente (fiche sans brief, brief
+   orphelin, dépendance fantôme, carte d'un lot inconnu…) arrête tout :
+   rien n'est déposé, la raison est dite ;
+3. **déposer** — au plus une carte par rôle : la première fiche
+   `a-briefer` sans carte va dans `a-briefer` ; la première fiche `pret`
+   dont les dépendances sont livrées, dont le brief passe la porte et
+   dont aucun fichier n'est tenu va dans `a-coder`, avec les fichiers de
+   sa section Périmètre. L'ordre des fiches est la priorité.
+
+Sans `--run`, rien n'est écrit. `pilote.sh` joue `piloter` à sec dans
+tous les cas, et `piloter --run` seulement sous `ATELIER_INVOQUER=1`.
+
 ## La boîte, pas le pipeline
 
 ```
 .atelier/boite/          # sur le VPS, git-ignoré
-  a-briefer/             # Hermes a déposé → cron Claude 08:30
+  a-briefer/             # piloter a déposé → cron Claude 08:30
+  brief-a-fusionner/     # le brief est en PR : TA fusion, puis piloter rapproche
   a-planifier/           # facultatif, cron Grok 10:00
-  a-coder/               # brief prêt → cron Composer 14:00
+  a-coder/               # piloter a déposé (brief sur master) → cron Composer 14:00
   a-relire/              # PR ouverte → cron Claude 19:00
-  echec/                 # un cron a perdu : les autres continuent
   faite/                 # relue, en attente de TA fusion
+  fusionnee/             # la feuille dit livré : piloter a rangé la carte
+  echec/                 # un cron a perdu : les autres continuent
 ```
 
 Chaque cron :
@@ -127,10 +162,18 @@ l'exécutant écrit son numéro dans `atelier-echange/pr.txt`, le cron le
 lit, le range dans la carte et **efface le fichier** — un numéro périmé
 ne s'attache pas au lot suivant. À 19 h, le relecteur reçoit « la PR 44,
 sur la branche `agent/044-mineur` ». Sans numéro, il reçoit la branche
-seule : l'atelier n'invente pas de coordonnée.
+seule : l'atelier n'invente pas de coordonnée. Le briefer fait pareil
+pour la PR de son brief.
 
 Ce numéro n'est pas une consigne. Il dit *où regarder*, pas *quoi
 faire* — le brief reste la seule source d'instruction.
+
+**La fiche du lot voyage dans sa PR.** Le briefer passe la fiche à
+`pret` dans la PR du brief ; le coder la passe à `livre` avec son numéro
+dans la PR du lot (`atelier feuille marquer`). C'est ce qui fait que la
+feuille de `master` dit « livré » à l'instant exact de ta fusion, jamais
+avant, et sans correction à faire après — la CI du produit refuse une PR
+de lot dont la fiche ne bouge pas.
 
 **Une carte qu'on a invoquée ne reste jamais en place.** Elle avance ou
 elle tombe dans `echec/` avec sa raison. Une carte qu'on n'a *pas*
@@ -175,7 +218,7 @@ tail -n 40 /home/hermes/.atelier/logs/*.log
 | heure | script | agent | s'il n'a rien |
 |---|---|---|---|
 | 06:15 | `veille.sh` | aucun (script) | silence — mais elle exige `atelier.toml` |
-| 07:00 | `pilote.sh` | Hermes / ChatGPT Plus | une proposition, ou rien |
+| 07:00 | `pilote.sh` | `atelier piloter` (Python), puis Hermes / ChatGPT Plus **seulement s'il y a quelque chose à dire** | `RIEN`, Hermes n'est pas appelé |
 | 08:30 | `briefer` | Claude Pro | `RIEN` |
 | 10:00 | `planifier` | Cursor Grok 4.6 | `RIEN` — Composer code quand même |
 | 14:00 | `coder` | Cursor Composer | `RIEN` |
@@ -254,7 +297,10 @@ aucune carte libre — `atelier lever --lot <lot>` après ta fusion.
 
 Une file réellement vide, elle, ne dit rien. Le silence reste le silence.
 
-**Après ta fusion, rends les fichiers :**
+**Après ta fusion, le pilote rend les fichiers** : la fiche du lot dit
+`livre`, `piloter --run` range la carte dans `fusionnee/` et lève le
+verrou au réveil suivant. Pour ne pas attendre demain matin, ou si le
+pilote n'est pas armé :
 
 ```bash
 python3 -m atelier verrous --projet /srv/ForgeHistory
@@ -263,6 +309,19 @@ python3 -m atelier lever   --projet /srv/ForgeHistory --lot 044-un-metier-le-min
 
 Sans ça, le lot suivant qui touche `sim/engine.py` attendra un lot déjà
 fusionné.
+
+**Quand un agent a échoué**, sa carte est dans `echec/` avec la raison,
+et le pilote ne redépose pas ce lot : il attend que tu aies lu.
+
+```bash
+python3 -m atelier feuille etat --projet /srv/ForgeHistory        # « en échec : … »
+python3 -m atelier reprendre    --projet /srv/ForgeHistory --lot 046-la-mer-est-un-port-commun
+```
+
+Le lendemain, `piloter` redépose la carte. Une PR fermée sans fusion se
+range de la même façon (`atelier echouer --role relire --lot … --raison
+"PR fermée"`, puis `atelier lever`), et c'est la feuille du produit qui
+dit ensuite si le lot repart (`pret`) ou non (`abandonne`).
 
 ---
 
@@ -273,13 +332,19 @@ Sur le VPS, **une fois**.
 1. Détacher ForgeAtelier (voir [PUBLIER.md](PUBLIER.md)) ou cloner la
    branche orpheline `cursor/forgeatelier-ced6` dans `/opt/ForgeAtelier`.
 2. `cd /srv/ForgeHistory && git pull` — le fichier `atelier.toml` doit
-   être là (PR de branchement). Rien ne marche sans lui : ni la veille,
-   ni les rôles, ni les abonnements. Vérifie-le :
+   être là (PR de branchement), et nommer `feuille` pour que le pilote
+   sache où lire le registre des lots. Rien ne marche sans lui : ni la
+   veille, ni les rôles, ni les abonnements. Vérifie-le :
 
    ```bash
    python3 -m atelier doctor --projet /srv/ForgeHistory
    python3 -m atelier poste  --projet /srv/ForgeHistory --role relire
+   python3 -m atelier feuille valider --projet /srv/ForgeHistory
    ```
+
+   Le pilote fait un `git pull --ff-only` du dépôt produit avant de
+   décider : la feuille qu'il lit est celle de `master` ce matin, pas
+   celle d'hier. `ATELIER_SANS_PULL=1` le désactive.
 3. Authentifier **trois** binaires, pas plus :
    - `hermes model` → ChatGPT / Codex OAuth (**pas** Anthropic)
    - `claude` → Claude Pro (OAuth du compte Pro)
@@ -338,6 +403,7 @@ PASS  timeout — présent
 PASS  dossier des verrous — /tmp
 ?     quota — non lisible ; un inconnu ne se compte pas pour zéro
 PASS  boîte a-coder — 1 carte(s)
+PASS  feuille de route — ROADMAP.md, 19 lot(s), cohérente
 ?     ATELIER_INVOQUER n'est pas posé — mode à sec
 ```
 
@@ -376,18 +442,25 @@ de planification redevient une source parallèle.
 
 ## Ce que Hermes a le droit d'écrire
 
-Une carte, une proposition, le tableau de bord. **Pas** :
+Un résumé pour toi, dans `atelier-echange/pilote.txt`, quand l'atelier a
+trouvé quelque chose à dire — une carte déposée, une feuille incohérente.
+**Pas** :
 
+- une carte (c'est `atelier piloter` qui dépose, d'après la feuille)
+- un numéro de lot, un statut, un chemin de brief (ils sont dans la
+  décision qu'il reçoit ; il ne les invente pas)
 - le brief (Claude)
 - le code (Composer)
 - un jugement de recevabilité (Claude relit, toi tu fusionnes)
 - `git merge`
 
 Le prompt du pilote n'est pas recopié ici : il est construit par
-`atelier/backends.py` et tu peux le lire tel qu'il partira.
+`atelier/backends.py`, la décision du jour y est insérée telle quelle, et
+tu peux le lire tel qu'il partira.
 
 ```bash
-python3 -m atelier invocation --role pilote --projet /srv/ForgeHistory
+python3 -m atelier invocation --role pilote --projet /srv/ForgeHistory \
+    --decision "$(python3 -m atelier piloter --projet /srv/ForgeHistory 2>&1)"
 python3 -m atelier invocation --role coder  --projet /srv/ForgeHistory \
     --lot 044-un-metier-le-mineur --brief briefs/044-un-metier-le-mineur.md
 ```
@@ -416,6 +489,9 @@ Quand il ne sait pas, `atelier poste --champ lecture_seule` répond
 | Deux tableaux qui disent qui relit | le branchement du produit, et lui seul |
 | Une veille qui sort 0 sans rien mesurer | une absence se déclare |
 | Fusion automatique | le propriétaire regarde (règle 11) |
+| Hermes qui lit la feuille de route et devine le prochain lot | la décision se calcule (`atelier piloter`) ; Hermes la reçoit |
+| Une carte du briefer qui file vers `a-coder` | le brief est en PR, le coder ne le trouverait pas sur master |
+| Un lot déclaré livré avant sa fusion | la fiche voyage dans la PR du lot ; `master` ne dit livré qu'après |
 
 Le seul « blocage » accepté : **toi**, le soir, sur une PR. Les crons
 du lendemain voient `faite/` ou une PR encore ouverte, et se recouchent.

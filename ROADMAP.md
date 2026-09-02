@@ -73,6 +73,39 @@ propriétaire, et une commande dit si on peut l'armer.
 Ce qui reste au propriétaire n'a pas changé : il lit la PR, il fusionne,
 et il rend les fichiers avec `atelier lever`.
 
+## Lot 004 — la feuille de route se lit, le pilote reçoit sa décision
+
+Le pilote lisait `ROADMAP.md` comme du texte libre et devait deviner
+quel lot manquait de brief ; rien ne mettait la feuille à jour après une
+fusion ; le brief du briefer partait vers un coder qui ne le trouvait
+pas sur `master`.
+
+- Le dépôt produit tient un **registre des lots** dans sa feuille de
+  route (`[projet].feuille`) : une fiche par lot, six états écrits
+  (`idee`, `a-briefer`, `pret`, `livre`, `abandonne`, `archive`),
+  dépendances, PR. Tout ce qui est entre — en file, en relecture,
+  bloqué, en échec — se **dérive** des cartes, des verrous et des briefs.
+- `atelier feuille valider` refuse une fiche mal formée, un numéro
+  dupliqué, un brief attendu absent ou orphelin, une dépendance fantôme
+  ou circulaire, une carte d'un lot inconnu ; avec `--base`, une
+  transition interdite, et pour une branche `agent/NNN-slug`, une fiche
+  qui ne passe pas à `livre` avec le numéro de la PR. La CI du produit
+  la joue sur chaque PR.
+- `atelier piloter` **calcule** la décision du matin : rapprocher les
+  cartes des lots fusionnés (et rendre leurs verrous), puis déposer au
+  plus une carte par rôle, la première fiche admissible dans l'ordre de
+  la feuille. Hermes reçoit cette décision dans son prompt ; il n'invente
+  ni numéro, ni statut, ni chemin, et n'est appelé que s'il y a quelque
+  chose à dire.
+- **La fiche voyage dans la PR** : le briefer la passe à `pret`, le
+  coder à `livre` (`atelier feuille marquer`). `master` ne dit livré qu'à
+  l'instant de la fusion, jamais avant, sans correction après coup.
+- Le briefer ouvre la PR de son brief ; sa carte attend la fusion dans
+  `brief-a-fusionner`. `atelier reprendre` retire une carte de `echec/`
+  pour que le pilote la redépose.
+- Le lecteur de périmètre écarte les fichiers qu'un brief **interdit**
+  (le 046 aurait tenu `sim/aggregation.py`, périmètre du 047).
+
 ## Ce que l'atelier ne sait pas encore faire
 
 - **Reprendre un juge.** Après un JSON de revue illisible, changer
@@ -82,10 +115,11 @@ et il rend les fichiers avec `atelier lever`.
   pas une dépendance.
 - **Ouvrir ou lire la PR depuis l'atelier.** Composer l'ouvre et écrit
   son numéro dans le canal ; l'atelier le transporte sans jamais parler
-  à GitHub.
-- **Lever un verrou tout seul après une fusion.** L'atelier ne sait pas
-  ce que le propriétaire a fusionné. Il dit quand un verrou bloque ;
-  `atelier lever` reste un geste humain.
+  à GitHub. Une PR fermée sans fusion se range donc à la main
+  (`atelier echouer`, `atelier lever`).
+- **Reconnaître une PR de lot qui ne suit pas `prefixe_branche`.** La
+  CI ne vérifie la fiche que sur une branche `agent/NNN-slug` ; ailleurs,
+  c'est l'œil du propriétaire au moment de fusionner.
 - **Convoquer un conseil.** Le protocole FACT / INFERENCE / ASSUMPTION
   / UNKNOWN est décrit ; il n'est pas une commande.
 - **Un second produit.** Seul ForgeHistory a un profil.
@@ -95,14 +129,15 @@ et il rend les fichiers avec `atelier lever`.
 
 ## Ordre
 
-Un lot d'atelier à la fois. Les trois premiers ont fermé le sujet du
+Un lot d'atelier à la fois. Les quatre premiers ont fermé le sujet du
 workflow : le contrat (v0), l'invocation (001), la source unique des
-rôles (002), la boucle et la bascule (003).
+rôles (002), la boucle et la bascule (003), la feuille de route lue par
+une machine (004).
 
 La suite n'est plus du code, c'est de l'exploitation : poser
-`atelier.toml` dans le produit, faire passer `atelier pret`, puis armer
-**un** cron — le `coder` d'un brief que tu as relu. Hermes pilote à
-partir de là.
+`atelier.toml` (avec `feuille`) dans le produit, faire passer `atelier
+pret` et `atelier feuille valider`, puis armer **un** cron — le `coder`
+d'un brief que tu as relu. Le pilote dépose à partir de là.
 
 Le prochain lot de code qui vaudra le coup, quand l'exploitation aura
 parlé : **reprendre un juge** après une revue illisible, sans relancer
