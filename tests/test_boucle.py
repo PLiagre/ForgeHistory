@@ -13,6 +13,7 @@ import pytest
 
 from atelier import backends, boite, verrou
 from atelier.__main__ import main
+from tests.depot import installer, worktree_role
 
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -77,6 +78,13 @@ def _faux(dossier: Path, nom: str, corps: str) -> Path:
     return cible
 
 
+def _coder_env(projet: Path, faux: Path, verrous: Path, tmp_path: Path, **extra: str) -> dict[str, str]:
+    installer(projet)
+    worktree_role(projet, tmp_path / "coder")
+    extra.setdefault("ATELIER_WORKDIR_coder", str(tmp_path / "coder"))
+    return _env(projet, faux, verrous, **extra)
+
+
 # ------------------------------------------ le numéro de PR fait le saut
 
 
@@ -89,30 +97,31 @@ def test_le_numero_de_pr_remonte_de_l_executant_a_la_carte(tmp_path: Path):
     _faux(faux, "agent", 'mkdir -p atelier-echange && echo 44 > atelier-echange/pr.txt\n')
     r = subprocess.run(
         ["bash", str(TOUR), "coder"],
-        env=_env(projet, faux, verrous, ATELIER_INVOQUER="1"),
+        env=_coder_env(projet, faux, verrous, tmp_path, ATELIER_INVOQUER="1"),
         text=True, capture_output=True, timeout=60,
     )
     assert r.returncode == 0, r.stderr
     prise = boite.prochain(projet, "relire")
     assert prise is not None and prise.pr == 44
     # Un numéro périmé ne s'attache pas au lot suivant.
-    assert not (projet / "atelier-echange" / "pr.txt").exists()
+    assert not (tmp_path / "coder" / "atelier-echange" / "pr.txt").exists()
 
 
 @besoin_bash
-def test_sans_numero_la_carte_avance_quand_meme(tmp_path: Path):
+def test_sans_numero_la_carte_tombe_en_echec(tmp_path: Path):
+    """Un code 0 ne suffit plus : sans PR, a-relire n'est jamais alimenté."""
     projet = _produit(tmp_path)
     _carte(projet, "a-coder")
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
     _faux(faux, "agent", "exit 0\n")
     r = subprocess.run(
         ["bash", str(TOUR), "coder"],
-        env=_env(projet, faux, verrous, ATELIER_INVOQUER="1"),
+        env=_coder_env(projet, faux, verrous, tmp_path, ATELIER_INVOQUER="1"),
         text=True, capture_output=True, timeout=60,
     )
-    assert r.returncode == 0, r.stderr
-    prise = boite.prochain(projet, "relire")
-    assert prise is not None and prise.pr is None
+    assert r.returncode != 0
+    assert boite.prochain(projet, "relire") is None
+    assert [c.lot for c in boite.lister(projet, "echec")] == ["044-mineur"]
 
 
 def test_le_relecteur_sait_quoi_relire(tmp_path: Path, capsys):
