@@ -1,4 +1,4 @@
-# crontab — un réveil par rôle, Europe/Paris
+# crontab — un réveil par rôle, à l'heure Europe/Paris sur un VPS UTC
 # installer : sudo cp crons/crontab /etc/cron.d/forgeatelier
 #
 # Aucun flock ici : il est *dans* tour.sh, un par rôle. Un flock global
@@ -8,7 +8,8 @@
 # agents, ce fichier n'a pas à en poser.
 # ATELIER_INVOQUER est volontairement absent : on regarde d'abord.
 SHELL=/bin/bash
-PATH=/usr/local/bin:/usr/bin:/bin
+PATH=/srv/ForgeHistory/.venv/bin:/home/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
+TZ=Europe/Paris
 ATELIER_PROJET=/srv/ForgeHistory
 ATELIER_ROOT=/opt/ForgeAtelier
 ATELIER_TIMEOUT=1800
@@ -24,9 +25,13 @@ ATELIER_WORKDIR_relire=/srv/ForgeHistory-relire
 # ATELIER_QUOTA_CMD=llmquota restant
 # ATELIER_RESERVE_planifier=1   # Grok laisse sa marge à Composer
 
-15 6  * * * ubuntu /opt/ForgeAtelier/crons/veille.sh
-0  7  * * * ubuntu /opt/ForgeAtelier/crons/pilote.sh
-30 8  * * * ubuntu /opt/ForgeAtelier/crons/tour.sh briefer
-0  10 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh planifier
-0  14 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh coder
-0  19 * * * ubuntu /opt/ForgeAtelier/crons/tour.sh relire
+# Le cron Debian de ce VPS suit le fuseau système UTC. `TZ` règle
+# l'environnement des commandes, mais pas leurs heures de réveil. Chaque
+# ligne se réveille donc une fois par heure et ne travaille qu'à son heure
+# locale. Les `%` sont échappés parce que cron leur donne un sens spécial.
+15 * * * * hermes if [[ "$(date +\%H:\%M)" == "06:15" ]]; then exec /opt/ForgeAtelier/crons/veille.sh; fi
+0  * * * * hermes if [[ "$(date +\%H:\%M)" == "07:00" ]]; then exec /opt/ForgeAtelier/crons/pilote.sh; fi
+30 * * * * hermes if [[ "$(date +\%H:\%M)" == "08:30" ]]; then exec /opt/ForgeAtelier/crons/tour.sh briefer; fi
+0  * * * * hermes if [[ "$(date +\%H:\%M)" == "10:00" ]]; then exec /opt/ForgeAtelier/crons/tour.sh planifier; fi
+0  * * * * hermes if [[ "$(date +\%H:\%M)" == "14:00" ]]; then exec /opt/ForgeAtelier/crons/tour.sh coder; fi
+0  * * * * hermes if [[ "$(date +\%H:\%M)" == "19:00" ]]; then exec /opt/ForgeAtelier/crons/tour.sh relire; fi
