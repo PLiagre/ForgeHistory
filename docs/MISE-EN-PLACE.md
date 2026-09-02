@@ -158,15 +158,24 @@ Chaque cron :
 4. il n'appelle pas le cron suivant
 
 Le **numéro de PR** fait le dernier saut par le canal d'échange :
-l'exécutant écrit son numéro dans `atelier-echange/pr.txt`, le cron le
-lit, le range dans la carte et **efface le fichier** — un numéro périmé
-ne s'attache pas au lot suivant. À 19 h, le relecteur reçoit « la PR 44,
-sur la branche `agent/044-mineur` ». Sans numéro, il reçoit la branche
-seule : l'atelier n'invente pas de coordonnée. Le briefer fait pareil
-pour la PR de son brief.
+l'exécutant écrit son numéro dans `atelier-echange/pr.txt` — une ligne,
+un entier positif, rien d'autre. Le cron le lit **strictement**, le range
+dans la carte et **efface le fichier** — un numéro périmé ne s'attache
+pas au lot suivant. À 19 h, le relecteur reçoit « la PR 44, sur la
+branche `agent/044-mineur` ». Pour le **coder**, un code de sortie 0 ne
+suffit pas : sans entier positif valide, la carte va dans `echec/`,
+jamais dans `a-relire`. Le briefer fait pareil pour la PR de son brief
+quand il en dépose une ; un fichier mal formé n'est pas relu comme un
+numéro.
 
 Ce numéro n'est pas une consigne. Il dit *où regarder*, pas *quoi
 faire* — le brief reste la seule source d'instruction.
+
+Si `gh` est là et que le worktree a un remote GitHub, l'atelier peut
+vérifier que la PR pointe sur la branche du lot. Une sonde qui échoue
+(pas d'auth, pas de réseau, pas de remote) **se tait** : on ne bloque
+pas le tour sur une vérification facultative. Un désaccord *confirmé*
+envoie la carte en échec.
 
 **La fiche du lot voyage dans sa PR.** Le briefer passe la fiche à
 `pret` dans la PR du brief ; le coder la passe à `livre` avec son numéro
@@ -265,15 +274,52 @@ llmquota *lit*. Il ne lance rien, et l'atelier ne l'installe pas.
 
 ---
 
-## Worktrees : un agent, un répertoire
+## Worktrees : un répertoire par rôle, une branche par lot
 
 ```bash
 ./crons/installer-profils.sh --dry-run   # imprime les worktrees et les profils
 ```
 
 Trois agents sur le même clone se marchent dessus. Chaque rôle a son
-répertoire (`ATELIER_WORKDIR_<rôle>`, posé par le crontab) et Hermes a
+**répertoire permanent** (`ATELIER_WORKDIR_<rôle>`, posé par le crontab)
+— chez ForgeHistory, `/srv/ForgeHistory-coder` pour Composer. Hermes a
 un profil par rôle qui pointe le même chemin.
+
+Ce répertoire n'est **pas** la branche du lot. Le worktree du coder reste
+posé une fois (`atelier/coder` à la création). La branche
+`prefixe_branche` + slug (chez ForgeHistory : `agent/047-…`) est
+**temporaire** : le cron du coder la crée ou la reprend **après** la
+garde de quota et le verrou, **avant** d'invoquer Cursor. Sans
+`--run` / sans `ATELIER_INVOQUER=1`, rien ne bouge : on imprime le nom
+attendu, dérivé de `atelier.toml`, on n'extrait rien.
+
+```bash
+python3 -m atelier branche --projet /srv/ForgeHistory --lot 047-le-bourg-est-une-agregation-derivee
+# agent/047-le-bourg-est-une-agregation-derivee
+```
+
+Le cron refuse d'invoquer si le worktree contient des modifications non
+enregistrées, si la branche existante n'a pas d'ancêtre commun avec
+`branche_base`, ou si `git branch --show-current` n'est pas exactement
+la branche attendue. Il ne fait jamais `reset --hard` ni `checkout -f`.
+Une branche cohérente déjà là (un tour précédent, un travail poussé) est
+reprise telle quelle.
+
+Si le tour refuse, la carte va dans `echec/` et le verrou est levé. Le
+travail local est intact. Pour récupérer :
+
+```bash
+git -C /srv/ForgeHistory-coder status
+git -C /srv/ForgeHistory-coder branch --show-current
+# enregistre, déplace ou mets de côté — ne fais pas reset --hard à l'aveugle
+python3 -m atelier reprendre --projet /srv/ForgeHistory --lot 047-le-bourg-est-une-agregation-derivee
+```
+
+Le lendemain, `piloter` redépose la carte ; le cron recréera ou reprendra
+la branche du lot.
+
+`ATELIER_WORKDIR_coder` est obligatoire pour invoquer : l'atelier refuse
+de basculer la branche du clone du produit (`/srv/ForgeHistory`).
 
 Un seul lot de **code** à la fois par fichier. Le `coder` pose le verrou
 avant d'invoquer Composer, et `prochain --role coder` **saute** une
@@ -485,6 +531,9 @@ Quand il ne sait pas, `atelier poste --champ lecture_seule` répond
 | Claude revue qui attend des tests verts | la CI GitHub le dit ; Claude relit le diff tel quel |
 | Un flock global | deux rôles ne doivent pas se sérialiser |
 | Une carte prise qui reste dans sa boîte | elle avance ou elle échoue |
+| Un coder sans numéro de PR valide | la carte va en `echec/`, jamais en `a-relire` |
+| Cursor lancé sur `atelier/coder` | le cron extrait `prefixe_branche`+lot avant d'invoquer |
+| `git reset --hard` pour « débloquer » le worktree | le travail local se préserve à la main, puis `atelier reprendre` |
 | Un verrou que personne ne lève | `atelier lever` après ta fusion |
 | Deux tableaux qui disent qui relit | le branchement du produit, et lui seul |
 | Une veille qui sort 0 sans rien mesurer | une absence se déclare |

@@ -113,10 +113,12 @@ pas sur `master`.
 - **Lire un quota vivant.** L'atelier consomme `llmquota` s'il est
   là, mais ne sonde aucun fournisseur lui-même. Reste une référence,
   pas une dépendance.
-- **Ouvrir ou lire la PR depuis l'atelier.** Composer l'ouvre et écrit
-  son numéro dans le canal ; l'atelier le transporte sans jamais parler
-  à GitHub. Une PR fermée sans fusion se range donc à la main
-  (`atelier echouer`, `atelier lever`).
+- **Exiger `gh` pour valider une PR.** Le numéro vient du canal
+  d'échange, au format strict. Si `gh` répond et que le remote est
+  GitHub, on refuse un désaccord de branche ; si la sonde échoue, on
+  se tait — pas d'authentification obligatoire dans le cron. Une PR
+  fermée sans fusion se range toujours à la main (`atelier echouer`,
+  `atelier lever`).
 - **Reconnaître une PR de lot qui ne suit pas `prefixe_branche`.** La
   CI ne vérifie la fiche que sur une branche `agent/NNN-slug` ; ailleurs,
   c'est l'œil du propriétaire au moment de fusionner.
