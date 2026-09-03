@@ -108,6 +108,13 @@ pas sur `master`.
 
 ## Ce que l'atelier ne sait pas encore faire
 
+- **Mesurer ce qu'un agent affirme.** Entre la fin du tour du coder
+  et la boîte `a-relire`, l'atelier ne demande qu'un code de sortie
+  nul et un entier positif dans `atelier-echange/pr.txt`. Le lot 046
+  de ForgeHistory est arrivé au relecteur avec trois régressions et
+  un compte rendu qui les disait préexistantes ; la CI a démenti.
+  `[projet].tests` est déclaré obligatoire et exécuté nulle part.
+  C'est le brief 005.
 - **Reprendre un juge.** Après un JSON de revue illisible, changer
   de relecteur sans relancer le lot.
 - **Lire un quota vivant.** L'atelier consomme `llmquota` s'il est
@@ -141,6 +148,13 @@ La suite n'est plus du code, c'est de l'exploitation : poser
 pret` et `atelier feuille valider`, puis armer **un** cron — le `coder`
 d'un brief que tu as relu. Le pilote dépose à partir de là.
 
-Le prochain lot de code qui vaudra le coup, quand l'exploitation aura
-parlé : **reprendre un juge** après une revue illisible, sans relancer
-le lot.
+L'exploitation a parlé le 3 septembre 2026. Le premier tour complet —
+pilote, coder, relire — a tourné sans personne. Il a aussi livré au
+relecteur du code que la CI a refusé, parce que l'atelier avance une
+carte sur la parole de l'agent.
+
+Le prochain lot de code est donc **la porte des tests**
+(`briefs/005-la-carte-ne-passe-pas-sur-parole.md`) : le tour de `relire`
+lit le verdict des contrôles obligatoires avant d'invoquer qui que ce
+soit. **Reprendre un juge** attend toujours ce qui le justifierait — une
+revue illisible.
