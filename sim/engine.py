@@ -44,6 +44,18 @@ class LongueurFrontiereInvalideError(ValueError):
     """Longueur de frontière non numérique ou NaN sur une arête."""
 
 
+class LongueurFacadeMaritimeInvalideError(ValueError):
+    """Longueur de façade maritime absente ou non numérique sur une arête."""
+
+
+class NoeudsMerMultiplesError(ValueError):
+    """Plus d'un nœud hors du monde sur les arêtes maritimes."""
+
+
+class KindsMaritimesMultiplesError(ValueError):
+    """Plus d'une valeur de kind sur les arêtes maritimes identifiées."""
+
+
 class RichesseGisementInvalideError(ValueError):
     """Classe de richesse absente ou inconnue sur un gisement de la carte."""
 
@@ -406,6 +418,210 @@ def _initialiser_capacite_aretes(world) -> dict[tuple[int, int], float]:
     return capacite
 
 
+def _aretes_maritimes_du_monde(world) -> list[tuple[int, int, dict]]:
+    """
+    Arêtes dont exactement un bout est une cellule du monde.
+
+    Retourne (cell_id, noeud_mer, arête) pour chaque arête maritime.
+    """
+    cell_ids = set(world.cells.keys())
+    maritimes: list[tuple[int, int, dict]] = []
+    kinds: set[str] = set()
+    noeuds_mer: set[int] = set()
+    for edge in world.adjacency:
+        a_id = edge["a"]
+        b_id = edge["b"]
+        a_in = a_id in cell_ids
+        b_in = b_id in cell_ids
+        if a_in == b_in:
+            continue
+        if a_in:
+            cell_id, noeud = a_id, b_id
+        else:
+            cell_id, noeud = b_id, a_id
+        maritimes.append((cell_id, noeud, edge))
+        noeuds_mer.add(noeud)
+        if "kind" in edge:
+            kinds.add(edge["kind"])
+    if len(noeuds_mer) > 1:
+        ids_tries = sorted(noeuds_mer)
+        raise NoeudsMerMultiplesError(
+            f"noeuds_mer={ids_tries}"
+        )
+    if len(kinds) > 1:
+        valeurs = sorted(kinds)
+        raise KindsMaritimesMultiplesError(
+            f"kinds_maritimes={valeurs!r}"
+        )
+    return maritimes
+
+
+def _lire_longueur_facade_maritime_m(
+    edge: dict, cell_id: int, noeud_mer: int,
+) -> float:
+    """Lit shared_length_m sur une arête maritime ; refuse l'absence."""
+    if "shared_length_m" not in edge:
+        raise LongueurFacadeMaritimeInvalideError(
+            f"cell_id={cell_id} noeud_mer={noeud_mer} shared_length_m=absent"
+        )
+    raw = edge["shared_length_m"]
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        raise LongueurFacadeMaritimeInvalideError(
+            f"cell_id={cell_id} noeud_mer={noeud_mer} shared_length_m={raw!r}"
+        )
+    longueur_m = float(raw)
+    if math.isnan(longueur_m):
+        raise LongueurFacadeMaritimeInvalideError(
+            f"cell_id={cell_id} noeud_mer={noeud_mer} shared_length_m={raw!r}"
+        )
+    return longueur_m
+
+
+def _capacite_quai_cellule_kg(
+    world,
+    cell_id: int,
+    aretes_cellule: list[tuple[int, int, dict]],
+) -> float:
+    """Capacité de quai dérivée des façades maritimes d'une cellule."""
+    if not aretes_cellule:
+        return 0.0
+    carte = getattr(world, "carte", None)
+    facteur = 1.0
+    if carte:
+        facteur = _facteur_transport_pour_cellule(cell_id, carte)
+    total = 0.0
+    debit = _constantes.debit_maritime_kg_par_km()
+    km = _constantes.metres_par_km()
+    for _, noeud, edge in aretes_cellule:
+        longueur_m = _lire_longueur_facade_maritime_m(edge, cell_id, noeud)
+        total += debit * (longueur_m / km) * facteur
+    return total
+
+
+def _initialiser_contexte_maritime(world) -> dict:
+    """
+    Contexte partagé entre toutes les marchandises d'un tick maritime.
+
+    capacite_quai_restante est décrémentée au fil des marchandises ;
+    bassin_au_debut est une copie immuable du panier mer au début du tick.
+    """
+    from sim.world import lire_stock_mer
+
+    aretes = _aretes_maritimes_du_monde(world)
+    par_cellule: dict[int, list[tuple[int, int, dict]]] = defaultdict(list)
+    for cell_id, noeud, edge in aretes:
+        par_cellule[cell_id].append((cell_id, noeud, edge))
+    capacite_quai: dict[int, float] = {}
+    for cell_id, aretes_cellule in par_cellule.items():
+        capacite_quai[cell_id] = _capacite_quai_cellule_kg(
+            world, cell_id, aretes_cellule,
+        )
+    stocks_mer = world.stocks_mer
+    bassin_au_debut = dict(stocks_mer)
+    return {
+        "aretes_par_cellule": par_cellule,
+        "capacite_quai_restante": capacite_quai,
+        "bassin_au_debut": bassin_au_debut,
+        "cellules_cotieres": set(par_cellule.keys()),
+    }
+
+
+def _stock_bassin_au_debut(ctx_maritime: dict, marchandise: str) -> float:
+    """Quantité de marchandise dans le bassin au début du tick."""
+    raw = ctx_maritime["bassin_au_debut"].get(marchandise)
+    if raw is None:
+        return 0.0
+    return max(0.0, float(raw))
+
+
+def _planifier_debarquement(
+    needs: dict[int, float],
+    capacite_quai: dict[int, float],
+    bassin_dispo: float,
+    cellules_cotieres: set[int],
+) -> dict[int, float]:
+    """Débarquement depuis le bassin, proportionnel au besoin si insuffisant."""
+    if bassin_dispo <= 0.0:
+        return {}
+    requests: list[tuple[int, float, float]] = []
+    for cid in sorted(cellules_cotieres):
+        besoin = needs.get(cid, 0.0)
+        if besoin <= 0.0:
+            continue
+        cap = capacite_quai.get(cid, 0.0)
+        demande = min(besoin, cap)
+        if demande > 0.0:
+            requests.append((cid, besoin, demande))
+    if not requests:
+        return {}
+    total_demande = sum(d for _, _, d in requests)
+    total_besoin = sum(b for _, b, _ in requests)
+    debark: dict[int, float] = {}
+    if total_demande <= bassin_dispo:
+        for cid, _, demande in requests:
+            debark[cid] = demande
+    else:
+        for cid, besoin, demande in requests:
+            part = bassin_dispo * (besoin / total_besoin)
+            debark[cid] = min(part, demande, besoin)
+    return debark
+
+
+def _planifier_expedition(
+    surplus_apres_terre: dict[int, float],
+    capacite_quai: dict[int, float],
+    cellules_cotieres: set[int],
+) -> dict[int, float]:
+    """Expédition vers le bassin depuis les cellules côtières en surplus."""
+    expedition: dict[int, float] = {}
+    for cid in sorted(cellules_cotieres):
+        surplus = surplus_apres_terre.get(cid, 0.0)
+        if surplus <= 0.0:
+            continue
+        cap = capacite_quai.get(cid, 0.0)
+        qty = min(surplus, cap)
+        if qty > 0.0:
+            expedition[cid] = qty
+    return expedition
+
+
+def _appliquer_flux_maritimes(
+    world,
+    marchandise: str,
+    debark: dict[int, float],
+    expedition: dict[int, float],
+    capacite_quai: dict[int, float],
+    total_transported: list,
+) -> None:
+    """Applique débarquement et expédition ; met à jour le bassin et les quais."""
+    from sim.world import ecrire_stock_mer, lire_stock_mer
+
+    for cid, qty in debark.items():
+        if qty <= 0.0:
+            continue
+        cell = world.cells[cid]
+        stock = lire_stock_marchandise(cell, marchandise)
+        eff = stock if stock >= 0 else 0.0
+        ecrire_stock_marchandise(cell, marchandise, eff + qty)
+        bassin = lire_stock_mer(world, marchandise)
+        bassin_eff = bassin if bassin >= 0 else 0.0
+        ecrire_stock_mer(world, marchandise, bassin_eff - qty)
+        total_transported[0] += qty
+        capacite_quai[cid] = max(0.0, capacite_quai.get(cid, 0.0) - qty)
+    for cid, qty in expedition.items():
+        if qty <= 0.0:
+            continue
+        cell = world.cells[cid]
+        stock = lire_stock_marchandise(cell, marchandise)
+        eff = stock if stock >= 0 else 0.0
+        ecrire_stock_marchandise(cell, marchandise, eff - qty)
+        bassin = lire_stock_mer(world, marchandise)
+        bassin_eff = bassin if bassin >= 0 else 0.0
+        ecrire_stock_mer(world, marchandise, bassin_eff + qty)
+        total_transported[0] += qty
+        capacite_quai[cid] = max(0.0, capacite_quai.get(cid, 0.0) - qty)
+
+
 def _marchandises_du_monde(world) -> list[str]:
     """Marchandises jouées : clés de panier présentes, plus la ration alimentaire."""
     noms: set[str] = set()
@@ -427,6 +643,7 @@ def _apply_commerce(
     total_transported: list,
     marchandise: str | None = None,
     capacite_restante: dict[tuple[int, int], float] | None = None,
+    ctx_maritime: dict | None = None,
 ) -> None:
     """
     Maillon 2 — Commerce inter-cellules.
@@ -458,8 +675,15 @@ def _apply_commerce(
     if marchandise is None:
         if capacite_restante is None:
             capacite_restante = _initialiser_capacite_aretes(world)
+        ctx = None
+        if getattr(world, "stocks_mer", None) is not None:
+            aretes = _aretes_maritimes_du_monde(world)
+            if aretes:
+                ctx = _initialiser_contexte_maritime(world)
         for nom in _marchandises_du_monde(world):
-            _apply_commerce(world, total_transported, nom, capacite_restante)
+            _apply_commerce(
+                world, total_transported, nom, capacite_restante, ctx,
+            )
         return
 
     consommation_unitaire = _constantes.consommation_kg_par_habitant_par_tick(marchandise)
@@ -480,6 +704,20 @@ def _apply_commerce(
     def _need(cid: int) -> float:
         return max(0.0, _tick_consumption(cid) - snapshot_stock[cid])
 
+    snapshot_needs = {cid: _need(cid) for cid in world.cells}
+
+    # --- Flux maritime : débarquement planifié sur bassin_au_debut ---
+    debark_brut: dict[int, float] = {}
+    debark_final: dict[int, float] = {}
+    if ctx_maritime is not None:
+        bassin_dispo = _stock_bassin_au_debut(ctx_maritime, marchandise)
+        debark_brut = _planifier_debarquement(
+            snapshot_needs,
+            ctx_maritime["capacite_quai_restante"],
+            bassin_dispo,
+            ctx_maritime["cellules_cotieres"],
+        )
+
     # Passe 1b : collecter les demandes par source, triées par cell_id receveur
     by_source: dict[int, list[tuple[int, float, tuple[int, int]]]] = defaultdict(list)
 
@@ -490,8 +728,6 @@ def _apply_commerce(
             continue
 
         cle = _cle_arête(a_id, b_id)
-        # Le défaut se calcule seulement s'il sert : passé à `.get()`, il
-        # était évalué pour chaque arête et chaque marchandise, puis jeté.
         if cle in capacite_restante:
             cap_arête = capacite_restante[cle]
         else:
@@ -526,25 +762,56 @@ def _apply_commerce(
             if transfer > 0:
                 transfers.append((source_id, receiver_id, transfer, cle))
 
-    snapshot_needs = {cid: _need(cid) for cid in world.cells}
     by_receiver: dict[int, list[tuple[int, float, tuple[int, int]]]] = defaultdict(list)
     for src, rcv, qty, cle in transfers:
         by_receiver[rcv].append((src, qty, cle))
 
     final_transfers: list[tuple[int, int, float, tuple[int, int]]] = []
-    for rcv_id in sorted(by_receiver.keys()):
-        incoming = by_receiver[rcv_id]
+    receveurs = set(by_receiver.keys())
+    if ctx_maritime is not None:
+        receveurs |= set(debark_brut.keys())
+
+    for rcv_id in sorted(receveurs):
+        incoming = by_receiver.get(rcv_id, [])
+        terre_total = sum(qty for _, qty, _ in incoming)
+        mer_total = debark_brut.get(rcv_id, 0.0)
         need_r = snapshot_needs[rcv_id]
-        total_in = sum(qty for _, qty, _ in incoming)
+        total_in = terre_total + mer_total
         if total_in > need_r and total_in > 0.0:
             scale = need_r / total_in
             for src_id, qty, cle in incoming:
                 scaled = qty * scale
                 if scaled > 0.0:
                     final_transfers.append((src_id, rcv_id, scaled, cle))
+            if ctx_maritime is not None and mer_total > 0.0:
+                debark_final[rcv_id] = mer_total * scale
         else:
             for src_id, qty, cle in incoming:
                 final_transfers.append((src_id, rcv_id, qty, cle))
+            if ctx_maritime is not None and mer_total > 0.0:
+                debark_final[rcv_id] = mer_total
+
+    # --- Flux maritime : expédition après allocation terrestre ---
+    expedition_brute: dict[int, float] = {}
+    if ctx_maritime is not None:
+        outgoing_terre: dict[int, float] = defaultdict(float)
+        for src_id, _, qty, _ in final_transfers:
+            outgoing_terre[src_id] += qty
+        surplus_apres: dict[int, float] = {}
+        for cid in world.cells:
+            surplus_apres[cid] = max(
+                0.0, _surplus(cid) - outgoing_terre.get(cid, 0.0),
+            )
+        cap_apres_debark = dict(ctx_maritime["capacite_quai_restante"])
+        for cid, qty in debark_final.items():
+            cap_apres_debark[cid] = max(
+                0.0, cap_apres_debark.get(cid, 0.0) - qty,
+            )
+        expedition_brute = _planifier_expedition(
+            surplus_apres,
+            cap_apres_debark,
+            ctx_maritime["cellules_cotieres"],
+        )
 
     consomme_par_arête: dict[tuple[int, int], float] = defaultdict(float)
     for source_id, receiver_id, transfer, cle in final_transfers:
@@ -569,6 +836,16 @@ def _apply_commerce(
         else:
             restant = _capacite_transport_arete_kg(world, cle[0], cle[1])
         capacite_restante[cle] = max(0.0, restant - qty)
+
+    if ctx_maritime is not None:
+        _appliquer_flux_maritimes(
+            world,
+            marchandise,
+            debark_final,
+            expedition_brute,
+            ctx_maritime["capacite_quai_restante"],
+            total_transported,
+        )
 
 
 def _apply_consumption(cell: Cell) -> float:
