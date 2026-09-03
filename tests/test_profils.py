@@ -212,6 +212,35 @@ def test_arret_attend_le_tour_en_cours_au_lieu_de_le_couper(tmp_path: Path):
 
 
 @besoin_bash
+@pytest.mark.parametrize("script", ["atelier-boucle", "repartiteur.sh"])
+def test_appele_par_un_lien_le_script_trouve_encore_ses_profils(tmp_path: Path, script):
+    """Une commande qu'on tape vit dans ~/bin, et c'est un lien.
+
+    `dirname "$0"` rend le répertoire du *lien*, pas celui du script :
+    la racine devenait le parent de ~/bin, aucun profil n'était trouvé,
+    et `atelier-boucle jour` refusait « profil inconnu : jour » sans
+    rien basculer. Mesuré sur le VPS après un `ln -s` dans ~/bin.
+    """
+    bin_utilisateur = tmp_path / "bin"
+    bin_utilisateur.mkdir()
+    lien = bin_utilisateur / script
+    lien.symlink_to(CRONS / script)
+
+    etat = tmp_path / "etat"
+    env = dict(os.environ)
+    env.pop("ATELIER_ROOT", None)   # sans elle, la racine se dérive de $0
+    env["ATELIER_ETAT"] = str(etat)
+    r = subprocess.run(
+        ["bash", str(lien), "jour"] if script == "atelier-boucle" else ["bash", str(lien)],
+        text=True, capture_output=True, timeout=90, env=env,
+    )
+    assert r.returncode == 0, r.stderr
+    if script == "atelier-boucle":
+        assert (etat / "profil").read_text(encoding="utf-8").strip() == "jour"
+        assert "profil inconnu" not in (r.stdout + r.stderr)
+
+
+@besoin_bash
 def test_le_crontab_livre_n_a_qu_une_ligne_et_n_arme_rien():
     """Ce que root installe une fois ne doit plus jamais changer."""
     texte = (CRONS / "crontab-repartiteur").read_text(encoding="utf-8")
