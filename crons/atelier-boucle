@@ -7,7 +7,10 @@
 # `hermes` l'écrit sans demander la permission à personne.
 set -uo pipefail
 
-ATELIER="${ATELIER_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+# `readlink -f` et non `dirname "$0"` : la commande se tape depuis
+# ~/bin, où elle est un lien vers ce fichier. Sans résoudre le lien,
+# la racine devient le parent de ~/bin et aucun profil n'est trouvé.
+ATELIER="${ATELIER_ROOT:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)}"
 ETAT="${ATELIER_ETAT:-$HOME/.atelier}"
 FICHIER_PROFIL="$ETAT/profil"
 ARRET="arret"
