@@ -408,3 +408,164 @@ def test_dashboard_json_sert_les_agregats(tmp_path: Path):
         server.shutdown()
         server.server_close()
     assert obtenu == attendu
+
+
+def test_zero_mesure_n_est_pas_absent_dans_les_agregats():
+    """Un zéro photographié est une mesure : le bandeau ne le déguise pas en absence."""
+    from viewer.snapshot_loader import agregats_couche, agregats_monde
+
+    document = {
+        "tick": 0,
+        "jour_de_tick": 0,
+        "kg_transportes": 0.0,
+        "cells": [
+            {
+                "cell_id": 1,
+                "population": 0,
+                "stocks": {"nourriture": 0.0},
+                "hunger_ticks": 0,
+            },
+            {
+                "cell_id": 2,
+                "population": 0,
+                "stocks": {"nourriture": 0.0},
+                "hunger_ticks": 0,
+            },
+        ],
+    }
+    kpis = agregats_monde(document)
+    assert kpis["population"]["etat"] == "mesure"
+    assert kpis["population"]["valeur"] == 0
+    assert kpis["population"]["cellules_lues"] == 2
+    assert kpis["stock_nourriture_kg"]["etat"] == "mesure"
+    assert kpis["stock_nourriture_kg"]["valeur"] == 0.0
+    assert kpis["stock_nourriture_kg"]["cellules_lues"] == 2
+    assert kpis["cellules_affamees"]["etat"] == "mesure"
+    assert kpis["cellules_affamees"]["valeur"] == 0
+    assert kpis["tick"]["etat"] == "mesure"
+    assert kpis["tick"]["valeur"] == 0
+    assert kpis["jour_de_tick"]["etat"] == "mesure"
+    assert kpis["jour_de_tick"]["valeur"] == 0
+    assert kpis["kg_transportes"]["etat"] == "mesure"
+    assert kpis["kg_transportes"]["valeur"] == 0.0
+
+    couche = agregats_couche(document, "population")
+    assert couche["min"]["etat"] == "mesure"
+    assert couche["min"]["valeur"] == 0
+    assert couche["max"]["valeur"] == 0
+    assert couche["histogramme"]["etat"] == "mesure"
+    assert couche["histogramme"]["effectifs"] == [2]
+    assert couche["n_zeros"] == 2
+    assert couche["n_valeurs"] == 0
+
+    tete_nulle = dict(document)
+    tete_nulle["kg_transportes"] = None
+    assert agregats_monde(tete_nulle)["kg_transportes"]["etat"] == "absent"
+    tete_sentinelle = dict(document)
+    tete_sentinelle["kg_transportes"] = -1
+    assert agregats_monde(tete_sentinelle)["kg_transportes"]["etat"] == "non_calcule"
+    assert "valeur" not in agregats_monde(tete_sentinelle)["kg_transportes"]
+
+
+def test_agregats_melangent_mesure_sentinelle_et_absence():
+    """La sentinelle et la clé absente sortent des sommes ; le zéro y reste."""
+    from viewer.snapshot_loader import agregats_couche, agregats_monde
+
+    document = {
+        "cells": [
+            {
+                "cell_id": 1,
+                "population": 0,
+                "stocks": {"nourriture": 0.0},
+                "hunger_ticks": 0,
+                "province": {"name": "Bourg"},
+            },
+            {
+                "cell_id": 2,
+                "population": -1,
+                "stocks": {"nourriture": -1.0},
+                "hunger_ticks": -1,
+                "province": {"name": "Bourg"},
+            },
+            {
+                "cell_id": 3,
+                "population": 8,
+                "stocks": {},
+                "hunger_ticks": 2,
+            },
+            {
+                "cell_id": 4,
+                "population": 5,
+                "stocks": {"nourriture": 3.0},
+                "province": {"name": "Ville"},
+            },
+        ],
+    }
+    kpis = agregats_monde(document)
+    assert kpis["population"]["etat"] == "mesure"
+    assert kpis["population"]["valeur"] == 13
+    assert kpis["population"]["cellules_lues"] == 3
+    assert kpis["cellules_affamees"]["etat"] == "mesure"
+    assert kpis["cellules_affamees"]["valeur"] == 1
+    assert kpis["cellules_affamees"]["cellules_lues"] == 2
+    assert kpis["stock_nourriture_kg"]["etat"] == "mesure"
+    assert kpis["stock_nourriture_kg"]["valeur"] == pytest.approx(3.0)
+    assert kpis["stock_nourriture_kg"]["cellules_lues"] == 2
+
+    couche = agregats_couche(document, "population")
+    assert couche["n_zeros"] == 1
+    assert couche["n_non_calcules"] == 1
+    assert couche["n_sans_province"] == 1
+    assert couche["provinces"]["etat"] == "mesure"
+    lu = {ligne["nom"]: ligne["somme"] for ligne in couche["provinces"]["lignes"]}
+    assert lu == {"Bourg": 0.0, "Ville": 5.0}
+    effectifs = couche["histogramme"]["effectifs"]
+    assert effectifs
+    assert sum(effectifs) == 3
+
+
+def test_dashboard_echantillon_vide_rend_409():
+    import threading
+    from urllib.error import HTTPError
+    from urllib.request import urlopen
+
+    from viewer.server import serve
+
+    server = serve("127.0.0.1", 0, b'{"cells":[]}\n', None)
+    fil = threading.Thread(target=server.serve_forever, daemon=True)
+    fil.start()
+    host, port = server.server_address[:2]
+    try:
+        try:
+            urlopen(f"http://{host}:{port}/dashboard.json")
+        except HTTPError as exc:
+            assert exc.code == 409
+            assert "échantillon vide" in exc.read().decode("utf-8")
+        else:
+            raise AssertionError("un snapshot sans cellule doit rendre 409, pas 200")
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_snapshot_refuse_fichier_absent_illisible_ou_sans_cellules(tmp_path: Path):
+    from sim.constants import SNAPSHOT_SCHEMA_VERSION
+
+    with pytest.raises(SnapshotLoadError) as absent:
+        load_snapshot(tmp_path / "manquant.json")
+    assert "absent" in str(absent.value)
+
+    illisible = tmp_path / "casse.json"
+    illisible.write_text("{pas du json", encoding="utf-8")
+    with pytest.raises(SnapshotLoadError) as lu:
+        load_snapshot(illisible)
+    assert "illisible" in str(lu.value)
+
+    sans_cellules = tmp_path / "sans-cells.json"
+    sans_cellules.write_text(
+        json.dumps({"schema_version": SNAPSHOT_SCHEMA_VERSION}),
+        encoding="utf-8",
+    )
+    with pytest.raises(SnapshotLoadError) as cellules:
+        load_snapshot(sans_cellules)
+    assert "cells absentes" in str(cellules.value)
