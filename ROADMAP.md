@@ -115,6 +115,13 @@ pas sur `master`.
   un compte rendu qui les disait préexistantes ; la CI a démenti.
   `[projet].tests` est déclaré obligatoire et exécuté nulle part.
   C'est le brief 005.
+- **Savoir où en est une PR.** L'atelier connaît le numéro de la PR
+  d'un lot et ne lui demande jamais son état. Le 3 septembre au soir,
+  `atelier piloter` proposait de redéposer le lot 046 alors que la PR
+  206 était ouverte sur sa branche et attendait la fusion : Composer
+  aurait recodé un lot déjà en relecture. Symétriquement, une PR fermée
+  sans fusion laisse sa carte dans `faite` et son verrou posé. C'est le
+  brief 006.
 - **Reprendre un juge.** Après un JSON de revue illisible, changer
   de relecteur sans relancer le lot.
 - **Lire un quota vivant.** L'atelier consomme `llmquota` s'il est
@@ -124,8 +131,9 @@ pas sur `master`.
   d'échange, au format strict. Si `gh` répond et que le remote est
   GitHub, on refuse un désaccord de branche ; si la sonde échoue, on
   se tait — pas d'authentification obligatoire dans le cron. Une PR
-  fermée sans fusion se range toujours à la main (`atelier echouer`,
-  `atelier lever`).
+  fermée sans fusion se range toujours à la main (`atelier reprendre`,
+  qui sort la carte de n'importe quelle boîte et lève son verrou) —
+  c'est ce que le brief 006 doit rendre automatique.
 - **Reconnaître une PR de lot qui ne suit pas `prefixe_branche`.** La
   CI ne vérifie la fiche que sur une branche `agent/NNN-slug` ; ailleurs,
   c'est l'œil du propriétaire au moment de fusionner.
@@ -153,8 +161,26 @@ pilote, coder, relire — a tourné sans personne. Il a aussi livré au
 relecteur du code que la CI a refusé, parce que l'atelier avance une
 carte sur la parole de l'agent.
 
-Le prochain lot de code est donc **la porte des tests**
+Le soir du même jour, la plomberie a été reprise sans brief — deux PR
+d'exploitation — parce que les pannes ne se voyaient pas à la lecture :
+il a fallu exécuter chaque scénario sur un produit jetable avec de faux
+agents pour les trouver. Le tour **nominal** salissait le worktree du
+rôle et faisait échouer le lot suivant ; `echec/` n'avait pas de porte
+de sortie, si bien qu'un délai dépassé coûtait une commande tapée ; un
+second échec du même lot laissait la carte dans sa file, que le réveil
+suivant repayait. Depuis, `/etc/cron.d/forgeatelier` n'appelle plus
+qu'un répartiteur et le profil actif vit dans un fichier que `hermes`
+écrit : basculer entre la boucle de production et la boucle d'épreuve
+ne demande plus root ([docs/BOUCLES.md](docs/BOUCLES.md)).
+
+Il reste deux lots pour que la boucle tourne sans qu'on la rattrape, et
+dans cet ordre. **La porte des tests**
 (`briefs/005-la-carte-ne-passe-pas-sur-parole.md`) : le tour de `relire`
 lit le verdict des contrôles obligatoires avant d'invoquer qui que ce
-soit. **Reprendre un juge** attend toujours ce qui le justifierait — une
+soit. Puis **l'état des PR**
+(`briefs/006-la-boucle-ne-s-arrete-que-sur-une-decision.md`), qui en
+dépend — les deux écrivent dans `atelier/echange.py`, et le verrou
+refuserait le second si les deux partaient ensemble.
+
+**Reprendre un juge** attend toujours ce qui le justifierait — une
 revue illisible.
