@@ -5,10 +5,13 @@ porte un faux binaire. Les dépôts git sont temporaires.
 """
 
 from pathlib import Path
+import subprocess
 
 import pytest
 
+from atelier import boite
 from atelier import boite, echange, verrou
+from atelier import worktree as worktree_mod
 from atelier.__main__ import main
 from tests.depot import committer, courante, installer, orpheline, worktree_role
 from tests.test_invocation import (
@@ -111,8 +114,34 @@ def test_le_prefixe_du_toml_est_celui_extrait(tmp_path: Path):
 # ------------------------------------------ 3. worktree sale
 
 
+def test_preparer_lot_refuse_toujours_un_worktree_sale(tmp_path: Path):
+    """Le refus n'a pas bougé là où il compte : dans `preparer_lot`.
+
+    C'est lui qui garde la règle « l'atelier n'efface pas ». Le tour,
+    lui, range avant d'appeler — mais si quelque chose salit le
+    worktree entre le rangement et la préparation, la fonction refuse
+    encore, et elle refuse sans rien détruire.
+    """
+    projet = _projet(tmp_path)
+    worktree = _coder_pret(projet, tmp_path)
+    (worktree / "brouillon.txt").write_text("ne pas effacer\n", encoding="utf-8")
+    with pytest.raises(worktree_mod.WorktreeErreur, match="non enregistrées"):
+        worktree_mod.preparer_lot(worktree, "lot/044-mineur", "master")
+    assert (worktree / "brouillon.txt").read_text(encoding="utf-8") == "ne pas effacer\n"
+    assert courante(worktree) == "atelier/coder"
+
+
 @besoin_bash
-def test_un_worktree_sale_interdit_l_invocation(tmp_path: Path):
+def test_un_worktree_sale_est_range_et_le_lot_suivant_passe(tmp_path: Path):
+    """Un tour ne laisse plus au suivant un répertoire qu'il faut déblayer.
+
+    Avant, un agent qui rendait la main sur un worktree sale faisait
+    échouer le lot d'après dès `preparer_lot`, et il fallait qu'une
+    personne commite à la main pour débloquer la file : une cascade,
+    pas une panne isolée. Le tour enregistre maintenant ce qui traîne
+    sur la branche du rôle — il n'efface rien, et `git log` le
+    retrouve — puis il continue.
+    """
     projet = _projet(tmp_path)
     _carte(projet)
     worktree = _coder_pret(projet, tmp_path)
@@ -121,12 +150,19 @@ def test_un_worktree_sale_interdit_l_invocation(tmp_path: Path):
     temoin = tmp_path / "temoin.txt"
     _agent_pr(faux, temoin)
     r = _tour("coder", _env_coder(projet, faux, verrous, worktree, ATELIER_INVOQUER="1"))
-    assert r.returncode != 0
-    assert not temoin.exists()
-    assert (worktree / "brouillon.txt").read_text(encoding="utf-8") == "ne pas effacer\n"
-    assert courante(worktree) == "atelier/coder"
-    assert _boite_de(projet, "echec") == ["044-mineur"]
-    assert _boite_de(projet, "a-relire") == []
+    assert r.returncode == 0, r.stderr
+    # Rien n'est perdu. Le brouillon a quitté le répertoire — on a
+    # basculé sur la branche du lot — mais il vit dans l'historique de
+    # la branche du rôle, et son contenu se relit mot pour mot.
+    garde = subprocess.run(
+        ["git", "-C", str(worktree), "show", "atelier/coder:brouillon.txt"],
+        text=True, capture_output=True, check=True,
+    ).stdout
+    assert garde == "ne pas effacer\n"
+    # Et la file avance : c'est tout l'objet du rangement.
+    assert courante(worktree) == "agent/044-mineur"
+    assert _boite_de(projet, "echec") == []
+    assert _boite_de(projet, "a-relire") == ["044-mineur"]
 
 
 # -------------------------------- 4. créée depuis la base  5. extraite

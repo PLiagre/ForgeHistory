@@ -1,0 +1,33 @@
+# crontab — une ligne, et elle ne change plus.
+#
+#   installer (une fois, par le propriétaire) :
+#     sudo cp /opt/ForgeAtelier/crons/crontab-repartiteur /etc/cron.d/forgeatelier
+#     sudo chmod 644 /etc/cron.d/forgeatelier
+#
+# Ce fichier appartient à root. C'est pour cela qu'il ne porte plus rien
+# de ce qui change : ni les treize réveils, ni les worktrees, ni
+# ATELIER_INVOQUER. Tout cela vit dans un profil que `hermes` lit et
+# écrit — `crons/profils/*.sh` — et la bascule d'un profil à l'autre est
+# l'écriture d'un fichier, pas une modification système :
+#
+#     atelier-boucle jour      la boucle qui produit des lots
+#     atelier-boucle atelier   la boucle courte, sur un produit d'épreuve
+#     atelier-boucle arret     plus aucun réveil ne démarre
+#     atelier-boucle etat      quel profil tourne, et depuis quand
+#
+# Aucune clé d'API ici : une clé ferait payer l'API à l'unité au lieu de
+# l'abonnement. `tour.sh` les retire de l'environnement des agents, ce
+# fichier n'a pas à en poser.
+#
+# Aucun flock ici non plus : il est *dans* tour.sh, un par rôle. Un flock
+# global sérialiserait deux rôles qui n'ont rien à se dire.
+SHELL=/bin/bash
+PATH=/home/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
+ATELIER_ROOT=/opt/ForgeAtelier
+
+# Le cron Debian de ce VPS suit le fuseau système UTC ; c'est le profil
+# qui pose TZ=Europe/Paris, et `reveil.sh` compare l'heure locale. Le
+# répartiteur sort en quelques millisecondes quand rien n'est prévu, et
+# il sort tout de suite si aucun profil n'est posé : une minute est le
+# grain le plus fin qu'un profil puisse demander, pas une dépense.
+* * * * * hermes /opt/ForgeAtelier/crons/repartiteur.sh

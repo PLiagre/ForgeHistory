@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+# La bascule : `atelier-boucle jour|atelier|arret|etat`.
+#
+# Elle écrit un fichier. C'est tout, et c'est le point : `/etc/cron.d`
+# appartient à root, donc rien de ce qui change souvent ne doit y vivre.
+# Le crontab appelle le répartiteur, le répartiteur lit ce fichier, et
+# `hermes` l'écrit sans demander la permission à personne.
+set -uo pipefail
+
+ATELIER="${ATELIER_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+ETAT="${ATELIER_ETAT:-$HOME/.atelier}"
+FICHIER_PROFIL="$ETAT/profil"
+ARRET="arret"
+ROLES=(briefer planifier coder relire pilote)
+
+usage() {
+    cat <<'TXT'
+usage : atelier-boucle <jour|atelier|arret|etat>
+
+  jour     la boucle qui produit des lots : six rôles, treize réveils,
+           sur ForgeHistory.
+  atelier  la boucle pour travailler sur l'atelier lui-même : un cycle
+           de quatre minutes sur un produit d'épreuve, aucun quota.
+  arret    plus aucun réveil ne démarre. Un tour en cours va au bout :
+           on ne coupe pas un agent au milieu d'un lot.
+  etat     quel profil tourne, depuis quand, et ce que fera le prochain
+           réveil.
+TXT
+}
+
+profil_actif() {
+    local nom
+    nom="$(head -n 1 "$FICHIER_PROFIL" 2>/dev/null | tr -d '[:space:]')"
+    echo "${nom:-$ARRET}"
+}
+
+existe_profil() { [[ -r "$ATELIER/crons/profils/$1.sh" ]]; }
+
+# Un profil se lit toujours dans un sous-shell : `etat` décrit une
+# boucle, il ne doit pas repartir avec son PATH ni son ATELIER_PROJET.
+dans_le_profil() {
+    local nom="$1" ; shift
+    ( set +u
+      source "$ATELIER/crons/profils/$nom.sh" 2>/dev/null || exit 1
+      "$@" )
+}
+
+# Où vivent les verrous : chaque profil a les siens — le banc ne partage
+# pas `/tmp` avec ForgeHistory. Sans cette lecture, `arret` regarderait
+# les verrous du mauvais profil et jurerait que rien ne tourne.
+verrous_du_profil() {
+    local nom="$1"
+    if [[ "$nom" == "$ARRET" ]] || ! existe_profil "$nom"; then
+        echo "${ATELIER_VERROUS:-${TMPDIR:-/tmp}}"
+        return
+    fi
+    dans_le_profil "$nom" bash -c 'echo "${ATELIER_VERROUS:-${TMPDIR:-/tmp}}"'
+}
+
+# Le verrou d'un rôle est tenu par `flock` pendant tout son tour : le
+# demander sans attendre dit s'il y a un tour en cours, et le rend
+# aussitôt.
+role_en_cours() {
+    local role="$1" verrous="$2"
+    local fichier="$verrous/atelier-$role.lock"
+    [[ -e "$fichier" ]] || return 1
+    command -v flock >/dev/null 2>&1 || return 1
+    flock -n "$fichier" true >/dev/null 2>&1 && return 1
+    return 0
+}
+
+tours_dans() {
+    local verrous="$1" role sortie=()
+    for role in "${ROLES[@]}"; do
+        role_en_cours "$role" "$verrous" && sortie+=("$role")
+    done
+    echo "${sortie[@]:-}"
+}
+
+dire_prochain() {
+    local nom="$1"
+    dans_le_profil "$nom" prochain_reveil "$(date +%H:%M)"
+}
+
+poser_profil() {
+    local nom="$1"
+    if [[ "$nom" != "$ARRET" ]] && ! existe_profil "$nom"; then
+        echo "profil inconnu : $nom" >&2
+        usage >&2
+        return 2
+    fi
+    mkdir -p "$ETAT"
+    printf '%s\n' "$nom" > "$FICHIER_PROFIL"
+}
+
+cmd_jour() {
+    poser_profil jour || return $?
+    echo "profil « jour » : ForgeHistory, treize réveils."
+    echo "prochain réveil : $(dire_prochain jour)"
+}
+
+cmd_atelier() {
+    # Le banc d'abord : un profil qui pointe un produit inexistant ferait
+    # un réveil qui échoue toutes les minutes.
+    if ! bash "$ATELIER/crons/banc.sh"; then
+        echo "banc impossible à monter : profil inchangé." >&2
+        return 1
+    fi
+    poser_profil atelier || return $?
+    echo "profil « atelier » : produit d'épreuve, faux agents, aucun quota."
+    echo "prochain réveil : $(dire_prochain atelier)"
+}
+
+cmd_arret() {
+    local avant verrous restes attente=0
+    avant="$(profil_actif)"
+    # Les verrous à surveiller sont ceux du profil qui tournait, pas ceux
+    # de l'arrêt : on les lit avant de basculer.
+    verrous="$(verrous_du_profil "$avant")"
+    poser_profil "$ARRET" || return $?
+    echo "profil « $ARRET » : plus aucun réveil ne démarre (avant : $avant)."
+
+    # Un arrêt propre ne laisse ni carte prise ni verrou orphelin. On ne
+    # tue pas le tour en cours : `crons/tour.sh` range sa carte sur tous
+    # ses chemins de sortie, et le tuer serait exactement la façon de
+    # laisser une carte prise. On attend, et on dit ce qu'on attend.
+    # Combien de temps on laisse un tour finir avant de rendre la main.
+    # L'arrêt est déjà acquis quand on entre ici — le profil est posé, plus
+    # aucun réveil ne démarre ; cette attente ne sert qu'à pouvoir dire
+    # « rien n'est pris » plutôt que « je ne sais pas ».
+    local maximum="${ATELIER_ARRET_ATTENTE:-60}"
+    restes="$(tours_dans "$verrous")"
+    while [[ -n "${restes// /}" && $attente -lt $maximum ]]; do
+        echo "  tour en cours : $restes — on le laisse finir (${attente}s)"
+        sleep 5
+        attente=$((attente + 5))
+        restes="$(tours_dans "$verrous")"
+    done
+    if [[ -n "${restes// /}" ]]; then
+        echo "  encore en cours après ${attente}s : $restes" >&2
+        echo "  (aucun réveil ne s'ajoutera ; ce tour ira au bout tout seul)" >&2
+        return 1
+    fi
+    echo "  aucun tour en cours : rien n'est pris."
+}
+
+cmd_etat() {
+    local nom depuis restes
+    nom="$(profil_actif)"
+    echo "profil   $nom"
+    if [[ -f "$FICHIER_PROFIL" ]]; then
+        depuis="$(date -r "$FICHIER_PROFIL" --iso-8601=seconds 2>/dev/null)"
+        echo "depuis   ${depuis:-inconnu}"
+    else
+        echo "depuis   jamais posé (défaut : $ARRET)"
+    fi
+    if [[ "$nom" == "$ARRET" ]]; then
+        echo "prochain aucun — la boucle est à l'arrêt"
+    else
+        echo "prochain $(dire_prochain "$nom")"
+    fi
+    restes="$(tours_dans "$(verrous_du_profil "$nom")")"
+    if [[ -n "${restes// /}" ]]; then
+        echo "en cours $restes"
+    else
+        echo "en cours aucun tour"
+    fi
+    # Un profil posé sans cron ne réveille personne, et rien ne le dirait
+    # autrement : `etat` doit pouvoir démentir « ça tourne ».
+    if [[ -r /etc/cron.d/forgeatelier ]] \
+        && grep -q "repartiteur.sh" /etc/cron.d/forgeatelier 2>/dev/null; then
+        echo "cron     /etc/cron.d/forgeatelier appelle le répartiteur"
+    else
+        echo "cron     ATTENTION : /etc/cron.d/forgeatelier n'appelle pas le répartiteur"
+        echo "         rien ne se réveillera — voir crons/crontab-repartiteur"
+    fi
+}
+
+case "${1:-}" in
+    jour)    cmd_jour ;;
+    atelier) cmd_atelier ;;
+    arret|stop) cmd_arret ;;
+    etat)    cmd_etat ;;
+    -h|--help|help|"") usage ;;
+    *) echo "commande inconnue : $1" >&2; usage >&2; exit 2 ;;
+esac

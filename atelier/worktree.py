@@ -67,6 +67,58 @@ def propre(racine: Path) -> bool:
     return resultat.stdout == ""
 
 
+def ranger(racine: Path, message: str) -> list[str]:
+    """Enregistre ce qui traîne dans le worktree, sur la branche courante.
+
+    Un agent rend souvent la main sur un répertoire sale : un fichier
+    non suivi, une suppression que `crons/tour.sh` vient de faire. Le
+    lot suivant butait alors sur `preparer_lot`, qui refuse — à raison —
+    d'effacer du travail, et il fallait qu'une personne commite à la
+    main pour débloquer la file. Une cascade, pas une panne isolée.
+
+    Ranger n'efface rien et ne réinitialise rien : c'est l'option
+    « enregistre » que le refus proposait déjà, prise toute seule. Le
+    travail reste dans l'historique de la branche du lot, daté, et se
+    retrouve avec un `git log`.
+
+    Rend la liste des chemins rangés ; vide si le worktree était propre.
+    """
+    racine = Path(racine)
+    dedans = _git(racine, "rev-parse", "--is-inside-work-tree")
+    if dedans.returncode != 0:
+        # Pas un dépôt git : il n'y a rien à ranger, et ce n'est pas au
+        # rangement d'en faire une affaire. `preparer_lot` le dira au
+        # coder, qui est le seul à en avoir besoin.
+        return []
+    etat = _git(racine, "status", "--porcelain")
+    if etat.returncode != 0:
+        raise WorktreeErreur(
+            f"impossible de lire l'état de {racine} : "
+            f"{(etat.stderr or etat.stdout).strip()}"
+        )
+    lignes = [l for l in etat.stdout.splitlines() if l.strip()]
+    if not lignes:
+        return []
+    ajout = _git(racine, "add", "-A")
+    if ajout.returncode != 0:
+        raise WorktreeErreur(
+            f"impossible de ranger {racine} : {(ajout.stderr or ajout.stdout).strip()}"
+        )
+    commit = _git(
+        racine,
+        "-c", "user.email=atelier@forge",
+        "-c", "user.name=Atelier",
+        "-c", "commit.gpgsign=false",
+        "commit", "-m", message,
+    )
+    if commit.returncode != 0:
+        raise WorktreeErreur(
+            f"impossible d'enregistrer {racine} : "
+            f"{(commit.stderr or commit.stdout).strip()}"
+        )
+    return [l[3:] for l in lignes]
+
+
 def _existe(racine: Path, ref: str) -> bool:
     return _git(racine, "rev-parse", "--verify", "--quiet", ref).returncode == 0
 

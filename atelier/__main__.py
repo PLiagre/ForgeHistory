@@ -12,7 +12,8 @@ from pathlib import Path
 
 import subprocess
 
-from . import backends, boite, couches, cycle, echange, etat, feuille, porte, projet, quota, verrou, worktree
+from . import (backends, boite, couches, cycle, echange, etat, feuille, porte,
+               projet, quota, reprise, verrou, worktree)
 from .etat import FusionInterdite
 
 
@@ -87,6 +88,30 @@ def _parser() -> argparse.ArgumentParser:
     echouer.add_argument("--role", required=True, choices=ROLES)
     echouer.add_argument("--lot", required=True)
     echouer.add_argument("--raison", required=True)
+    echouer.add_argument(
+        "--cause",
+        choices=list(reprise.CAUSES),
+        default=reprise.INCONNUE,
+        help="le mot que la machine compare pour décider si ça se retente",
+    )
+
+    rappeler = sous.add_parser(
+        "rappeler",
+        help="remettre en circulation les cartes de echec/ qui se retentent",
+    )
+    rappeler.add_argument("--projet", required=True)
+    rappeler.add_argument("--role", required=True, choices=ROLES)
+
+    canal = sous.add_parser(
+        "canal", help="ouvrir le canal d'échange d'un worktree, avec sa garde git"
+    )
+    canal.add_argument("--worktree", required=True)
+
+    ranger = sous.add_parser(
+        "ranger", help="enregistrer ce qui traîne dans un worktree, sans rien effacer"
+    )
+    ranger.add_argument("--worktree", required=True)
+    ranger.add_argument("--message", default="atelier : ce que le tour précédent a laissé")
 
     invocation = sous.add_parser(
         "invocation", help="l'argv d'un rôle — imprimé, jamais lancé"
@@ -135,10 +160,15 @@ def _parser() -> argparse.ArgumentParser:
     piloter.add_argument("--run", action="store_true")
 
     reprendre = sous.add_parser(
-        "reprendre", help="retirer la carte d'un lot de echec/ pour que le pilote le redépose"
+        "reprendre",
+        help="retirer la carte d'un lot de sa boîte pour que le pilote le redépose",
     )
     reprendre.add_argument("--projet", required=True)
     reprendre.add_argument("--lot", required=True)
+    reprendre.add_argument(
+        "--etat",
+        help="la boîte d'où sortir la carte ; par défaut, celle où elle dort",
+    )
 
     verrouiller = sous.add_parser(
         "verrouiller", help="tenir les fichiers d'une carte avant d'écrire"
@@ -425,11 +455,88 @@ def _cmd_avancer(args: argparse.Namespace) -> int:
 
 def _cmd_echouer(args: argparse.Namespace) -> int:
     try:
-        cible = boite.echouer(Path(args.projet), args.role, args.lot, args.raison)
+        cible = boite.echouer(
+            Path(args.projet), args.role, args.lot, args.raison, args.cause
+        )
     except boite.BoiteErreur as exc:
         print(f"FAIL  {exc}", file=sys.stderr)
         return 1
     print(cible)
+    return 0
+
+
+def _cmd_rappeler(args: argparse.Namespace) -> int:
+    """Ce qui revient seul de echec/. Le reste attend une personne, et on dit qui.
+
+    Appelé par `crons/tour.sh` au début de chaque tour : le rôle se
+    rattrape lui-même au réveil suivant, sans que le pilote arbitre et
+    sans qu'une horloge de plus soit à lire — deux heures séparent déjà
+    deux tours du coder.
+    """
+    racine = Path(args.projet)
+    try:
+        rappelees = boite.rappeler(racine, args.role)
+        restantes = [
+            c for c in boite.lister(racine, "echec")
+            if c.role == args.role and c.lot not in {r.lot for r in rappelees}
+        ]
+    except (boite.BoiteErreur, verrou.Collision) as exc:
+        # Un rappel qui échoue n'annule pas le tour : la carte reste où
+        # elle est, et le rôle continue avec ce que sa file porte.
+        print(f"rappel impossible : {exc}", file=sys.stderr)
+        return 0
+    for carte in rappelees:
+        print(
+            f"rappelé  {carte.lot} : echec → {boite.BOITE_DU_ROLE[args.role]} "
+            f"(cause « {carte.cause} », essai {carte.essais + 1})"
+        )
+    for carte in restantes:
+        print(
+            f"reste    {carte.lot} : {reprise.raison_du_refus(carte.cause, carte.essais)}",
+            file=sys.stderr,
+        )
+    return 0
+
+
+def _cmd_canal(args: argparse.Namespace) -> int:
+    """Le canal d'échange, avec sa garde `*`, dans le worktree du rôle.
+
+    Sans elle, un agent qui fait `git add -A` — ils le font tous —
+    enregistre `atelier-echange/pr.txt` ; `crons/tour.sh` le supprime
+    ensuite, et le worktree reste sale. Le lot suivant butait alors sur
+    `preparer_lot`. Le tour *nominal* empoisonnait le lot d'après :
+    mesuré, puis fermé ici.
+    """
+    cible = Path(args.worktree)
+    if not cible.is_dir():
+        print(f"FAIL  worktree introuvable : {cible}", file=sys.stderr)
+        return 1
+    try:
+        dossier = echange.ouvrir(cible)
+    except OSError as exc:
+        print(f"FAIL  canal impossible dans {cible} : {exc}", file=sys.stderr)
+        return 1
+    if not echange.git_ignore_le_canal(cible):
+        print(f"FAIL  le canal {dossier} n'a pas sa garde git", file=sys.stderr)
+        return 1
+    print(dossier)
+    return 0
+
+
+def _cmd_ranger(args: argparse.Namespace) -> int:
+    cible = Path(args.worktree)
+    if not cible.is_dir():
+        print(f"FAIL  worktree introuvable : {cible}", file=sys.stderr)
+        return 1
+    try:
+        ranges = worktree.ranger(cible, args.message)
+    except worktree.WorktreeErreur as exc:
+        print(f"FAIL  {exc}", file=sys.stderr)
+        return 1
+    if not ranges:
+        print("worktree propre : rien à ranger")
+        return 0
+    print(f"rangé dans {worktree.courante(cible)} : {', '.join(ranges)}")
     return 0
 
 
@@ -830,14 +937,33 @@ def _cmd_piloter(args: argparse.Namespace) -> int:
 
 
 def _cmd_reprendre(args: argparse.Namespace) -> int:
+    """Sortir une carte de sa boîte, quelle qu'elle soit.
+
+    `reprendre` ne connaissait que `echec/`. Une carte coincée dans
+    `faite/` — la PR fermée sans être fusionnée — ou dans `a-relire`
+    n'avait aucune sortie : il fallait supprimer un fichier JSON à la
+    main. Le verrou du lot tombe avec elle, sinon les fichiers qu'elle
+    tenait resteraient tenus par un lot qui n'est plus nulle part.
+    """
     racine = Path(args.projet)
+    etat = args.etat or boite.ou_est(racine, args.lot)
+    if etat is None:
+        print(
+            f"FAIL  aucune boîte ne porte la carte {args.lot} : rien à reprendre",
+            file=sys.stderr,
+        )
+        return 1
     try:
-        carte = boite.lire(racine, "echec", args.lot)
+        carte = boite.retirer(racine, etat, args.lot)
     except boite.BoiteErreur as exc:
         print(f"FAIL  {exc}", file=sys.stderr)
         return 1
-    (boite.racine_boite(racine) / "echec" / f"{args.lot}.json").unlink()
-    print(f"{args.lot} retiré de echec/ (raison : {carte.note or 'aucune'}) — le pilote peut le redéposer.")
+    verrou.lever(racine, args.lot)
+    raison = carte.note or "aucune"
+    print(
+        f"{args.lot} retiré de {etat}/ (raison : {raison}) ; verrou levé "
+        "— le pilote peut le redéposer."
+    )
     return 0
 
 
@@ -877,6 +1003,12 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_avancer(args)
     if args.commande == "echouer":
         return _cmd_echouer(args)
+    if args.commande == "rappeler":
+        return _cmd_rappeler(args)
+    if args.commande == "canal":
+        return _cmd_canal(args)
+    if args.commande == "ranger":
+        return _cmd_ranger(args)
     if args.commande == "invocation":
         return _cmd_invocation(args)
     if args.commande == "verrouiller":
