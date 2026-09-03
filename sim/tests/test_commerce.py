@@ -2064,13 +2064,16 @@ def _longueurs_facade_maritime_carte() -> tuple[float, float, float]:
 
 def test_debarquement_proportionnel_aux_facades():
     """SC6 — débarquement dans le rapport des longueurs de façade."""
+    from sim import constants as k
     from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
     from sim.world import ecrire_stock_mer
 
     courte, mediane, longue = _longueurs_facade_maritime_carte()
-    pop = 5000
+    cap_longue = k.debit_maritime_kg_par_km() * (longue / k.metres_par_km())
+    # Besoin supérieur à toute capacité de quai : seule la façade borne le débit.
+    pop = int(cap_longue / FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK) + 1
     besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
-    bassin_stock = besoin * 100
+    bassin_stock = cap_longue * len((courte, mediane, longue)) * 10
     source_id = 8100
     cells = {}
     adjacency = []
@@ -2353,7 +2356,7 @@ def test_debit_maritime_via_fonction_pas_constante_dans_engine():
     assert len(lues) > 0
     assert "DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK" not in lues
     appels = {
-        node.attr
+        node.func.attr
         for node in ast.walk(tree)
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
