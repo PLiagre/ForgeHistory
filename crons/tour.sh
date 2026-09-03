@@ -44,6 +44,13 @@ nom_workdir="ATELIER_WORKDIR_${ROLE}"
 WORKDIR="${!nom_workdir:-$PROJET}"
 cd "$WORKDIR"
 
+# --- ce qui revient tout seul de echec/ ----------------------------------
+# Une panne passagère — un délai dépassé, un agent qui plante — ne doit
+# pas coûter une commande tapée par une personne. `rappeler` ne remet en
+# circulation que ce qui se retente, et il le borne : voir atelier/reprise.py.
+# Il ne fait jamais échouer le tour ; au pire il ne rappelle rien.
+python3 -m atelier rappeler --projet "$PROJET" --role "$ROLE" || true
+
 # --- la carte ------------------------------------------------------------
 if ! carte="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE")"; then
     echo "$ROLE : boîte illisible, aucun agent lancé." >&2
@@ -132,7 +139,7 @@ if [[ "$ROLE" != "briefer" ]]; then
     if [[ "$brief" == /* ]]; then chemin_brief="$brief"; else chemin_brief="$PROJET/$brief"; fi
     if [[ ! -f "$chemin_brief" ]]; then
         python3 -m atelier echouer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
-            --raison "brief introuvable : $brief" >/dev/null
+            --raison "brief introuvable : $brief" --cause brief-absent >/dev/null
         echo "$ROLE : brief introuvable ($brief). Rien n'a été dépensé." >&2
         exit 1
     fi
@@ -142,10 +149,15 @@ echouer_le_lot() {
     # Une carte prise ne reste jamais en place. Le fichier d'échange
     # disparaît pour ne pas contaminer le lot suivant. Le verrou du
     # coder se lève sur tous les chemins d'échec.
+    #
+    # La cause est un mot, pas une phrase : c'est elle que `rappeler`
+    # compare pour savoir si la carte revient seule. Une note se
+    # réécrit, une cause se compare.
     local raison="$1"
+    local cause="${2:-inconnue}"
     rm -f "$WORKDIR/atelier-echange/pr.txt"
     python3 -m atelier echouer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
-        --raison "$raison" >/dev/null
+        --raison "$raison" --cause "$cause" >/dev/null
     if [[ "$ROLE" == "coder" ]]; then
         python3 -m atelier lever --projet "$PROJET" --lot "$lot" >/dev/null
     fi
@@ -153,11 +165,29 @@ echouer_le_lot() {
     exit 1
 }
 
+# --- le répertoire dans lequel l'agent va écrire --------------------------
+# Le canal d'échange porte sa propre garde git (`*`). Sans elle, un agent
+# qui fait `git add -A` enregistre `atelier-echange/pr.txt`, le tour le
+# supprime ensuite, et le worktree reste sale : le lot suivant butait sur
+# `preparer_lot`. Le tour *nominal* empoisonnait le lot d'après.
+if ! python3 -m atelier canal --worktree "$WORKDIR" >/dev/null; then
+    echo "$ROLE : canal d'échange impossible dans $WORKDIR" >&2
+fi
+
+# Puis on enregistre ce qu'un tour précédent a laissé traîner. On
+# n'efface rien : c'est l'option « enregistre » que `preparer_lot`
+# proposait déjà, prise toute seule plutôt que tapée par une personne.
+if ! ranges="$(python3 -m atelier ranger --worktree "$WORKDIR")"; then
+    echouer_le_lot "$ROLE : impossible de ranger $WORKDIR" worktree
+fi
+echo "$ranges"
+
 # Seul le coder écrit du code : lui seul tient les fichiers.
 if [[ "$ROLE" == "coder" ]]; then
     if ! python3 -m atelier verrouiller --projet "$PROJET" --role coder --lot "$lot"; then
         python3 -m atelier echouer --projet "$PROJET" --role coder --lot "$lot" \
-            --raison "verrou refusé : un autre lot tient un fichier du périmètre" >/dev/null
+            --raison "verrou refusé : un autre lot tient un fichier du périmètre" \
+            --cause verrou >/dev/null
         exit 1
     fi
     # Un numéro périmé ne doit jamais être relu si l'agent n'écrit rien.
@@ -166,13 +196,13 @@ if [[ "$ROLE" == "coder" ]]; then
     # n'est pas la branche du lot.
     if ! attendue="$(python3 -m atelier branche --projet "$PROJET" --lot "$lot" \
             --worktree "$WORKDIR" --run)"; then
-        echouer_le_lot "$ROLE : impossible de préparer la branche du lot $lot"
+        echouer_le_lot "$ROLE : impossible de préparer la branche du lot $lot" branche
     fi
     if ! courante="$(git -C "$WORKDIR" branch --show-current)"; then
-        echouer_le_lot "$ROLE : impossible de lire la branche courante de $WORKDIR"
+        echouer_le_lot "$ROLE : impossible de lire la branche courante de $WORKDIR" branche
     fi
     if [[ "$courante" != "$attendue" ]]; then
-        echouer_le_lot "$ROLE : branche courante « $courante », attendue « $attendue » — aucun agent lancé"
+        echouer_le_lot "$ROLE : branche courante « $courante », attendue « $attendue » — aucun agent lancé" branche
     fi
 fi
 
@@ -202,7 +232,7 @@ if [[ $code -eq 0 ]]; then
         # jamais dans a-relire. On ne concatène pas les chiffres d'un texte.
         if ! numero="$(python3 -m atelier pr --fichier "$WORKDIR/atelier-echange/pr.txt" \
                 --branche "$attendue" --worktree "$WORKDIR")"; then
-            echouer_le_lot "$ROLE : $lot n'a pas déposé de numéro de PR valide dans atelier-echange/pr.txt"
+            echouer_le_lot "$ROLE : $lot n'a pas déposé de numéro de PR valide dans atelier-echange/pr.txt" pr
         fi
         rm -f "$WORKDIR/atelier-echange/pr.txt"
         suite+=(--pr "$numero")
@@ -221,9 +251,9 @@ if [[ $code -eq 0 ]]; then
     fi
     # L'agent a tourné : la carte ne reste pas en place, sinon le rôle
     # la retrouve demain et la repaie demain.
-    echouer_le_lot "$ROLE : $lot n'a pas pu avancer (la file suivante l'a déjà ?)"
+    echouer_le_lot "$ROLE : $lot n'a pas pu avancer (la file suivante l'a déjà ?)" avancer
 elif [[ $code -eq 124 ]]; then
-    echouer_le_lot "$ROLE : délai dépassé (${DELAI}s)"
+    echouer_le_lot "$ROLE : délai dépassé (${DELAI}s)" timeout
 else
-    echouer_le_lot "$ROLE : l'agent a rendu le code $code"
+    echouer_le_lot "$ROLE : l'agent a rendu le code $code" agent
 fi
