@@ -62,11 +62,15 @@ décide jamais.
   demandeur — le fer s'accumule là où il sort. C'est le lot 049.
 - **Utiliser la mer.** Les arêtes maritimes de la carte sont écartées en
   silence. Plus d'une cellule sur trois n'a aucun voisin terrestre : elle ne
-  peut ni recevoir ni donner un kilogramme. C'est le lot 046.
+  peut ni recevoir ni donner un kilogramme. Le lot 046 ouvre le bassin aux
+  marchandises ; le lot 050 l'ouvre ensuite aux migrants.
 - **Compter un bourg.** La part non agricole d'une cellule existe depuis le
-  lot 044, mais aucune vue ne la lit encore. C'est le lot 047.
+  lot 044, mais aucune vue ne la lit encore. Le lot 047 la compte, le lot 051
+  la photographie et le lot 052 la montre.
 - **Concentrer les gens.** Aucun endroit ne peut abriter plus de monde qu'il
   n'en nourrit lui-même — voir ci-dessous.
+- **Dater le monde.** Le rang du jour se dérive du numéro du tick, mais le
+  monde lui-même ne porte aucune date. C'est le lot 053.
 
 ---
 
@@ -132,6 +136,18 @@ quoi faire quand ça casse — est décrit après le registre.
 
 ### [049 — Fabriquer : le minerai devient un objet](briefs/049-fabriquer-le-minerai-devient-un-objet.md)
 état : a-briefer · couche : 2 · dépend de : 044 · PR : —
+
+### [050 — On migre aussi par la mer](briefs/050-on-migre-aussi-par-la-mer.md)
+état : a-briefer · couche : 1 · dépend de : 046 · PR : —
+
+### [051 — Le snapshot photographie le bourg](briefs/051-le-snapshot-photographie-le-bourg.md)
+état : a-briefer · couche : 2 · dépend de : 047 · PR : —
+
+### [052 — Le regard mince montre le bourg](briefs/052-le-regard-mince-montre-le-bourg.md)
+état : a-briefer · couche : 2 · dépend de : 051 · PR : —
+
+### [053 — Le monde porte sa date](briefs/053-le-monde-porte-sa-date.md)
+état : a-briefer · couche : 1 · dépend de : — · PR : —
 
 ## Livrés depuis le dégraissage V1
 
