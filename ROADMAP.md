@@ -103,6 +103,18 @@ pas sur une intention — c'est pourquoi il vient après le métier.
 
 ---
 
+## Cohérence globale — la preuve transversale manque
+
+Les tests actuels protègent des invariants et des règles visibles, mécanisme
+par mécanisme. L'historique conserve les travaux du premier jour et le tag
+`v0-avant-degraissage` leurs anciennes preuves. Mais aucun inventaire courant
+ne relie encore chaque promesse de `VISION.md` à ce qui fonctionne réellement,
+à ce qui ne fonctionne que partiellement, à ce qui manque, et à la commande
+qui permet de le constater. Un test vert ne dit donc pas quelle part de la
+vision est effectivement couverte. C'est le manque recensé par le lot 054.
+
+---
+
 ## Le registre des lots
 
 **C'est ici, et seulement ici, que l'état d'un lot s'écrit.** Une machine le
@@ -136,6 +148,9 @@ quoi faire quand ça casse — est décrit après le registre.
 
 ### [049 — Fabriquer : le minerai devient un objet](briefs/049-fabriquer-le-minerai-devient-un-objet.md)
 état : a-briefer · couche : 2 · dépend de : 044 · PR : —
+
+### [054 — Cohérence globale : inventaire du produit face à la vision](briefs/054-coherence-globale-inventaire-produit-vision.md)
+état : a-briefer · couche : — · dépend de : — · PR : —
 
 ### [050 — On migre aussi par la mer](briefs/050-on-migre-aussi-par-la-mer.md)
 état : a-briefer · couche : 1 · dépend de : 046 · PR : —
