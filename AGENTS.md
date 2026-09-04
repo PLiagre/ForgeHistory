@@ -205,6 +205,7 @@ processus : elles survivent à tout changement de workflow.
 | `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier. |
 | `docs/WORKFLOW.md` | rappel local : les trois postes de *ce* produit, et le lien vers l'atelier. |
 | hors arbre : [forge3d](https://github.com/PLiagre/forge3d) | moteur de rendu terrain récupéré (Rust/WebGPU, API Python). Dépôt séparé. Il photographie un relief ; il ne simule pas. Il n'entre ni dans `sim/` ni dans `viewer/`. |
+| `visualisateur/` | regard 3D, **cette branche seulement**, comme l'atelier. Lit une photographie, parle à forge3d. Ne fusionne pas dans le jeu. |
 
 ## Les archives
 
