@@ -26,10 +26,9 @@ export ATELIER_INVOQUER=1
 # remote : sans ça, chaque tour attend un `git pull` qui échouera.
 export ATELIER_SANS_PULL=1
 
-export ATELIER_WORKDIR_briefer="$BANC/produit-briefer"
-export ATELIER_WORKDIR_planifier="$BANC/produit-planifier"
-export ATELIER_WORKDIR_coder="$BANC/produit-coder"
-export ATELIER_WORKDIR_relire="$BANC/produit-relire"
+# Un worktree par lot, pas par rôle. Le banc les pose à côté de son
+# produit d'épreuve : $BANC/produit-900-le-banc-mesure.
+export ATELIER_WORKTREES="$BANC"
 
 # Le cycle : quatre minutes, quatre gestes. Le pilote dépose, le coder
 # ramasse, le relecteur relit, le briefer écrit — l'ordre du profil

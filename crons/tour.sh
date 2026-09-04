@@ -39,9 +39,11 @@ if [[ -z "${ATELIER_VERROU_TENU:-}" ]]; then
     echo "flock absent : $ROLE tourne sans garde de concurrence." >&2
 fi
 
-# Chaque rôle dans son répertoire : un agent, un worktree.
-nom_workdir="ATELIER_WORKDIR_${ROLE}"
-WORKDIR="${!nom_workdir:-$PROJET}"
+# Un lot, un répertoire. On ne sait pas encore lequel : on part du
+# produit, et on ira dans le worktree du lot dès qu'on l'aura pris.
+# Un worktree par rôle ne peut pas être sur deux branches à la fois, et
+# c'est exactement ce que le cycle automatique demande.
+WORKDIR="$PROJET"
 cd "$WORKDIR"
 
 # --- ce qui revient tout seul de echec/ ----------------------------------
@@ -95,10 +97,10 @@ if ! python3 -m atelier invocation "${inv[@]}"; then
     echo "$ROLE : branchement illisible, aucun agent lancé." >&2
     exit 1
 fi
-if [[ "$ROLE" == "coder" ]]; then
-    echo -n "branche du lot : "
-    python3 -m atelier branche --projet "$PROJET" --lot "$lot"
-fi
+echo -n "branche du lot  : "
+python3 -m atelier branche --projet "$PROJET" --lot "$lot"
+echo -n "worktree du lot : "
+python3 -m atelier worktree --projet "$PROJET" --lot "$lot"
 
 # « Celui qui a écrit le code ne dit pas s'il est recevable » ne tient
 # que si le relecteur n'a pas la main qui écrit. Si le binaire que le
@@ -190,6 +192,15 @@ echouer_le_lot() {
     exit 1
 }
 
+# --- le répertoire du lot ------------------------------------------------
+# Un lot actif a son worktree, sur sa branche. Deux lots ne se partagent
+# plus un répertoire, et l'un ne salit plus celui de l'autre. Le chemin
+# est dérivé du nom du produit et du slug : ce script ne le compose pas.
+if ! WORKDIR="$(python3 -m atelier worktree --projet "$PROJET" --lot "$lot" --run)"; then
+    echouer_le_lot "$ROLE : impossible de préparer le worktree du lot $lot" worktree
+fi
+cd "$WORKDIR"
+
 # --- ce que la CI a déjà dit de la PR qu'on allait relire -----------------
 # Le 3 septembre 2026, un agent a écrit « 164 passent, 3 échecs identiques
 # à master (préexistants) ». La CI disait `sim` rouge et trois régressions.
@@ -240,11 +251,11 @@ echo "$ranges"
 if [[ "$ROLE" == "coder" ]]; then
     # Un numéro périmé ne doit jamais être relu si l'agent n'écrit rien.
     rm -f "$WORKDIR/atelier-echange/pr.txt"
-    # La branche du lot, avant d'invoquer Cursor : le worktree du rôle
-    # n'est pas la branche du lot.
-    if ! attendue="$(python3 -m atelier branche --projet "$PROJET" --lot "$lot" \
-            --worktree "$WORKDIR" --run)"; then
-        echouer_le_lot "$ROLE : impossible de préparer la branche du lot $lot" branche
+    # La branche est déjà extraite : `atelier worktree --run` l'a posée
+    # en créant le répertoire du lot. On lit son nom pour vérifier, on ne
+    # la prépare pas une seconde fois.
+    if ! attendue="$(python3 -m atelier branche --projet "$PROJET" --lot "$lot")"; then
+        echouer_le_lot "$ROLE : impossible de dériver la branche du lot $lot" branche
     fi
     if ! courante="$(git -C "$WORKDIR" branch --show-current)"; then
         echouer_le_lot "$ROLE : impossible de lire la branche courante de $WORKDIR" branche

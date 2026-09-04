@@ -1,7 +1,24 @@
-"""Worktree : un agent, un répertoire, une branche."""
+"""Worktree : un lot, un répertoire, une branche.
+
+Un worktree appartenait à un **rôle** : `ATELIER_WORKDIR_coder` était le
+répertoire du coder, quel que soit le lot qu'il codait. Cette forme avait
+déjà coûté — un agent qui rend la main sur un répertoire sale faisait
+échouer le lot d'après — et la contre-mesure (`ranger`) avait fermé la
+panne sans changer la forme.
+
+Le cycle automatique la rouvre en grand : deux coders qui tournent en
+même temps dans le même répertoire ne peuvent pas être sur deux branches
+à la fois. Il n'y a pas de contre-mesure à ça.
+
+Un worktree appartient donc à un **lot**. Son chemin se dérive du nom du
+produit et du slug ; il ne se choisit pas, et aucun script ne le compose.
+Les rôles qui ne travaillent pas sur un lot gardent leur répertoire : le
+pilote lit la feuille de route du produit, il n'a pas de branche.
+"""
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import subprocess
 
@@ -212,3 +229,76 @@ def preparer_lot(worktree: Path, branche: str, base: str) -> str:
             "L'atelier n'invoque personne dans cet état."
         )
     return verifie
+
+
+# ------------------------------------------------- le worktree d'un lot
+
+# Où vivent les worktrees des lots. Sans elle, à côté du produit — c'est
+# déjà là que `atelier start` les posait.
+RACINE_WORKTREES = "ATELIER_WORKTREES"
+
+
+def racine_des_worktrees(produit: Path) -> Path:
+    brut = os.environ.get(RACINE_WORKTREES, "").strip()
+    return Path(brut) if brut else Path(produit).resolve().parent
+
+
+def chemin_du_lot(produit: Path, lot: str) -> Path:
+    """Le répertoire de ce lot. Dérivé, jamais choisi.
+
+    Deux lots différents rendent deux chemins différents ; le même lot
+    rend deux fois le même. Aucun script ne le compose : c'est ce qui
+    fait qu'aucun script ne peut se tromper de répertoire.
+    """
+    produit = Path(produit).resolve()
+    if not lot.strip():
+        raise WorktreeErreur("un lot vide n'a pas de worktree : l'atelier ne le devine pas")
+    return racine_des_worktrees(produit) / f"{produit.name}-{lot.strip()}"
+
+
+def preparer_le_lot(produit: Path, lot: str, branche: str, base: str) -> Path:
+    """Le worktree de ce lot, créé s'il manque, repris s'il est là.
+
+    On ne fait jamais `reset --hard` ni `checkout -f` : un worktree sale
+    se **range**, il ne se remet pas à zéro. C'est le refus que porte
+    déjà `preparer_lot`, et il ne s'assouplit pas ici.
+    """
+    produit = Path(produit).resolve()
+    cible = chemin_du_lot(produit, lot)
+    if cible.exists():
+        preparer_lot(cible, branche, base)
+        return cible
+
+    cible.parent.mkdir(parents=True, exist_ok=True)
+    if _existe(produit, f"refs/heads/{branche}"):
+        # La branche existe : on l'extrait telle quelle, et `preparer_lot`
+        # dira si elle est incohérente avec la base.
+        args = ["worktree", "add", str(cible), branche]
+    elif _existe(produit, f"refs/remotes/origin/{branche}"):
+        args = ["worktree", "add", str(cible), "-b", branche, "--track",
+                f"origin/{branche}"]
+    else:
+        args = ["worktree", "add", str(cible), "-b", branche,
+                _ref_de_base(produit, base)]
+    resultat = _git(produit, *args)
+    if resultat.returncode != 0:
+        raise WorktreeErreur(
+            f"impossible de créer le worktree du lot {lot} : "
+            f"{(resultat.stderr or resultat.stdout).strip()}"
+        )
+    preparer_lot(cible, branche, base)
+    return cible
+
+
+def liberer_le_lot(produit: Path, lot: str) -> Path | None:
+    """Rend le répertoire du lot. La branche reste : c'est elle qui porte la PR.
+
+    Un worktree par lot qui ne se rend jamais finit par remplir le
+    disque. La libération fait partie du composant, pas d'un nettoyage
+    qu'on se rappellera de faire.
+    """
+    cible = chemin_du_lot(produit, lot)
+    if not cible.exists():
+        return None
+    retirer(Path(produit).resolve(), cible)
+    return cible

@@ -49,13 +49,41 @@ Quand un rôle se réveille, `crons/reveil.sh` ouvre son journal et appelle
    tout rôle qui n'est pas le briefer, le verdict de la CI pour le
    relecteur, la branche du lot pour le coder. Son verrou, lui, est déjà
    posé : il l'a été dans le même geste que la prise.
-7. **L'agent.** `atelier invocation` construit l'`argv` ; le script
+7. **Le répertoire du lot.** `atelier worktree --lot L --run` crée le
+   worktree du lot s'il manque, le reprend s'il est là, et le tour s'y
+   installe. Le chemin se **dérive** du nom du produit et du slug —
+   aucun script ne le compose. Un worktree sale se **range**, il ne se
+   remet jamais à zéro.
+8. **L'agent.** `atelier invocation` construit l'`argv` ; le script
    l'exécute, sans clé d'API dans l'environnement et sous un délai
    maximum.
-8. **La sortie.** Une carte prise ne reste jamais en place : elle avance,
+9. **La sortie.** Une carte prise ne reste jamais en place : elle avance,
    ou elle tombe dans `echec/` avec une cause. Elle quitte `en-cours` sur
    **tous** les chemins de sortie — un `trap` s'en charge, parce qu'une
    liste de `if` finit toujours par en oublier un.
+
+## Un lot, un répertoire
+
+Un worktree appartenait à un **rôle** : `ATELIER_WORKDIR_coder` était le
+répertoire du coder, quel que soit le lot qu'il codait. Cette forme avait
+déjà coûté un lot — un agent rendait la main sur un répertoire sale, et
+le lot d'après échouait. Elle ne survit pas au cycle automatique : deux
+coders qui tournent en même temps dans le même répertoire ne peuvent pas
+être sur deux branches à la fois, et il n'y a pas de contre-mesure à ça.
+
+`ATELIER_WORKTREES` dit **où** ils vivent ; leur nom, lui, se dérive :
+`/srv/ForgeHistory-047-le-bourg`. Les rôles qui ne travaillent pas sur un
+lot gardent leur répertoire — le pilote lit la feuille de route du
+produit, il n'a pas de branche.
+
+```bash
+atelier worktree --projet P --lot L            # le chemin, rien de plus
+atelier worktree --projet P --lot L --run      # créé, ou repris
+atelier worktree --projet P --lot L --liberer --run   # rendu ; la branche reste
+```
+
+La libération fait partie du composant : un worktree par lot qui ne se
+rend jamais finit par remplir le disque.
 
 ## Les boîtes, et le chemin d'une carte
 

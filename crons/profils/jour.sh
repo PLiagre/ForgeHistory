@@ -25,10 +25,11 @@ export ATELIER_TIMEOUT="${ATELIER_TIMEOUT:-1800}"
 export ATELIER_INVOQUER=1
 
 # Un agent, un worktree (voir crons/installer-profils.sh --dry-run).
-export ATELIER_WORKDIR_briefer=/srv/ForgeHistory-briefer
-export ATELIER_WORKDIR_planifier=/srv/ForgeHistory-planifier
-export ATELIER_WORKDIR_coder=/srv/ForgeHistory-coder
-export ATELIER_WORKDIR_relire=/srv/ForgeHistory-relire
+# Un lot actif a son worktree, et son chemin se dérive du nom du
+# produit et du slug : /srv/ForgeHistory-047-le-bourg. Il n'y a plus
+# un répertoire par rôle — un répertoire par rôle ne peut pas être
+# sur deux branches à la fois.
+export ATELIER_WORKTREES=/srv
 
 # Facultatif : si llmquota est installé, il est lu tout seul. Sinon
 # ATELIER_QUOTA_CMD nomme la commande qui rend un entier (-1 = inconnu).
