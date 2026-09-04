@@ -1859,3 +1859,508 @@ def test_migration_invariance_ordre_aretes_reste_positif():
         {"a": 751, "b": 753, "kind": "land", "shared_length_m": 1000.0},
     ]
     assert _jouer(edges_ab) == _jouer(list(reversed(edges_ab)))
+
+
+# --- Lot 046 : la mer est un port commun ---
+
+_NOEUD_MER = -1
+
+
+def _compter_aretes_maritimes_carte(carte_doc: dict) -> int:
+    """Dénominateur indépendant : arêtes dont exactement un bout est une cellule."""
+    ids = {c["cell_id"] for c in carte_doc["cellules"]}
+    compte = 0
+    for edge in carte_doc["adjacence"]:
+        a_in = edge["a"] in ids
+        b_in = edge["b"] in ids
+        if a_in != b_in:
+            compte += 1
+    return compte
+
+
+def _monde_maritime_deux_ports(
+    stock_source: float,
+    stock_receveur: float,
+    pop_receveur: int,
+    longueur_m: float = 5000.0,
+) -> World:
+    """Deux cellules côtières sans arête terrestre entre elles."""
+    from sim.model import ecrire_stock_marchandise
+
+    source_id, receveur_id = 8001, 8002
+    source = Cell(
+        cell_id=source_id, area_km2=0.0, population=0,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    receveur = Cell(
+        cell_id=receveur_id, area_km2=0.0, population=pop_receveur,
+        stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+    )
+    ecrire_stock_marchandise(source, MARCHANDISE_NOURRITURE, stock_source)
+    ecrire_stock_marchandise(receveur, MARCHANDISE_NOURRITURE, stock_receveur)
+    adjacency = [
+        {"a": source_id, "b": _NOEUD_MER, "kind": "land-sea", "shared_length_m": longueur_m},
+        {"a": receveur_id, "b": _NOEUD_MER, "kind": "land-sea", "shared_length_m": longueur_m},
+    ]
+    return World(cells={source_id: source, receveur_id: receveur}, adjacency=adjacency)
+
+
+def test_aretes_maritimes_derivees_de_la_carte():
+    """SC1 — le moteur traite autant d'arêtes maritimes que la carte en porte."""
+    from sim.engine import _aretes_maritimes_du_monde
+
+    carte = World.lire_carte()
+    monde = World.charger(0, carte_doc=carte)
+    attendu = _compter_aretes_maritimes_carte(carte)
+    total_aretes = len(carte["adjacence"])
+    assert attendu > 0, "échantillon vide : aucune arête maritime dans la carte"
+    assert len(_aretes_maritimes_du_monde(monde)) == attendu
+    assert attendu <= total_aretes
+
+
+def test_pas_de_kind_litteral_dans_engine():
+    """SC1 — aucun nom de kind en littéral de comparaison dans engine.py."""
+    import pathlib
+
+    texte = (pathlib.Path(__file__).parent.parent / "engine.py").read_text(encoding="utf-8")
+    assert "land-sea" not in texte
+    assert "land-land" not in texte
+
+
+def test_port_surplus_expedie_port_manque_debarque():
+    """SC2 — surplus expédie vers le bassin ; manque puise au tick suivant."""
+    from sim.model import lire_stock_marchandise
+    from sim.world import lire_stock_mer, ecrire_stock_mer
+
+    pop = 50
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    world = _monde_maritime_deux_ports(besoin * 2, 0.0, pop)
+    source_id, receveur_id = 8001, 8002
+    stock_source_avant = lire_stock_marchandise(world.cells[source_id], MARCHANDISE_NOURRITURE)
+    bassin_avant = lire_stock_mer(world, MARCHANDISE_NOURRITURE)
+
+    _apply_commerce(world, [0.0])
+
+    stock_source_apres = lire_stock_marchandise(world.cells[source_id], MARCHANDISE_NOURRITURE)
+    bassin_apres = lire_stock_mer(world, MARCHANDISE_NOURRITURE)
+    delta_source = stock_source_avant - stock_source_apres
+    delta_bassin = bassin_apres - (bassin_avant if bassin_avant >= 0 else 0.0)
+    assert delta_source > 0.0
+    assert abs(delta_source - delta_bassin) <= TOLERANCE
+
+    stock_receveur_avant = lire_stock_marchandise(world.cells[receveur_id], MARCHANDISE_NOURRITURE)
+    bassin_avant_t2 = lire_stock_mer(world, MARCHANDISE_NOURRITURE)
+    _apply_commerce(world, [0.0])
+    stock_receveur_apres = lire_stock_marchandise(world.cells[receveur_id], MARCHANDISE_NOURRITURE)
+    bassin_apres_t2 = lire_stock_mer(world, MARCHANDISE_NOURRITURE)
+    delta_receveur = stock_receveur_apres - stock_receveur_avant
+    delta_bassin_t2 = (bassin_avant_t2 if bassin_avant_t2 >= 0 else 0.0) - (
+        bassin_apres_t2 if bassin_apres_t2 >= 0 else 0.0
+    )
+    assert delta_receveur > 0.0
+    assert abs(delta_receveur - delta_bassin_t2) <= TOLERANCE
+
+
+def test_grain_embarque_t_non_debarque_t():
+    """SC3 — ce qui embarque à t n'est pas débarqué avant t+1."""
+    from sim.model import lire_stock_marchandise
+    from sim.world import ecrire_stock_mer
+
+    pop = 50
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    world = _monde_maritime_deux_ports(besoin * 3, 0.0, pop)
+    receveur_id = 8002
+    ecrire_stock_mer(world, MARCHANDISE_NOURRITURE, 0.0)
+
+    _apply_commerce(world, [0.0])
+    stock_tick1 = lire_stock_marchandise(world.cells[receveur_id], MARCHANDISE_NOURRITURE)
+    assert stock_tick1 == 0.0
+
+    _apply_commerce(world, [0.0])
+    stock_tick2 = lire_stock_marchandise(world.cells[receveur_id], MARCHANDISE_NOURRITURE)
+    assert stock_tick2 > 0.0
+
+
+def _masse_totale_avec_bassin(world: World) -> float:
+    from sim.model import lire_stock_marchandise
+    from sim.world import lire_stock_mer
+
+    total = sum(
+        max(0.0, lire_stock_marchandise(c, MARCHANDISE_NOURRITURE))
+        for c in world.cells.values()
+    )
+    bassin = lire_stock_mer(world, MARCHANDISE_NOURRITURE)
+    if bassin >= 0:
+        total += bassin
+    return total
+
+
+def test_conservation_masse_avec_bassin():
+    """SC4 — masse conservée, cellules + bassin, à chaque tick commerce."""
+    pop = 50
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    world = _monde_maritime_deux_ports(besoin * 2, 0.0, pop)
+    masse_avant = _masse_totale_avec_bassin(world)
+    for _ in range(3):
+        _apply_commerce(world, [0.0])
+        masse_apres = _masse_totale_avec_bassin(world)
+        assert abs(masse_apres - masse_avant) <= TOLERANCE
+
+
+def _cellules_sans_voisin_terrestre_mais_maritimes(carte_doc: dict) -> set[int]:
+    ids = {c["cell_id"] for c in carte_doc["cellules"]}
+    deg_terre = {cid: 0 for cid in ids}
+    a_mer = set()
+    for edge in carte_doc["adjacence"]:
+        a_in = edge["a"] in ids
+        b_in = edge["b"] in ids
+        if a_in and b_in:
+            deg_terre[edge["a"]] += 1
+            deg_terre[edge["b"]] += 1
+        elif a_in or b_in:
+            cid = edge["a"] if a_in else edge["b"]
+            a_mer.add(cid)
+    return {cid for cid in ids if deg_terre[cid] == 0 and cid in a_mer}
+
+
+def test_cellules_hermetiques_ont_capacite_quai():
+    """SC5 — cellules sans voisin terrestre mais avec mer : quai > 0 sauf façade nulle."""
+    from sim.engine import _capacite_quai_cellule_kg, _aretes_maritimes_du_monde
+
+    carte = World.lire_carte()
+    ensemble = _cellules_sans_voisin_terrestre_mais_maritimes(carte)
+    assert len(ensemble) > 0, "échantillon vide"
+    monde = World.charger(0, carte_doc=carte)
+    aretes = _aretes_maritimes_du_monde(monde)
+    par_cellule: dict[int, list] = {}
+    for cell_id, noeud, edge in aretes:
+        par_cellule.setdefault(cell_id, []).append((cell_id, noeud, edge))
+    zero_mesure = 0
+    positifs = 0
+    for cid in sorted(ensemble):
+        cap = _capacite_quai_cellule_kg(monde, cid, par_cellule.get(cid, []))
+        if cap == 0.0:
+            zero_mesure += 1
+        else:
+            positifs += 1
+            assert cap > 0.0
+    assert positifs + zero_mesure == len(ensemble)
+    assert positifs > 0
+
+
+def _longueurs_facade_maritime_carte() -> tuple[float, float, float]:
+    import statistics
+
+    carte = World.lire_carte()
+    ids = {c["cell_id"] for c in carte["cellules"]}
+    longueurs = sorted(
+        float(e["shared_length_m"])
+        for e in carte["adjacence"]
+        if (e["a"] in ids) != (e["b"] in ids)
+        and "shared_length_m" in e
+    )
+    return min(longueurs), statistics.median(longueurs), max(longueurs)
+
+
+def test_debarquement_proportionnel_aux_facades():
+    """SC6 — débarquement dans le rapport des longueurs de façade."""
+    from sim import constants as k
+    from sim.model import ecrire_stock_marchandise, lire_stock_marchandise
+    from sim.world import ecrire_stock_mer
+
+    courte, mediane, longue = _longueurs_facade_maritime_carte()
+    cap_longue = k.debit_maritime_kg_par_km() * (longue / k.metres_par_km())
+    # Besoin supérieur à toute capacité de quai : seule la façade borne le débit.
+    pop = int(cap_longue / FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK) + 1
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    bassin_stock = cap_longue * len((courte, mediane, longue)) * 10
+    source_id = 8100
+    cells = {}
+    adjacency = []
+    for idx, (nom, longueur) in enumerate(
+        (("c", courte), ("m", mediane), ("l", longue))
+    ):
+        cid = source_id + idx + 1
+        cells[cid] = Cell(
+            cell_id=cid, area_km2=0.0, population=pop,
+            stocks={}, hunger_ticks=0, food_deficit_kg=0.0,
+        )
+        adjacency.append(
+            {"a": cid, "b": _NOEUD_MER, "kind": "land-sea", "shared_length_m": longueur},
+        )
+    world = World(cells=cells, adjacency=adjacency)
+    ecrire_stock_mer(world, MARCHANDISE_NOURRITURE, bassin_stock)
+    _apply_commerce(world, [0.0])
+    debars = []
+    for cid in sorted(cells):
+        stock = lire_stock_marchandise(world.cells[cid], MARCHANDISE_NOURRITURE)
+        debars.append(stock if stock >= 0 else 0.0)
+    assert debars[0] > 0.0 and debars[2] > debars[1] > debars[0]
+    rapport_tm = debars[1] / debars[0]
+    rapport_lm = debars[2] / debars[0]
+    assert abs(rapport_tm - mediane / courte) / (mediane / courte) <= 0.05
+    assert abs(rapport_lm - longue / courte) / (longue / courte) <= 0.05
+
+
+def test_relief_compose_capacite_quai_sans_second_jeu():
+    """SC7 — relief compose la capacité de quai ; pas de second jeu de facteurs."""
+    import ast
+    from pathlib import Path
+    from sim import constants as k
+    from sim.engine import _capacite_quai_cellule_kg
+
+    carte_doc = World.lire_carte()
+    ids = {c["cell_id"] for c in carte_doc["cellules"]}
+    reliefs_presents = {
+        c["relief"] for c in carte_doc["cellules"] if c.get("relief") is not None
+    }
+    attendues = set(k.facteurs_transport_par_relief())
+    manquantes = attendues - reliefs_presents
+    assert not manquantes, f"classes de relief absentes : {sorted(manquantes)}"
+
+    facteurs = k.facteurs_transport_par_relief()
+    classes = sorted(attendues, key=lambda r: facteurs[r], reverse=True)
+    relief_a, relief_b = classes[0], classes[-1]
+    longueur = 5000.0
+    cell_a, cell_b = 8201, 8202
+    carte = {
+        cell_a: {"cell_id": cell_a, "relief": relief_a},
+        cell_b: {"cell_id": cell_b, "relief": relief_b},
+    }
+    edge_tpl = {"b": _NOEUD_MER, "kind": "land-sea", "shared_length_m": longueur}
+    world = World(
+        cells={
+            cell_a: Cell(cell_id=cell_a, area_km2=0.0, population=0, stocks={}),
+            cell_b: Cell(cell_id=cell_b, area_km2=0.0, population=0, stocks={}),
+        },
+        adjacency=[
+            {"a": cell_a, **edge_tpl},
+            {"a": cell_b, **edge_tpl},
+        ],
+        carte=carte,
+    )
+    aretes_a = [(cell_a, _NOEUD_MER, world.adjacency[0])]
+    aretes_b = [(cell_b, _NOEUD_MER, world.adjacency[1])]
+    cap_a = _capacite_quai_cellule_kg(world, cell_a, aretes_a)
+    cap_b = _capacite_quai_cellule_kg(world, cell_b, aretes_b)
+    assert cap_a > cap_b + TOLERANCE
+
+    sim_dir = Path(__file__).resolve().parents[1]
+    definitions = []
+    for py_file in sim_dir.glob("*.py"):
+        tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef) and node.name == "facteurs_transport_par_relief":
+                definitions.append(py_file.name)
+    assert definitions == ["constants.py"]
+
+
+def test_refus_longueur_facade_maritime_invalide():
+    """SC8 — longueur non numérique : erreur nommant cellule et nœud mer."""
+    import math
+    from sim.engine import LongueurFacadeMaritimeInvalideError
+
+    cell_id = 8301
+    world = World(
+        cells={cell_id: Cell(cell_id=cell_id, area_km2=0.0, population=0, stocks={})},
+        adjacency=[{"a": cell_id, "b": _NOEUD_MER, "kind": "land-sea", "shared_length_m": 1000.0}],
+    )
+    for invalide in ("texte", None, float("nan")):
+        world.adjacency[0]["shared_length_m"] = invalide
+        with pytest.raises(LongueurFacadeMaritimeInvalideError, match=str(cell_id)):
+            _apply_commerce(world, [0.0])
+        with pytest.raises(LongueurFacadeMaritimeInvalideError, match=str(_NOEUD_MER)):
+            _apply_commerce(world, [0.0])
+
+
+def test_refus_longueur_facade_maritime_absente():
+    """SC8 — longueur absente : erreur, pas de repli terrestre."""
+    from sim.engine import LongueurFacadeMaritimeInvalideError
+
+    cell_id = 8302
+    world = World(
+        cells={cell_id: Cell(cell_id=cell_id, area_km2=0.0, population=0, stocks={})},
+        adjacency=[{"a": cell_id, "b": _NOEUD_MER, "kind": "land-sea"}],
+    )
+    with pytest.raises(LongueurFacadeMaritimeInvalideError, match=str(cell_id)):
+        _apply_commerce(world, [0.0])
+
+
+def test_refus_noeuds_mer_multiples():
+    """SC8 — plusieurs nœuds hors monde : erreur nommant les identifiants."""
+    from sim.engine import NoeudsMerMultiplesError
+
+    cell_id = 8303
+    world = World(
+        cells={cell_id: Cell(cell_id=cell_id, area_km2=0.0, population=0, stocks={})},
+        adjacency=[
+            {"a": cell_id, "b": -1, "kind": "land-sea", "shared_length_m": 1000.0},
+            {"a": cell_id, "b": -2, "kind": "land-sea", "shared_length_m": 1000.0},
+        ],
+    )
+    with pytest.raises(NoeudsMerMultiplesError, match="-1"):
+        _apply_commerce(world, [0.0])
+    with pytest.raises(NoeudsMerMultiplesError, match="-2"):
+        _apply_commerce(world, [0.0])
+
+
+def test_refus_kinds_maritimes_multiples():
+    """SC8 — plusieurs kind sur arêtes maritimes : erreur nommant les valeurs."""
+    from sim.engine import KindsMaritimesMultiplesError
+
+    a_id, b_id = 8304, 8305
+    world = World(
+        cells={
+            a_id: Cell(cell_id=a_id, area_km2=0.0, population=0, stocks={}),
+            b_id: Cell(cell_id=b_id, area_km2=0.0, population=0, stocks={}),
+        },
+        adjacency=[
+            {"a": a_id, "b": _NOEUD_MER, "kind": "land-sea", "shared_length_m": 1000.0},
+            {"a": b_id, "b": _NOEUD_MER, "kind": "autre-kind", "shared_length_m": 1000.0},
+        ],
+    )
+    with pytest.raises(KindsMaritimesMultiplesError, match="land-sea"):
+        _apply_commerce(world, [0.0])
+    with pytest.raises(KindsMaritimesMultiplesError, match="autre-kind"):
+        _apply_commerce(world, [0.0])
+
+
+def test_monde_sans_stocks_mer_inchange():
+    """SC8 — sans stocks_mer : tick commerce identique au comportement terrestre."""
+    pop = 50
+    besoin = pop * FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK
+    adjacency = [{"a": 8401, "b": 8402, "kind": "land", "shared_length_m": 5000.0}]
+
+    def _monde(avec_mer: bool) -> World:
+        source = Cell(
+            cell_id=8401, area_km2=0.0, population=0,
+            food_stock_kg=besoin, hunger_ticks=0, food_deficit_kg=0.0,
+        )
+        receveur = Cell(
+            cell_id=8402, area_km2=0.0, population=pop,
+            food_stock_kg=0.0, hunger_ticks=0, food_deficit_kg=besoin,
+        )
+        world = World(cells={8401: source, 8402: receveur}, adjacency=adjacency)
+        if not avec_mer:
+            del world.stocks_mer
+        return world
+
+    w1 = _monde(avec_mer=True)
+    w2 = _monde(avec_mer=False)
+    total1, total2 = [0.0], [0.0]
+    _apply_commerce(w1, total1)
+    _apply_commerce(w2, total2)
+    assert w1.cells[8401].food_stock_kg == w2.cells[8401].food_stock_kg
+    assert w1.cells[8402].food_stock_kg == w2.cells[8402].food_stock_kg
+    assert total1[0] == total2[0]
+
+
+def test_refus_maritimes_compteur_mutations():
+    """SC8 — chaque cas de refus est essayé ; le compteur dérive des mutations."""
+    from sim.engine import (
+        KindsMaritimesMultiplesError,
+        LongueurFacadeMaritimeInvalideError,
+        NoeudsMerMultiplesError,
+    )
+
+    refus = 0
+    cell_id = 8310
+    for invalide in ("texte", None, float("nan")):
+        monde = World(
+            cells={cell_id: Cell(cell_id=cell_id, area_km2=0.0, population=0, stocks={})},
+            adjacency=[{"a": cell_id, "b": _NOEUD_MER, "kind": "land-sea", "shared_length_m": invalide}],
+        )
+        with pytest.raises(LongueurFacadeMaritimeInvalideError):
+            _apply_commerce(monde, [0.0])
+        refus += 1
+
+    monde_absent = World(
+        cells={cell_id: Cell(cell_id=cell_id, area_km2=0.0, population=0, stocks={})},
+        adjacency=[{"a": cell_id, "b": _NOEUD_MER, "kind": "land-sea"}],
+    )
+    with pytest.raises(LongueurFacadeMaritimeInvalideError):
+        _apply_commerce(monde_absent, [0.0])
+    refus += 1
+
+    monde_noeuds = World(
+        cells={cell_id: Cell(cell_id=cell_id, area_km2=0.0, population=0, stocks={})},
+        adjacency=[
+            {"a": cell_id, "b": -1, "kind": "land-sea", "shared_length_m": 1000.0},
+            {"a": cell_id, "b": -2, "kind": "land-sea", "shared_length_m": 1000.0},
+        ],
+    )
+    with pytest.raises(NoeudsMerMultiplesError):
+        _apply_commerce(monde_noeuds, [0.0])
+    refus += 1
+
+    monde_kinds = World(
+        cells={
+            8311: Cell(cell_id=8311, area_km2=0.0, population=0, stocks={}),
+            8312: Cell(cell_id=8312, area_km2=0.0, population=0, stocks={}),
+        },
+        adjacency=[
+            {"a": 8311, "b": _NOEUD_MER, "kind": "land-sea", "shared_length_m": 1000.0},
+            {"a": 8312, "b": _NOEUD_MER, "kind": "autre-kind", "shared_length_m": 1000.0},
+        ],
+    )
+    with pytest.raises(KindsMaritimesMultiplesError):
+        _apply_commerce(monde_kinds, [0.0])
+    refus += 1
+
+    assert refus == 6
+
+
+def _kg_transportes_sim(ticks: int, seed: int, sans_mer: bool = False) -> float:
+    import random
+    from sim import constants as k
+
+    monde = World.charger(seed)
+    if sans_mer:
+        del monde.stocks_mer
+    rng = random.Random(seed)
+    total = 0.0
+    for numero in range(ticks):
+        total += tick(monde, rng, numero_tick=numero)
+    return total
+
+
+def test_kg_transportes_augmente_avec_mer():
+    """SC9 — le monde réel transporte davantage qu'un monde sans bassin."""
+    from sim.constants import DEFAULT_CLI_SEED, DEFAULT_CLI_TICKS
+
+    kg_avec = _kg_transportes_sim(DEFAULT_CLI_TICKS, DEFAULT_CLI_SEED, sans_mer=False)
+    kg_sans = _kg_transportes_sim(DEFAULT_CLI_TICKS, DEFAULT_CLI_SEED, sans_mer=True)
+    assert kg_avec > kg_sans
+
+
+def test_debit_maritime_via_fonction_pas_constante_dans_engine():
+    """SC10 — DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK absent des lectures directes du moteur."""
+    import ast
+    from pathlib import Path
+
+    engine_file = Path(__file__).parent.parent / "engine.py"
+    tree = ast.parse(engine_file.read_text(encoding="utf-8"), filename=str(engine_file))
+    import sim.constants as _k
+
+    numeriques = {
+        nom for nom in dir(_k)
+        if nom.isupper() and isinstance(getattr(_k, nom), (int, float))
+    }
+    lues = {
+        node.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute)
+        and node.attr in numeriques
+        and not isinstance(node.ctx, ast.Store)
+    }
+    assert len(lues) > 0
+    assert "DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK" not in lues
+    appels = {
+        node.func.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "_constantes"
+    }
+    assert "debit_maritime_kg_par_km" in appels

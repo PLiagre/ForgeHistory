@@ -304,6 +304,16 @@ def metres_par_km() -> float:
 # liaison rurale (voir MODELE.md).
 TRADE_CAPACITY_KG_PER_EDGE_PER_TICK = 200.0 * TICK_DURATION_DAYS
 
+# Débit maritime par kilomètre de façade (niveau 2) : dix fois le débit
+# terrestre au kilomètre — un navire porte sans commune mesure ce que porte
+# un convoi de bêtes de somme.
+DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK = 2000.0 * TICK_DURATION_DAYS
+
+
+def debit_maritime_kg_par_km() -> float:
+    """Relit DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK à chaque appel."""
+    return DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK
+
 # --- Mortalité par famine ---
 
 # Facteur de mortalité : fraction de la population mourant par tick
