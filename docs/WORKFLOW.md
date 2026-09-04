@@ -154,6 +154,10 @@ py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
 py -m viewer --snapshot /tmp/monde.json
 ```
 
+Un moteur de rendu terrain récupéré vit à part :
+[PLiagre/forge3d](https://github.com/PLiagre/forge3d). Il n'est pas
+branché. `viewer/` reste le regard mince, en bibliothèque standard.
+
 ## Worktrees
 
 Si deux agents travaillent en même temps, l'atelier isole. À la main :
