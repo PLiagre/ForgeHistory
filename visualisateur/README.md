@@ -19,7 +19,7 @@ python3 -m visualisateur --snapshot /tmp/monde.json --png /tmp/monde-3d.png
 Raccourci qui photographie puis rend, sans recalculer le tick :
 
 ```bash
-python3 -m visualisateur --ticks 0 --seed 0 --png /tmp/monde-3d.png
+python3 -m visualisateur --ticks 0 --seed 0 --png /tmp/monde-3d.png --apercu /tmp/monde-mnt.png
 ```
 
 ## Ce que c'est

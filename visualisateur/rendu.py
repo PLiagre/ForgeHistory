@@ -29,7 +29,13 @@ def rendre_png(mnt: Mnt, destination: Path, *, largeur_px: int = 960, hauteur_px
     """Rendu hors écran. L'exagération verticale est un facteur de lecture."""
     try:
         import forge3d as f3d
-        from forge3d.terrain_params import make_terrain_params_config
+        from forge3d.terrain_params import (
+            LodSettings,
+            PomSettings,
+            SamplingSettings,
+            ShadowSettings,
+            make_terrain_params_config,
+        )
     except ImportError as exc:
         raise RenduErreur(
             "forge3d est absent. Dans le venv du visualisateur : "
@@ -54,7 +60,7 @@ def rendre_png(mnt: Mnt, destination: Path, *, largeur_px: int = 960, hauteur_px
     # Le MNT canonique de forge3d vit dans un monde de largeur 2. On s'y tient :
     # l'étendue kilométrique de la carte ne doit pas écraser le relief.
     terrain_span = 2.0
-    fraction_lisible = 0.12
+    fraction_lisible = 0.18
     z_scale = fraction_lisible * terrain_span / max(float(altitudes.max()), 1e-6)
 
     domaine = (0.0, 1.0)
@@ -91,13 +97,29 @@ def rendre_png(mnt: Mnt, destination: Path, *, largeur_px: int = 960, hauteur_px
         ibl_enabled=True,
         sun_intensity=3.0,
         light_azimuth_deg=210.0,
-        light_elevation_deg=28.0,
-        cam_radius=3.4,
-        cam_phi_deg=155.0,
-        cam_theta_deg=42.0,
+        light_elevation_deg=32.0,
+        cam_radius=3.2,
+        cam_phi_deg=210.0,
+        cam_theta_deg=38.0,
         fov_y_deg=50.0,
         overlays=overlays,
         clip=(0.05, 40.0),
+        culling="none",
+        camera_mode="mesh:zup",
+        pom=PomSettings(False, "Occlusion", 0.0, 1, 1, 0, False, False),
+        lod=LodSettings(0, 0.0, 0.0),
+        sampling=SamplingSettings(
+            "Nearest",
+            "Nearest",
+            "Nearest",
+            1,
+            "ClampToEdge",
+            "ClampToEdge",
+            "ClampToEdge",
+        ),
+        shadows=ShadowSettings(
+            True, "PCF", 512, 2, 40.0, 1.0, 0.8, 0.002, 0.001, 0.3, 1e-4, 0.5, 2.0, 0.9
+        ),
     )
     params = f3d.TerrainRenderParams(config)
     session = f3d.Session(window=False)

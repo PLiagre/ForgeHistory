@@ -38,9 +38,9 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="PNG vue du dessus (contrôle du raster, pas un rendu 3D).",
     )
-    parser.add_argument("--largeur", type=int, default=512, help="Largeur du MNT rasterisé.")
-    parser.add_argument("--largeur-px", type=int, default=960, help="Largeur de l'image forge3d.")
-    parser.add_argument("--hauteur-px", type=int, default=540, help="Hauteur de l'image forge3d.")
+    parser.add_argument("--largeur", type=int, default=640, help="Largeur du MNT rasterisé.")
+    parser.add_argument("--largeur-px", type=int, default=1280, help="Largeur de l'image forge3d.")
+    parser.add_argument("--hauteur-px", type=int, default=720, help="Hauteur de l'image forge3d.")
     args = parser.parse_args(argv)
 
     if args.snapshot is None and args.ticks is None:
