@@ -59,10 +59,11 @@ jobs:
         run: python -m pytest viewer/tests/ -q
 
   outils:
-    # Les outils du dépôt : la relecture, l'intégration, le palier. Ils
-    # décident de ce qui entre dans `master` — leurs contrôles se jouent
-    # donc au même titre que ceux du jeu. Ils empruntent le lecteur de
-    # registre de l'atelier plutôt que d'en écrire un second.
+    # Ce que la CI décide (`outils/`) et ce qu'elle fait
+    # (`.github/scripts/`, joués sur un banc avec de faux `gh`, `git` et
+    # `python`). Ces contrôles-là gouvernent ce qui entre dans `master` :
+    # ils se jouent au même titre que ceux du jeu. Le lecteur de registre
+    # est emprunté à l'atelier plutôt que réécrit ici.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

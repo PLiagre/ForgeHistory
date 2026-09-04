@@ -23,14 +23,14 @@ controle = "claude"
 # pas s'ouvrir est une porte qu'on ne se souvient pas d'avoir ouverte.
 [integration]
 # Les contrôles obligatoires. Une PR entre quand ils sont tous verts sur
-# sa révision courante, et à cette seule condition. Un contrôle absent
-# n'est pas un contrôle vert.
-controles = ["sim", "viewer", "outils", "feuille", "gitleaks", "relecture"]
-# Ceux qui ne se demandent qu'APRÈS le rejeu sur le dernier master. Un
-# rejeu change la révision et périme ce qui était posé sur l'ancienne :
-# demander la relecture avant, ce serait la payer deux fois, et la
-# deuxième pour rien. Les autres, une machine les repose toute seule.
-apres_rejeu = ["relecture"]
+# sa révision courante. Un contrôle absent n'est pas un contrôle vert.
+#
+# `relecture` n'est pas dans la liste, et ce n'est pas un oubli : l'état
+# de ce nom est posé par un travail qui tourne sur le code de la PR, donc
+# par du code que la PR peut changer. L'intégration calcule ce verdict-là
+# elle-même, avec le module de `master` ; l'état reste ce qui rend la PR
+# lisible, il n'est pas ce qui l'ouvre.
+controles = ["sim", "viewer", "outils", "feuille", "gitleaks"]
 # Les branches que l'intégration fusionne. Le reste attend le
 # propriétaire : une expérience qui passe au vert n'est pas un lot.
 branches = ["agent/", "brief/", "feuille/"]

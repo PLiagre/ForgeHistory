@@ -29,8 +29,24 @@ def _relecture(args: argparse.Namespace) -> int:
         github.auteurs_du_code(gh, args.pr),
         relecture.revues_depuis_github(github.revues(gh, args.pr)),
     )
-    print(f"{'PASS' if verdict.passe else 'FAIL'}  PR {args.pr} — {verdict.raison}")
+    # Bornée ici, une fois : cette ligne est reprise telle quelle dans la
+    # description de l'état de commit, et le workflow n'a rien à couper.
+    print(github.borner(f"{'PASS' if verdict.passe else 'FAIL'}  PR {args.pr} — {verdict.raison}"))
     return 0 if verdict.passe else 1
+
+
+def _verdict(gh: github.Github, numero: int, revision: str) -> relecture.Verdict:
+    """La relecture de cette révision, calculée ici — pas lue sur la PR.
+
+    Le contrôle `relecture` est posé par un travail qui tourne sur le code
+    de la PR ; s'y fier pour fusionner laisserait une PR changer le code
+    qui la juge. Même module, même règle, mais appelé depuis `master`.
+    """
+    return relecture.juger(
+        revision,
+        github.auteurs_du_code(gh, numero),
+        relecture.revues_depuis_github(github.revues(gh, numero)),
+    )
 
 
 def _pr_integrable(gh: github.Github, brut: dict, base: str, prefixes) -> integration.PR:
@@ -46,7 +62,8 @@ def _pr_integrable(gh: github.Github, brut: dict, base: str, prefixes) -> integr
     detail = gh.get(f"pulls/{brut['number']}")
     sha = detail["head"]["sha"]
     return integration.depuis_github(
-        brut, detail, github.controles(gh, sha), github.retard(gh, base, sha)
+        brut, detail, github.controles(gh, sha), github.retard(gh, base, sha),
+        _verdict(gh, brut["number"], sha),
     )
 
 
@@ -59,9 +76,7 @@ def _integration(args: argparse.Namespace) -> int:
         _pr_integrable(gh, brut, base, reglage["branches"])
         for brut in gh.liste("pulls", state="open", base=base)
     ]
-    rapport = integration.decider(
-        prs, reglage["controles"], reglage["branches"], reglage["apres_rejeu"]
-    )
+    rapport = integration.decider(prs, reglage["controles"], reglage["branches"])
     for ligne in rapport.lignes:
         print(ligne, file=sys.stderr)
     decision = rapport.decision
@@ -143,7 +158,10 @@ def main(argv=None) -> int:
     try:
         return args.faire(args)
     except (github.GithubErreur, registre.AtelierAbsent, registre.BranchementIncomplet) as exc:
-        print(f"FAIL  {exc}", file=sys.stderr)
+        # Bornée comme le verdict : ce refus-ci peut finir dans la même
+        # description d'état, et une description trop longue n'est pas
+        # posée du tout.
+        print(f"FAIL  {github.borner(str(exc), github.BORNE_DESCRIPTION - 6)}", file=sys.stderr)
         return 1
 
 

@@ -12,6 +12,13 @@ https://github.com/PLiagre/ForgeHistory/tree/cursor/forgeatelier-ced6
 quand une couche finie appelle son palier. C'est ici parce que `master` est
 ici — ça tourne sur GitHub, sans machine allumée chez personne.
 
+Trois étages, et ils ne se mélangent pas : `outils/` **décide** sans jamais
+écrire sur GitHub, `.github/scripts/` **fait** le geste, et les workflows
+appellent l'un puis l'autre sans porter de logique. Chacun se joue seul —
+les décisions par leurs contrôles, les gestes sur le banc
+(`outils/tests/test_scripts.py`), avec de faux `gh`, `git` et `python` en
+tête du `PATH`.
+
 Ce fichier ne paraphrase ni [AGENTS.md](../AGENTS.md) — qui porte les
 règles — ni l'atelier. Il dit ce qu'il faut savoir pour **conduire** cette
 mécanique-ci : ce qui tourne, ce qui la réveille, et quoi faire quand elle
@@ -21,24 +28,27 @@ s'arrête.
 
 ## Les quatre travaux
 
-| workflow | quand | ce qu'il dit |
-|---|---|---|
-| `tests` | poussée, PR, appel | `sim`, `viewer`, `outils`, `feuille` |
-| `security` | poussée, PR, appel | `gitleaks` : aucun secret committé |
-| `relecture` | PR, revue déposée | pose l'état `relecture` sur la révision de la PR |
-| `integration` | fin des trois autres, revue, chaque heure, appel | fusionne la PR verte suivante, puis dépose le palier s'il est dû |
+| workflow | quand | ce qu'il dit | le geste |
+|---|---|---|---|
+| `tests` | poussée, PR, appel | `sim`, `viewer`, `outils`, `feuille` | — |
+| `security` | poussée, PR, appel | `gitleaks` : aucun secret committé | — |
+| `relecture` | PR, revue déposée, appel | pose l'état `relecture` sur la révision de la PR — pour l'œil, pas pour la porte | `scripts/relecture.sh` |
+| `integration` | fin des trois autres, revue, chaque heure, appel | fusionne la PR verte suivante, puis dépose le palier s'il est dû | `scripts/integrer.sh`, `scripts/palier.sh` |
 
 La liste des contrôles qui gouvernent la fusion n'est pas ici : elle est
 dans [`atelier.toml`](../atelier.toml) § `[integration]`, et c'est celle-là
 que l'intégration lit. Ajouter un travail à la CI ne le rend pas
 obligatoire ; l'ajouter à cette liste, si.
 
-`apres_rejeu` y nomme ceux qui ne se demandent qu'une fois la PR rejouée
-sur le dernier `master` — aujourd'hui `relecture`, et lui seul. Un rejeu
-change la révision, donc périme ce qui était posé sur l'ancienne : la
-demander avant, ce serait la payer deux fois. Les autres contrôles, une
-machine les repose toute seule ; c'est ce qui distingue les deux listes,
-pas leur importance.
+`relecture` n'y est pas, et c'est voulu. L'état de ce nom est posé par un
+travail qui tourne sur le code de la PR ; s'y fier pour fusionner
+laisserait une PR changer le code qui la juge. L'intégration recalcule le
+verdict elle-même, avec le même module, depuis `master`. L'état reste ce
+qui rend la PR lisible — il n'est pas ce qui l'ouvre.
+
+Et il se demande **après** le rejeu : un rejeu change la révision, donc
+périme l'approbation posée sur l'ancienne. L'exiger avant, ce serait la
+payer deux fois.
 
 ## Ce qui réveille l'intégration
 
@@ -59,10 +69,10 @@ l'intégration séquentielle.
 
 ## Ce que l'intégration ne fait pas
 
-- **Elle ne relit pas.** L'état `relecture` vient du travail du même nom,
-  qui vient d'une approbation posée par une connexion tierce. Sans lui,
-  aucune PR n'entre — c'est voulu : une machine qui pourrait s'approuver
-  fusionnerait son propre code.
+- **Elle ne relit pas.** Elle vérifie qu'un tiers a relu : une
+  approbation, sur la révision courante, par une connexion qui n'a écrit
+  aucun des commits. Elle ne lit pas ce que cette relecture a dit. Sans
+  approbation, aucune PR n'entre.
 - **Elle ne touche pas aux branches non déclarées.** `agent/`, `brief/`,
   `feuille/` entrent ; le reste attend le propriétaire. Une expérience qui
   passe au vert n'est pas un lot.
@@ -113,13 +123,34 @@ Sans `--run`, rien n'est déposé. Comment brancher Hermes et les crons :
 | **Exécution** | Cursor · Grok 4.6 High | exécute un brief sur `agent/NNN-slug`, passe la fiche à `livre`, ouvre la PR | approuver son travail |
 | **Contrôle** | Claude Code · Claude Pro | relit le brief, relit le diff, et **approuve ou refuse la PR** | corriger ce qu'il relit |
 
-Le relecteur n'est jamais l'auteur, et ce n'est plus une consigne : le
-travail `relecture` refuse une approbation qui vient d'une connexion ayant
-écrit un des commits. Une relecture terminée sans approbation ne verdit
-rien — une prose n'a jamais fusionné une PR.
+Le relecteur n'est jamais l'auteur, et ce n'est plus une consigne :
+`outils/relecture.py` refuse une approbation qui vient d'une connexion
+ayant écrit un des commits, et l'intégration rejoue ce verdict avant de
+fusionner. Une relecture terminée sans approbation ne verdit rien — une
+prose n'a jamais fusionné une PR.
 
 Le pilote (Hermes, 07:00) ne choisit rien : `atelier piloter` lit le
 registre de `ROADMAP.md` et dépose la carte du prochain lot admissible.
+
+## La protection de `master`, à poser une fois
+
+L'intégration lit sa propre liste de contrôles : elle est donc correcte
+sans réglage GitHub. Mais tant que `master` n'est pas protégé, **une main
+peut encore fusionner du rouge** — c'est arrivé le 4 septembre 2026 sur la
+PR 225, et c'est ce qui a laissé passer un contrôle absent.
+
+Le réglage à poser une fois, dans *Settings → Branches → master* :
+
+- exiger les contrôles de [`atelier.toml`](../atelier.toml)
+  § `[integration].controles` — les mêmes noms, exactement. Y ajouter
+  `relecture` ne ferait pas de mal, mais ne suffirait pas : c'est
+  l'intégration qui tient cette règle-là ;
+- cocher `enforce_admins` : une règle qui s'arrête au propriétaire ne
+  protège pas de la seule main capable de la contourner ;
+- laisser les approbations requises à zéro. Ce n'est pas un oubli :
+  l'approbation est déjà exigée par l'intégration, qui vérifie en plus
+  qu'elle porte sur la révision courante et qu'elle ne vient pas d'un
+  auteur du code. GitHub ne sait faire ni l'un ni l'autre.
 
 ## Ce qui reste au propriétaire
 
@@ -182,6 +213,10 @@ qu'est-ce qui manque ?**
   déclencher un travail sur un événement qu'un jeton d'Actions a produit.
   L'intégration les redemande nommément ; si elle ne l'a pas fait,
   `gh workflow run tests.yml --ref <branche>` le fait à la main.
+- **Un travail meurt au milieu de son étape** : c'est `errexit`. GitHub
+  joue `run:` avec `bash -e`. Le geste doit vivre dans
+  `.github/scripts/`, et se rejouer sur le banc avant d'être poussé —
+  AGENTS.md, règle 13.
 - **Une carte ne bouge pas** : ce n'est pas l'intégration, c'est
   l'atelier. `atelier feuille etat --projet .` dit par quoi le lot est
   retenu.

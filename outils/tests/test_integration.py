@@ -3,7 +3,7 @@
 from outils import integration
 from outils.integration import Controle, PR
 
-REQUIS = ("sim", "viewer", "feuille", "gitleaks", "relecture")
+REQUIS = ("sim", "viewer", "feuille", "gitleaks")
 PREFIXES = ("agent/", "brief/", "feuille/")
 
 
@@ -19,6 +19,8 @@ def pr(**kw):
         fusionnable=True,
         retard=0,
         controles=verts(*REQUIS),
+        relue=True,
+        motif_relecture="approuvée sur aaaaaaa par pliagre",
     )
     defaut.update(kw)
     return PR(**defaut)
@@ -30,21 +32,21 @@ def test_une_pr_verte_a_jour_et_relue_entre():
 
 
 def test_un_controle_requis_absent_n_est_pas_un_controle_vert():
-    incomplet = verts(*[n for n in REQUIS if n != "relecture"])
+    incomplet = verts(*[n for n in REQUIS if n != "gitleaks"])
     decision = integration.examiner(pr(controles=incomplet), REQUIS, PREFIXES)
     assert decision.action == integration.RIEN
-    assert "relecture" in decision.raison
+    assert "gitleaks" in decision.raison
 
 
 def test_un_controle_rouge_retient():
-    controles = verts(*REQUIS[:-1]) + (Controle("relecture", integration.ROUGE),)
+    controles = verts(*REQUIS[:-1]) + (Controle("gitleaks", integration.ROUGE),)
     decision = integration.examiner(pr(controles=controles), REQUIS, PREFIXES)
     assert decision.action == integration.RIEN
     assert "rouge" in decision.raison
 
 
 def test_un_controle_en_cours_retient():
-    controles = verts(*REQUIS[:-1]) + (Controle("relecture", integration.EN_COURS),)
+    controles = verts(*REQUIS[:-1]) + (Controle("gitleaks", integration.EN_COURS),)
     decision = integration.examiner(pr(controles=controles), REQUIS, PREFIXES)
     assert decision.action == integration.RIEN
     assert "en cours" in decision.raison
@@ -83,7 +85,7 @@ def test_une_pr_en_retard_est_rejouee_avant_d_entrer():
 
 
 def test_une_pr_en_retard_et_rouge_n_est_pas_rejouee_pour_rien():
-    controles = verts(*REQUIS[:-1]) + (Controle("relecture", integration.ROUGE),)
+    controles = verts(*REQUIS[:-1]) + (Controle("gitleaks", integration.ROUGE),)
     decision = integration.examiner(pr(retard=3, controles=controles), REQUIS, PREFIXES)
     assert decision.action == integration.RIEN
 
@@ -128,46 +130,42 @@ def test_un_controle_ignore_n_a_rien_prouve():
     assert integration.etat_du_controle("completed", "success") == integration.VERT
 
 
-TARDIFS = ("relecture",)
+def test_une_pr_sans_relecture_n_entre_pas():
+    decision = integration.examiner(
+        pr(relue=False, motif_relecture="aucune approbation : relecture absente"),
+        REQUIS, PREFIXES,
+    )
+    assert decision.action == integration.RIEN
+    assert "relecture absente" in decision.raison
+
+
+def test_une_relecture_inconnue_retient():
+    """La PR n'a pas été interrogée : un blanc n'est pas une approbation."""
+    decision = integration.examiner(pr(relue=None), REQUIS, PREFIXES)
+    assert decision.action == integration.RIEN
+    assert "inconnue" in decision.raison
 
 
 def test_une_pr_en_retard_se_rejoue_avant_qu_on_demande_la_relecture():
     """Le rejeu périme la relecture : la demander avant, c'est la payer
     deux fois, et la deuxième pour rien."""
-    controles = verts(*[n for n in REQUIS if n != "relecture"])
-    decision = integration.examiner(
-        pr(retard=1, controles=controles), REQUIS, PREFIXES, TARDIFS
-    )
+    decision = integration.examiner(pr(retard=1, relue=False), REQUIS, PREFIXES)
     assert decision.action == integration.REBASER
     assert "relecture" in decision.raison
 
 
-def test_une_pr_a_jour_attend_encore_sa_relecture():
-    controles = verts(*[n for n in REQUIS if n != "relecture"])
-    decision = integration.examiner(pr(controles=controles), REQUIS, PREFIXES, TARDIFS)
-    assert decision.action == integration.RIEN
-    assert "relecture" in decision.raison
-
-
 def test_un_controle_de_ci_rouge_ne_se_rejoue_pas_pour_autant():
-    """Un rejeu ne répare pas un test rouge : il coûte un tour de CI
-    pour rougir au même endroit."""
+    """Un rejeu ne répare pas un test rouge : il coûte un tour de CI pour
+    rougir au même endroit."""
     controles = (Controle("sim", integration.ROUGE),) + verts(
-        *[n for n in REQUIS if n not in ("sim", "relecture")]
+        *[n for n in REQUIS if n != "sim"]
     )
-    decision = integration.examiner(
-        pr(retard=1, controles=controles), REQUIS, PREFIXES, TARDIFS
-    )
+    decision = integration.examiner(pr(retard=1, controles=controles), REQUIS, PREFIXES)
     assert decision.action == integration.RIEN
     assert "sim" in decision.raison
 
 
-def test_une_pr_a_jour_verte_et_relue_entre_meme_avec_des_tardifs():
-    assert integration.examiner(pr(), REQUIS, PREFIXES, TARDIFS).action == integration.FUSIONNER
-
-
-def test_un_tardif_absent_de_la_liste_requise_ne_s_invente_pas():
-    """`apres_rejeu` ne rend rien obligatoire : c'est `controles` qui le
-    fait. Un nom qui n'est que là ne bloque rien."""
-    decision = integration.examiner(pr(), REQUIS, PREFIXES, ("un-fantome",))
+def test_la_raison_de_la_fusion_dit_qui_a_relu():
+    decision = integration.examiner(pr(), REQUIS, PREFIXES)
     assert decision.action == integration.FUSIONNER
+    assert "pliagre" in decision.raison

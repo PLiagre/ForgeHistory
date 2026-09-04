@@ -35,6 +35,7 @@ def test_les_controles_arrivent_avec_leur_etat_traduit():
          ("gitleaks", "completed", "failure")],
         retard=2,
     )
+    assert pr.relue is None  # sans verdict, on ne sait pas — on ne suppose pas
     par_nom = {c.nom: c.etat for c in pr.controles}
     assert par_nom == {
         "sim": integration.VERT,
@@ -107,11 +108,13 @@ def test_une_liste_de_controles_vide_est_un_branchement_incomplet(tmp_path):
     assert "controles" in str(refus.value)
 
 
-def test_les_controles_tardifs_sont_facultatifs(tmp_path):
+def test_le_branchement_d_integration_rend_ce_qu_il_declare(tmp_path):
     from outils import registre
 
     _brancher(tmp_path, '\n[integration]\ncontroles = ["sim"]\nbranches = ["agent/"]\n')
-    assert registre.integration(tmp_path)["apres_rejeu"] == ()
+    reglage = registre.integration(tmp_path)
+    assert reglage["controles"] == ("sim",)
+    assert reglage["branches"] == ("agent/",)
 
 
 def test_un_atelier_toml_absent_se_dit(tmp_path):
@@ -119,3 +122,75 @@ def test_un_atelier_toml_absent_se_dit(tmp_path):
 
     with pytest.raises(registre.BranchementIncomplet):
         registre.branchement(tmp_path)
+
+
+def test_une_ligne_courte_passe_telle_quelle():
+    from outils import github
+
+    assert github.borner("PASS  PR 225 — approuvée") == "PASS  PR 225 — approuvée"
+
+
+def test_une_ligne_trop_longue_est_coupee_en_caracteres():
+    """GitHub refuse toute la requête au-delà de 140 caractères : l'état ne
+    serait pas posé du tout, donc absent, donc bloquant — et muet. La coupe
+    se fait en caractères : couper des octets casserait un accent en deux."""
+    from outils import github
+
+    longue = "é" * 300
+    court = github.borner(longue)
+    assert len(court) == github.BORNE_DESCRIPTION
+    assert court.endswith("…")
+    court.encode("utf-8").decode("utf-8")  # rouge si un caractère a été coupé
+
+
+def test_une_ligne_bornee_ne_garde_que_sa_premiere_ligne():
+    from outils import github
+
+    assert github.borner("FAIL  la raison\net une trace\nqui déborde") == "FAIL  la raison"
+
+
+def test_le_verdict_le_plus_bavard_tient_dans_une_description():
+    """La borne se tient une fois, en Python : le script reprend la ligne
+    telle quelle et n'a rien à couper. Le verdict le plus long est celui
+    qui énumère des relecteurs — il n'a pas de longueur maximale."""
+    from outils import github, relecture
+
+    verdict = relecture.juger(
+        "a" * 40,
+        ["cursor[bot]"],
+        [relecture.Revue(f"un-relecteur-au-nom-interminable-{i}", "APPROVED", "a" * 40)
+         for i in range(40)],
+    )
+    assert len(verdict.raison) > github.BORNE_DESCRIPTION  # sinon le cas ne prouve rien
+    ligne = github.borner(f"PASS  PR 225 — {verdict.raison}")
+    assert len(ligne) == github.BORNE_DESCRIPTION
+
+
+def test_le_verdict_de_relecture_voyage_avec_la_pr():
+    """Le verdict se calcule dans le code de `master` et arrive ici : la
+    décision ne relit pas un état que la PR aurait pu poser elle-même."""
+    from outils import relecture
+
+    verdict = relecture.juger(
+        "a" * 40, ["cursor[bot]"], [relecture.Revue("pliagre", "APPROVED", "a" * 40)]
+    )
+    pr = integration.depuis_github(
+        {"number": 216, "head": {"ref": "agent/049-x"}},
+        {"mergeable": True, "head": {"sha": "a" * 40}},
+        verdict=verdict,
+    )
+    assert pr.relue is True
+    assert "pliagre" in pr.motif_relecture
+
+
+def test_un_verdict_defavorable_voyage_avec_son_motif():
+    from outils import relecture
+
+    verdict = relecture.juger("a" * 40, ["cursor[bot]"], [])
+    pr = integration.depuis_github(
+        {"number": 216, "head": {"ref": "agent/049-x"}},
+        {"mergeable": True, "head": {"sha": "a" * 40}},
+        verdict=verdict,
+    )
+    assert pr.relue is False
+    assert "absente" in pr.motif_relecture

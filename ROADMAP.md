@@ -117,6 +117,46 @@ vision est effectivement couverte. C'est le manque recensé par le lot 054.
 
 ---
 
+## Le cycle automatique — ce qui a tourné, ce qui n'a pas encore
+
+Les règles du cycle vivent dans [AGENTS.md](AGENTS.md) § « Le workflow » ;
+la conduite dans [docs/WORKFLOW.md](docs/WORKFLOW.md). Ici, et seulement
+ici : **ce qui a été mesuré en ligne**, parce qu'un mécanisme joué sur un
+banc n'est pas un mécanisme qui a tourné.
+
+**A tourné pour de vrai**, le 4 septembre 2026, sur `master` :
+l'intégration s'est réveillée à la fin de `tests`, a lu les PR ouvertes, a
+écarté celle qui était un brouillon et celle qui était hors des préfixes,
+et a dit `RIEN`. C'est le tour à vide, et il est juste.
+
+**A échoué pour de vrai**, le même jour, sur la PR 225 : le travail
+`relecture` est mort avant de poser son état. La cause et la contre-mesure
+sont la treizième règle d'AGENTS.md. Le geste vit maintenant dans
+`.github/scripts/`, et le banc `outils/tests/test_scripts.py` rejoue ce cas
+exact.
+
+**A été trouvé par une relecture, pas par un test** : quatre impasses que
+la même PR portait, et qu'aucune suite verte n'aurait montrées, parce
+qu'elles ne se voient qu'en ligne. Un commit de palier signé d'une adresse
+que GitHub ne relie à personne — la PR n'aurait jamais pu être approuvée.
+Un verdict de relecture calculé à partir du code de la PR jugée. Des
+contrôles redemandés avant que le rejeu ait changé la révision, donc
+épinglés sur l'ancienne. Une branche de palier restée d'une PR fermée,
+qui bloquait sa couche pour toujours et en silence. Les quatre sont
+fermées, chacune avec son cas sur le banc.
+
+**Joué sur le banc, jamais en ligne** : la fusion, le rejeu d'une PR en
+retard, le dépôt d'un palier. Chacun a ses contrôles et son rouge prouvé,
+aucun n'a encore été fait par GitHub. Le premier lot qui passera le cycle
+entier est ce qui les mesurera.
+
+**Reste un geste qui n'est pas du code** : la protection de `master` — les
+contrôles de `[integration].controles` déclarés obligatoires côté GitHub,
+et `enforce_admins`. Sans elle, l'intégration reste correcte, mais rien
+n'empêche une main de fusionner du rouge. C'est arrivé le 4 septembre.
+
+---
+
 ## Le registre des lots
 
 **C'est ici, et seulement ici, que l'état d'un lot s'écrit.** Une machine le
@@ -340,8 +380,8 @@ elle vit dans **ForgeAtelier** (branche `cursor/forgeatelier-ced6`, à
 détacher dès que le dépôt GitHub existe — voir `docs/PUBLIER.md` là-bas),
 et ce dépôt s'y branche avec [`atelier.toml`](atelier.toml).
 
-Ce qui **est** revenu ici, après le dégraissage, tient en un dossier de
-moins de quatre cents lignes : `outils/` et deux workflows de plus. C'est
+Ce qui **est** revenu ici, après le dégraissage : `outils/` qui décide,
+`.github/scripts/` qui fait, et deux workflows de plus. C'est
 l'**intégration** — qui entre dans `master`, et à quelle condition. Elle
 est ici parce que `master` est ici : elle tourne sur GitHub, sans machine
 allumée chez personne, et elle ne juge rien. Le propriétaire ne fusionne

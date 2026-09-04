@@ -49,18 +49,27 @@ expérience, une branche à lui. Il ne fusionne pas les lots.
 
 **Celui qui a écrit le code ne dit pas s'il est recevable.** La phrase n'a
 pas changé ; ce qui la tient a changé. Elle était une politesse tant que
-personne ne la mesurait ; elle est maintenant un contrôle
-(`.github/workflows/relecture.yml`) qui exige une approbation posée sur la
-**révision courante** par une connexion qui n'a écrit aucun des commits.
-Quatre refus, et aucun feu vert par défaut : absente, périmée, de l'auteur,
-ou changements demandés.
+personne ne la mesurait ; c'est maintenant une règle mécanique
+(`outils/relecture.py`) : une approbation posée sur la **révision
+courante**, par une connexion qui n'a écrit aucun des commits. Quatre
+refus, et aucun feu vert par défaut : absente, périmée, de l'auteur, ou
+changements demandés.
+
+Cette règle est appliquée **deux fois, par le même module, depuis deux
+endroits qui ne se valent pas**. Le travail `relecture` la joue sur la PR
+et pose un état visible — c'est ce qui dit à un relecteur pourquoi la PR
+attend. L'intégration la rejoue depuis le code de `master`, et c'est
+celle-là qui ouvre la porte. La distinction n'est pas un scrupule : un
+travail qui tourne sur le code de la PR juge avec du code que la PR peut
+changer, et rien n'est plus facile à écrire qu'un juge complaisant.
 
 **La fusion est mécanique.** Une PR entre dans `master` quand tous les
 contrôles déclarés dans [`atelier.toml`](atelier.toml) § `[integration]`
-sont verts sur sa révision courante, et à cette seule condition. Personne
-ne fusionne sur un avis. L'intégration ne lit ni le brief, ni le diff, ni
-un compte rendu : elle lit cette liste. Un contrôle **absent** n'est pas un
-contrôle vert ; un état de fusion **inconnu** retient au lieu de passer.
+sont verts sur sa révision courante **et** qu'un tiers l'a approuvée sur
+cette même révision. À ces conditions, et à elles seules. Personne ne
+fusionne sur un avis : l'intégration ne lit ni le brief, ni le diff, ni un
+compte rendu. Un contrôle **absent** n'est pas un contrôle vert ; un état
+de fusion **inconnu** retient au lieu de passer.
 
 **L'intégration est séquentielle et rejouée.** Plusieurs lots s'écrivent en
 même temps ; ils n'entrent jamais en même temps. Une PR en retard sur
@@ -80,10 +89,17 @@ quelle machine, quelle carte dans quelle boîte — vit dans
 (`python3 -m atelier`). Le branchement de ce dépôt est
 [`atelier.toml`](atelier.toml).
 
-L'**intégration** vit ici, dans `.github/workflows/`, parce que c'est ici
-qu'est `master` : elle tourne sur GitHub, sans machine allumée chez
-personne, et elle ne sait rien du jeu non plus. L'atelier ne fusionne pas
-— `atelier fusionner` refuse, et continue de refuser.
+L'**intégration** vit ici, parce que c'est ici qu'est `master` : elle
+tourne sur GitHub, sans machine allumée chez personne, et elle ne sait rien
+du jeu non plus. L'atelier ne fusionne pas — `atelier fusionner` refuse, et
+continue de refuser.
+
+Elle est coupée en deux, et la coupure porte : `outils/` **décide** et
+n'écrit jamais sur GitHub — c'est ce qui permet de jouer chaque décision
+hors ligne ; `.github/scripts/` **fait** le geste — et c'est ce qui permet
+de le jouer sur un banc, avec de faux exécutables. Les workflows ne portent
+aucune logique : ils appellent l'un, puis l'autre. La règle 13 dit ce que
+cette coupure a coûté avant d'exister.
 
 Ce fichier-ci dit les **règles du jeu** ; l'atelier dit **comment on
 invoque**. Aucun des deux ne paraphrase l'autre, et celui-ci fait foi pour
@@ -220,7 +236,7 @@ qu'on n'attend pas est une suite qu'on ne joue pas.
 
 ---
 
-## Les douze règles payées par un vrai défaut
+## Les treize règles payées par un vrai défaut
 
 Chacune a coûté un défaut mesuré. Elles portent sur le code, pas sur le
 processus : elles survivent à tout changement de workflow.
@@ -248,6 +264,16 @@ processus : elles survivent à tout changement de workflow.
 12. Une empreinte de parité se cite par **nom**, jamais par valeur : elle
     sera rebasée un jour, et le document qui porte la constante morte piège
     tous les lots suivants.
+13. **Un bloc de shell écrit dans un YAML ne se joue nulle part.** GitHub
+    exécute `run:` avec `bash -e` ; un `set` qui n'éteint pas `errexit`
+    laisse la première commande en échec tuer l'étape avant sa fin. Le
+    4 septembre 2026, `relecture` est mort sur le verdict « pas encore
+    relue » — code 1, attendu — et n'a jamais posé son état : le contrôle
+    ne rougissait pas, il n'existait pas. Un geste vit donc dans un
+    fichier de `.github/scripts/`, et un fichier se joue sur un banc
+    (`outils/tests/banc.py`), avec de faux exécutables en tête du `PATH`.
+    Le seul moyen de lire un `$?` sous `errexit` est `cmd || code=$?` :
+    la ligne d'après n'est jamais atteinte.
 
 ## Les six modes de défaillance diagnostiqués
 
@@ -270,8 +296,9 @@ processus : elles survivent à tout changement de workflow.
 | `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
 | `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
 | `briefs/` | un fichier par lot. |
-| `outils/` | ce que la CI décide : qui a relu, quelle PR entre dans `master`, quand une couche finie appelle son palier. Il ne parle jamais au jeu. |
-| `.github/workflows/` | les quatre travaux : `tests`, `security`, `relecture`, `integration`. |
+| `outils/` | ce que la CI **décide** : qui a relu, quelle PR entre dans `master`, quand une couche finie appelle son palier. Il ne parle jamais au jeu, et il n'écrit jamais sur GitHub. |
+| `.github/scripts/` | ce que la CI **fait** : poser un état, fusionner, rejouer, déposer une fiche. Du shell dans des fichiers, joués sur un banc. |
+| `.github/workflows/` | les quatre travaux : `tests`, `security`, `relecture`, `integration`. Ils appellent les deux ci-dessus ; ils ne portent pas de logique. |
 | `ROADMAP.md` | où on en est, et le registre des lots — la seule représentation de l'état d'un lot. |
 | `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier, et la liste des contrôles requis pour entrer dans `master`. |
 | `docs/WORKFLOW.md` | rappel local : les trois postes de *ce* produit, et le lien vers l'atelier. |
@@ -302,7 +329,7 @@ py -m sim                                # le produit
 py -m sim --ticks 0 --json               # fumée : le monde s'amorce
 py -m pytest sim/tests/ -q               # les tests du jeu
 py -m pytest viewer/tests/ -q            # le regard mince
-py -m pytest outils/tests/ -q            # ce que la CI décide
+py -m pytest outils/tests/ -q            # ce que la CI décide, et ce qu'elle fait
 
 # ce que la CI décide, joué à la main (lecture seule, rien n'est écrit)
 py -m outils palier --projet .           # une couche finie attend-elle son palier ?

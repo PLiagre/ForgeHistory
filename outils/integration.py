@@ -2,9 +2,16 @@
 
 Elle ne lit ni le brief, ni le diff, ni un avis. Elle lit **la liste des
 contrôles requis**, déclarée dans `atelier.toml`, et les vérifie sur la
-révision courante de la PR. C'est tout ce qu'elle sait faire, et c'est
-délibéré : un intégrateur qui raisonne est un juge, et un juge qui
-fusionne finit par fusionner sur une impression.
+révision courante de la PR — plus une chose qu'elle vérifie elle-même :
+qu'un tiers a approuvé cette révision.
+
+Ce dernier point n'est pas une exception à la règle « elle ne juge pas ».
+C'est le contraire : le contrôle `relecture` est posé par un travail qui
+tourne **sur le code de la PR**, et une PR peut donc changer le code qui
+la juge. Le verdict qui gouverne la fusion se calcule ici, dans le code de
+`master`, avec le même module que ce travail-là. Une seule règle, deux
+appelants ; l'état posé sur la PR reste ce qui la rend lisible, il n'est
+plus ce qui l'ouvre.
 
 Trois refus qui ne sont pas des échecs, seulement des attentes :
 
@@ -18,11 +25,11 @@ Trois refus qui ne sont pas des échecs, seulement des attentes :
   révision d'avant n'ont pas vu ce qui a été fusionné depuis.
 
 Le rejeu change la révision, donc périme tout ce qui était posé sur
-l'ancienne. C'est pourquoi les contrôles se demandent en deux temps :
-ceux qu'une machine repose toute seule d'abord — ils décident du rejeu —
-puis ceux qui coûtent un tour d'agent, sur la révision finale. Demander
-la relecture avant le rejeu, ce serait la payer deux fois, et la
-deuxième pour rien.
+l'ancienne. C'est pourquoi la relecture se demande **après** : les
+contrôles qu'une machine repose toute seule décident du rejeu, et la
+relecture — qui coûte un tour d'agent — ne se demande que sur la révision
+finale. L'exiger avant, ce serait la payer deux fois, et la deuxième pour
+rien.
 
 Et une seule PR avance par tour : l'intégration est séquentielle. Deux
 PR vertes séparément ne sont pas une PR verte ensemble.
@@ -73,9 +80,14 @@ class PR:
     # Le nombre de commits de `master` que cette PR n'a pas encore.
     retard: int
     controles: tuple[Controle, ...] = ()
+    # Un tiers a-t-il approuvé la révision courante ? `None` tant qu'on ne
+    # l'a pas demandé — et un inconnu retient, comme partout ailleurs.
+    relue: bool | None = None
+    motif_relecture: str = ""
 
 
-def depuis_github(brut: dict, detail: dict | None = None, controles_bruts=(), retard: int = 0) -> PR:
+def depuis_github(brut: dict, detail: dict | None = None, controles_bruts=(),
+                  retard: int = 0, verdict=None) -> PR:
     """Une PR, telle que l'API la rend. Les noms de champs vivent ici.
 
     C'est la couture où les défauts se logent — une clé mal orthographiée
@@ -101,6 +113,8 @@ def depuis_github(brut: dict, detail: dict | None = None, controles_bruts=(), re
             Controle(nom, etat_du_controle(statut, conclusion))
             for nom, statut, conclusion in controles_bruts
         ),
+        relue=None if verdict is None else verdict.passe,
+        motif_relecture="" if verdict is None else verdict.raison,
     )
 
 
@@ -132,7 +146,7 @@ def _manque(pr: PR, noms) -> str:
     return ""
 
 
-def examiner(pr: PR, requis, prefixes, apres_rejeu=()) -> Decision:
+def examiner(pr: PR, requis, prefixes) -> Decision:
     """Ce que cette PR appelle, et pourquoi. Jamais deux choses à la fois."""
     if pr.brouillon:
         return Decision(RIEN, pr.numero, "brouillon")
@@ -147,8 +161,7 @@ def examiner(pr: PR, requis, prefixes, apres_rejeu=()) -> Decision:
     if not pr.fusionnable:
         return Decision(RIEN, pr.numero, "en conflit avec master")
 
-    tardifs = tuple(nom for nom in requis if nom in apres_rejeu)
-    manque = _manque(pr, [nom for nom in requis if nom not in tardifs])
+    manque = _manque(pr, requis)
     if manque:
         return Decision(RIEN, pr.numero, manque)
 
@@ -156,15 +169,19 @@ def examiner(pr: PR, requis, prefixes, apres_rejeu=()) -> Decision:
         return Decision(
             REBASER, pr.numero,
             f"{pr.retard} commit(s) de master en retard : rejouer dessus avant "
-            f"de demander {', '.join(tardifs) or 'la fusion'}",
+            "de demander la relecture",
         )
-    manque = _manque(pr, tardifs)
-    if manque:
-        return Decision(RIEN, pr.numero, manque)
-    return Decision(FUSIONNER, pr.numero, "tous les contrôles requis sont verts sur sa révision")
+    if pr.relue is None:
+        return Decision(RIEN, pr.numero, "relecture inconnue : on retient")
+    if not pr.relue:
+        return Decision(RIEN, pr.numero, pr.motif_relecture or "pas de relecture d'un tiers")
+    return Decision(
+        FUSIONNER, pr.numero,
+        f"contrôles requis verts sur sa révision, et {pr.motif_relecture}",
+    )
 
 
-def decider(prs, requis, prefixes, apres_rejeu=()) -> Rapport:
+def decider(prs, requis, prefixes) -> Rapport:
     """La PR qui avance ce tour-ci, et le compte rendu de toutes les autres.
 
     L'ordre est celui des numéros : la plus ancienne d'abord. Une PR qui
@@ -179,7 +196,7 @@ def decider(prs, requis, prefixes, apres_rejeu=()) -> Rapport:
     rapport = Rapport(Decision(RIEN, None, "aucune PR à intégrer"))
     retenue: Decision | None = None
     for pr in sorted(prs, key=lambda p: p.numero):
-        decision = examiner(pr, requis, prefixes, apres_rejeu)
+        decision = examiner(pr, requis, prefixes)
         rapport.lignes.append(f"PR {pr.numero} ({pr.branche}) : {decision.action} — {decision.raison}")
         if decision.action != RIEN and retenue is None:
             retenue = decision

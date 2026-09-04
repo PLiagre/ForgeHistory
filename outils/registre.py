@@ -90,8 +90,5 @@ def integration(racine: Path) -> dict:
         )
     return {
         "controles": tuple(str(c) for c in bloc["controles"]),
-        # Facultatif : sans lui, tout se demande d'un coup, ce qui reste
-        # correct — seulement plus cher d'un tour de relecture par rejeu.
-        "apres_rejeu": tuple(str(c) for c in bloc.get("apres_rejeu", ())),
         "branches": tuple(str(b) for b in bloc["branches"]),
     }
