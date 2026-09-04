@@ -22,19 +22,36 @@ commentaires. Phrases courtes. Un terme technique s'explique une fois.
 
 ## Le cycle
 
-1. Le propriétaire place un lot dans la feuille de route du produit ;
-   `atelier piloter` en dérive la prochaine carte, il ne la devine pas.
-2. Un agent écrit le brief et ouvre sa PR ; le propriétaire fusionne.
-3. Un autre agent l'exécute dans un worktree, sur une branche à lui, et
-   fait passer la fiche du lot à `livre` dans sa PR.
-4. Un agent qui n'a pas écrit le code relit le diff.
-5. La CI du dépôt produit joue les tests et valide la feuille.
-6. Le propriétaire fusionne.
+1. Le propriétaire donne une direction ; elle devient des fiches dans la
+   feuille de route du produit. `atelier piloter` en dérive les cartes,
+   il ne les devine pas.
+2. Un agent écrit le brief et ouvre sa PR.
+3. Un agent qui n'a pas écrit le brief le relit et rend un verdict.
+4. Un autre agent exécute le lot dans le worktree de ce lot, sur sa
+   branche, et fait passer la fiche à `livre` dans sa PR.
+5. Un agent qui n'a pas écrit le code relit le diff et rend un verdict.
+6. La CI du dépôt produit joue les tests et valide la feuille.
+7. Quand tous les contrôles requis sont verts sur la révision courante,
+   l'intégration fusionne — une PR à la fois, retestée sur le dernier
+   `master`.
 
-Pas de fusion ici. Pas de verdict qui remplace l'œil.
+Plusieurs lots parcourent ce cycle en même temps tant que leurs
+périmètres sont disjoints. Deux lots qui se disputent un fichier ne
+tournent jamais ensemble.
 
-**La seule règle de rôle : celui qui a écrit le code ne dit pas s'il
-est recevable.**
+Deux règles de rôle, et elles ne se contournent pas :
+
+- **celui qui a écrit le code ne dit pas s'il est recevable** ;
+- **personne ne fusionne sur un avis** — ni un agent, ni le
+  propriétaire. Une relecture terminée n'est pas une approbation : un
+  verdict est une donnée liée à la révision relue.
+
+Ce cycle est l'intention, écrite dans [VISION.md](VISION.md) le
+4 septembre 2026. La **conduite** arrive lot par lot : la série 009-023
+de [ROADMAP.md](ROADMAP.md) la porte, et chaque lot apporte sa ligne à
+[docs/LE-WORKFLOW.md](docs/LE-WORKFLOW.md), qui décrit ce qui tourne
+aujourd'hui. Tant qu'un lot n'est pas livré, c'est l'ancienne conduite
+qui tourne, et c'est LE-WORKFLOW.md qui fait foi sur ce point.
 
 ## Le brief
 
@@ -90,10 +107,11 @@ vivent avec le registre, dans le dépôt produit.
 
 Un test existe s'il protège l'une de ces trois choses, et seulement :
 
-1. un **invariant du cycle** (auteur ≠ relecteur, pas de fusion,
-   canal d'échange git-invisible et lisible, un fichier n'est pas
-   dans deux lots actifs, une fiche incohérente échoue et une
-   transition interdite est refusée)
+1. un **invariant du cycle** (auteur ≠ relecteur, aucun agent ne
+   fusionne, aucune fusion sans contrôles verts sur la révision
+   courante, canal d'échange git-invisible et lisible, un fichier
+   n'est pas dans deux lots actifs, une fiche incohérente échoue et
+   une transition interdite est refusée)
 2. une **règle visible** (sans `--run` rien n'est écrit ; un quota
    inconnu vaut `-1`)
 3. le **déterminisme** de la porte mécanique (même brief, même refus)
