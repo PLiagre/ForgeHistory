@@ -15,6 +15,7 @@ import pytest
 
 from atelier import boite, feuille, verrou
 from atelier.__main__ import main
+from tests.depot import installer
 from tests.test_porte import BRIEF_SAIN
 
 
@@ -674,7 +675,13 @@ def test_le_briefer_range_sa_carte_avec_le_numero_de_sa_pr(tmp_path: Path):
     racine = _produit(tmp_path)
     _carte(racine, "a-briefer", "048-route")
     faux, verrous = tmp_path / "bin", tmp_path / "verrous"
-    _faux(faux, "claude", "mkdir -p atelier-echange && echo 7 > atelier-echange/pr.txt\n")
+    # Le faux briefer fait ce qu'un briefer fait : il écrit le brief,
+    # puis dépose le numéro de sa PR. Sans le fichier, la carte ne passe
+    # plus — c'est la porte que le lot 049 a franchie à vide.
+    _faux(faux, "claude",
+          "mkdir -p briefs atelier-echange\n"
+          "echo '# Brief 048' > briefs/048-route.md\n"
+          "echo 7 > atelier-echange/pr.txt\n")
     r = _lancer(TOUR, _env(racine, faux, verrous, ATELIER_INVOQUER="1"), "briefer")
     assert r.returncode == 0, r.stderr
     assert _boite_de(racine, "a-briefer") == []
@@ -682,3 +689,195 @@ def test_le_briefer_range_sa_carte_avec_le_numero_de_sa_pr(tmp_path: Path):
     (carte,) = boite.lister(racine, boite.SUIVANT["briefer"])
     assert carte.lot == "048-route" and carte.pr == 7
     assert not (racine / "atelier-echange" / "pr.txt").exists()
+
+
+# ------------------------ une carte ne passe pas sur parole : le briefer
+
+
+@besoin_bash
+def test_le_briefer_qui_n_ecrit_rien_ne_promet_pas_une_pr(tmp_path: Path):
+    """Le 4 septembre 2026 : agent bloqué, code 0, carte avancée à vide.
+
+    Le propriétaire allait chercher une PR à fusionner ; il n'y en avait
+    aucune, et `briefs/049-….md` n'existait sur aucune branche.
+    """
+    racine = _produit(tmp_path)
+    _carte(racine, "a-briefer", "048-route")
+    faux, verrous = tmp_path / "bin", tmp_path / "verrous"
+    _faux(faux, "claude", 'echo "je suis bloqué, voici le brief : ..."\nexit 0\n')
+    r = _lancer(TOUR, _env(racine, faux, verrous, ATELIER_INVOQUER="1"), "briefer")
+    assert r.returncode != 0
+    assert _boite_de(racine, boite.SUIVANT["briefer"]) == []
+    (tombee,) = boite.lister(racine, "echec")
+    assert tombee.lot == "048-route"
+    assert tombee.cause == "agent"
+    assert "sur parole" in tombee.note
+
+
+@besoin_bash
+def test_le_briefer_sans_numero_de_pr_ne_promet_pas_une_fusion(tmp_path: Path):
+    racine = _produit(tmp_path)
+    _carte(racine, "a-briefer", "048-route")
+    faux, verrous = tmp_path / "bin", tmp_path / "verrous"
+    _faux(faux, "claude", "mkdir -p briefs\necho '# Brief 048' > briefs/048-route.md\n")
+    r = _lancer(TOUR, _env(racine, faux, verrous, ATELIER_INVOQUER="1"), "briefer")
+    assert r.returncode != 0
+    assert _boite_de(racine, boite.SUIVANT["briefer"]) == []
+    (tombee,) = boite.lister(racine, "echec")
+    assert tombee.cause == "pr"
+
+
+# ------------------- une carte ne passe pas sur parole : la CI du relecteur
+
+
+def _gh(faux: Path, corps: str) -> Path:
+    return _faux(faux, "faux-gh", corps)
+
+
+@besoin_bash
+def test_le_relecteur_ne_relit_pas_une_pr_rouge(tmp_path: Path):
+    """Payer une relecture sur du code que la CI a déjà refusé : lot 046."""
+    racine = _produit(tmp_path)
+    _carte(racine, "a-relire", "046-mer", pr=206, fichiers=["sim/engine.py"])
+    faux, verrous = tmp_path / "bin", tmp_path / "verrous"
+    temoin = tmp_path / "relecteur.txt"
+    _faux(faux, "claude", f'printf "lance\\n" >> "{temoin}"\n')
+    gh = _gh(faux, 'printf "sim\\tfail\\t6m\\turl\\n"\n')
+    r = _lancer(
+        TOUR,
+        _env(racine, faux, verrous, ATELIER_INVOQUER="1", ATELIER_CI_CMD=str(gh)),
+        "relire",
+    )
+    assert r.returncode != 0
+    assert not temoin.exists(), "aucun agent ne doit être lancé sur une PR rouge"
+    assert _boite_de(racine, "a-relire") == []
+    (tombee,) = boite.lister(racine, "echec")
+    assert tombee.cause == "ci" and "sim" in tombee.note
+
+
+@besoin_bash
+def test_un_verdict_illisible_laisse_la_carte_ou_elle_est(tmp_path: Path):
+    """L'inconnu attend. Une carte qui attend se voit dans `a-relire`."""
+    racine = _produit(tmp_path)
+    _carte(racine, "a-relire", "046-mer", pr=206, fichiers=["sim/engine.py"])
+    faux, verrous = tmp_path / "bin", tmp_path / "verrous"
+    temoin = tmp_path / "relecteur.txt"
+    _faux(faux, "claude", f'printf "lance\\n" >> "{temoin}"\n')
+    gh = _gh(faux, "exit 8\n")
+    r = _lancer(
+        TOUR,
+        _env(racine, faux, verrous, ATELIER_INVOQUER="1", ATELIER_CI_CMD=str(gh)),
+        "relire",
+    )
+    assert r.returncode == 0, r.stderr
+    assert not temoin.exists()
+    assert _boite_de(racine, "a-relire") == ["046-mer"]
+    assert _boite_de(racine, "echec") == []
+    assert "illisible" in r.stdout
+
+
+@besoin_bash
+def test_une_pr_verte_se_relit_comme_avant(tmp_path: Path):
+    racine = _produit(tmp_path)
+    _carte(racine, "a-relire", "046-mer", pr=206, fichiers=["sim/engine.py"])
+    installer(racine)
+    faux, verrous = tmp_path / "bin", tmp_path / "verrous"
+    temoin = tmp_path / "relecteur.txt"
+    _faux(faux, "claude", f'printf "lance\\n" >> "{temoin}"\n')
+    gh = _gh(faux, 'printf "sim\\tpass\\t6m\\turl\\n"\n')
+    r = _lancer(
+        TOUR,
+        _env(racine, faux, verrous, ATELIER_INVOQUER="1", ATELIER_CI_CMD=str(gh)),
+        "relire",
+    )
+    assert r.returncode == 0, r.stderr
+    assert temoin.exists()
+    assert _boite_de(racine, "faite") == ["046-mer"]
+
+
+@besoin_bash
+def test_une_carte_sans_pr_traverse_la_porte(tmp_path: Path):
+    """Le lot ne transforme pas une absence de coordonnée en refus."""
+    racine = _produit(tmp_path)
+    _carte(racine, "a-relire", "046-mer", fichiers=["sim/engine.py"])
+    installer(racine)
+    faux, verrous = tmp_path / "bin", tmp_path / "verrous"
+    temoin = tmp_path / "relecteur.txt"
+    _faux(faux, "claude", f'printf "lance\\n" >> "{temoin}"\n')
+    gh = _gh(faux, "exit 8\n")
+    r = _lancer(
+        TOUR,
+        _env(racine, faux, verrous, ATELIER_INVOQUER="1", ATELIER_CI_CMD=str(gh)),
+        "relire",
+    )
+    assert r.returncode == 0, r.stderr
+    assert temoin.exists(), "sans numéro, la porte se tait et la relecture a lieu"
+
+
+# ------------------ la boucle ne s'arrête que sur une décision (lot 006)
+
+
+def _sonde(etat: str, numero: int | None = None):
+    return lambda lot: (etat, numero)
+
+
+def test_piloter_ne_redepose_pas_un_lot_dont_la_pr_est_ouverte(tmp_path: Path):
+    """Le 4 septembre 2026 à 7h00 : 046 redéposé, PR 206 ouverte."""
+    racine = _produit(tmp_path)
+    f = feuille.lire(racine / "ROADMAP.md")
+    retenues: list[str] = []
+    decisions = feuille.decider(
+        f, racine, pr_ouverte=_sonde("ouverte", 206), retenues=retenues
+    )
+    assert [d.role for d in decisions] == ["briefer"]
+    assert any("206" in r and "046-mer" in r for r in retenues)
+
+
+def test_piloter_retient_quand_l_etat_de_la_pr_est_inconnu(tmp_path: Path):
+    """Une garde qui cède quand la sonde se tait n'est pas une garde."""
+    racine = _produit(tmp_path)
+    f = feuille.lire(racine / "ROADMAP.md")
+    retenues: list[str] = []
+    decisions = feuille.decider(
+        f, racine, pr_ouverte=_sonde("inconnue"), retenues=retenues
+    )
+    assert [d.role for d in decisions] == ["briefer"]
+    assert _boite_de(racine, "a-coder") == []
+    assert any("illisible" in r for r in retenues)
+
+
+def test_piloter_depose_un_lot_neuf_comme_avant(tmp_path: Path):
+    racine = _produit(tmp_path)
+    f = feuille.lire(racine / "ROADMAP.md")
+    decisions = feuille.decider(f, racine, pr_ouverte=_sonde("aucune"))
+    assert sorted(d.role for d in decisions) == ["briefer", "coder"]
+
+
+def test_une_pr_fermee_sans_fusion_libere_son_lot(tmp_path: Path):
+    """Sinon la carte reste dans `faite` et son verrou tient ses fichiers."""
+    racine = _produit(tmp_path)
+    _carte(racine, "faite", "046-mer", pr=206, fichiers=["sim/engine.py"])
+    verrou.poser(racine, "046-mer", ["sim/engine.py"])
+    f = feuille.lire(racine / "ROADMAP.md")
+    for r in feuille.rapprochements(f, racine, etat_pr=lambda n: "fermee"):
+        feuille.appliquer(racine, r)
+    assert _boite_de(racine, "faite") == []
+    (tombee,) = boite.lister(racine, "echec")
+    assert tombee.cause == "pr" and "206" in tombee.note
+    assert verrou.charger(racine).poses == []
+
+
+def test_une_pr_ouverte_ne_libere_rien(tmp_path: Path):
+    racine = _produit(tmp_path)
+    _carte(racine, "a-relire", "046-mer", pr=206, fichiers=["sim/engine.py"])
+    f = feuille.lire(racine / "ROADMAP.md")
+    assert feuille.rapprochements(f, racine, etat_pr=lambda n: "ouverte") == []
+
+
+def test_un_etat_de_pr_inconnu_ne_range_rien(tmp_path: Path):
+    """Ranger sur une sonde muette rangerait des cartes vivantes."""
+    racine = _produit(tmp_path)
+    _carte(racine, "a-relire", "046-mer", pr=206, fichiers=["sim/engine.py"])
+    f = feuille.lire(racine / "ROADMAP.md")
+    assert feuille.rapprochements(f, racine, etat_pr=lambda n: "inconnue") == []
+    assert _boite_de(racine, "a-relire") == ["046-mer"]

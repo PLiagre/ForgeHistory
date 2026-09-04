@@ -165,6 +165,31 @@ echouer_le_lot() {
     exit 1
 }
 
+# --- ce que la CI a déjà dit de la PR qu'on allait relire -----------------
+# Le 3 septembre 2026, un agent a écrit « 164 passent, 3 échecs identiques
+# à master (préexistants) ». La CI disait `sim` rouge et trois régressions.
+# Rien ne l'a démenti, et le relecteur a été payé pour relire du code
+# cassé — il l'a dit lui-même : « à confirmer par pytest ».
+#
+# Le script ne lit pas `gh` : il appelle la commande de l'atelier, seule à
+# savoir comment un verdict se lit. Un inconnu n'est pas un vert — la
+# carte reste dans `a-relire`, le tour sort 0, et l'un des quatre réveils
+# de `relire` redemandera. Une carte qui attend se voit ; une porte qui
+# s'ouvre toute seule ne se voit nulle part.
+if [[ "$ROLE" == "relire" && -n "$pr" ]]; then
+    set +e
+    fautifs="$(python3 -m atelier ci --pr "$pr" --worktree "$WORKDIR")"
+    verdict=$?
+    set -e
+    if [[ $verdict -eq 1 ]]; then
+        echouer_le_lot "$ROLE : la PR $pr est rouge — $(echo $fautifs)" ci
+    elif [[ $verdict -ne 0 ]]; then
+        echo "$ROLE : verdict de la PR $pr illisible — la carte attend le prochain réveil."
+        exit 0
+    fi
+    echo "$ROLE : PR $pr, contrôles obligatoires au vert."
+fi
+
 # --- le répertoire dans lequel l'agent va écrire --------------------------
 # Le canal d'échange porte sa propre garde git (`*`). Sans elle, un agent
 # qui fait `git add -A` enregistre `atelier-echange/pr.txt`, le tour le
@@ -236,13 +261,22 @@ if [[ $code -eq 0 ]]; then
         fi
         rm -f "$WORKDIR/atelier-echange/pr.txt"
         suite+=(--pr "$numero")
-    elif [[ "$ROLE" == "briefer" && -f "$WORKDIR/atelier-echange/pr.txt" ]]; then
-        if numero="$(python3 -m atelier pr --fichier "$WORKDIR/atelier-echange/pr.txt")"; then
-            suite+=(--pr "$numero")
-        else
-            echo "$ROLE : atelier-echange/pr.txt ne portait pas un entier positif unique." >&2
+    elif [[ "$ROLE" == "briefer" ]]; then
+        # Un code 0 ne suffit pas ici non plus. `brief-a-fusionner` dit
+        # au propriétaire qu'il a une PR à fusionner : sans fichier de
+        # brief et sans numéro, la carte lui promet un travail qui
+        # n'existe pas. Le 4 septembre 2026, le lot 049 y est entré
+        # ainsi — l'agent était bloqué sur une demande d'accord, il est
+        # sorti 0, et le brief n'a jamais existé nulle part.
+        if [[ "$brief" == /* ]]; then ecrit="$brief"; else ecrit="$WORKDIR/$brief"; fi
+        if [[ ! -f "$ecrit" ]]; then
+            echouer_le_lot "$ROLE : $lot est sorti sans écrire $brief — une carte ne passe pas sur parole" agent
+        fi
+        if ! numero="$(python3 -m atelier pr --fichier "$WORKDIR/atelier-echange/pr.txt")"; then
+            echouer_le_lot "$ROLE : $lot n'a pas déposé de numéro de PR valide dans atelier-echange/pr.txt" pr
         fi
         rm -f "$WORKDIR/atelier-echange/pr.txt"
+        suite+=(--pr "$numero")
     fi
     if python3 -m atelier avancer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
             ${suite[@]+"${suite[@]}"} >/dev/null; then

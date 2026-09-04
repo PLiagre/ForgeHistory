@@ -80,9 +80,18 @@ tours_dans() {
     echo "${sortie[@]:-}"
 }
 
+# L'heure se lit *dans* le profil, jamais avant lui : c'est le profil qui
+# pose `TZ=Europe/Paris`, et le cron de ce VPS suit UTC. Lue dehors,
+# l'heure était celle du shell — depuis une session ssh, `etat` annonçait
+# donc un réveil deux heures trop tôt. C'est pourtant lui qu'on interroge
+# pour démentir le tableau de bord : un juge qui se trompe d'heure ne
+# dément rien. Une fonction, et non `bash -c` : le sous-shell de
+# `dans_le_profil` voit les fonctions d'ici, un `bash` neuf ne les voit
+# pas — et surtout pas `prochain_reveil`, que le profil vient de définir.
+_prochain_dans_le_profil() { prochain_reveil "$(date +%H:%M)"; }
+
 dire_prochain() {
-    local nom="$1"
-    dans_le_profil "$nom" prochain_reveil "$(date +%H:%M)"
+    dans_le_profil "$1" _prochain_dans_le_profil
 }
 
 poser_profil() {

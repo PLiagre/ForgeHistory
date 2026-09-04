@@ -106,22 +106,71 @@ pas sur `master`.
 - Le lecteur de périmètre écarte les fichiers qu'un brief **interdit**
   (le 046 aurait tenu `sim/aggregation.py`, périmètre du 047).
 
+## Lot 005 — une carte ne passe pas sur parole
+
+Le 3 septembre 2026, un agent a écrit « 164 passent, 3 échecs identiques
+à `master` (préexistants) ». La CI disait `sim` rouge et trois
+régressions. Le relecteur a été payé pour relire du code cassé. Le
+4 septembre, le briefer a été bloqué sur une demande d'accord, est sorti
+0 sans rien écrire, et la carte 049 est entrée dans `brief-a-fusionner`
+alors qu'aucun brief ni aucune PR n'existait nulle part.
+
+- **Le poste d'écriture peut écrire.** Un backend déclare son
+  `accord_ecriture` : ce qu'il faut poser pour qu'un tour non interactif
+  puisse aller jusqu'à la PR. Sans lui, `claude -p` refuse chaque outil
+  qui mute et rend 0 — l'échec le plus coûteux, celui qui ressemble à un
+  succès. Rien de plus large que nécessaire : les règles `deny` du
+  produit continuent de fermer ce qu'elles ferment.
+- **La carte du briefer ne bouge que si le brief existe** et qu'un
+  numéro de PR a été déposé. `brief-a-fusionner` promet une fusion au
+  propriétaire : la promesse est vérifiée avant d'être faite.
+- `atelier ci --pr N` rend le verdict des contrôles **obligatoires** —
+  la liste qui gouverne le bouton de fusion de GitHub. 0 vert, 1 rouge
+  (il nomme les fautifs), 2 inconnu.
+- **Le relecteur ne relit pas une PR rouge** : la carte tombe dans
+  `echec` avec la cause `ci` et les contrôles fautifs dans sa note,
+  aucun agent n'est lancé. Devant un verdict illisible, la carte
+  **attend** dans `a-relire` et le tour sort 0 — une porte qui s'ouvre
+  quand la sonde se tait cède exactement quand elle ne répond plus.
+- La commande est injectable (`ATELIER_CI_CMD`) : aucun test de ce dépôt
+  n'a besoin d'un compte GitHub.
+
+## Lot 006 — la boucle ne s'arrête que sur une décision
+
+Le 4 septembre 2026 à 7h00, le pilote a redéposé le lot 046 alors que la
+PR 206 était ouverte sur sa branche. À 7h30, Composer l'a recodé en
+entier : un tiers de la capacité de codage du jour, pour refaire ce qui
+existait. La fiche disait `pret · PR : —`, parce que la ligne qui la
+passe à `livre` vit dans la PR non fusionnée.
+
+- `atelier pr-etat --pr N` rend `ouverte`, `fusionnee`, `fermee` ou
+  `inconnue`, et l'inconnu rend 2 — jamais 0.
+- **Le pilote ne dépose pas un lot dont une PR est ouverte**, et devant
+  l'inconnu il retient : déposer est ce qui fait dépenser. Il nomme sur
+  stderr ce qu'il a retenu et pourquoi. Un lot neuf n'a pas de branche :
+  il ne coûte aucun appel.
+- **Une PR fermée sans fusion libère son lot** : la carte quitte `faite`
+  ou `a-relire` pour `echec` avec la cause `pr`, et son verrou tombe.
+  Devant l'inconnu, rien ne bouge — ranger sur une sonde muette rangerait
+  des cartes vivantes.
+- `docs/LE-WORKFLOW.md` décrit la boucle de bout en bout, et un contrôle
+  vérifie que chaque commande qu'il cite existe.
+- **`atelier-boucle etat` lit l'heure dans le fuseau du profil.** Le cron
+  de ce VPS suit UTC ; lue avant de sourcer le profil, l'heure était
+  celle du shell, et `etat` annonçait un réveil deux heures faux. C'est
+  pourtant lui qu'on interroge pour démentir le tableau de bord.
+
 ## Ce que l'atelier ne sait pas encore faire
 
-- **Mesurer ce qu'un agent affirme.** Entre la fin du tour du coder
-  et la boîte `a-relire`, l'atelier ne demande qu'un code de sortie
-  nul et un entier positif dans `atelier-echange/pr.txt`. Le lot 046
-  de ForgeHistory est arrivé au relecteur avec trois régressions et
-  un compte rendu qui les disait préexistantes ; la CI a démenti.
-  `[projet].tests` est déclaré obligatoire et exécuté nulle part.
-  C'est le brief 005.
-- **Savoir où en est une PR.** L'atelier connaît le numéro de la PR
-  d'un lot et ne lui demande jamais son état. Le 3 septembre au soir,
-  `atelier piloter` proposait de redéposer le lot 046 alors que la PR
-  206 était ouverte sur sa branche et attendait la fusion : Composer
-  aurait recodé un lot déjà en relecture. Symétriquement, une PR fermée
-  sans fusion laisse sa carte dans `faite` et son verrou posé. C'est le
-  brief 006.
+- **Exécuter les tests du produit.** `[projet].tests` est déclaré
+  obligatoire dans `atelier.toml` et exécuté nulle part. Le lot 005 lit
+  le verdict que la CI rend ; il ne le calcule pas sur la machine.
+- **Dire la vérité sur son horaire dans le tableau de bord.**
+  `~/bin/atelier-vue` n'est pas dans ce dépôt et lit encore
+  `/etc/cron.d/forgeatelier` pour savoir s'il est armé et ce qui vient :
+  le crontab n'y porte plus ni réveils ni `ATELIER_INVOQUER`, alors il
+  annonce une boucle désarmée pendant qu'elle tourne. C'est un lot à
+  lui, et il commence par verser l'outil dans le dépôt.
 - **Reprendre un juge.** Après un JSON de revue illisible, changer
   de relecteur sans relancer le lot.
 - **Lire un quota vivant.** L'atelier consomme `llmquota` s'il est
@@ -130,10 +179,9 @@ pas sur `master`.
 - **Exiger `gh` pour valider une PR.** Le numéro vient du canal
   d'échange, au format strict. Si `gh` répond et que le remote est
   GitHub, on refuse un désaccord de branche ; si la sonde échoue, on
-  se tait — pas d'authentification obligatoire dans le cron. Une PR
-  fermée sans fusion se range toujours à la main (`atelier reprendre`,
-  qui sort la carte de n'importe quelle boîte et lève son verrou) —
-  c'est ce que le brief 006 doit rendre automatique.
+  se tait — pas d'authentification obligatoire dans le cron. Les sondes
+  du 005 et du 006 suivent la même règle : sans `gh`, le verdict et
+  l'état sont inconnus, et l'inconnu retient sans jamais bloquer le cron.
 - **Reconnaître une PR de lot qui ne suit pas `prefixe_branche`.** La
   CI ne vérifie la fiche que sur une branche `agent/NNN-slug` ; ailleurs,
   c'est l'œil du propriétaire au moment de fusionner.
@@ -173,14 +221,20 @@ qu'un répartiteur et le profil actif vit dans un fichier que `hermes`
 écrit : basculer entre la boucle de production et la boucle d'épreuve
 ne demande plus root ([docs/BOUCLES.md](docs/BOUCLES.md)).
 
-Il reste deux lots pour que la boucle tourne sans qu'on la rattrape, et
-dans cet ordre. **La porte des tests**
-(`briefs/005-la-carte-ne-passe-pas-sur-parole.md`) : le tour de `relire`
-lit le verdict des contrôles obligatoires avant d'invoquer qui que ce
-soit. Puis **l'état des PR**
-(`briefs/006-la-boucle-ne-s-arrete-que-sur-une-decision.md`), qui en
-dépend — les deux écrivent dans `atelier/echange.py`, et le verrou
-refuserait le second si les deux partaient ensemble.
+Le 4 septembre au matin, la boucle a tourné seule pour la première
+journée entière, et elle a mesuré ce qui lui manquait. À 7h00 le pilote
+a redéposé un lot dont la PR était ouverte ; à 7h30 Composer l'a recodé
+en entier ; à 8h30 le briefer a avancé une carte sans avoir écrit une
+ligne. Deux réveils de coder sur trois, aucun lot neuf livré. Les deux
+pannes sont celles que les briefs 005 et 006 nommaient — elles ont donc
+été reprises ensemble, dans un seul lot d'exploitation : le 005 d'abord,
+le 006 par-dessus, chacun avec ses contrôles. Les deux écrivent dans
+`atelier/echange.py`, et c'est le verrou de périmètre — pas la
+plomberie — qui demandait qu'ils soient séparés.
+
+**Reste la porte manquante que ni l'un ni l'autre ne pose** : les tests
+du produit ne tournent nulle part sur la machine. L'atelier lit le
+verdict que GitHub rend ; il ne le calcule pas.
 
 **Reprendre un juge** attend toujours ce qui le justifierait — une
 revue illisible.

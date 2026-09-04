@@ -227,6 +227,51 @@ def test_le_relecteur_n_ecrit_pas(tmp_path: Path):
     assert "Edit" in outils and "Write" in outils
 
 
+def test_le_briefer_recoit_l_accord_d_ecrire():
+    """Sans accord, `claude -p` refuse chaque outil qui mute et rend 0.
+
+    Le 4 septembre 2026, le briefer a tourné, n'a rien écrit, est sorti
+    0, et la carte 049 est allée dans `brief-a-fusionner` sans qu'aucun
+    brief ni aucune PR n'existe.
+    """
+    argv = backends.argv_du_role(
+        "briefer", roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+        projet="/produit",
+    )
+    assert "--permission-mode" in argv
+    assert argv[argv.index("--permission-mode") + 1] == "acceptEdits"
+    assert "--allowedTools" in argv
+    accordes = argv[argv.index("--allowedTools") + 1:]
+    assert "Write" in accordes
+    assert any(a.startswith("Bash(git") for a in accordes)
+    assert any(a.startswith("Bash(gh") for a in accordes)
+    # L'accord n'est pas un blanc-seing : les règles `deny` du produit
+    # doivent rester capables de fermer ce qu'elles ferment.
+    assert "bypassPermissions" not in argv
+    assert "--dangerously-skip-permissions" not in argv
+
+
+def test_le_relecteur_ne_recoit_aucun_accord_d_ecrire():
+    """Une garde et un accord sur le même binaire s'annuleraient."""
+    argv = backends.argv_du_role(
+        "relire", roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+        projet="/produit",
+    )
+    assert "--permission-mode" not in argv
+    assert "--allowedTools" not in argv
+
+
+def test_l_executant_n_a_besoin_d_aucun_accord():
+    """`agent` écrit sans qu'on le lui accorde : rien ne s'ajoute."""
+    argv = backends.argv_du_role(
+        "coder", roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+        projet="/produit",
+    )
+    assert argv[0] == "agent"
+    assert "--permission-mode" not in argv
+    assert "--allowedTools" not in argv
+
+
 def test_hermes_ne_nomme_aucun_fournisseur_anthropic():
     """Pro refuse l'OAuth Anthropic, Max le facture hors forfait."""
     argv = backends.argv_du_role("pilote", roles=ROLES, projet="/produit")

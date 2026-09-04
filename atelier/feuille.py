@@ -151,6 +151,10 @@ class Rapprochement:
     destination: str
     lever_verrou: bool
     raison: str
+    # Ce qu'une carte emporte quand elle tombe. Aucun champ nouveau : la
+    # carte les porte déjà, c'est le rapprochement qui n'en disait rien.
+    note: str = ""
+    cause: str = ""
 
 
 # ------------------------------------------------------------- lecture
@@ -444,14 +448,33 @@ def verifier_cartes(feuille: Feuille, racine: Path) -> list[str]:
     return erreurs
 
 
-def rapprochements(feuille: Feuille, racine: Path) -> list[Rapprochement]:
-    """Les cartes que la feuille déclare dépassées : la PR a été fusionnée."""
+BOITES_QUI_ATTENDENT_UNE_PR = ("a-relire", "faite")
+
+
+def rapprochements(
+    feuille: Feuille,
+    racine: Path,
+    *,
+    etat_pr=None,
+) -> list[Rapprochement]:
+    """Les cartes que la feuille — ou GitHub — déclarent dépassées.
+
+    La feuille dit la fusion ; ce lot n'en fait pas une seconde. Mais
+    quand le propriétaire **ferme** une PR sans la fusionner, la carte
+    restait dans `faite`, son verrou tenait ses fichiers, et aucun lot
+    qui les touche ne pouvait plus avancer : rien ne l'en sortait sauf
+    une commande tapée par une personne.
+
+    `etat_pr` est la sonde, injectée : sans elle, rien ne change. Un
+    inconnu ne range rien — ranger sur une sonde muette rangerait des
+    cartes vivantes, et le statu quo est sûr des deux côtés.
+    """
     resultat: list[Rapprochement] = []
     for lot, cartes in sorted(cartes_par_lot(racine).items()):
         fiche = feuille.fiche(lot)
         if fiche is None:
             continue
-        for nom_boite, _carte in cartes:
+        for nom_boite, carte in cartes:
             if nom_boite == BOITE_FUSIONNEE:
                 continue
             if fiche.etat == "livre":
@@ -464,12 +487,42 @@ def rapprochements(feuille: Feuille, racine: Path) -> list[Rapprochement]:
                     lot, nom_boite, BOITE_FUSIONNEE, lever_verrou=False,
                     raison="la fiche dit « pret » : le brief est fusionné",
                 ))
+            elif (
+                etat_pr is not None
+                and nom_boite in BOITES_QUI_ATTENDENT_UNE_PR
+                and carte.pr
+                and etat_pr(carte.pr) == "fermee"
+            ):
+                resultat.append(Rapprochement(
+                    lot, nom_boite, "echec", lever_verrou=True,
+                    raison=f"la PR {carte.pr} est fermée sans avoir été fusionnée",
+                    note=f"PR {carte.pr} fermée sans fusion — le lot est à reprendre",
+                    cause="pr",
+                ))
     return resultat
 
 
 def appliquer(racine: Path, rapprochement: Rapprochement) -> Path:
     carte = boite.lire(racine, rapprochement.source, rapprochement.lot)
-    destination = boite.deposer(racine, rapprochement.destination, carte)
+    if rapprochement.cause:
+        # Une carte qui tombe emporte pourquoi, comme celle que range
+        # `atelier echouer`. La cause est le mot que `rappeler` compare.
+        carte = boite.Carte(
+            lot=carte.lot,
+            brief=carte.brief,
+            fichiers=list(carte.fichiers),
+            pr=carte.pr,
+            note=rapprochement.note or rapprochement.raison,
+            cause=rapprochement.cause,
+            essais=carte.essais + 1,
+            role=carte.role,
+        )
+    destination = boite.deposer(
+        racine, rapprochement.destination, carte,
+        # Un second échec écrase le premier, comme dans `boite.echouer` :
+        # une place prise ferait rester la carte dans sa boîte d'origine.
+        ecraser=bool(rapprochement.cause),
+    )
     (boite.racine_boite(racine) / rapprochement.source / f"{rapprochement.lot}.json").unlink()
     if rapprochement.lever_verrou:
         verrou.lever(racine, rapprochement.lot)
@@ -508,11 +561,29 @@ def _empechement(fiche: Fiche, feuille: Feuille, racine: Path) -> str | None:
     return None
 
 
-def decider(feuille: Feuille, racine: Path) -> list[Decision]:
-    """Ce que le pilote dépose : au plus une carte par rôle, la première admissible."""
+def decider(
+    feuille: Feuille,
+    racine: Path,
+    *,
+    pr_ouverte=None,
+    retenues: list[str] | None = None,
+) -> list[Decision]:
+    """Ce que le pilote dépose : au plus une carte par rôle, la première admissible.
+
+    `pr_ouverte` est la sonde, injectée : elle rend `(état, numéro)` pour
+    la branche d'un lot. Sans elle, rien ne change — c'est le cas de tous
+    les appels qui ne dépensent rien.
+
+    Déposer une carte est ce qui fait dépenser un quota. Une sonde muette
+    qui laisserait passer rendrait la garde inutile exactement quand elle
+    ne répond plus, et le lot serait recodé pour rien : ici, l'inconnu
+    retient. Une carte non déposée se voit dans la feuille ; une dépense
+    évitée ne se voit nulle part.
+    """
     racine = Path(racine)
     cartes = cartes_par_lot(racine)
     decisions: list[Decision] = []
+    dits = retenues if retenues is not None else []
     briefer_pris = coder_pris = False
     for fiche in feuille.fiches:
         if fiche.lot in cartes:
@@ -521,10 +592,25 @@ def decider(feuille: Feuille, racine: Path) -> list[Decision]:
             decisions.append(Decision("briefer", "a-briefer", fiche.lot, fiche.chemin, ()))
             briefer_pris = True
         elif fiche.etat == "pret" and not coder_pris:
-            if _empechement(fiche, feuille, racine) is None:
-                fichiers = tuple(_fichiers_du_perimetre(racine / fiche.chemin))
-                decisions.append(Decision("coder", "a-coder", fiche.lot, fiche.chemin, fichiers))
-                coder_pris = True
+            if _empechement(fiche, feuille, racine) is not None:
+                continue
+            if pr_ouverte is not None:
+                etat, numero = pr_ouverte(fiche.lot)
+                if etat == "ouverte":
+                    dits.append(
+                        f"{fiche.lot} : PR {numero} ouverte sur sa branche — "
+                        "le travail existe, on ne le refait pas"
+                    )
+                    continue
+                if etat == "inconnue":
+                    dits.append(
+                        f"{fiche.lot} : état de sa PR illisible — "
+                        "on ne dépose pas à l'aveugle, le prochain réveil redemandera"
+                    )
+                    continue
+            fichiers = tuple(_fichiers_du_perimetre(racine / fiche.chemin))
+            decisions.append(Decision("coder", "a-coder", fiche.lot, fiche.chemin, fichiers))
+            coder_pris = True
     return decisions
 
 

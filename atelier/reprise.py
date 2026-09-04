@@ -34,6 +34,7 @@ BRIEF_ABSENT = "brief-absent"
 PERIMETRE = "perimetre"
 BRANCHE = "branche"
 PR = "pr"
+CI = "ci"
 VERROU = "verrou"
 WORKTREE = "worktree"
 AVANCER = "avancer"
@@ -41,7 +42,7 @@ INCONNUE = "inconnue"
 
 CAUSES = (
     TIMEOUT, AGENT, BRIEF_ABSENT, PERIMETRE, BRANCHE,
-    PR, VERROU, WORKTREE, AVANCER, INCONNUE,
+    PR, CI, VERROU, WORKTREE, AVANCER, INCONNUE,
 )
 
 # Combien de fois l'atelier remet une carte en circulation tout seul.
@@ -60,6 +61,9 @@ PLAFONDS: dict[str, int] = {
     PERIMETRE: 0,
     BRANCHE: 0,
     PR: 0,
+    # Une PR rouge ne verdit pas parce qu'on la relit une seconde fois.
+    # C'est du code à corriger : le propriétaire décide comment.
+    CI: 0,
     VERROU: 0,
     WORKTREE: 0,
     AVANCER: 0,
