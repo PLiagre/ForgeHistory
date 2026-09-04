@@ -44,10 +44,25 @@ def _faux(dossier: Path, nom: str, corps: str) -> Path:
     return cible
 
 
-def _mouchard(dossier: Path, nom: str, temoin: Path, code: int = 0, pr: int | None = None) -> Path:
-    pr_corps = ""
+def _mouchard(
+    dossier: Path,
+    nom: str,
+    temoin: Path,
+    code: int = 0,
+    pr: int | None = None,
+    brief: str | None = None,
+) -> Path:
+    """Un faux binaire qui dit ce qu'on lui a passé.
+
+    `brief` lui fait écrire le fichier qu'un briefer écrit : depuis que
+    la carte ne passe plus sur parole, un briefer qui ne produit rien
+    fait tomber sa carte, et c'est bien ce qu'on veut.
+    """
+    corps = ""
+    if brief is not None:
+        corps += f"mkdir -p \"$(dirname '{brief}')\"\nprintf '# brief\\n' > '{brief}'\n"
     if pr is not None:
-        pr_corps = (
+        corps += (
             "mkdir -p atelier-echange\n"
             f"printf '%s\\n' '{pr}' > atelier-echange/pr.txt\n"
         )
@@ -58,7 +73,7 @@ def _mouchard(dossier: Path, nom: str, temoin: Path, code: int = 0, pr: int | No
         f'printf "cles=[%s|%s|%s]\\n" '
         f'"${{ANTHROPIC_API_KEY:-}}" "${{CURSOR_API_KEY:-}}" "${{OPENAI_API_KEY:-}}"'
         f' >> "{temoin}"\n'
-        f"{pr_corps}"
+        f"{corps}"
         f"exit {code}\n",
     )
 
@@ -225,6 +240,51 @@ def test_le_relecteur_n_ecrit_pas(tmp_path: Path):
     assert "--disallowedTools" in argv
     outils = argv[argv.index("--disallowedTools") + 1]
     assert "Edit" in outils and "Write" in outils
+
+
+def test_le_briefer_recoit_l_accord_d_ecrire():
+    """Sans accord, `claude -p` refuse chaque outil qui mute et rend 0.
+
+    Le 4 septembre 2026, le briefer a tourné, n'a rien écrit, est sorti
+    0, et la carte 049 est allée dans `brief-a-fusionner` sans qu'aucun
+    brief ni aucune PR n'existe.
+    """
+    argv = backends.argv_du_role(
+        "briefer", roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+        projet="/produit",
+    )
+    assert "--permission-mode" in argv
+    assert argv[argv.index("--permission-mode") + 1] == "acceptEdits"
+    assert "--allowedTools" in argv
+    accordes = argv[argv.index("--allowedTools") + 1:]
+    assert "Write" in accordes
+    assert any(a.startswith("Bash(git") for a in accordes)
+    assert any(a.startswith("Bash(gh") for a in accordes)
+    # L'accord n'est pas un blanc-seing : les règles `deny` du produit
+    # doivent rester capables de fermer ce qu'elles ferment.
+    assert "bypassPermissions" not in argv
+    assert "--dangerously-skip-permissions" not in argv
+
+
+def test_le_relecteur_ne_recoit_aucun_accord_d_ecrire():
+    """Une garde et un accord sur le même binaire s'annuleraient."""
+    argv = backends.argv_du_role(
+        "relire", roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+        projet="/produit",
+    )
+    assert "--permission-mode" not in argv
+    assert "--allowedTools" not in argv
+
+
+def test_l_executant_n_a_besoin_d_aucun_accord():
+    """`agent` écrit sans qu'on le lui accorde : rien ne s'ajoute."""
+    argv = backends.argv_du_role(
+        "coder", roles=ROLES, lot="044-mineur", brief="briefs/044-mineur.md",
+        projet="/produit",
+    )
+    assert argv[0] == "agent"
+    assert "--permission-mode" not in argv
+    assert "--allowedTools" not in argv
 
 
 def test_hermes_ne_nomme_aucun_fournisseur_anthropic():
@@ -438,7 +498,8 @@ def test_un_flock_par_role_pas_un_flock_global(tmp_path: Path):
     verrous.mkdir(parents=True, exist_ok=True)
     temoin = tmp_path / "temoin.txt"
     _mouchard(faux, "agent", temoin)
-    _mouchard(faux, "claude", tmp_path / "claude.txt")
+    _mouchard(faux, "claude", tmp_path / "claude.txt",
+              pr=7, brief="briefs/045-port.md")
     env = _env(projet, faux, verrous, ATELIER_INVOQUER="1")
 
     tenu = open(verrous / "atelier-coder.lock", "w")

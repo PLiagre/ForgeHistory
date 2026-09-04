@@ -7,8 +7,10 @@ revue illisible (lot 033 de ForgeHistory).
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -136,3 +138,186 @@ def verifier_pr_branche_optionnel(numero: int, branche: str, racine: Path) -> st
             f"la PR {numero} est sur la branche {nom}, pas {branche}"
         )
     return nom
+
+
+# --------------------------------------------------- ce que GitHub publie
+#
+# Deux sondes, une doctrine. `atelier/quota.py` : « un inconnu vaut -1,
+# jamais 0 ». Ici l'inconnu n'est ni vert ni rouge, ni ouverte ni fermée
+# — c'est une troisième réponse, et c'est elle qui retient. Une garde qui
+# s'ouvrirait quand la sonde se tait cède exactement quand elle ne répond
+# plus.
+#
+# La commande est nommée par l'environnement, pas recopiée : sans cette
+# couture, aucun test ne s'écrit sans compte GitHub.
+
+VERT = "vert"
+ROUGE = "rouge"
+INCONNU = "inconnue"
+
+OUVERTE = "ouverte"
+FUSIONNEE = "fusionnee"
+FERMEE = "fermee"
+
+# Ce que `gh pr checks` écrit dans sa deuxième colonne. `skipping` et
+# `cancel` ne sont pas des échecs : GitHub ne les compte pas non plus
+# pour son bouton de fusion.
+_ETAT_ROUGE = frozenset({"fail"})
+_ETAT_ATTENTE = frozenset({"pending"})
+
+
+@dataclass(frozen=True)
+class Verdict:
+    """Vert, rouge ou inconnu — et, si rouge, qui l'a rendu rouge."""
+
+    etat: str
+    fautifs: tuple[str, ...] = field(default=())
+    raison: str = ""
+
+    @property
+    def vert(self) -> bool:
+        return self.etat == VERT
+
+    @property
+    def connu(self) -> bool:
+        return self.etat != INCONNU
+
+    def __str__(self) -> str:
+        if self.etat == ROUGE:
+            return "rouge : " + ", ".join(self.fautifs)
+        if self.etat == INCONNU:
+            return f"inconnue ({self.raison})"
+        return VERT
+
+
+def _commande(variable: str) -> list[str] | None:
+    """La commande de la sonde, ou None si elle est hors de portée."""
+    brut = os.environ.get(variable, "").strip()
+    if brut:
+        argv = brut.split()
+    else:
+        argv = ["gh"]
+    if shutil.which(argv[0]) is None and not Path(argv[0]).is_file():
+        return None
+    return argv
+
+
+def _sonder(argv: list[str], racine: Path) -> subprocess.CompletedProcess[str] | None:
+    try:
+        return subprocess.run(
+            argv, cwd=str(racine), text=True, capture_output=True,
+            check=False, timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def verdict_ci(numero: int, racine: Path) -> Verdict:
+    """Le verdict des contrôles obligatoires de la PR `numero`.
+
+    C'est la liste qui gouverne le bouton de fusion de GitHub : la porte
+    de l'atelier et celle de GitHub disent alors la même chose, et un
+    contrôle tiers instable ne bloque pas un lot que GitHub accepterait.
+
+    Le `gh` livré ici n'a pas de `--json` sur `pr checks` : on lit ses
+    colonnes, qui sont son interface publique depuis toujours — nom,
+    état, durée, adresse. On ne lit que les deux premières.
+    """
+    argv = _commande("ATELIER_CI_CMD")
+    if argv is None:
+        return Verdict(INCONNU, raison="aucune commande pour lire les contrôles")
+    fin = _sonder([*argv, "pr", "checks", str(numero), "--required"], racine)
+    if fin is None:
+        return Verdict(INCONNU, raison="la commande n'a pas répondu")
+    lignes = [l for l in fin.stdout.splitlines() if l.strip()]
+    if not lignes:
+        return Verdict(INCONNU, raison="aucun contrôle obligatoire lu")
+    fautifs: list[str] = []
+    en_cours: list[str] = []
+    for ligne in lignes:
+        colonnes = ligne.split("\t")
+        if len(colonnes) < 2:
+            return Verdict(INCONNU, raison=f"ligne illisible : {ligne.strip()[:60]}")
+        nom, etat = colonnes[0].strip(), colonnes[1].strip().lower()
+        if etat in _ETAT_ROUGE:
+            fautifs.append(nom)
+        elif etat in _ETAT_ATTENTE:
+            en_cours.append(nom)
+    if fautifs:
+        return Verdict(ROUGE, fautifs=tuple(fautifs))
+    if en_cours:
+        return Verdict(INCONNU, raison="contrôles en cours : " + ", ".join(en_cours))
+    return Verdict(VERT)
+
+
+def etat_pr(numero: int, racine: Path) -> str:
+    """`ouverte`, `fusionnee`, `fermee` — ou `inconnue`, qui retient.
+
+    L'état lu est celui que GitHub publie, pas celui que la feuille
+    déclare. Une fiche dit ce que le propriétaire a décidé ; une PR dit
+    ce qui existe.
+    """
+    argv = _commande("ATELIER_PR_CMD")
+    if argv is None:
+        return INCONNU
+    fin = _sonder([*argv, "pr", "view", str(numero), "--json", "state"], racine)
+    if fin is None or fin.returncode != 0 or not fin.stdout.strip():
+        return INCONNU
+    try:
+        brut = json.loads(fin.stdout).get("state")
+    except (json.JSONDecodeError, AttributeError):
+        return INCONNU
+    if not isinstance(brut, str):
+        return INCONNU
+    return {
+        "OPEN": OUVERTE,
+        "MERGED": FUSIONNEE,
+        "CLOSED": FERMEE,
+    }.get(brut.strip().upper(), INCONNU)
+
+
+AUCUNE = "aucune"
+
+
+def branche_existe(branche: str, racine: Path) -> bool:
+    """Ici, et sans réseau. Un lot neuf n'a pas de branche : il ne coûte
+    donc aucun appel à la sonde, et le cas ordinaire reste gratuit."""
+    for ref in (f"refs/heads/{branche}", f"refs/remotes/origin/{branche}"):
+        fin = _sonder(["git", "rev-parse", "--verify", "--quiet", ref], racine)
+        if fin is not None and fin.returncode == 0:
+            return True
+    return False
+
+
+def pr_ouverte_sur(branche: str, racine: Path) -> tuple[str, int | None]:
+    """(`ouverte`, numéro), (`aucune`, None) ou (`inconnue`, None).
+
+    C'est la question que l'atelier ne posait jamais : *ce travail
+    existe-t-il déjà quelque part ?* La fiche ne peut pas y répondre —
+    la ligne qui la passe à `livre` vit dans la PR non fusionnée.
+    """
+    argv = _commande("ATELIER_PR_CMD")
+    if argv is None:
+        return (INCONNU, None)
+    fin = _sonder(
+        [*argv, "pr", "list", "--head", branche, "--state", "open",
+         "--json", "number", "--limit", "1"],
+        racine,
+    )
+    if fin is None or fin.returncode != 0:
+        return (INCONNU, None)
+    texte = fin.stdout.strip()
+    if not texte:
+        return (INCONNU, None)
+    try:
+        trouvees = json.loads(texte)
+    except json.JSONDecodeError:
+        return (INCONNU, None)
+    if not isinstance(trouvees, list):
+        return (INCONNU, None)
+    if not trouvees:
+        return (AUCUNE, None)
+    numero = trouvees[0].get("number") if isinstance(trouvees[0], dict) else None
+    if not isinstance(numero, int):
+        return (INCONNU, None)
+    return (OUVERTE, numero)

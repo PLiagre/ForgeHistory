@@ -229,6 +229,28 @@ def _parser() -> argparse.ArgumentParser:
         "--worktree",
         help="dépôt depuis lequel sonder gh (remote origin) ; ignoré sans --branche",
     )
+
+    ci = sous.add_parser(
+        "ci",
+        help="le verdict des contrôles obligatoires d'une PR : 0 vert, 1 rouge, 2 inconnu",
+    )
+    ci.add_argument("--pr", type=int, required=True)
+    ci.add_argument(
+        "--worktree",
+        default=".",
+        help="dépôt depuis lequel sonder (la commande vient de ATELIER_CI_CMD, sinon gh)",
+    )
+
+    pr_etat = sous.add_parser(
+        "pr-etat",
+        help="l'état d'une PR : ouverte, fusionnee, fermee — ou inconnue (code 2)",
+    )
+    pr_etat.add_argument("--pr", type=int, required=True)
+    pr_etat.add_argument(
+        "--worktree",
+        default=".",
+        help="dépôt depuis lequel sonder (la commande vient de ATELIER_PR_CMD, sinon gh)",
+    )
     return parser
 
 
@@ -798,6 +820,34 @@ def _cmd_pr(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ci(args: argparse.Namespace) -> int:
+    """Trois verdicts, trois codes. L'inconnu n'est pas un vert.
+
+    Le rouge nomme ses fautifs, un par ligne : c'est le nom qui dit au
+    propriétaire quoi regarder, jamais un compte.
+    """
+    verdict = echange.verdict_ci(args.pr, Path(args.worktree))
+    if verdict.etat == echange.ROUGE:
+        for nom in verdict.fautifs:
+            print(nom)
+        print(f"rouge : {len(verdict.fautifs)} contrôle(s) obligatoire(s) en échec",
+              file=sys.stderr)
+        return 1
+    if verdict.etat == echange.INCONNU:
+        print(echange.INCONNU)
+        print(f"inconnue : {verdict.raison}", file=sys.stderr)
+        return 2
+    print(echange.VERT)
+    return 0
+
+
+def _cmd_pr_etat(args: argparse.Namespace) -> int:
+    """Quatre réponses, et l'inconnu en est une. Elle rend 2, jamais 0."""
+    etat = echange.etat_pr(args.pr, Path(args.worktree))
+    print(etat)
+    return 2 if etat == echange.INCONNU else 0
+
+
 def _charger_feuille(chemin_projet: str) -> tuple[projet.Projet, feuille.Feuille]:
     produit = projet.charger(chemin_projet)
     return produit, feuille.lire(produit.feuille_ou_refus())
@@ -891,13 +941,30 @@ def _cmd_feuille_marquer(args: argparse.Namespace) -> int:
     return 0
 
 
+def _sonde_pr_ouverte(produit: projet.Projet):
+    """Ce travail existe-t-il déjà ? La question que l'atelier ne posait pas.
+
+    Un lot neuf n'a pas de branche : il ne coûte alors aucun appel, et
+    le cas ordinaire reste gratuit.
+    """
+    def sonde(lot: str) -> tuple[str, int | None]:
+        branche = produit.branche_du_lot(lot)
+        if not echange.branche_existe(branche, produit.racine):
+            return (echange.AUCUNE, None)
+        return echange.pr_ouverte_sur(branche, produit.racine)
+    return sonde
+
+
 def _cmd_piloter(args: argparse.Namespace) -> int:
     """La décision du matin, calculée. Sans --run, rien n'est déposé."""
     try:
         produit, f = _charger_feuille(args.projet)
         racine = produit.racine
         lignes: list[str] = []
-        for r in feuille.rapprochements(f, racine):
+        retenues: list[str] = []
+        for r in feuille.rapprochements(
+            f, racine, etat_pr=lambda n: echange.etat_pr(n, racine)
+        ):
             if args.run:
                 feuille.appliquer(racine, r)
             verbe = "rapproché " if args.run else "rapprocher"
@@ -917,7 +984,9 @@ def _cmd_piloter(args: argparse.Namespace) -> int:
         if not f.fiches:
             print(f"FAIL  {f.chemin} — le registre ne porte aucune fiche", file=sys.stderr)
             return 1
-        for d in feuille.decider(f, racine):
+        for d in feuille.decider(
+            f, racine, pr_ouverte=_sonde_pr_ouverte(produit), retenues=retenues
+        ):
             if args.run:
                 feuille.deposer(racine, d)
             verbe = "déposé   " if args.run else "déposer  "
@@ -926,6 +995,11 @@ def _cmd_piloter(args: argparse.Namespace) -> int:
     except (projet.ProjetIncomplet, feuille.FeuilleErreur, boite.BoiteErreur, verrou.Collision) as exc:
         print(f"FAIL  {exc}", file=sys.stderr)
         return 1
+    # Une carte retenue n'est pas une carte déposée : elle va sur stderr,
+    # et `RIEN` reste ce que le pilote dit quand il n'a rien fait — c'est
+    # ce mot que `crons/pilote.sh` lit pour ne pas payer Hermes.
+    for retenue in retenues:
+        print(f"retenu   {retenue}", file=sys.stderr)
     if not lignes:
         print("RIEN")
         return 0
@@ -1025,6 +1099,10 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_branche(args)
     if args.commande == "pr":
         return _cmd_pr(args)
+    if args.commande == "ci":
+        return _cmd_ci(args)
+    if args.commande == "pr-etat":
+        return _cmd_pr_etat(args)
     if args.commande == "feuille":
         if args.action == "valider":
             return _cmd_feuille_valider(args)

@@ -30,6 +30,12 @@ class Backend:
     # Le drapeau qui retire les outils qui écrivent. `None` = ce binaire
     # n'en a pas, et un relecteur garde la main qui écrit. On le déclare.
     refus_outils: str | None = None
+    # Ce qu'il faut poser pour qu'un tour *non interactif* puisse écrire.
+    # Vide = ce binaire écrit sans qu'on le lui accorde. Un binaire qui
+    # demande l'accord d'une personne et n'en trouve aucune ne refuse
+    # pas : il rend 0 sans avoir rien écrit, et la carte avance sur sa
+    # parole. C'est ce qui est arrivé au brief 049, le 4 septembre 2026.
+    accord_ecriture: tuple[str, ...] = ()
 
 
 POSTES = {
@@ -39,6 +45,16 @@ POSTES = {
         role="ecriture",
         abo="claude-pro",
         refus_outils="--disallowedTools",
+        # `-p` sans accord refuse chaque outil qui mute, et le tour rend
+        # 0 sans avoir rien écrit. `acceptEdits` ouvre les fichiers ; la
+        # liste ouvre les commandes dont un rôle qui écrit a besoin pour
+        # aller jusqu'à la PR. Rien de plus large : `bypassPermissions`
+        # ouvrirait aussi ce que les règles `deny` du produit ferment.
+        accord_ecriture=(
+            "--permission-mode", "acceptEdits",
+            "--allowedTools", "Write", "Edit",
+            "Bash(git:*)", "Bash(gh:*)", "Bash(python3:*)", "Bash(mkdir:*)",
+        ),
     ),
     "cursor": Backend(
         nom="cursor",
@@ -88,6 +104,11 @@ ROLES_INVOCABLES = ("pilote", *CHAMP_DU_ROLE)
 
 # Le seul rôle qui relit. Lui seul veut qu'on lui retire la main qui écrit.
 ROLE_QUI_RELIT = "relire"
+
+# Ceux qui doivent écrire pour finir leur tour : un brief, un plan, du
+# code, et la PR qui les porte. Le relecteur n'en est pas — on lui retire
+# la main qui écrit. Le pilote non plus : il tient l'horloge.
+ROLES_QUI_ECRIVENT = tuple(r for r in CHAMP_DU_ROLE if r != ROLE_QUI_RELIT)
 
 # Le relecteur relit. Il ne corrige pas, il ne pousse pas, il ne
 # fusionne pas : « celui qui a écrit le code ne dit pas s'il est
@@ -320,4 +341,6 @@ def argv_du_role(
         argv += ["--model", modele]
     if role == ROLE_QUI_RELIT and backend.refus_outils:
         argv += [backend.refus_outils, OUTILS_REFUSES_AU_RELECTEUR]
+    elif role in ROLES_QUI_ECRIVENT:
+        argv += list(backend.accord_ecriture)
     return argv

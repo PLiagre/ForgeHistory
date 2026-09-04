@@ -170,6 +170,29 @@ def test_etat_dit_le_profil_depuis_quand_et_le_prochain_reveil(tmp_path: Path):
 
 
 @besoin_bash
+def test_etat_lit_l_heure_dans_le_fuseau_du_profil(tmp_path: Path):
+    """Le 4 septembre 2026, `etat` annonçait « 08:30 briefer » à 10h18.
+
+    Le cron de ce VPS suit UTC ; c'est le profil qui pose
+    `TZ=Europe/Paris`. L'heure lue *avant* de le sourcer est celle du
+    shell — et c'est `etat` qu'on interroge pour démentir un tableau de
+    bord. Deux fuseaux différents doivent donner la même réponse.
+    """
+    _sh(BOUCLE, "jour", ATELIER_ETAT=str(tmp_path), ATELIER_ROOT=str(RACINE))
+    lignes = []
+    for fuseau in ("UTC", "Europe/Paris", "Pacific/Auckland"):
+        r = _sh(BOUCLE, "etat", ATELIER_ETAT=str(tmp_path),
+                ATELIER_ROOT=str(RACINE), TZ=fuseau)
+        assert r.returncode == 0, r.stderr
+        (ligne,) = [l for l in r.stdout.splitlines() if l.startswith("prochain ")]
+        # On compare le réveil, pas le compte à rebours : une minute peut
+        # tourner entre deux appels, et ce n'est pas ce qu'on mesure.
+        lignes.append(ligne.split(" (dans", 1)[0].strip())
+    assert len(set(lignes)) == 1, f"trois fuseaux, trois réponses : {lignes}"
+    assert "aucun" not in lignes[0] and ":" in lignes[0]
+
+
+@besoin_bash
 def test_etat_dement_ca_tourne_quand_le_cron_n_appelle_pas_le_repartiteur(tmp_path: Path):
     """Un profil posé sans cron ne réveille personne, et il faut le dire."""
     _sh(BOUCLE, "jour", ATELIER_ETAT=str(tmp_path), ATELIER_ROOT=str(RACINE))
