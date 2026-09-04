@@ -52,16 +52,36 @@ cd "$WORKDIR"
 python3 -m atelier rappeler --projet "$PROJET" --role "$ROLE" || true
 
 # --- la carte ------------------------------------------------------------
-if ! carte="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE")"; then
-    echo "$ROLE : boîte illisible, aucun agent lancé." >&2
+# On ne lit pas puis on écrit : on prend. `prendre` liste la boîte,
+# déplace la première carte prenable vers `en-cours` et pose le verrou de
+# ses ressources — le tout sous une même serrure, et tout ou rien. Le
+# `prochain` d'avant laissait un intervalle entre la lecture et le
+# verrou ; avec plusieurs tours d'un même rôle, cet intervalle est le cas
+# nominal, pas une course rare.
+#
+# `prendre` sort 0 avec RIEN quand rien n'est libre : une file vide ou
+# tenue n'est pas une panne.
+if ! lot="$(python3 -m atelier prendre --projet "$PROJET" --role "$ROLE")"; then
+    echo "$ROLE : boîte illisible, aucune carte prise." >&2
     exit 1
 fi
-if [[ "$carte" == "RIEN" ]]; then
+if [[ "$lot" == "RIEN" ]]; then
     exit 0
 fi
-lot="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE" --champ lot)"
-brief="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE" --champ brief)"
-pr="$(python3 -m atelier prochain --projet "$PROJET" --role "$ROLE" --champ pr)"
+
+# La carte est sortie de la boîte du rôle. Elle doit y retourner sur
+# TOUS les chemins de sortie — y compris ceux qu'on n'a pas prévus —
+# sinon le prochain réveil ne la trouve plus. Un `trap` couvre ce qu'une
+# liste de `if` oublierait toujours.
+rendre_la_carte() {
+    [[ -n "${lot:-}" && "$lot" != "RIEN" ]] || return 0
+    python3 -m atelier rendre --projet "$PROJET" --role "$ROLE" --lot "$lot" \
+        >/dev/null 2>&1 || true
+}
+trap rendre_la_carte EXIT
+
+brief="$(python3 -m atelier carte --projet "$PROJET" --lot "$lot" --etat en-cours --champ brief)"
+pr="$(python3 -m atelier carte --projet "$PROJET" --lot "$lot" --etat en-cours --champ pr)"
 
 # Le numéro de PR est une coordonnée, pas une consigne : il dit au
 # relecteur où regarder. S'il n'y en a pas, on nomme la branche.
@@ -70,7 +90,7 @@ if [[ -n "$pr" ]]; then
     inv+=(--pr "$pr")
 fi
 
-echo "carte $ROLE : $carte"
+echo "carte $ROLE : $lot (prise ; verrou posé si ce rôle écrit)"
 if ! python3 -m atelier invocation "${inv[@]}"; then
     echo "$ROLE : branchement illisible, aucun agent lancé." >&2
     exit 1
@@ -138,6 +158,9 @@ fi
 if [[ "$ROLE" != "briefer" ]]; then
     if [[ "$brief" == /* ]]; then chemin_brief="$brief"; else chemin_brief="$PROJET/$brief"; fi
     if [[ ! -f "$chemin_brief" ]]; then
+        # `echouer` lit la boîte du rôle : la carte y retourne d'abord.
+        # `echouer_le_lot` n'est pas encore défini à ce point du script.
+        rendre_la_carte
         python3 -m atelier echouer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
             --raison "brief introuvable : $brief" --cause brief-absent >/dev/null
         echo "$ROLE : brief introuvable ($brief). Rien n'a été dépensé." >&2
@@ -156,6 +179,8 @@ echouer_le_lot() {
     local raison="$1"
     local cause="${2:-inconnue}"
     rm -f "$WORKDIR/atelier-echange/pr.txt"
+    # `echouer` lit la boîte du rôle : la carte y retourne d'abord.
+    rendre_la_carte
     python3 -m atelier echouer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
         --raison "$raison" --cause "$cause" >/dev/null
     if [[ "$ROLE" == "coder" ]]; then
@@ -207,14 +232,12 @@ if ! ranges="$(python3 -m atelier ranger --worktree "$WORKDIR")"; then
 fi
 echo "$ranges"
 
-# Seul le coder écrit du code : lui seul tient les fichiers.
+# Seul le coder écrit du code : lui seul tient les ressources. Le verrou
+# est déjà posé — `prendre` l'a fait dans le même geste que la prise de
+# la carte, et il ne l'aurait pas prise sinon. Il n'y a donc plus
+# d'intervalle entre « cette carte est à moi » et « ses fichiers sont à
+# moi » : c'est tout l'objet de ce lot.
 if [[ "$ROLE" == "coder" ]]; then
-    if ! python3 -m atelier verrouiller --projet "$PROJET" --role coder --lot "$lot"; then
-        python3 -m atelier echouer --projet "$PROJET" --role coder --lot "$lot" \
-            --raison "verrou refusé : un autre lot tient un fichier du périmètre" \
-            --cause verrou >/dev/null
-        exit 1
-    fi
     # Un numéro périmé ne doit jamais être relu si l'agent n'écrit rien.
     rm -f "$WORKDIR/atelier-echange/pr.txt"
     # La branche du lot, avant d'invoquer Cursor : le worktree du rôle
@@ -278,6 +301,8 @@ if [[ $code -eq 0 ]]; then
         rm -f "$WORKDIR/atelier-echange/pr.txt"
         suite+=(--pr "$numero")
     fi
+    # `avancer` lit la boîte du rôle : la carte y retourne d'abord.
+    rendre_la_carte
     if python3 -m atelier avancer --projet "$PROJET" --role "$ROLE" --lot "$lot" \
             ${suite[@]+"${suite[@]}"} >/dev/null; then
         echo "$ROLE : $lot avancé."

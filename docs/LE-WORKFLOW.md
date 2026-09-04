@@ -32,21 +32,30 @@ Quand un rôle se réveille, `crons/reveil.sh` ouvre son journal et appelle
    dessus ; deux rôles différents tournent ensemble.
 2. **Le rappel.** `atelier rappeler` remet en circulation ce qui se
    retente tout seul (voir plus bas). Il ne fait jamais échouer le tour.
-3. **La carte.** `atelier prochain` rend la première carte admissible de
+3. **La prise.** `atelier prendre` rend la première carte *prenable* de
    la boîte du rôle, ou `RIEN` — et alors le tour sort 0 sans rien
-   dépenser.
+   dépenser. Prendre, c'est trois gestes sous une même serrure : sortir
+   la carte de la boîte vers `en-cours`, poser le verrou de ses
+   ressources si ce rôle écrit, et rendre la carte. Tout ou rien : un
+   verrou refusé remet la carte où elle était et le tour essaie la
+   suivante. C'est le verrou lui-même qui filtre — un pré-tri aurait sa
+   propre idée de ce qui se heurte, et deux idées finissent par diverger.
+   `atelier prochain` reste, et **regarde** sans prendre.
 4. **Le drapeau.** Sans `ATELIER_INVOQUER=1`, le tour imprime ce qu'il
    ferait et s'arrête. C'est le mode à sec, et il est fait pour voir.
 5. **Le quota.** Un quota à zéro laisse la carte intacte. Un quota
    inconnu vaut -1, jamais 0 : il ne se compte pas comme épuisé.
 6. **Les portes.** Ce qui doit exister avant de dépenser : le brief pour
    tout rôle qui n'est pas le briefer, le verdict de la CI pour le
-   relecteur, la branche du lot et son verrou pour le coder.
+   relecteur, la branche du lot pour le coder. Son verrou, lui, est déjà
+   posé : il l'a été dans le même geste que la prise.
 7. **L'agent.** `atelier invocation` construit l'`argv` ; le script
    l'exécute, sans clé d'API dans l'environnement et sous un délai
    maximum.
 8. **La sortie.** Une carte prise ne reste jamais en place : elle avance,
-   ou elle tombe dans `echec/` avec une cause.
+   ou elle tombe dans `echec/` avec une cause. Elle quitte `en-cours` sur
+   **tous** les chemins de sortie — un `trap` s'en charge, parce qu'une
+   liste de `if` finit toujours par en oublier un.
 
 ## Les boîtes, et le chemin d'une carte
 
@@ -77,9 +86,18 @@ a-briefer → brief-a-fusionner → (fusion du propriétaire)
   verrou levé.
 - **`echec`** — tout ce qui est tombé, avec sa cause.
 
-`atelier prochain --projet P --role R` dit ce qu'un rôle prendrait.
-`atelier verrous --projet P` dit quels fichiers sont tenus, et par quel
-lot.
+`en-cours` n'est pas une étape du chemin d'une carte : c'est là qu'elle
+séjourne pendant qu'un agent travaille dessus. Elle en sort avant tout
+`avancer` ou tout `echouer`, qui lisent la boîte de son rôle. Une carte
+qui y dort après la fin d'un tour est un tour qui n'a pas rangé sa carte
+— et c'est visible, ce qui est tout l'intérêt.
+
+`atelier prochain --projet P --role R` dit ce qu'un rôle prendrait, sans
+rien prendre. `atelier prendre --projet P --role R` le prend.
+`atelier carte --projet P --lot L --champ brief` dit ce que porte une
+carte, où qu'elle soit. `atelier rendre --projet P --role R --lot L` la
+remet dans la boîte de son rôle. `atelier verrous --projet P` dit quelles
+ressources sont tenues, et par quel lot.
 
 ## Ce qui revient tout seul, et ce qui attend une personne
 
