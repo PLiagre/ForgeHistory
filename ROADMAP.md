@@ -160,6 +160,127 @@ passe à `livre` vit dans la PR non fusionnée.
   celle du shell, et `etat` annonçait un réveil deux heures faux. C'est
   pourtant lui qu'on interroge pour démentir le tableau de bord.
 
+## La série 009-024 — le cycle automatique
+
+Le 4 septembre 2026, le propriétaire a retiré la fusion de ses mains.
+`VISION.md` a changé le même jour : la fusion devient mécanique, une
+relecture terminée n'est plus une approbation, l'intégration est
+séquentielle et retestée, et une huitième couche est ouverte.
+
+Seize briefs portent cette évolution. Aucun n'est une PR globale : chacun
+se livre et se juge seul, et la série est faite pour qu'ils se croisent.
+
+### Les préalables — enlever ce qui sérialise
+
+- **009 — Une commande vit dans son propre fichier.** `atelier/__main__.py`
+  porte les vingt-cinq `add_parser` du programme. Chacun des lots suivants
+  apporte une commande : tant que le point d'entrée est une table
+  centrale, *aucun d'eux n'est parallélisable*. Pas par accident, par
+  construction.
+- **010 — Un module déclare sa couche chez lui.** Même défaut, autre
+  fichier : `couches.MODULES` est une seconde source que six lots doivent
+  éditer.
+
+### Le verdict — ce qui remplace l'œil du propriétaire
+
+- **011 — Le verdict est une donnée, pas une prose.** Format, validation,
+  lien au SHA relu et à l'auteur du code. Quatre refus : absent, illisible,
+  périmé, interdit.
+- **012 — Le verdict devient un contrôle sur la révision relue.** Un état
+  de commit, posé sur le SHA. « Périmé bloque » cesse d'être une garde
+  qu'on écrit : c'est une propriété du support.
+- **013 — Les contrôles requis se déclarent et se vérifient.** Aujourd'hui
+  `master` exige `gitleaks`, `sim`, `viewer` ; `feuille` n'est pas requis
+  et `enforce_admins` est à `false`. Les deux manques sont la porte
+  dérobée de tout le reste.
+
+### La relecture qui refuse
+
+- **014 — Une relecture terminée n'est pas une approbation.** `PASS`
+  avance, `FAIL` renvoie la carte à son auteur avec ses motifs, le reste
+  attend. La boîte `faite` disparaît — elle ne se renomme pas, parce que
+  les cartes qui y dorment sont exactement celles qui ont avancé sur
+  parole.
+- **015 — Le brief se relit comme le diff.** Un rôle de plus, la même
+  mécanique, et un brief refusé qui retourne à son auteur.
+
+### Le parallélisme
+
+- **016 — La prise d'une carte et de ses fichiers est un seul geste.**
+  `prochain` puis `verrouiller` laisse un intervalle ; avec plusieurs
+  tours du même rôle, c'est le cas nominal, pas une course rare.
+- **017 — Un lot actif a son worktree.** Un worktree par rôle ne peut pas
+  être sur deux branches à la fois, et il n'y a pas de contre-mesure à ça.
+- **018 — La fiche d'un lot n'est pas tout le fichier.** Le défaut le plus
+  cher de la série et le moins visible : tant que la fiche est « le
+  fichier de la feuille », *aucun lot n'est jamais disjoint d'aucun
+  autre*.
+- **019 — Le pilote dépose autant de lots que de périmètres disjoints.**
+
+### L'intégration
+
+- **020 — L'intégration est mécanique, séquentielle et retestée.** Elle
+  occupe la huitième couche. Elle ne lit ni brief, ni diff, ni verdict :
+  elle lit la liste des contrôles requis. Elle ferme aussi le trou écrit
+  noir sur blanc dans `atelier/backends.py` — l'accord d'écriture du
+  codeur porte `Bash(gh:*)`, qui contient `gh pr merge`.
+
+### Ce qui reste au propriétaire, et qui le sert
+
+- **021 — Une direction du propriétaire devient plusieurs lots.** Une
+  phrase, et N fiches `a-briefer` arrivent par une PR relue et intégrée
+  comme les autres.
+- **022 — L'éclaireur lit et propose, il ne touche à rien.** Aucun accord
+  d'écriture, aucune boîte, aucune carte. Un tour d'éclaireur ne laisse
+  aucune trace dans le produit.
+
+### La preuve, avant d'armer quoi que ce soit
+
+- **023 — Un faux GitHub sur le banc.** Un état sur le disque, pas une
+  logique. Il refuse ce que GitHub refuse, une mise à jour y change le
+  SHA, et il journalise tout.
+- **024 — Le banc joue les huit conditions.** Huit scénarios, chacun avec
+  son rouge prouvé. Rien n'est armé sur le produit avant qu'il passe.
+
+### L'ordre, et ce qui se croise
+
+Les dépendances : 012 après 011 ; 013 après 012 ; 014 après 011 et 012 ;
+015 après 014 ; 019 après 016, 017 et 018 ; 020 après 012 et 013 ; 021
+après 015, 019 et 020 ; 024 après 023, et après tout le reste puisqu'il
+le mesure. 009, 010, 011, 016, 017, 018, 022 et 023 n'attendent personne.
+
+Le reste n'est pas un planning : c'est ce que `atelier piloter` calcule
+en lisant les périmètres. Deux exemples, vérifiables aujourd'hui :
+
+- **011 et 016 sont disjoints** — le verdict et la prise ne partagent
+  aucun fichier. Ils s'écrivent ensemble.
+- **014 et 015 sont en collision** — `atelier/boite.py` et
+  `crons/tour.sh`. Ils ne s'écrivent jamais ensemble, et c'est le verrou
+  qui le dit, pas une consigne.
+
+Deux fichiers sérialisent cette série et il faut le savoir avant de
+commencer : `crons/tour.sh`, que cinq lots touchent, et
+`docs/LE-WORKFLOW.md`, que six lots corrigent. Le shell se découpe moins
+bien que le Python et la série l'assume : ces lots-là passent l'un après
+l'autre.
+
+**Aucun de ces seize briefs n'écrit dans `ROADMAP.md`, sauf le dernier.**
+C'est le prix de leur parallélisme, et c'est exactement le défaut que le
+lot 018 corrige dans le dépôt produit — ici, l'atelier n'a pas de
+registre de lots, donc la fiche n'existe pas et le fichier entier serait
+tenu par chacun.
+
+### Ce que cette série ne fait pas
+
+Elle n'arme rien. Poser la protection de branche sur `master` et basculer
+le profil sont deux gestes d'exploitation, une fois, après que 024 est
+passé.
+
+Elle ne donne pas de registre de lots à l'atelier lui-même : `ROADMAP.md`
+d'ici reste de la prose, et les lots de l'atelier se suivent à la main.
+Le jour où l'atelier tournera sur lui-même, ce sera un lot, et il
+commencera par un `atelier.toml`.
+
 ## Ce que l'atelier ne sait pas encore faire
 
 - **Exécuter les tests du produit.** `[projet].tests` est déclaré
@@ -194,8 +315,12 @@ passe à `livre` vit dans la PR non fusionnée.
 
 ## Ordre
 
-Un lot d'atelier à la fois. Les quatre premiers ont fermé le sujet du
-workflow : le contrat (v0), l'invocation (001), la source unique des
+Un lot d'atelier à la fois — **jusqu'au 4 septembre 2026**. La série
+009-024 lève cette règle pour elle-même : ses lots se croisent quand
+leurs périmètres sont disjoints, et le verrou dit lesquels. Ce qui suit
+raconte comment on en est arrivé là.
+
+Les quatre premiers lots ont fermé le sujet du workflow : le contrat (v0), l'invocation (001), la source unique des
 rôles (002), la boucle et la bascule (003), la feuille de route lue par
 une machine (004).
 
@@ -238,3 +363,11 @@ verdict que GitHub rend ; il ne le calcule pas.
 
 **Reprendre un juge** attend toujours ce qui le justifierait — une
 revue illisible.
+
+Le 4 septembre après-midi, le propriétaire a tranché autrement : il ne
+fusionne plus. La porte manquante ne se ferme donc plus en exécutant les
+tests sur la machine — elle se ferme en rendant la CI **obligatoire** et
+en confiant la fusion à un composant qui ne lit qu'elle (lots 013 et
+020). Et « reprendre un juge » cesse d'attendre : un verdict illisible
+est un des quatre refus du lot 011, et il bloque au lieu de laisser
+passer.
