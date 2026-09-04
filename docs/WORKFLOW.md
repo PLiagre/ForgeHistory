@@ -62,8 +62,14 @@ py -m viewer --snapshot /tmp/monde.json
 ```
 
 Un moteur de rendu terrain récupéré vit à part :
-[PLiagre/forge3d](https://github.com/PLiagre/forge3d). Il n'est pas
-branché. `viewer/` reste le regard mince, en bibliothèque standard.
+[PLiagre/forge3d](https://github.com/PLiagre/forge3d). Sur **cette
+branche**, `visualisateur/` lui parle. Il n'est pas dans le jeu.
+`viewer/` reste le regard mince, en bibliothèque standard.
+
+```bash
+python3 -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
+python3 -m visualisateur --snapshot /tmp/monde.json --png /tmp/monde-3d.png
+```
 
 ## Worktrees
 
