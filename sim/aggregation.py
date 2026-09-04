@@ -27,6 +27,7 @@ import json
 import math
 import pathlib
 
+from sim import constants as _constantes
 from sim.model import _NoBadSpatialField
 
 # Racine du dépôt : un niveau au-dessus du paquet sim/
@@ -322,4 +323,108 @@ def regroupements_non_vides(regroupements) -> tuple:
     """Rend les regroupements comptant au moins une cellule (fait mesuré)."""
     return tuple(
         regroupement for regroupement in regroupements if regroupement.cell_ids
+    )
+
+
+# --- Bourg : vue dérivée de la part non agricole ---
+
+
+@dataclasses.dataclass(frozen=True)
+class RepartitionBourg(_NoBadSpatialField):
+    """
+    Vue dérivée : répartition bourg / campagne dans une cellule.
+
+    Le bourg regroupe les habitants qui ne tirent pas leur nourriture des
+    champs de la cellule ; la campagne est définie comme le reste, donc la
+    somme des deux vaut exactement la population.
+
+    Champs :
+        cell_id               : identifiant de la cellule.
+        habitants_du_bourg    : population non agricole (troncature entière).
+        habitants_des_champs  : population agricole, dérivée comme le reste.
+    """
+
+    cell_id: int
+    habitants_du_bourg: int
+    habitants_des_champs: int
+
+
+def _gisements_de_cellule(world, cell_id: int) -> list:
+    """Gisements lus dans la carte figée, jamais recopiés ailleurs."""
+    entree = world.carte.get(cell_id) or {}
+    return entree.get("gisements") or []
+
+
+def _part_non_agricole(gisements) -> float:
+    """Relit la fonction unique du lot 044 ; aucune seconde version ici."""
+    return _constantes.part_miniere_de(
+        gisements, _constantes.facteurs_richesse_extraction()
+    )
+
+
+def repartition_bourg_de_cellule(cellule, gisements) -> RepartitionBourg:
+    """
+    Fonction pure : rend la répartition bourg / campagne d'une cellule.
+
+    Ne modifie aucun objet reçu. La troncature est délibérée ; la campagne
+    est le reste, donc personne ne se perd.
+    """
+    habitants_du_bourg = int(cellule.population * _part_non_agricole(gisements))
+    habitants_des_champs = cellule.population - habitants_du_bourg
+    return RepartitionBourg(
+        cell_id=cellule.cell_id,
+        habitants_du_bourg=habitants_du_bourg,
+        habitants_des_champs=habitants_des_champs,
+    )
+
+
+def bourg_depuis_monde(world) -> tuple:
+    """
+    Adaptateur en lecture seule : lit `World.cells` et la carte, rend la vue.
+
+    N'écrit rien, ni sur les cellules, ni sur disque. L'ordre de sortie suit
+    `cell_id` croissant.
+    """
+    return tuple(
+        repartition_bourg_de_cellule(
+            world.cells[cell_id], _gisements_de_cellule(world, cell_id)
+        )
+        for cell_id in sorted(world.cells)
+    )
+
+
+def repartition_bourg_de_cellule_consultation(cell_id: int, repartitions):
+    """
+    Consultation : quelle répartition pour cette cellule ?
+
+    Rend l'enregistrement, ou `None` si la cellule n'apparaît dans aucun.
+    """
+    for repartition in repartitions:
+        if repartition.cell_id == cell_id:
+            return repartition
+    return None
+
+
+def habitants_du_bourg_de_cellule(cell_id: int, repartitions) -> int | None:
+    """Rend le nombre d'habitants du bourg, ou `None` si la cellule est absente."""
+    repartition = repartition_bourg_de_cellule_consultation(cell_id, repartitions)
+    if repartition is None:
+        return None
+    return repartition.habitants_du_bourg
+
+
+def habitants_des_champs_de_cellule(cell_id: int, repartitions) -> int | None:
+    """Rend le nombre d'habitants des champs, ou `None` si la cellule est absente."""
+    repartition = repartition_bourg_de_cellule_consultation(cell_id, repartitions)
+    if repartition is None:
+        return None
+    return repartition.habitants_des_champs
+
+
+def repartitions_avec_bourg(repartitions) -> tuple:
+    """Rend les répartitions dont le bourg compte au moins un habitant."""
+    return tuple(
+        repartition
+        for repartition in repartitions
+        if repartition.habitants_du_bourg > 0
     )
