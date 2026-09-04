@@ -44,10 +44,25 @@ def _faux(dossier: Path, nom: str, corps: str) -> Path:
     return cible
 
 
-def _mouchard(dossier: Path, nom: str, temoin: Path, code: int = 0, pr: int | None = None) -> Path:
-    pr_corps = ""
+def _mouchard(
+    dossier: Path,
+    nom: str,
+    temoin: Path,
+    code: int = 0,
+    pr: int | None = None,
+    brief: str | None = None,
+) -> Path:
+    """Un faux binaire qui dit ce qu'on lui a passé.
+
+    `brief` lui fait écrire le fichier qu'un briefer écrit : depuis que
+    la carte ne passe plus sur parole, un briefer qui ne produit rien
+    fait tomber sa carte, et c'est bien ce qu'on veut.
+    """
+    corps = ""
+    if brief is not None:
+        corps += f"mkdir -p \"$(dirname '{brief}')\"\nprintf '# brief\\n' > '{brief}'\n"
     if pr is not None:
-        pr_corps = (
+        corps += (
             "mkdir -p atelier-echange\n"
             f"printf '%s\\n' '{pr}' > atelier-echange/pr.txt\n"
         )
@@ -58,7 +73,7 @@ def _mouchard(dossier: Path, nom: str, temoin: Path, code: int = 0, pr: int | No
         f'printf "cles=[%s|%s|%s]\\n" '
         f'"${{ANTHROPIC_API_KEY:-}}" "${{CURSOR_API_KEY:-}}" "${{OPENAI_API_KEY:-}}"'
         f' >> "{temoin}"\n'
-        f"{pr_corps}"
+        f"{corps}"
         f"exit {code}\n",
     )
 
@@ -483,7 +498,8 @@ def test_un_flock_par_role_pas_un_flock_global(tmp_path: Path):
     verrous.mkdir(parents=True, exist_ok=True)
     temoin = tmp_path / "temoin.txt"
     _mouchard(faux, "agent", temoin)
-    _mouchard(faux, "claude", tmp_path / "claude.txt")
+    _mouchard(faux, "claude", tmp_path / "claude.txt",
+              pr=7, brief="briefs/045-port.md")
     env = _env(projet, faux, verrous, ATELIER_INVOQUER="1")
 
     tenu = open(verrous / "atelier-coder.lock", "w")
