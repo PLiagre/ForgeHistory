@@ -151,3 +151,38 @@ def _sous_commandes() -> set[str]:
         if isinstance(action, argparse._SubParsersAction):
             return set(action.choices)
     return set()
+
+
+def _commandes_citees(documents: list[Path]) -> set[str]:
+    """Les commandes que les documents du dépôt nomment.
+
+    Le dénominateur vient des documents, pas d'une liste recopiée : une
+    commande qu'on déplacerait sans la reposer disparaîtrait de la
+    ligne de commande sans que rien ne le dise.
+    """
+    citees: set[str] = set()
+    for document in documents:
+        assert document.is_file(), f"{document} manque"
+        citees |= set(re.findall(
+            r"(?:^|`)(?:python3 -m )?atelier ([a-z][a-z-]*)",
+            document.read_text(encoding="utf-8"),
+            re.M,
+        ))
+    return citees
+
+
+def test_chaque_commande_citee_par_les_documents_repond_encore():
+    """Le découpage du point d'entrée n'a perdu aucune commande.
+
+    On ne compare pas à une liste écrite dans ce fichier : on prend ce
+    que les deux documents de règles citent, et on exige que chacune
+    réponde. Un échantillon vide échoue.
+    """
+    citees = _commandes_citees([RACINE / "AGENTS.md", RACINE / "docs" / "LE-WORKFLOW.md"])
+    assert citees, "les documents ne citent aucune commande — il n'y a rien à vérifier"
+    muettes = []
+    for nom in sorted(citees):
+        proc = _atelier(nom, "--help")
+        if proc.returncode != 0:
+            muettes.append((nom, proc.returncode, proc.stderr.strip()[:80]))
+    assert not muettes, f"commandes citées qui ne répondent plus : {muettes}"
