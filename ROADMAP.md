@@ -211,6 +211,14 @@ se livre et se juge seul, et la série est faite pour qu'ils se croisent.
   tours du même rôle, c'est le cas nominal, pas une course rare.
 - **017 — Un lot actif a son worktree.** Un worktree par rôle ne peut pas
   être sur deux branches à la fois, et il n'y a pas de contre-mesure à ça.
+  *Réécrit le 4 septembre 2026, après mesure : le briefer écrit sur
+  `brief/<lot>` et le coder sur la branche du lot — un worktree suit une
+  branche, pas un lot. Le composant reste ici ; le brancher est devenu
+  un lot à lui.*
+- **017-bis — Le tour travaille dans le worktree de sa branche.** Ce qui
+  traverse tout ce qui suppose *un répertoire par rôle* : trois fichiers
+  de contrôle qui encodent l'ancien design, et quatre endroits de prose
+  morte. Il tourne seul.
 - **018 — La fiche d'un lot n'est pas tout le fichier.** Le défaut le plus
   cher de la série et le moins visible : tant que la fiche est « le
   fichier de la feuille », *aucun lot n'est jamais disjoint d'aucun
@@ -245,9 +253,14 @@ se livre et se juge seul, et la série est faite pour qu'ils se croisent.
 ### L'ordre, et ce qui se croise
 
 Les dépendances : 012 après 011 ; 013 après 012 ; 014 après 011 et 012 ;
-015 après 014 ; 019 après 016, 017 et 018 ; 020 après 012 et 013 ; 021
-après 015, 019 et 020 ; 024 après 023, et après tout le reste puisqu'il
-le mesure. 009, 010, 011, 016, 017, 018, 022 et 023 n'attendent personne.
+015 après 014 ; 017-bis après 017 ; 019 après 016, 017-bis et 018 ; 020
+après 012 et 013 ; 021 après 015, 019 et 020 ; 024 après 023, et après
+tout le reste puisqu'il le mesure. 009, 010, 011, 016, 017, 018, 022 et
+023 n'attendent personne.
+
+**017-bis et 016 sont en collision** sur `crons/tour.sh`, comme 014 et
+015. Trois lots de cette série touchent ce fichier : ils passent l'un
+après l'autre, et le 017-bis passe seul.
 
 Le reste n'est pas un planning : c'est ce que `atelier piloter` calcule
 en lisant les périmètres. Deux exemples, vérifiables aujourd'hui :
