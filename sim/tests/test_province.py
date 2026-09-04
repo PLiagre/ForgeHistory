@@ -14,28 +14,37 @@ adr_compliance (dont les cas nominatifs étaient déjà couverts ici).
 
 import ast
 import dataclasses
+import hashlib
 import inspect
 import json
 import pathlib
 import pytest
+import subprocess
+import sys
+import tempfile
 import sim.aggregation as agregation
 import sim.model as modele
 from sim.aggregation import (
     PositionCelluleInconnue,
     agregat_depuis_monde,
     appartenance_depuis_regroupements,
+    bourg_depuis_monde,
     charger_centres,
     charger_latitude_moyenne,
     charger_positions,
     facteur_de_projection,
+    habitants_des_champs_de_cellule,
+    habitants_du_bourg_de_cellule,
     identifiant_de_province_de_cellule,
     nom_de_province_de_cellule,
     positions_du_monde,
     projeter,
     province_de_cellule,
     regroupements_non_vides,
+    repartition_bourg_de_cellule,
+    repartitions_avec_bourg,
 )
-from sim.model import _NoBadSpatialField
+from sim.model import Cell, _NoBadSpatialField
 from sim.world import World
 RNG_SEED = 42
 _RACINE_DEPOT = pathlib.Path(__file__).parent.parent.parent
@@ -48,6 +57,18 @@ _FICHIERS_PRODUCTION = [
     pathlib.Path(agregation.__file__).parent / "world.py",
 ]
 _PREFIXE_INTERDIT = _NoBadSpatialField._FORBIDDEN_PREFIX
+_PREFIXES_BOURG_INTERDITS = ("bourg", "ville", "city")
+_NOMS_VUE_BOURG = frozenset(
+    {
+        "bourg_depuis_monde",
+        "RepartitionBourg",
+        "repartition_bourg_de_cellule",
+        "repartitions_avec_bourg",
+        "habitants_du_bourg_de_cellule",
+        "habitants_des_champs_de_cellule",
+        "repartition_bourg_de_cellule_consultation",
+    }
+)
 def _dataclasses_du_module(module):
     """Découvre par introspection les dataclasses déclarées par un module."""
     trouvees = []
@@ -516,3 +537,450 @@ def test_redessin_naffecte_pas_les_enregistrements_lus():
     print(f"enregistrements_de_centres_modifies = {modifies} / {len(centres)}")
     assert modifies == 0
     assert redessines[rang] != centres[rang]
+
+
+def _modules_sim_hors_tests() -> list[pathlib.Path]:
+    """Modules de sim/ hors tests ; le dénominateur se dérive du répertoire."""
+    sim_dir = pathlib.Path(agregation.__file__).parent
+    return sorted(
+        p
+        for p in sim_dir.rglob("*.py")
+        if "tests" not in p.relative_to(sim_dir).parts
+    )
+
+
+_REF_MASTER: list[str] = []
+
+
+def _ref_master() -> str:
+    """Réf git de master, fetchée si le clone ne la porte pas."""
+    if _REF_MASTER:
+        return _REF_MASTER[0]
+    for ref in ("origin/master", "master"):
+        probe = subprocess.run(
+            ["git", "rev-parse", "--verify", ref],
+            cwd=_RACINE_DEPOT,
+            capture_output=True,
+            text=True,
+        )
+        if probe.returncode == 0:
+            _REF_MASTER.append(ref)
+            return ref
+    fetched = subprocess.run(
+        ["git", "fetch", "--depth=1", "origin", "master:refs/remotes/origin/master"],
+        cwd=_RACINE_DEPOT,
+        capture_output=True,
+        text=True,
+    )
+    assert fetched.returncode == 0, (
+        "impossible de rejouer master : "
+        f"git fetch origin master a échoué ({fetched.stderr.strip()})"
+    )
+    _REF_MASTER.append("origin/master")
+    return _REF_MASTER[0]
+
+
+def _dataclasses_ast_modules(modules: list[pathlib.Path]) -> list[tuple[str, list[str]]]:
+    """Découvre par AST les dataclasses et leurs champs déclarés."""
+    trouvees: list[tuple[str, list[str]]] = []
+    for chemin in modules:
+        arbre = ast.parse(chemin.read_text(encoding="utf-8"), filename=str(chemin))
+        for noeud in arbre.body:
+            if not isinstance(noeud, ast.ClassDef):
+                continue
+            est_dataclass = any(
+                (isinstance(dec, ast.Name) and dec.id == "dataclass")
+                or (isinstance(dec, ast.Attribute) and dec.attr == "dataclass")
+                or (
+                    isinstance(dec, ast.Call)
+                    and (
+                        (isinstance(dec.func, ast.Name) and dec.func.id == "dataclass")
+                        or (
+                            isinstance(dec.func, ast.Attribute)
+                            and dec.func.attr == "dataclass"
+                        )
+                    )
+                )
+                for dec in noeud.decorator_list
+            )
+            if not est_dataclass:
+                continue
+            champs: list[str] = []
+            for item in noeud.body:
+                if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                    champs.append(item.target.id)
+            trouvees.append((f"{chemin.stem}.{noeud.name}", champs))
+    return trouvees
+
+
+def _champs_prefixe_interdit(classes, prefixes: tuple[str, ...]) -> list[str]:
+    fautifs: list[str] = []
+    for nom_classe, champs in classes:
+        for champ in champs:
+            if _normaliser(champ).startswith(prefixes):
+                fautifs.append(f"{nom_classe}.{champ}")
+    return fautifs
+
+
+def _agreger_gisements_carte(carte_doc: dict) -> int:
+    """Nombre de cellules porteuses d'au moins un gisement complet."""
+    cellules = 0
+    for raw in carte_doc["cellules"]:
+        gisements = raw.get("gisements") or []
+        complets = [
+            g
+            for g in gisements
+            if isinstance(g, dict)
+            and g.get("ressource") is not None
+            and g.get("richesse") is not None
+        ]
+        if complets:
+            cellules += 1
+    return cellules
+
+
+def _sortie_sim_json(ticks: int, seed: int, cwd: pathlib.Path) -> bytes:
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sim",
+            "--ticks",
+            str(ticks),
+            "--seed",
+            str(seed),
+            "--json",
+        ],
+        cwd=cwd,
+        capture_output=True,
+        check=True,
+    )
+    return proc.stdout
+
+
+def _gisements_complets(raw: dict) -> list:
+    return [
+        g
+        for g in (raw.get("gisements") or [])
+        if isinstance(g, dict)
+        and g.get("ressource") is not None
+        and g.get("richesse") is not None
+    ]
+
+
+# --- Brief 047 : le bourg est une agrégation dérivée ---
+
+
+def test_bourg_vue_pure_sans_mutation_monde():
+    """
+    SC1 — Deux appels successifs rendent un résultat égal, et le monde en
+    sort inchangé.
+    """
+    monde = World.charger(rng_seed=RNG_SEED)
+
+    serialisation_avant = json.dumps(monde.to_dict(), sort_keys=True)
+    attributs_avant = _releve_attributs(monde)
+
+    repartitions_a = bourg_depuis_monde(monde)
+    repartitions_b = bourg_depuis_monde(monde)
+
+    serialisation_apres = json.dumps(monde.to_dict(), sort_keys=True)
+    attributs_apres = _releve_attributs(monde)
+
+    cellules_comparees = len(monde.cells)
+    vue_egale = int(repartitions_a == repartitions_b)
+    monde_inchange = int(
+        serialisation_avant == serialisation_apres and attributs_avant == attributs_apres
+    )
+
+    print(f"cellules_comparees = {cellules_comparees} / {cellules_comparees}")
+    print(f"vue_egale = {vue_egale} / 1")
+    print(f"monde_inchange = {monde_inchange} / 1")
+
+    assert cellules_comparees > 0, "échantillon vide : aucune cellule chargée"
+    assert vue_egale == 1
+    assert monde_inchange == 1
+
+
+def test_bourg_aucune_seconde_cle_spatiale():
+    """
+    SC2 — Aucune entité ne déclare de champ bourg / ville / city ; le
+    contrôle rougit sur une sonde délibérée.
+    """
+    modules = _modules_sim_hors_tests()
+    classes = _dataclasses_ast_modules(modules)
+    dataclasses_inspectees = len(classes)
+    assert dataclasses_inspectees > 0, "introspection vide : rien n'a été contrôlé"
+
+    fautifs = _champs_prefixe_interdit(classes, _PREFIXES_BOURG_INTERDITS)
+    champs_bourg_sur_entites = len(fautifs)
+
+    print(f"dataclasses_inspectees = {dataclasses_inspectees}")
+    print(f"prefixes_interdits = {_PREFIXES_BOURG_INTERDITS!r}")
+    print(f"champs_bourg_sur_entites = {champs_bourg_sur_entites}")
+
+    assert champs_bourg_sur_entites == 0, f"champs interdits : {fautifs}"
+
+    sonde = dataclasses.make_dataclass(
+        "SondeBourg",
+        [("cell_id", int), ("bourg_id", int)],
+        bases=(_NoBadSpatialField,),
+    )
+    classes_avec_sonde = classes + [("SondeBourg", ["cell_id", "bourg_id"])]
+    fautifs_sonde = _champs_prefixe_interdit(classes_avec_sonde, _PREFIXES_BOURG_INTERDITS)
+    garde_prefixe_bourg_rouge = len(fautifs_sonde)
+
+    print(f"garde_prefixe_bourg_rouge = {garde_prefixe_bourg_rouge}")
+    assert garde_prefixe_bourg_rouge > 0, (
+        "le contrôle ne rougit pas sur une entité d'épreuve portant bourg_id"
+    )
+
+
+def test_bourg_tick_ne_consulte_pas_la_vue():
+    """
+    SC3 — Le moteur n'importe pas sim.aggregation et ne référence pas la vue.
+    """
+    modules = _modules_sim_hors_tests()
+    modules_parcourus = len(modules)
+    assert modules_parcourus > 0, "échantillon vide : aucun module de sim/ hors tests"
+
+    engine_path = pathlib.Path(agregation.__file__).parent / "engine.py"
+    arbre = ast.parse(engine_path.read_text(encoding="utf-8"), filename=str(engine_path))
+
+    references_interdites: list[str] = []
+    for noeud in ast.walk(arbre):
+        if isinstance(noeud, ast.Import):
+            for alias in noeud.names:
+                if alias.name == "sim.aggregation" or alias.name.endswith(".aggregation"):
+                    references_interdites.append(f"import {alias.name}")
+        elif isinstance(noeud, ast.ImportFrom):
+            if noeud.module and noeud.module.endswith("aggregation"):
+                references_interdites.append(f"from {noeud.module}")
+        elif isinstance(noeud, ast.Name) and noeud.id in _NOMS_VUE_BOURG:
+            references_interdites.append(f"nom {noeud.id}")
+        elif isinstance(noeud, ast.Attribute) and noeud.attr in _NOMS_VUE_BOURG:
+            references_interdites.append(f"attribut {noeud.attr}")
+
+    references_moteur = len(references_interdites)
+    print(f"modules_parcourus = {modules_parcourus}")
+    print(f"references_moteur = {references_moteur} {references_interdites}")
+
+    assert references_moteur == 0, (
+        "le tick consulte la vue bourg : " + ", ".join(references_interdites)
+    )
+
+
+def test_bourg_echantillon_non_vide():
+    """
+    SC4 — Sur le monde réel, au moins une cellule compte un bourg non nul.
+    Rapporte aussi les cellules porteuses de gisement sur la carte.
+    """
+    monde = World.charger(rng_seed=RNG_SEED)
+    repartitions = bourg_depuis_monde(monde)
+    cellules_chargees = len(monde.cells)
+    assert cellules_chargees > 0, "échantillon vide : aucune cellule chargée"
+
+    cellules_avec_bourg = len(repartitions_avec_bourg(repartitions))
+    cellules_porteuses_carte = _agreger_gisements_carte(World.lire_carte())
+
+    print(
+        f"cellules_avec_bourg = {cellules_avec_bourg} / {cellules_chargees} "
+        f"cellules_porteuses_carte = {cellules_porteuses_carte}"
+    )
+
+    assert cellules_avec_bourg > 0, (
+        "échantillon vide : aucune part non agricole — le lot 044 n'est pas fusionné"
+    )
+
+
+def test_bourg_richesse_ordonne_habitants():
+    """
+    SC5 (ordre) — À population égale, le bourg suit l'ordre des richesses
+    dérivé de la carte : majeure > notable > mineure.
+    """
+    from sim import constants as _k
+
+    facteurs = _k.facteurs_richesse_extraction()
+    par_classe: dict[str, list] = {}
+    for raw in World.lire_carte()["cellules"]:
+        complets = _gisements_complets(raw)
+        if len(complets) != 1:
+            continue
+        richesse = complets[0]["richesse"]
+        if richesse in facteurs and richesse not in par_classe:
+            par_classe[richesse] = complets
+
+    assert set(par_classe) == set(facteurs), (
+        f"classe manquante dans l'échantillon : {set(facteurs) - set(par_classe)}"
+    )
+
+    population_egale = 10000
+    cellule = Cell(cell_id=1, area_km2=1.0, population=population_egale)
+    comptes = {
+        richesse: repartition_bourg_de_cellule(cellule, gisements).habitants_du_bourg
+        for richesse, gisements in par_classe.items()
+    }
+
+    print(
+        f"bourg_majeure={comptes['majeure']} bourg_notable={comptes['notable']} "
+        f"bourg_mineure={comptes['mineure']} population={population_egale}"
+    )
+    assert comptes["majeure"] > comptes["notable"] > comptes["mineure"]
+
+
+def test_bourg_une_seule_definition_part_non_agricole():
+    """
+    SC5 (unicité) — La part non agricole n'est calculée qu'une fois ; aucun
+    second jeu de facteurs de richesse n'apparaît dans sim/aggregation.py.
+    """
+    from sim import constants as _k
+
+    modules = _modules_sim_hors_tests()
+    n_modules = len(modules)
+    assert n_modules > 0, "échantillon vide : aucun module de sim/ hors tests"
+
+    noms_part = {"PART_MINIERE_PAR_GISEMENT", "PART_MINIERE_MAXIMALE"}
+    classes_carte = set(_k.facteurs_richesse_extraction())
+
+    lecteurs_part_agregation: set[str] = set()
+    jeux_richesse_agregation = 0
+    chemin_agregation = pathlib.Path(agregation.__file__)
+    source = chemin_agregation.read_text(encoding="utf-8")
+    arbre = ast.parse(source, filename=str(chemin_agregation))
+
+    for noeud in ast.walk(arbre):
+        if isinstance(noeud, ast.FunctionDef):
+            lus = {
+                enfant.id
+                for enfant in ast.walk(noeud)
+                if isinstance(enfant, ast.Name) and not isinstance(enfant.ctx, ast.Store)
+            }
+            attrs = {
+                enfant.attr
+                for enfant in ast.walk(noeud)
+                if isinstance(enfant, ast.Attribute) and not isinstance(enfant.ctx, ast.Store)
+            }
+            if lus & noms_part or attrs & noms_part:
+                lecteurs_part_agregation.add(noeud.name)
+        if isinstance(noeud, ast.Dict):
+            cles = {
+                cle.value
+                for cle in noeud.keys
+                if isinstance(cle, ast.Constant) and isinstance(cle.value, str)
+            }
+            if classes_carte and classes_carte <= cles:
+                jeux_richesse_agregation += 1
+
+    definisseurs_part: set[str] = set()
+    for fichier in modules:
+        texte = fichier.read_text(encoding="utf-8")
+        arbre_f = ast.parse(texte, filename=str(fichier))
+        for noeud in ast.walk(arbre_f):
+            if not isinstance(noeud, ast.FunctionDef):
+                continue
+            lus = {
+                enfant.id
+                for enfant in ast.walk(noeud)
+                if isinstance(enfant, ast.Name) and not isinstance(enfant.ctx, ast.Store)
+            }
+            attrs = {
+                enfant.attr
+                for enfant in ast.walk(noeud)
+                if isinstance(enfant, ast.Attribute) and not isinstance(enfant.ctx, ast.Store)
+            }
+            if lus & noms_part or attrs & noms_part:
+                definisseurs_part.add(f"{fichier.name}:{noeud.name}")
+
+    n_lecteurs_agregation = len(lecteurs_part_agregation)
+    n_definisseurs_part = len(definisseurs_part)
+
+    print(f"modules_parcourus={n_modules}")
+    print(f"lecteurs_part_agregation={n_lecteurs_agregation} {sorted(lecteurs_part_agregation)}")
+    print(f"jeux_richesse_agregation={jeux_richesse_agregation}")
+    print(f"definisseurs_part={n_definisseurs_part} {sorted(definisseurs_part)}")
+
+    assert n_lecteurs_agregation == 0, (
+        "sim/aggregation.py duplique la formule de part non agricole : "
+        f"{sorted(lecteurs_part_agregation)}"
+    )
+    assert jeux_richesse_agregation == 0, (
+        f"un second jeu de facteurs de richesse apparaît : {jeux_richesse_agregation}"
+    )
+    assert n_definisseurs_part == 1, (
+        f"plus d'une définition de part non agricole : {sorted(definisseurs_part)}"
+    )
+
+
+def test_bourg_somme_exacte_par_cellule():
+    """
+    SC6 — Pour toute cellule : habitants_du_bourg + habitants_des_champs
+    == population, sans tolérance.
+    """
+    monde = World.charger(rng_seed=RNG_SEED)
+    repartitions = bourg_depuis_monde(monde)
+    cellules_sommees = len(repartitions)
+    assert cellules_sommees > 0, "échantillon vide : aucune cellule sommée"
+
+    ecarts = 0
+    for repartition in repartitions:
+        somme = repartition.habitants_du_bourg + repartition.habitants_des_champs
+        population = monde.cells[repartition.cell_id].population
+        if somme != population:
+            ecarts += 1
+
+    print(f"ecarts_somme = {ecarts} / {cellules_sommees}")
+    assert ecarts == 0
+
+
+def test_bourg_ne_change_pas_sortie_sim():
+    """
+    SC7 — py -m sim --ticks 365 --seed 0 --json rend la même sortie qu'au
+    départ sur master : ce lot ne touche à aucun nombre du monde.
+    """
+    ticks = 365
+    seed = 0
+    sortie_ici = _sortie_sim_json(ticks, seed, _RACINE_DEPOT)
+    empreinte_ici = hashlib.sha256(sortie_ici).hexdigest()
+
+    ref = _ref_master()
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(
+            ["git", "worktree", "add", "--detach", tmp, ref],
+            cwd=_RACINE_DEPOT,
+            check=True,
+            capture_output=True,
+        )
+        try:
+            sortie_master = _sortie_sim_json(ticks, seed, pathlib.Path(tmp))
+            empreinte_master = hashlib.sha256(sortie_master).hexdigest()
+        finally:
+            subprocess.run(
+                ["git", "worktree", "remove", tmp, "--force"],
+                cwd=_RACINE_DEPOT,
+                capture_output=True,
+            )
+
+    ecart_octets = int(sortie_ici != sortie_master)
+    ecart_empreintes = int(empreinte_ici != empreinte_master)
+
+    print(f"ecart_octets = {ecart_octets}")
+    print(f"ecart_empreintes = {ecart_empreintes}")
+    print(f"empreinte_ici = {empreinte_ici}")
+    print(f"empreinte_master = {empreinte_master}")
+
+    assert ecart_octets == 0, "la sortie sim diffère de master : ce lot a touché au monde"
+    assert ecart_empreintes == 0
+
+
+def test_bourg_consultation_par_cell_id():
+    """Les helpers de consultation rendent la répartition attendue."""
+    monde = World.charger(rng_seed=RNG_SEED)
+    repartitions = bourg_depuis_monde(monde)
+    cell_id = sorted(monde.cells)[0]
+    repartition = repartitions[0]
+
+    assert habitants_du_bourg_de_cellule(cell_id, repartitions) == repartition.habitants_du_bourg
+    assert (
+        habitants_des_champs_de_cellule(cell_id, repartitions)
+        == repartition.habitants_des_champs
+    )
