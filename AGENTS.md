@@ -27,26 +27,67 @@ phrase la première fois.
 
 ## Le workflow
 
-1. Le propriétaire écrit un brief, seul ou avec qui il veut →
-   `briefs/NNN-slug.md`.
-2. Il le donne à qui il veut — Claude, Cursor, Codex — sur une branche.
-3. La CI joue les tests.
-4. Il lit le diff.
-5. Il fusionne.
+Le propriétaire donne une direction. Le reste avance sans lui.
 
-Pas de relecture obligatoire, pas de porte mécanique, pas de verdict, pas de
-niveau de risque, pas d'ordre d'enchaînement entre les lots.
+1. Une fiche entre au registre de [ROADMAP.md](ROADMAP.md), état
+   `a-briefer`.
+2. Le **briefer** écrit `briefs/NNN-slug.md` sur `brief/NNN-slug` et ouvre
+   sa PR ; elle passe la fiche à `pret`.
+3. Le **coder** exécute le brief sur `agent/NNN-slug` et ouvre sa PR ; elle
+   passe la fiche à `livre` avec son numéro.
+4. La **CI** joue les tests. Le **relecteur** — jamais l'auteur — approuve
+   ou refuse, sur la révision courante de la PR.
+5. L'**intégration** fusionne, une PR à la fois, rejouée sur le dernier
+   `master`.
+6. Quand une fusion finit une couche, un **palier** entre au registre.
 
-**La seule règle de rôle : celui qui a écrit le code ne dit pas s'il est
-recevable.** Celui qui le dit, c'est le propriétaire, parce que c'est lui qui
-fusionne.
+Trois choses seulement restent au propriétaire : donner des directions,
+reprendre ce qui est tombé, et fusionner ce qui n'est pas un lot — une
+expérience, une branche à lui. Il ne fusionne pas les lots.
 
-La marche à suivre — quel agent à quelle étape, quel prompt, sur quelle
-machine — vit dans **[ForgeAtelier](https://github.com/PLiagre/ForgeHistory/tree/cursor/forgeatelier-ced6)**
-(`python3 -m atelier`). Ce fichier-ci dit les **règles du jeu** ; l'atelier
-dit **comment on s'y prend**. Aucun des deux ne paraphrase l'autre, et
-celui-ci fait foi pour le monde. Le branchement de ce dépôt est
-[`atelier.toml`](atelier.toml). Un rappel local tient dans
+### Ce qui remplace son œil sur le bouton
+
+**Celui qui a écrit le code ne dit pas s'il est recevable.** La phrase n'a
+pas changé ; ce qui la tient a changé. Elle était une politesse tant que
+personne ne la mesurait ; elle est maintenant un contrôle
+(`.github/workflows/relecture.yml`) qui exige une approbation posée sur la
+**révision courante** par une connexion qui n'a écrit aucun des commits.
+Quatre refus, et aucun feu vert par défaut : absente, périmée, de l'auteur,
+ou changements demandés.
+
+**La fusion est mécanique.** Une PR entre dans `master` quand tous les
+contrôles déclarés dans [`atelier.toml`](atelier.toml) § `[integration]`
+sont verts sur sa révision courante, et à cette seule condition. Personne
+ne fusionne sur un avis. L'intégration ne lit ni le brief, ni le diff, ni
+un compte rendu : elle lit cette liste. Un contrôle **absent** n'est pas un
+contrôle vert ; un état de fusion **inconnu** retient au lieu de passer.
+
+**L'intégration est séquentielle et rejouée.** Plusieurs lots s'écrivent en
+même temps ; ils n'entrent jamais en même temps. Une PR en retard sur
+`master` est d'abord rejouée dessus : ses contrôles n'ont pas vu ce qui a
+été fusionné depuis. Deux PR vertes séparément ne sont pas une PR verte
+ensemble.
+
+Ce qui n'a pas de préfixe déclaré n'est pas intégré : une branche
+d'expérience qui passe au vert n'est pas un lot, et elle attend le
+propriétaire.
+
+### Qui fait quoi, et où ça vit
+
+L'**invocation** des agents — quel agent à quelle étape, quel prompt, sur
+quelle machine, quelle carte dans quelle boîte — vit dans
+**[ForgeAtelier](https://github.com/PLiagre/ForgeHistory/tree/cursor/forgeatelier-ced6)**
+(`python3 -m atelier`). Le branchement de ce dépôt est
+[`atelier.toml`](atelier.toml).
+
+L'**intégration** vit ici, dans `.github/workflows/`, parce que c'est ici
+qu'est `master` : elle tourne sur GitHub, sans machine allumée chez
+personne, et elle ne sait rien du jeu non plus. L'atelier ne fusionne pas
+— `atelier fusionner` refuse, et continue de refuser.
+
+Ce fichier-ci dit les **règles du jeu** ; l'atelier dit **comment on
+invoque**. Aucun des deux ne paraphrase l'autre, et celui-ci fait foi pour
+le monde. Un rappel local tient dans
 [`docs/WORKFLOW.md`](docs/WORKFLOW.md).
 
 ## Le brief
@@ -69,7 +110,7 @@ Six façons de rater un brief :
 
 1. **Un lot = un changement.** Si deux parties pourraient être livrées et
    jugées séparément, ce sont deux briefs. Le test : « si la moitié marche et
-   l'autre pas, est-ce que je fusionne ? » Si oui, couper.
+   l'autre pas, est-ce que ça entre dans `master` ? » Si oui, couper.
 2. **Chaque critère nomme une commande, un fichier ou une valeur
    observable**, et doit pouvoir échouer. « Le code est propre » n'est pas un
    critère.
@@ -84,6 +125,34 @@ Six façons de rater un brief :
  permission qu'on ne se souvient pas d'avoir donnée. Les fichiers
  autorisés dans leur phrase, les interdits dans la leur : l'atelier lit
  les premiers pour poser le verrou et écarte les seconds.
+
+## Le palier
+
+Un lot prouve sa règle. Il ne prouve pas que les lots tiennent ensemble.
+
+Quand plus aucune fiche d'une couche n'attend quelque chose — le monde
+vivant, les villes, les armées — la couche est finie, et personne n'a plus
+de raison d'ouvrir le sujet. C'est là que dorment les défauts que les lots
+ne pouvaient pas voir chacun de son côté : une grandeur que deux mécanismes
+font bouger sans se connaître, une vue qui montre autre chose que ce que le
+moteur joue, un déterminisme perdu à la jointure.
+
+**Un palier est le lot qui va les chercher** : stabilisation et QA sur la
+couche entière. Il entre au registre tout seul, en tête, à la fusion qui
+finit la couche, et il nomme dans sa fiche les lots qu'il couvre. Ces trois
+règles tiennent :
+
+1. **Une couche finie sans rien de livré n'est pas une couche finie.** Un
+   échantillon vide échoue ; il ne passe pas.
+2. **Un palier ne se déclenche qu'une fois par lot couvert.** La liste de
+   ses dépendances est ce qui l'en empêche — pas un compteur tenu à la
+   main. Un lot livré après lui appelle le palier suivant.
+3. **Le palier appartient à sa couche.** Tant qu'il n'est pas livré, la
+   couche n'est pas finie : c'est ce qui empêche d'en déposer deux.
+
+Un palier passe par le cycle ordinaire — brief, code, relecture, CI,
+intégration. Il n'a aucun privilège : ce qu'il trouve devient des lots, et
+ces lots-là passent par le même chemin.
 
 ## La feuille de route
 
@@ -201,8 +270,10 @@ processus : elles survivent à tout changement de workflow.
 | `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
 | `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
 | `briefs/` | un fichier par lot. |
+| `outils/` | ce que la CI décide : qui a relu, quelle PR entre dans `master`, quand une couche finie appelle son palier. Il ne parle jamais au jeu. |
+| `.github/workflows/` | les quatre travaux : `tests`, `security`, `relecture`, `integration`. |
 | `ROADMAP.md` | où on en est, et le registre des lots — la seule représentation de l'état d'un lot. |
-| `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier. |
+| `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier, et la liste des contrôles requis pour entrer dans `master`. |
 | `docs/WORKFLOW.md` | rappel local : les trois postes de *ce* produit, et le lien vers l'atelier. |
 
 ## Les archives
@@ -231,6 +302,12 @@ py -m sim                                # le produit
 py -m sim --ticks 0 --json               # fumée : le monde s'amorce
 py -m pytest sim/tests/ -q               # les tests du jeu
 py -m pytest viewer/tests/ -q            # le regard mince
+py -m pytest outils/tests/ -q            # ce que la CI décide
+
+# ce que la CI décide, joué à la main (lecture seule, rien n'est écrit)
+py -m outils palier --projet .           # une couche finie attend-elle son palier ?
+py -m outils integration --depot PLiagre/ForgeHistory --projet .
+py -m outils relecture --depot PLiagre/ForgeHistory --pr N
 
 # la feuille de route : cohérente ? où en est chaque lot ?
 # (l'atelier sur le PYTHONPATH — voir docs/WORKFLOW.md)
@@ -242,6 +319,8 @@ py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
 py -m viewer --snapshot /tmp/monde.json
 ```
 
-Le moteur et le regard sont en bibliothèque standard seule ; seuls les tests
-demandent `pytest`. Il n'y a pas de linter : les garde-fous du dépôt sont les
-tests et l'œil du propriétaire sur le diff.
+Le moteur, le regard et les outils sont en bibliothèque standard seule ;
+seuls les tests demandent `pytest`, et ceux d'`outils/` demandent en plus
+l'atelier sur le `PYTHONPATH` — c'est lui qui lit le registre, et il n'y a
+qu'un lecteur. Il n'y a pas de linter : les garde-fous du dépôt sont les
+tests, la relecture et l'œil du propriétaire sur les captures.

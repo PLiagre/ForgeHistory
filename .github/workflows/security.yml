@@ -6,12 +6,15 @@ name: security
 # vingt lignes et il reste.
 #
 # `actionlint` est parti avec le dégraissage : il gardait douze workflows,
-# il n'en reste plus que deux, triviaux.
+# il en reste quatre — celui-ci, `tests`, `relecture` et `integration`.
 
 on:
   push:
     branches: [master]
   pull_request:
+  # Une PR ouverte par le jeton d'Actions ne déclenche rien : l'intégration
+  # demande alors ce contrôle nommément (voir `integration.yml`).
+  workflow_dispatch:
 
 permissions:
   contents: read

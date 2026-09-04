@@ -1,0 +1,194 @@
+name: integration
+
+# Qui écrit dans `master`, et à quelle condition. Personne ne fusionne sur
+# un avis : ni un agent, ni le propriétaire, ni ce travail. Il lit la liste
+# des contrôles requis déclarée dans `atelier.toml`, la vérifie sur la
+# révision courante de la PR, et fusionne — ou retient, en disant quoi.
+#
+# Deux propriétés qui ne se lisent pas dans le code Python :
+#
+# - **séquentielle** : `concurrency` sérialise les tours, et un tour ne
+#   fusionne qu'une PR. Deux PR vertes séparément ne sont pas une PR verte
+#   ensemble.
+# - **rejouée** : une PR en retard sur `master` est d'abord rejouée dessus.
+#   Ses contrôles n'ont pas vu ce qui a été fusionné depuis.
+#
+# Le second travail est le palier : quand la fusion finit une couche, il
+# dépose la fiche du lot de stabilisation et QA. Rien ne se décide ici —
+# `outils/palier.py` le dérive du registre, ce travail ouvre la PR.
+
+on:
+  schedule:
+    # Le filet, pas le chemin ordinaire : les événements ci-dessous
+    # réveillent l'intégration en quelques secondes. Celui-ci rattrape ce
+    # qu'un événement perdu aurait laissé dormir.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+  workflow_run:
+    workflows: [tests, security, relecture]
+    types: [completed]
+  pull_request_review:
+    types: [submitted]
+
+# Un seul tour à la fois : c'est ce qui rend l'intégration séquentielle.
+# Sans cette clause, deux réveils simultanés fusionneraient deux PR qui
+# n'ont jamais été testées l'une sur l'autre.
+concurrency:
+  group: integration
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  integrer:
+    runs-on: ubuntu-latest
+    outputs:
+      fusionnee: ${{ steps.geste.outputs.fusionnee }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: master
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Quelle PR entre dans master
+        id: decision
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          decision=$(python -m outils integration --depot "$GITHUB_REPOSITORY" --projet .)
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "$decision"
+
+      - name: Le geste
+        id: geste
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DECISION: ${{ steps.decision.outputs.decision }}
+        run: |
+          set -euo pipefail
+          action=$(echo "$DECISION" | cut -d' ' -f1)
+          pr=$(echo "$DECISION" | cut -d' ' -f2)
+          case "$action" in
+            fusionner)
+              branche=$(gh pr view "$pr" --json headRefName -q .headRefName)
+              gh pr merge "$pr" --merge
+              echo "fusionnee=$pr" >> "$GITHUB_OUTPUT"
+              # La branche se range après coup, et son échec ne compte
+              # pas : une branche protégée ou déjà partie n'annule pas
+              # une fusion faite. Grouper les deux gestes aurait fait
+              # d'un rangement raté un tour perdu.
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$branche" > /dev/null 2>&1 \
+                || echo "branche $branche non supprimée (protégée, ou déjà partie)"
+              # Le tour suivant prend la PR d'après. `workflow_dispatch`
+              # est l'un des deux seuls événements qu'un jeton d'Actions
+              # a le droit de déclencher : sans lui, la file attendrait
+              # le réveil de l'heure.
+              gh workflow run integration.yml --ref master
+              ;;
+            rebaser)
+              branche=$(gh pr view "$pr" --json headRefName -q .headRefName)
+              gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$pr/update-branch" > /dev/null
+              # Le rejeu est une poussée du jeton d'Actions : GitHub ne
+              # déclenche rien dessus. Sans ces trois appels, la PR
+              # changerait de révision et perdrait tous ses contrôles —
+              # bloquée pour toujours, sans rien de rouge à montrer.
+              gh workflow run tests.yml --ref "$branche" -f base=master -f branche="$branche" -f pr="$pr"
+              gh workflow run security.yml --ref "$branche"
+              gh workflow run relecture.yml --ref master -f pr="$pr"
+              echo "PR $pr rejouée sur master ; ses contrôles repartent"
+              ;;
+            RIEN)
+              echo "rien à intégrer ce tour-ci"
+              ;;
+            *)
+              echo "décision illisible : « $DECISION »" >&2
+              exit 1
+              ;;
+          esac
+
+  palier:
+    # Une couche ne se finit qu'à une fusion : c'est le seul moment où la
+    # question se pose, et le seul où la réponse peut changer.
+    needs: integrer
+    if: needs.integrer.outputs.fusionnee != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: master
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: PLiagre/ForgeHistory
+          ref: cursor/forgeatelier-ced6
+          path: .forgeatelier
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Une couche finie attend-elle son palier ?
+        id: palier
+        env:
+          PYTHONPATH: .forgeatelier
+        run: |
+          set -euo pipefail
+          ligne=$(python -m outils palier --projet . --ecrire 2> palier.log)
+          cat palier.log
+          echo "ligne=$ligne" >> "$GITHUB_OUTPUT"
+          echo "$ligne"
+
+      - name: Déposer la fiche du lot de stabilisation
+        if: ${{ steps.palier.outputs.ligne != 'RIEN' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LIGNE: ${{ steps.palier.outputs.ligne }}
+        run: |
+          set -euo pipefail
+          numero=$(echo "$LIGNE" | cut -d' ' -f2)
+          souche=$(echo "$LIGNE" | cut -d' ' -f3)
+          couche=$(echo "$LIGNE" | cut -d' ' -f4 | cut -d= -f2)
+          branche="feuille/$souche"
+          # La garde d'idempotence porte sur la COUCHE, pas sur le numéro.
+          # Tant que la PR du palier n'est pas fusionnée, sa fiche n'est
+          # pas dans `master` et chaque tour la reproposerait ; et si une
+          # PR de feuille passe entre-temps, le numéro libre a changé — la
+          # même couche repartirait sous un autre nom.
+          if git ls-remote --heads origin "feuille/*-stabilisation-couche-$couche" | grep -q .; then
+            echo "un palier de la couche $couche est déjà déposé : rien à faire"
+            exit 0
+          fi
+          {
+            printf "La couche %s est finie : la fiche du lot %s entre au registre,\n" "$couche" "$numero"
+            printf "état « a-briefer ». Chaque lot de cette couche a prouvé sa règle ;\n"
+            printf "aucun n'a prouvé qu'ils tiennent ensemble. C'est ce que le lot de\n"
+            printf "stabilisation et QA va mesurer.\n\n"
+            printf "Ce que le registre dit :\n\n"
+            sed "s/^/    /" palier.log
+            printf "\nLe brief reste à écrire : le poste d'écriture le fera, et sa PR\n"
+            printf "passera la fiche à « pret ».\n"
+          } > corps.txt
+          { printf "Palier couche %s : le lot %s entre au registre.\n\n" "$couche" "$numero"
+            cat corps.txt; } > message.txt
+          git config user.name "forgehistory-integration"
+          git config user.email "integration@forgehistory.invalid"
+          git checkout -b "$branche"
+          git add ROADMAP.md
+          git commit --file message.txt
+          git push -u origin "$branche"
+          lien=$(gh pr create --base master --head "$branche" \
+            --title "Palier couche $couche : stabilisation et QA (lot $numero)" \
+            --body-file corps.txt)
+          numero_pr=${lien##*/}
+          # Une PR ouverte par le jeton d'Actions ne déclenche aucun
+          # contrôle : GitHub refuse la récursion. On les demande donc
+          # nommément, sinon cette PR resterait sans contrôle — donc sans
+          # fusion, pour toujours.
+          gh workflow run tests.yml --ref "$branche" -f base=master -f branche="$branche"
+          gh workflow run security.yml --ref "$branche"
+          gh workflow run relecture.yml --ref master -f pr="$numero_pr"
+          echo "PR de palier ouverte sur $branche"
