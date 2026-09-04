@@ -14,7 +14,13 @@ COUCHE = "orchestration"
 
 
 _SLUG = re.compile(r"briefs/(\d{3}-[a-z0-9-]+)")
-_FICHIER = re.compile(r"`([^`\n]+\.[A-Za-z0-9]+)`")
+# Un chemin entre accents graves, éventuellement suivi de la fiche qu'on
+# y tient : `ROADMAP.md#047-le-bourg`. Sans le suffixe, un brief ne
+# pouvait pas nommer une fiche — donc pas nommer celle d'un autre lot,
+# donc l'atelier ne pouvait pas le lui refuser.
+_FICHIER = re.compile(
+    rf"`([^`\n]+\.[A-Za-z0-9]+(?:{re.escape(verrou.SEPARATEUR)}[A-Za-z0-9._-]+)?)`"
+)
 
 
 class CycleErreur(ValueError):
@@ -59,7 +65,27 @@ _MOTS_D_EXCLUSION = re.compile(
 _PHRASE = re.compile(r"(?<=[.!?])\s+")
 
 
-def _fichiers_du_perimetre(brief: Path) -> list[str]:
+def _fichiers_du_perimetre(brief: Path, feuille: str | None = None) -> list[str]:
+    """Les ressources qu'un lot tient, d'après la section Périmètre.
+
+    `feuille` est le chemin du registre des lots, relatif au produit.
+    Sans lui, rien ne change : l'atelier ne cherche pas un registre au
+    hasard, et un branchement qui n'en nomme pas continue de tenir des
+    fichiers.
+
+    Avec lui, deux règles — et elles viennent du dépôt produit, pas
+    d'ici. AGENTS.md de ForgeHistory dit : « La fiche d'un lot fait
+    partie du périmètre implicite de sa PR, **et rien d'autre de
+    ROADMAP.md**. » Donc :
+
+    - la fiche du lot s'ajoute, dérivée de son slug. Elle n'a plus à être
+      nommée, et c'est ce qui la rend impossible à oublier ;
+    - nommer le registre dans un brief désigne cette fiche-là, jamais le
+      fichier entier. Le fichier entier reste une ressource que le verrou
+      sait tenir — un lot d'exploitation qui réorganise la feuille a le
+      droit d'exister, il a juste le droit d'être seul — mais aucun brief
+      ne l'obtient en écrivant le nom du fichier.
+    """
     texte = brief.read_text(encoding="utf-8")
     match = re.search(
         r"^##\s+Périmètre\b(.*?)(?=^##\s+|\Z)",
@@ -78,7 +104,33 @@ def _fichiers_du_perimetre(brief: Path) -> list[str]:
         for nom in noms:
             if nom not in autorises:
                 autorises.append(nom)
-    return [nom for nom in autorises if nom not in exclus]
+    retenus = [nom for nom in autorises if nom not in exclus]
+    if feuille is None or not retenus:
+        # Un périmètre qui ne nomme rien reste vide. Lui donner sa fiche
+        # le ferait passer pour un périmètre d'un fichier, et les gardes
+        # qui refusent « périmètre sans fichier nommé » ne rougiraient
+        # plus jamais : un lot infirme entrerait en file.
+        return retenus
+    return _avec_la_fiche(retenus, feuille, _lot_depuis(brief))
+
+
+def _avec_la_fiche(retenus: list[str], feuille: str, lot: str) -> list[str]:
+    """Remplace toute mention du registre par la fiche du lot, et l'ajoute."""
+    registre = verrou.Ressource.depuis(feuille)
+    fiche = verrou.Ressource(fichier=registre.fichier, fiche=lot)
+    resultat: list[str] = []
+    for nom in retenus:
+        ressource = verrou.Ressource.depuis(nom)
+        if ressource.fichier != registre.fichier:
+            resultat.append(nom)
+            continue
+        if ressource.fiche is not None and ressource.fiche != lot:
+            raise CycleErreur(
+                f"le périmètre du lot {lot} nomme la fiche {ressource} : "
+                f"un lot ne tient que la sienne ({fiche})"
+            )
+    resultat.append(str(fiche))
+    return resultat
 
 
 def _prompts(brief: Path, lot: str) -> tuple[str, str]:
@@ -104,7 +156,7 @@ def preparer(brief: Path, racine_projet: Path) -> Apercu:
         raise CycleErreur("le brief ne passe pas la porte :\n" + porte.rendre(brief))
 
     lot = _lot_depuis(brief)
-    fichiers = _fichiers_du_perimetre(brief)
+    fichiers = _fichiers_du_perimetre(brief, produit.feuille_relative())
     if not fichiers:
         raise CycleErreur("périmètre sans fichier nommé")
 

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import tomllib
 
+from . import verrou
+
 # Le branchement d'un produit : qui tient quel poste, et la seule règle
 # qu'il refuse mécaniquement — l'exécution et le contrôle ne peuvent pas
 # être le même agent. De la coordination entre acteurs, pas de
@@ -62,6 +64,31 @@ class Projet:
     @property
     def etat_dir(self) -> Path:
         return self.racine / ".atelier"
+
+    def feuille_relative(self) -> str | None:
+        """La feuille telle qu'un périmètre la cite : relative au produit."""
+        if self.feuille is None:
+            return None
+        try:
+            return self.feuille.relative_to(self.racine).as_posix()
+        except ValueError:
+            return self.feuille.as_posix()
+
+    def fiche_du_lot(self, lot: str) -> str | None:
+        """La ressource « la fiche de ce lot », ou None sans feuille déclarée.
+
+        L'identifiant est le **slug** du lot, celui que portent déjà sa
+        carte, sa branche et son worktree. Le numéro seul aurait demandé
+        de recopier ici la règle de numérotation du registre, qui vit
+        dans le dépôt produit — et une seconde source finit toujours par
+        dire autre chose que la première.
+        """
+        rel = self.feuille_relative()
+        if rel is None:
+            return None
+        if not lot.strip():
+            raise ProjetIncomplet("un lot vide n'a pas de fiche : l'atelier ne la devine pas")
+        return f"{rel}{verrou.SEPARATEUR}{lot.strip()}"
 
     def feuille_ou_refus(self) -> Path:
         if self.feuille is None:
