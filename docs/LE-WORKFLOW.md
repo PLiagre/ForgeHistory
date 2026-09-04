@@ -1,5 +1,14 @@
 # Le workflow, de bout en bout
 
+> **Ce document décrit la conduite d'aujourd'hui.** Le 4 septembre 2026,
+> la vision a changé : la fusion devient mécanique, plusieurs lots
+> avancent de front, et une relecture terminée n'est plus une
+> approbation ([VISION.md](../VISION.md)). Rien de tout cela n'est
+> encore écrit ici, parce que rien de tout cela ne tourne encore. La
+> série 009-023 de [ROADMAP.md](../ROADMAP.md) l'apporte lot par lot, et
+> chaque lot corrige la section qu'il change. Une phrase de ce fichier
+> qui décrirait le cycle à venir serait un mensonge daté.
+
 Ce document décrit ce que la machine fait toute seule, et où elle
 s'arrête. Il tient en une phrase : **la boucle ne s'arrête jamais sur un
 état qu'elle pouvait lire, et n'attend une personne que là où une
