@@ -128,7 +128,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : pret · couche : 1 · dépend de : — · PR : —
 
 ### [047 — Le bourg est une agrégation dérivée](briefs/047-le-bourg-est-une-agregation-derivee.md)
-état : pret · couche : 2 · dépend de : 044 · PR : —
+état : livre · couche : 2 · dépend de : 044 · PR : 214
 
 ### [049 — Fabriquer : le minerai devient un objet](briefs/049-fabriquer-le-minerai-devient-un-objet.md)
 état : a-briefer · couche : 2 · dépend de : 044 · PR : —
