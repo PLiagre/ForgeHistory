@@ -8,9 +8,11 @@
 #
 # Les faux agents obéissent à l'environnement plutôt qu'à un modèle :
 # FAUX_CODE (le code de sortie), FAUX_DORT (les secondes), FAUX_PR (ce
-# qu'il écrit dans pr.txt), FAUX_SALIT (le fichier qu'il laisse traîner),
-# FAUX_COMMIT (le fichier qu'il commite). C'est ce qui permet de rejouer
-# un délai dépassé ou un agent qui plante sans dépenser un centime.
+# qu'il écrit dans pr.txt), FAUX_SANS_PR (il n'écrit aucun numéro),
+# FAUX_SANS_BRIEF (il n'écrit pas le brief qu'on lui demande),
+# FAUX_SALIT (le fichier qu'il laisse traîner), FAUX_COMMIT (le fichier
+# qu'il commite). C'est ce qui permet de rejouer un délai dépassé, un
+# agent qui plante ou un briefer bloqué sans dépenser un centime.
 set -euo pipefail
 
 BANC="${ATELIER_BANC:-$HOME/.atelier/banc}"
@@ -36,6 +38,17 @@ if [ -n "${FAUX_DORT:-}" ]; then sleep "$FAUX_DORT"; fi
 if [ -z "${FAUX_SANS_PR:-}" ]; then
     mkdir -p "$PWD/atelier-echange"
     printf '%s' "${FAUX_PR:-$(( (RANDOM % 9000) + 1000 ))}" > "$PWD/atelier-echange/pr.txt"
+fi
+# Un briefer écrit son brief : sans lui, la carte ne passe plus, et le
+# cas nominal du banc ne montrerait jamais un tour complet. Le chemin se
+# lit dans la consigne — un faux agent n'a pas d'autre source. FAUX_SANS_BRIEF=1
+# rejoue le briefer bloqué du 4 septembre 2026 : il sort 0 sans rien écrire.
+if [ -z "${FAUX_SANS_BRIEF:-}" ]; then
+    cible="$(printf '%s' "$*" | grep -oE 'briefs/[A-Za-z0-9._/-]+\.md' | head -n 1)"
+    if [ -n "$cible" ] && [ ! -f "$PWD/$cible" ]; then
+        mkdir -p "$PWD/$(dirname "$cible")"
+        printf '# Faux brief\n\n## Périmètre\n\n- `banc/atelier.py`\n' > "$PWD/$cible"
+    fi
 fi
 if [ -n "${FAUX_SALIT:-}" ]; then echo "sale" > "$PWD/$FAUX_SALIT"; fi
 if [ -n "${FAUX_COMMIT:-}" ]; then
