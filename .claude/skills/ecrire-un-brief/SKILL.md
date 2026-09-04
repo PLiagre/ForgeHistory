@@ -65,6 +65,45 @@ Le brief part dans une PR, et la fiche du lot passe à `pret` dans la même PR
 cette ligne, la CI rougit : une fiche `a-briefer` dont le brief existe est une
 incohérence.
 
+## Le brief d'un palier
+
+Une fiche `NNN-stabilisation-couche-N` n'est pas un lot comme les autres à
+écrire, et c'est la seule exception que ce fichier connaît. Ce qu'un palier
+**est**, et quand il se déclenche, vit dans [`AGENTS.md`](../../../AGENTS.md)
+§ « Le palier ». Ce qui suit dit comment l'écrire.
+
+**Sa matière est déjà là.** La `dépend de` de sa fiche nomme les lots qu'il
+couvre : ce sont leurs briefs, et eux seuls, qu'il faut relire avant
+d'écrire. Chacun a promis une règle du monde ; le palier demande ce
+qu'aucun ne pouvait demander seul — est-ce qu'elles tiennent **ensemble**,
+sur le même monde, au même tick ?
+
+**Ses conditions de succès sont transversales, ou il n'en a pas.** Un
+critère qui rejoue ce qu'un lot couvert a déjà prouvé ne prouve rien de
+neuf. Ce qui se mesure au palier, et nulle part ailleurs :
+
+- une **grandeur que deux mécanismes font bouger sans se connaître** — le
+  panier, la population, la capacité d'une arête ;
+- la **conservation à la jointure** : ce que le mécanisme A retire, le
+  mécanisme B le retrouve, sur une longue course, pas sur un tick ;
+- le **déterminisme de la couche entière** : même graine, même monde, après
+  tous les lots ;
+- ce que la **vue montre** contre ce que le moteur joue — la présentation
+  lit, elle ne recalcule pas ;
+- une course **longue** : ce qui tient à 365 ticks et cède à 3 000.
+
+**Son périmètre reste étroit, et c'est ce qui le rend exécutable.** Il
+ajoute ses cas aux fichiers de test qui portent déjà les invariants
+concernés — jamais un fichier de test par palier — et il ne corrige que ce
+que sa propre mesure prouve cassé **dans les fichiers qu'il nomme**. Tout
+le reste de ce qu'il trouve devient des fiches, par une PR de feuille. Un
+palier qui s'autorise à réparer partout est un lot qui ne se relit pas.
+
+**Il dit ce qu'il a trouvé, même quand il ne trouve rien.** « Aucun défaut
+transversal mesuré » est un résultat, à condition que les commandes qui
+l'établissent aient pu échouer. Un palier dont aucun critère ne peut rougir
+n'a pas mesuré la couche : il l'a déclarée bonne.
+
 ## Quand tu écris plusieurs briefs d'affilée
 
 Relis la série toi-même sur quatre points que la lecture d'un brief isolé ne
@@ -75,5 +114,6 @@ dire comment ils se composent.
 
 ## Après l'écriture
 
-Tu ne juges pas ton propre brief, et tu ne le lances pas : c'est le
-propriétaire qui décide de le lancer, à qui le donner, et s'il fusionne.
+Tu ne juges pas ton propre brief et tu ne le lances pas. Ta PR passe par la
+relecture d'un tiers et par la CI ; c'est ce qui la fusionne, pas un avis —
+le tien moins que tout autre.

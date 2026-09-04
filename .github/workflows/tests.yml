@@ -1,17 +1,36 @@
 name: tests
 
-# Trois travaux : le jeu, le regard qui le montre, et la feuille de route
-# qui dit où on en est. C'est toute la CI.
+# Quatre travaux : le jeu, le regard qui le montre, les outils du dépôt, et
+# la feuille de route qui dit où on en est.
 #
 # Elle ne juge pas un lot, elle ne lit pas de compte-rendu, elle ne fusionne
 # rien. Elle dit une seule chose : les tests passent, ou ils ne passent pas —
-# et la feuille est cohérente, ou elle ne l'est pas. Le reste, c'est le
-# propriétaire qui le lit dans le diff.
+# et la feuille est cohérente, ou elle ne l'est pas. Ce qu'on en fait est
+# écrit ailleurs : `relecture.yml` dit qui a relu, `integration.yml` fusionne
+# ce qui est vert.
 
 on:
   push:
     branches: [master]
   pull_request:
+  # Une PR ouverte par le jeton d'Actions — celle d'un palier — ne
+  # déclenche aucun contrôle : GitHub refuse la récursion. L'intégration
+  # les demande alors nommément, et lui passe la base et la branche pour
+  # que « feuille » vérifie les transitions comme sur une vraie PR.
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "la branche d'arrivée, pour vérifier les transitions"
+        required: false
+        default: ""
+      branche:
+        description: "la branche de la PR"
+        required: false
+        default: ""
+      pr:
+        description: "le numéro de la PR, pour la fiche d'un lot"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -39,6 +58,27 @@ jobs:
       - name: Le regard mince sur le snapshot
         run: python -m pytest viewer/tests/ -q
 
+  outils:
+    # Les outils du dépôt : la relecture, l'intégration, le palier. Ils
+    # décident de ce qui entre dans `master` — leurs contrôles se jouent
+    # donc au même titre que ceux du jeu. Ils empruntent le lecteur de
+    # registre de l'atelier plutôt que d'en écrire un second.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: cursor/forgeatelier-ced6
+          path: .forgeatelier
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --upgrade pip pytest
+      - name: Les outils du dépôt
+        env:
+          PYTHONPATH: .forgeatelier
+        run: python -m pytest outils/tests/ -q
+
   feuille:
     # Le registre des lots de ROADMAP.md est lu par ForgeAtelier : fiches
     # bien formées, briefs attendus présents, aucun orphelin, dépendances
@@ -59,9 +99,9 @@ jobs:
           python-version: "3.13"
       - name: La feuille de route est cohérente
         env:
-          BASE: ${{ github.base_ref }}
-          BRANCHE: ${{ github.head_ref }}
-          NUMERO_PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.base_ref || inputs.base }}
+          BRANCHE: ${{ github.head_ref || inputs.branche }}
+          NUMERO_PR: ${{ github.event.pull_request.number || inputs.pr }}
           PYTHONPATH: .forgeatelier
         run: |
           set -euo pipefail
