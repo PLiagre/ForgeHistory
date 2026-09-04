@@ -15,6 +15,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
+COUCHE = "intelligence"
+
 
 # Ce que l'atelier sait d'un binaire : comment on l'appelle, quel
 # abonnement il consomme, quel modèle il prend pour quel rôle, et s'il

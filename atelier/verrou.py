@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import json
 
+COUCHE = "coordination"
+
 
 class Collision(ValueError):
     pass

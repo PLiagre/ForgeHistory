@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+COUCHE = "outils"
+
 
 SKILLS = (
     "ecrire-un-brief",

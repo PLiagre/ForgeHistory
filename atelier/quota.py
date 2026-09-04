@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+COUCHE = "coordination"
+
 
 INCONNU = -1
 

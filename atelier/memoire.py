@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
+COUCHE = "memoire"
+
 
 def dossier(racine: Path) -> Path:
     return Path(racine) / ".atelier" / "memoire"

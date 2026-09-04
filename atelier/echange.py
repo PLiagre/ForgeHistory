@@ -16,6 +16,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+COUCHE = "coordination"
+
 
 NOM_DOSSIER = "atelier-echange"
 FICHIER_PR = "pr.txt"

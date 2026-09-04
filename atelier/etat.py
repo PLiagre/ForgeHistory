@@ -9,6 +9,8 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
+COUCHE = "orchestration"
+
 
 class Etape(str, Enum):
     CREE = "CREE"

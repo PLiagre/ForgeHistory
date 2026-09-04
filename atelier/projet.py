@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 import tomllib
 
+# Le branchement d'un produit : qui tient quel poste, et la seule règle
+# qu'il refuse mécaniquement — l'exécution et le contrôle ne peuvent pas
+# être le même agent. De la coordination entre acteurs, pas de
+# l'orchestration : il ne dit aucun ordre.
+COUCHE = "coordination"
+
 
 class ProjetIncomplet(ValueError):
     """Un champ obligatoire manque : on refuse, on n'invente pas."""

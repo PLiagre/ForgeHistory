@@ -24,6 +24,8 @@ du coder), et une horloge de plus serait une horloge de plus à lire.
 
 from __future__ import annotations
 
+COUCHE = "coordination"
+
 
 # La cause tient en un mot, écrit par `crons/tour.sh` : c'est elle qu'on
 # lit, jamais la phrase de la note. Une note se réécrit ; une cause se
