@@ -1640,3 +1640,44 @@ def test_cellules_minieres_produisent_moins_et_s_endettent_plus():
         "Les porteuses ne s'endettent pas plus avec leurs gisements."
     )
 
+
+def test_extraction_accumule_dans_le_panier():
+    """Deux extractions ajoutent les kg ; elles ne remplacent pas le stock."""
+    from sim.engine import _apply_extraction, _extraction_du_tick_kg
+    from sim.model import lire_stock_marchandise
+
+    world = World.charger(0)
+    cid = next(
+        int(raw["cell_id"])
+        for raw in World.lire_carte()["cellules"]
+        if any(
+            isinstance(g, dict) and g.get("ressource") and g.get("richesse")
+            for g in (raw.get("gisements") or [])
+        )
+    )
+    cell = world.cells[cid]
+    extrait = _extraction_du_tick_kg(cell, world.carte)
+    assert extrait, "échantillon vide : la cellule porteuse n'extrait rien"
+    for ressource in extrait:
+        assert lire_stock_marchandise(cell, ressource) == -1.0
+
+    _apply_extraction(cell, world.carte)
+    for ressource, quantite in extrait.items():
+        assert lire_stock_marchandise(cell, ressource) == pytest.approx(quantite)
+
+    _apply_extraction(cell, world.carte)
+    for ressource, quantite in extrait.items():
+        assert lire_stock_marchandise(cell, ressource) == pytest.approx(2.0 * quantite)
+
+
+def test_cli_refuse_ticks_negatif():
+    proc = subprocess.run(
+        [sys.executable, "-m", "sim", "--ticks", "-1", "--json"],
+        cwd=_REPO,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 2
+    assert "refus" in proc.stderr
+    assert proc.stdout == ""
+

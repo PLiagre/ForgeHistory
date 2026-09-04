@@ -567,14 +567,27 @@ def _planifier_debarquement(
     return debark
 
 
+def _cellules_declarant_gisements(carte: dict) -> set[int]:
+    """Cellules dont la carte porte au moins un gisement (couche 1, extraction locale)."""
+    return {
+        int(cell_id)
+        for cell_id, raw in carte.items()
+        if isinstance(raw, dict) and (raw.get("gisements") or [])
+    }
+
+
 def _planifier_expedition(
     surplus_apres_terre: dict[int, float],
     capacite_quai: dict[int, float],
     cellules_cotieres: set[int],
+    exclure_cellules: set[int] | None = None,
 ) -> dict[int, float]:
     """Expédition vers le bassin depuis les cellules côtières en surplus."""
     expedition: dict[int, float] = {}
+    exclus = exclure_cellules or set()
     for cid in sorted(cellules_cotieres):
+        if cid in exclus:
+            continue
         surplus = surplus_apres_terre.get(cid, 0.0)
         if surplus <= 0.0:
             continue
@@ -687,6 +700,11 @@ def _apply_commerce(
         return
 
     consommation_unitaire = _constantes.consommation_kg_par_habitant_par_tick(marchandise)
+    # Le commerce maritime ne porte que les marchandises consommées : les autres
+    # n'ont ni besoin côté mer ni rôle d'expédition dans la couche 1.
+    maritime_actif = (
+        ctx_maritime is not None and consommation_unitaire > 0.0
+    )
 
     # Passe 1a : snapshot immuable des stocks et populations
     snapshot_stock = {
@@ -709,7 +727,7 @@ def _apply_commerce(
     # --- Flux maritime : débarquement planifié sur bassin_au_debut ---
     debark_brut: dict[int, float] = {}
     debark_final: dict[int, float] = {}
-    if ctx_maritime is not None:
+    if maritime_actif:
         bassin_dispo = _stock_bassin_au_debut(ctx_maritime, marchandise)
         debark_brut = _planifier_debarquement(
             snapshot_needs,
@@ -768,7 +786,7 @@ def _apply_commerce(
 
     final_transfers: list[tuple[int, int, float, tuple[int, int]]] = []
     receveurs = set(by_receiver.keys())
-    if ctx_maritime is not None:
+    if maritime_actif:
         receveurs |= set(debark_brut.keys())
 
     for rcv_id in sorted(receveurs):
@@ -783,17 +801,17 @@ def _apply_commerce(
                 scaled = qty * scale
                 if scaled > 0.0:
                     final_transfers.append((src_id, rcv_id, scaled, cle))
-            if ctx_maritime is not None and mer_total > 0.0:
+            if maritime_actif and mer_total > 0.0:
                 debark_final[rcv_id] = mer_total * scale
         else:
             for src_id, qty, cle in incoming:
                 final_transfers.append((src_id, rcv_id, qty, cle))
-            if ctx_maritime is not None and mer_total > 0.0:
+            if maritime_actif and mer_total > 0.0:
                 debark_final[rcv_id] = mer_total
 
     # --- Flux maritime : expédition après allocation terrestre ---
     expedition_brute: dict[int, float] = {}
-    if ctx_maritime is not None:
+    if maritime_actif:
         outgoing_terre: dict[int, float] = defaultdict(float)
         for src_id, _, qty, _ in final_transfers:
             outgoing_terre[src_id] += qty
@@ -807,10 +825,13 @@ def _apply_commerce(
             cap_apres_debark[cid] = max(
                 0.0, cap_apres_debark.get(cid, 0.0) - qty,
             )
+        carte = getattr(world, "carte", None) or {}
+        exclure = _cellules_declarant_gisements(carte)
         expedition_brute = _planifier_expedition(
             surplus_apres,
             cap_apres_debark,
             ctx_maritime["cellules_cotieres"],
+            exclure_cellules=exclure,
         )
 
     consomme_par_arête: dict[tuple[int, int], float] = defaultdict(float)
@@ -837,7 +858,7 @@ def _apply_commerce(
             restant = _capacite_transport_arete_kg(world, cle[0], cle[1])
         capacite_restante[cle] = max(0.0, restant - qty)
 
-    if ctx_maritime is not None:
+    if maritime_actif:
         _appliquer_flux_maritimes(
             world,
             marchandise,
