@@ -27,6 +27,8 @@ import re
 from . import boite, porte, verrou
 from .cycle import _fichiers_du_perimetre
 
+COUCHE = "orchestration"
+
 
 REPERE_DEBUT = "<!-- lots:debut -->"
 REPERE_FIN = "<!-- lots:fin -->"

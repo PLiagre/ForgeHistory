@@ -10,6 +10,8 @@ from . import echange, etat, porte, projet, verrou, worktree
 from .backends import invocation, pour
 from .etat import FusionInterdite, Run
 
+COUCHE = "orchestration"
+
 
 _SLUG = re.compile(r"briefs/(\d{3}-[a-z0-9-]+)")
 _FICHIER = re.compile(r"`([^`\n]+\.[A-Za-z0-9]+)`")

@@ -14,6 +14,8 @@ import sys
 
 from . import reprise, verrou
 
+COUCHE = "coordination"
+
 
 ROLES = ("briefer", "planifier", "coder", "relire")
 

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import re
 from pathlib import Path
 
+COUCHE = "verification"
+
 
 SECTIONS = ("But", "Règle du monde", "Périmètre", "Conditions de succès", "Hors périmètre")
 
