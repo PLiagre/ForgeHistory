@@ -30,7 +30,13 @@ from sim.aggregation import (
     identifiant_de_province_de_cellule,
 )
 from sim.constants import SNAPSHOT_SCHEMA_VERSION
-from sim.snapshot_export import build_snapshot_document, serialize_snapshot
+from sim.snapshot_export import (
+    SnapshotExportError,
+    build_snapshot_document,
+    export_snapshot,
+    serialize_snapshot,
+)
+from sim.model import Cell
 _ROOT_KEYS = {
     "schema_version",
     "seed",
@@ -1680,4 +1686,81 @@ def test_cli_refuse_ticks_negatif():
     assert proc.returncode == 2
     assert "refus" in proc.stderr
     assert proc.stdout == ""
+
+
+def test_snapshot_refuse_monde_sans_carte(tmp_path: Path):
+    """Sans carte figée, aucune géométrie à photographier : on refuse, on n'invente pas."""
+    monde = World({1: Cell(cell_id=1, area_km2=1.0, population=10)}, [])
+    assert not monde.carte
+    with pytest.raises(SnapshotExportError) as refus:
+        build_snapshot_document(monde, 0, 0)
+    assert "carte" in str(refus.value)
+    dest = tmp_path / "invente.json"
+    with pytest.raises(SnapshotExportError):
+        export_snapshot(monde, 0, 0, dest)
+    assert not dest.exists()
+
+
+def test_snapshot_refuse_geometrie_ou_centroide_absent():
+    """Une cellule chargée sans géométrie, ou un centroïde amputé, se dit : rien n'est complété."""
+    monde = World.charger(0)
+    assert monde.cells, "échantillon vide : le monde chargé n'a aucune cellule"
+    cid = next(iter(sorted(monde.cells, key=int)))
+    brute = dict(monde.carte[cid])
+
+    sans_geo = dict(brute)
+    del sans_geo["geometry"]
+    monde.carte[cid] = sans_geo
+    with pytest.raises(SnapshotExportError) as refus_geo:
+        build_snapshot_document(monde, 0, 0)
+    assert "geometrie absente" in str(refus_geo.value)
+    assert str(cid) in str(refus_geo.value)
+
+    monde.carte[cid] = brute
+    centro = dict(brute["centroid"])
+    del centro["lon"]
+    ampute = dict(brute)
+    ampute["centroid"] = centro
+    monde.carte[cid] = ampute
+    with pytest.raises(SnapshotExportError) as refus_centro:
+        build_snapshot_document(monde, 0, 0)
+    assert "centroide" in str(refus_centro.value)
+    assert str(cid) in str(refus_centro.value)
+
+
+def test_snapshot_refuse_cellule_sans_position_ou_sans_province(monkeypatch):
+    """Position inconnue ou province introuvable : l'absence se déclare, elle ne s'invente pas."""
+    monde = World.charger(0)
+    assert monde.cells, "échantillon vide : le monde chargé n'a aucune cellule"
+    inconnu = max(int(cid) for cid in monde.cells) + 1
+    monde.cells[inconnu] = Cell(cell_id=inconnu, area_km2=1.0, population=1)
+    with pytest.raises(SnapshotExportError) as refus_pos:
+        build_snapshot_document(monde, 0, 0)
+    assert str(inconnu) in str(refus_pos.value)
+    assert "position" in str(refus_pos.value)
+
+    del monde.cells[inconnu]
+
+    import sim.snapshot_export as export
+
+    monkeypatch.setattr(export, "agregat_depuis_monde", lambda _monde: ())
+    with pytest.raises(SnapshotExportError) as refus_prov:
+        build_snapshot_document(monde, 0, 0)
+    assert "province absente" in str(refus_prov.value)
+
+
+def test_cli_snapshot_refuse_si_export_impossible(tmp_path: Path, monkeypatch, capsys):
+    """La CLI nomme le refus : un SnapshotExportError ne devient pas une trace."""
+    from sim import __main__ as cli
+
+    def boom(*_a, **_k):
+        raise SnapshotExportError("geometrie absente de la carte pour cell_id=1")
+
+    monkeypatch.setattr(cli, "export_snapshot", boom)
+    code = cli.main(["--ticks", "0", "--snapshot-json", str(tmp_path / "x.json")])
+    assert code == 2
+    sortie = capsys.readouterr()
+    assert "refus" in sortie.err
+    assert "geometrie absente" in sortie.err
+    assert sortie.out == ""
 
