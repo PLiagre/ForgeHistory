@@ -1,0 +1,80 @@
+name: relecture
+
+# La règle de rôle du dépôt — celui qui a écrit le code ne dit pas s'il est
+# recevable — cessait d'être tenue dès qu'on retirait l'œil du propriétaire
+# du chemin de la fusion. Ce travail la tient : il demande une approbation
+# posée sur la révision COURANTE de la PR, par une connexion qui n'a écrit
+# aucun de ses commits.
+#
+# Le verdict est un état de commit (`relecture`) posé sur cette révision,
+# pas la couleur de ce travail. C'est délibéré : une revue déposée après
+# coup arrive par `pull_request_review`, un événement dont le travail ne
+# tourne PAS sur la révision de la PR — sa propre couleur se poserait au
+# mauvais endroit. Un état, lui, nomme la révision qu'il juge. « Périmé
+# bloque » cesse alors d'être une garde qu'on écrit : c'est une propriété
+# du support.
+
+on:
+  pull_request:
+  pull_request_review:
+    types: [submitted, dismissed]
+  # Un rejeu sur `master` change la révision sans déclencher aucun
+  # événement — GitHub refuse la récursion sur ce qu'un jeton d'Actions a
+  # poussé. L'intégration redemande alors ce verdict nommément, sinon la
+  # PR resterait sans état : bloquée, et muette sur la raison.
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "le numéro de la PR à juger"
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  verdict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - name: Qui a relu, et sur quelle révision
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
+          REVISION: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -uo pipefail
+          # Sur appel, l'événement ne porte pas de révision : on la
+          # demande, plutôt que de juger une PR sans savoir laquelle.
+          if [ -z "$REVISION" ]; then
+            REVISION=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
+          fi
+          if [ -z "$REVISION" ]; then
+            echo "révision de la PR $PR introuvable : rien à juger, rien à poser" >&2
+            exit 1
+          fi
+          verdict=$(python -m outils relecture \
+            --depot "$GITHUB_REPOSITORY" --pr "$PR" --revision "$REVISION" 2>&1)
+          code=$?
+          echo "$verdict"
+          if [ "$code" -eq 0 ]; then etat=success; else etat=failure; fi
+          # La description GitHub est bornée à 140 caractères ; au-delà,
+          # l'API refuse tout l'appel et le contrôle resterait absent —
+          # c'est-à-dire bloquant, sans jamais dire pourquoi. La coupe se
+          # fait en caractères : couper des octets casserait un accent en
+          # deux et rendrait le JSON invalide.
+          court=$(python -c 'import sys; print(sys.argv[1][:140])' "$verdict")
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$REVISION" \
+            -f state="$etat" \
+            -f context=relecture \
+            -f description="$court" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            > /dev/null
+          # Ce travail rend compte de lui-même, pas du verdict : le
+          # verdict est l'état qu'il vient de poser. Il ne rougit donc que
+          # s'il n'a pas pu le poser.
+          echo "état « relecture » posé sur $REVISION : $etat"

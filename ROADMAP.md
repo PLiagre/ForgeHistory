@@ -19,8 +19,8 @@ une fiche se contredisent, la fiche a raison et la phrase est à corriger.
 
 | # | couche | où on en est |
 |---|---|---|
-| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **faite, et elle tourne** ; la mer reste à finir (lot 046) |
-| 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | **ouverte** — le premier métier existe, le bourg se compte ensuite (lot 047) |
+| 1 | **Monde vivant** — carte, terrain, climat, ressources, population, économie locale, commerce | **faite, et elle tourne** ; la mer porte les marchandises, pas encore les migrants |
+| 2 | **Villes** — urbanisation, entreprises, métiers, routes, infrastructures | **ouverte** — le premier métier existe, le bourg se compte ; fabriquer et montrer restent |
 | 3 | **États** — fiscalité, lois, diplomatie, technologies, culture, religion | non commencée |
 | 4 | **Armées** — recrutement, logistique, ravitaillement, stratégie | non commencée |
 | 5 | **Batailles tactiques** — sur les mêmes données que tout le reste | non commencée |
@@ -60,13 +60,17 @@ décide jamais.
 - **Fabriquer.** Le minerai extrait reste du minerai : rien ne le
   transforme, et une marchandise que personne ne mange n'a jamais de
   demandeur — le fer s'accumule là où il sort. C'est le lot 049.
-- **Utiliser la mer.** Les arêtes maritimes de la carte sont écartées en
-  silence. Plus d'une cellule sur trois n'a aucun voisin terrestre : elle ne
-  peut ni recevoir ni donner un kilogramme. C'est le lot 046.
-- **Compter un bourg.** La part non agricole d'une cellule existe depuis le
-  lot 044, mais aucune vue ne la lit encore. C'est le lot 047.
+- **Migrer par la mer.** Le bassin porte les marchandises depuis le lot
+  046 ; les gens, non. Une cellule sans voisin terrestre — plus d'une sur
+  trois — reçoit du grain mais aucun habitant. C'est le lot 050.
+- **Montrer le bourg.** La part non agricole d'une cellule existe depuis le
+  lot 044 et le lot 047 la compte, mais rien ne la photographie ni ne
+  l'affiche : le lot 051 l'emporte dans le snapshot, le lot 052 la met sous
+  l'œil.
 - **Concentrer les gens.** Aucun endroit ne peut abriter plus de monde qu'il
   n'en nourrit lui-même — voir ci-dessous.
+- **Dater le monde.** Le rang du jour se dérive du numéro du tick, mais le
+  monde lui-même ne porte aucune date. C'est le lot 053.
 
 ---
 
@@ -74,12 +78,11 @@ décide jamais.
 
 Une ville est un endroit qui **ne produit pas ce qu'il mange**. Trois choses
 manquaient pour qu'elle puisse exister : un métier (lot 044), la mer (lot
-046), et une vue qui compte le bourg (lot 047). Le registre dit où chacun en
-est.
+046), et une vue qui compte le bourg (lot 047). Les trois sont là — le
+registre dit à quelle PR chacune est entrée.
 
-Les lots 046 et 047 ont des périmètres disjoints (voir leurs sections
-« Périmètre ») : aucun des deux n'attend l'autre. Le 047 attend le 044, et le
-dit lui-même : sans part non agricole, son échantillon est vide et il échoue.
+Ce qui manque maintenant n'est plus une condition d'existence, c'est de la
+matière : de quoi fabriquer (049), de quoi voir (051, 052).
 
 ### Le mur, et pourquoi il est en train de tomber
 
@@ -93,9 +96,24 @@ milliers de kg par tick, et une arête d'adjacence en transportait deux cents.
 Le commerce était **près de mille fois trop petit** pour l'échelle des
 cellules. Aucun endroit ne pouvait être nourri par ses voisins.
 
-La capacité dérivée de la longueur de frontière a **baissé ce mur, sans le
-lever**. Ce qui reste : la mer (046). Le bourg (047) s'écrit sur une mesure,
-pas sur une intention — c'est pourquoi il vient après le métier.
+La capacité dérivée de la longueur de frontière a **baissé ce mur** ; la mer
+(046) l'a baissé encore, en donnant un voisin à une cellule sur trois qui
+n'en avait aucun. Le bourg (047) s'écrit sur une mesure, pas sur une
+intention — c'est pourquoi il est venu après le métier. Que le mur soit
+tombé ou seulement fendu se mesure, et c'est ce que le palier de la couche
+demandera.
+
+---
+
+## Cohérence globale — la preuve transversale manque
+
+Les tests actuels protègent des invariants et des règles visibles, mécanisme
+par mécanisme. L'historique conserve les travaux du premier jour et le tag
+`v0-avant-degraissage` leurs anciennes preuves. Mais aucun inventaire courant
+ne relie encore chaque promesse de `VISION.md` à ce qui fonctionne réellement,
+à ce qui ne fonctionne que partiellement, à ce qui manque, et à la commande
+qui permet de le constater. Un test vert ne dit donc pas quelle part de la
+vision est effectivement couverte. C'est le manque recensé par le lot 054.
 
 ---
 
@@ -125,13 +143,28 @@ quoi faire quand ça casse — est décrit après le registre.
 ## Couche 2 — ouverte
 
 ### [046 — La mer est un port commun](briefs/046-la-mer-est-un-port-commun.md)
-état : pret · couche : 1 · dépend de : — · PR : —
+état : livre · couche : 1 · dépend de : — · PR : 206
 
 ### [047 — Le bourg est une agrégation dérivée](briefs/047-le-bourg-est-une-agregation-derivee.md)
-état : pret · couche : 2 · dépend de : 044 · PR : —
+état : livre · couche : 2 · dépend de : 044 · PR : 214
 
 ### [049 — Fabriquer : le minerai devient un objet](briefs/049-fabriquer-le-minerai-devient-un-objet.md)
 état : pret · couche : 2 · dépend de : 044 · PR : —
+
+### [054 — Cohérence globale : inventaire du produit face à la vision](briefs/054-coherence-globale-inventaire-produit-vision.md)
+état : a-briefer · couche : — · dépend de : — · PR : —
+
+### [050 — On migre aussi par la mer](briefs/050-on-migre-aussi-par-la-mer.md)
+état : a-briefer · couche : 1 · dépend de : 046 · PR : —
+
+### [051 — Le snapshot photographie le bourg](briefs/051-le-snapshot-photographie-le-bourg.md)
+état : a-briefer · couche : 2 · dépend de : 047 · PR : —
+
+### [052 — Le regard mince montre le bourg](briefs/052-le-regard-mince-montre-le-bourg.md)
+état : a-briefer · couche : 2 · dépend de : 051 · PR : —
+
+### [053 — Le monde porte sa date](briefs/053-le-monde-porte-sa-date.md)
+état : a-briefer · couche : 1 · dépend de : — · PR : —
 
 ## Livrés depuis le dégraissage V1
 
@@ -203,9 +236,9 @@ sont pas recensés, et personne ne les invente.
 | état | ce que ça veut dire | qui l'écrit |
 |---|---|---|
 | `idee` | recensé et placé dans l'ordre, sans brief. Le fichier nommé par la fiche **n'existe pas encore**. | le propriétaire, dans une PR de feuille |
-| `a-briefer` | le propriétaire veut le brief maintenant. Le pilote dépose la carte, le briefer écrit le brief et ouvre sa PR. | le propriétaire |
-| `pret` | le brief est sur `master` et passe la porte (cinq sections, un périmètre nommé, des conditions qui peuvent échouer). Le pilote déposera la carte du coder dès que les dépendances sont livrées et qu'aucun fichier du périmètre n'est tenu. | la PR du brief, que le propriétaire fusionne |
-| `livre` | la PR du lot est fusionnée sur `master`. La fiche porte son numéro. | la PR du lot elle-même, que le propriétaire fusionne |
+| `a-briefer` | on veut le brief maintenant. Le pilote dépose la carte, le briefer écrit le brief et ouvre sa PR. | le propriétaire — ou l'intégration, quand une fusion finit une couche (voir « Le palier ») |
+| `pret` | le brief est sur `master` et passe la porte (cinq sections, un périmètre nommé, des conditions qui peuvent échouer). Le pilote déposera la carte du coder dès que les dépendances sont livrées et qu'aucun fichier du périmètre n'est tenu. | la PR du brief, que l'intégration fusionne |
+| `livre` | la PR du lot est fusionnée sur `master`. La fiche porte son numéro. | la PR du lot elle-même, que l'intégration fusionne |
 | `abandonne` | on n'y va pas, ou on n'y va plus. La fiche reste, avec une `note :`. | le propriétaire |
 | `archive` | livré avant le dégraissage V1 ; le brief vit au tag. | personne, plus jamais |
 
@@ -217,10 +250,11 @@ de l'atelier, des verrous et des briefs. `python3 -m atelier feuille etat
 ### Les transitions permises, et qui tient le geste
 
 ```
+—          → a-briefer   l'intégration, quand une fusion finit une couche
 idee       → a-briefer   le propriétaire (PR de feuille)
 idee       → pret        le propriétaire, quand il écrit le brief lui-même (PR qui apporte le brief)
-a-briefer  → pret        la PR du brief, écrite par le briefer, fusionnée par le propriétaire
-pret       → livre       la PR du lot, écrite par le coder, fusionnée par le propriétaire
+a-briefer  → pret        la PR du brief, écrite par le briefer, relue et intégrée
+pret       → livre       la PR du lot, écrite par le coder, relue et intégrée
 pret       → a-briefer   le propriétaire, quand le brief est à réécrire
 *          → abandonne   le propriétaire (sauf livre et archive, qui ne bougent plus)
 abandonne  → idee        le propriétaire
@@ -238,6 +272,26 @@ ne dit « livré » qu'à l'instant exact où le changement y est, et jamais
 avant : il n'y a aucune correction à faire après la fusion, donc aucune à
 oublier. La CI refuse une PR de lot (`agent/NNN-slug`) dont la fiche ne dit
 pas `livre` avec le bon numéro, ou qui touche une autre fiche.
+
+### Le palier
+
+Ce qu'un palier est, et les trois règles qui le gouvernent, vivent dans
+[AGENTS.md](AGENTS.md) § « Le palier ». Ici, ce qui le concerne comme
+fiche, et rien d'autre :
+
+- il entre **en tête du registre**, parce que l'ordre est la priorité et
+  qu'un palier passe avant les lots qui attendent : c'est lui qui dit si
+  ce qui vient d'être livré tient debout ;
+- il entre à l'état `a-briefer`, comme n'importe quelle fiche neuve, et sa
+  `dépend de` nomme les lots livrés qu'il couvre ;
+- son brief s'appelle `briefs/NNN-stabilisation-couche-N.md` — c'est à ce
+  nom, et à lui seul, que la machine le reconnaît comme palier ;
+- il arrive par une PR de feuille sur `feuille/NNN-stabilisation-couche-N`,
+  qui passe par la relecture et la CI comme les autres. Le propriétaire
+  peut la refuser : une fiche s'abandonne, elle ne s'efface pas.
+
+`py -m outils palier --projet .` dit, sans rien écrire, où en est chaque
+couche et si un palier est dû.
 
 ### Ajouter un lot, le prioriser
 
@@ -281,8 +335,14 @@ Rien n'est perdu : tout vit dans l'historique git, au tag
 `v0-avant-degraissage` (voir [AGENTS.md](AGENTS.md) § « Les archives »).
 
 Ce qui reste : la vision, le modèle, le moteur, ses tests, le regard mince,
-la carte, et les briefs. Le workflow automatique ne revient pas ici : il
-vit dans **ForgeAtelier** (branche `cursor/forgeatelier-ced6`, à détacher
-dès que le dépôt GitHub existe — voir `docs/PUBLIER.md` là-bas). Ce dépôt
-se branche avec [`atelier.toml`](atelier.toml). Le propriétaire fusionne
-toujours.
+la carte, et les briefs. L'**invocation** des agents ne revient pas ici :
+elle vit dans **ForgeAtelier** (branche `cursor/forgeatelier-ced6`, à
+détacher dès que le dépôt GitHub existe — voir `docs/PUBLIER.md` là-bas),
+et ce dépôt s'y branche avec [`atelier.toml`](atelier.toml).
+
+Ce qui **est** revenu ici, après le dégraissage, tient en un dossier de
+moins de quatre cents lignes : `outils/` et deux workflows de plus. C'est
+l'**intégration** — qui entre dans `master`, et à quelle condition. Elle
+est ici parce que `master` est ici : elle tourne sur GitHub, sans machine
+allumée chez personne, et elle ne juge rien. Le propriétaire ne fusionne
+plus les lots ; il donne des directions, et reprend ce qui tombe.

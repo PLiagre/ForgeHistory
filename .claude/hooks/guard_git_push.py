@@ -1,11 +1,11 @@
 #!/usr/bin/env py
 """
-Bloque `git push` si les tests du jeu sont rouges (hook PreToolUse, Bash).
+Bloque `git push` si les tests sont rouges (hook PreToolUse, Bash).
 
-Le workflow V1 tient sur une seule garde mécanique : rien de rouge ne
-remonte sur une branche. La CI le revérifie, mais après coup ; ici c'est
-avant. Le propriétaire lit ensuite le diff et fusionne — ça, aucune machine
-ne le fait à sa place.
+Rien de rouge ne remonte sur une branche. La CI le revérifie, mais après
+coup ; ici c'est avant, et ça épargne un tour d'intégration. Ce qui suit —
+la relecture, la fusion — ne passe plus par personne : `AGENTS.md`
+§ « Le workflow ».
 
 Sortie 2 (bloqué) si la suite échoue, 0 sinon.
 """
@@ -32,7 +32,12 @@ def main() -> int:
         return 0
 
     repo_root = Path(__file__).resolve().parent.parent.parent
-    suites = [d for d in (repo_root / "sim" / "tests", repo_root / "viewer" / "tests") if d.is_dir()]
+    candidates = (
+        repo_root / "sim" / "tests",
+        repo_root / "viewer" / "tests",
+        repo_root / "outils" / "tests",
+    )
+    suites = [d for d in candidates if d.is_dir()]
     if not suites:
         return 0  # rien à garder
 
@@ -44,7 +49,8 @@ def main() -> int:
     if result.returncode != 0:
         print(
             "Bloqué : `git push` alors que les tests sont rouges.\n"
-            f"Joué : py -m pytest sim/tests/ viewer/tests/ -q (sortie {result.returncode})\n"
+            "Joué : py -m pytest " + " ".join(d.relative_to(repo_root).as_posix() + "/" for d in suites)
+            + f" -q (sortie {result.returncode})\n"
             "Réparer d'abord, ou lancer la commande soi-même hors de ce hook "
             "pour pousser un état sciemment cassé.\n\n"
             f"{result.stdout[-2000:]}\n{result.stderr[-2000:]}",

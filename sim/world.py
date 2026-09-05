@@ -41,6 +41,23 @@ def _seed_food_stock(population: int) -> float:
     return tick_need * INITIAL_FOOD_RESERVE_TICKS
 
 
+def lire_stock_mer(world: "World", marchandise: str) -> float:
+    """
+    Lit le stock d'une marchandise dans le bassin maritime.
+
+    Absent du bassin : sentinelle -1.0 (jamais confondu avec zéro réel).
+    """
+    stocks_mer = getattr(world, "stocks_mer", None)
+    if stocks_mer is None or marchandise not in stocks_mer:
+        return -1.0
+    return stocks_mer[marchandise]
+
+
+def ecrire_stock_mer(world: "World", marchandise: str, quantite_kg: float) -> None:
+    """Écrit le stock d'une marchandise dans le bassin maritime."""
+    world.stocks_mer[marchandise] = quantite_kg
+
+
 class World:
     """
     Représentation complète du monde simulé à un instant donné.
@@ -54,6 +71,7 @@ class World:
                      modifie jamais.
         carte_meta : l'en-tête de la carte (version, projection, versions
                      du pipeline qui l'a produite).
+        stocks_mer : panier de marchandises du bassin maritime commun.
     """
 
     def __init__(self, cells: dict, adjacency: list,
@@ -62,6 +80,7 @@ class World:
         self.adjacency = adjacency
         self.carte = carte or {}
         self.carte_meta = carte_meta or {}
+        self.stocks_mer: dict[str, float] = {}
 
     @classmethod
     def lire_carte(cls) -> dict:
