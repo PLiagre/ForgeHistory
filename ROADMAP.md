@@ -131,7 +131,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : pret · couche : 2 · dépend de : 044 · PR : —
 
 ### [049 — Fabriquer : le minerai devient un objet](briefs/049-fabriquer-le-minerai-devient-un-objet.md)
-état : a-briefer · couche : 2 · dépend de : 044 · PR : —
+état : pret · couche : 2 · dépend de : 044 · PR : —
 
 ## Livrés depuis le dégraissage V1
 
