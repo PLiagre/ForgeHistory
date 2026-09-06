@@ -155,7 +155,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : a-briefer · couche : — · dépend de : — · PR : —
 
 ### [050 — On migre aussi par la mer](briefs/050-on-migre-aussi-par-la-mer.md)
-état : a-briefer · couche : 1 · dépend de : 046 · PR : —
+état : pret · couche : 1 · dépend de : 046 · PR : —
 
 ### [051 — Le snapshot photographie le bourg](briefs/051-le-snapshot-photographie-le-bourg.md)
 état : a-briefer · couche : 2 · dépend de : 047 · PR : —
