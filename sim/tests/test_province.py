@@ -42,6 +42,7 @@ from sim.aggregation import (
     province_de_cellule,
     regroupements_non_vides,
     repartition_bourg_de_cellule,
+    repartition_bourg_de_cellule_consultation,
     repartitions_avec_bourg,
 )
 from sim.model import Cell, _NoBadSpatialField
@@ -983,4 +984,28 @@ def test_bourg_consultation_par_cell_id():
     assert (
         habitants_des_champs_de_cellule(cell_id, repartitions)
         == repartition.habitants_des_champs
+    )
+
+
+def test_bourg_cellule_inconnue_n_est_pas_un_zero():
+    """Une cellule absente de la vue n'a pas 0 habitant au bourg : l'absence se déclare."""
+    monde = World.charger(rng_seed=RNG_SEED)
+    repartitions = bourg_depuis_monde(monde)
+    assert monde.cells, "échantillon vide : aucune cellule chargée"
+    inconnu = max(int(cid) for cid in monde.cells) + 1
+    assert inconnu not in monde.cells
+    assert repartition_bourg_de_cellule_consultation(inconnu, repartitions) is None
+    assert habitants_du_bourg_de_cellule(inconnu, repartitions) is None
+    assert habitants_des_champs_de_cellule(inconnu, repartitions) is None
+
+
+def test_bourg_sans_gisement_est_toute_campagne():
+    """Sans métier, tout le monde cultive : le bourg vaut zéro, la campagne est le reste."""
+    cellule = Cell(cell_id=1, area_km2=1.0, population=100)
+    repartition = repartition_bourg_de_cellule(cellule, [])
+    assert repartition.habitants_du_bourg == 0
+    assert repartition.habitants_des_champs == 100
+    assert (
+        repartition.habitants_du_bourg + repartition.habitants_des_champs
+        == cellule.population
     )

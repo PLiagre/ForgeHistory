@@ -122,6 +122,29 @@ def test_ticks_differents_graines_rng_differentes():
     )
 
 
+def test_bassin_maritime_deterministe_a_graine_fixe():
+    """
+    `World.to_dict` ne porte pas le bassin. Deux runs à graine identique
+    doivent quand même rendre le même panier mer, tick après tick — sinon
+    un déterminisme qui ne regarderait que les cellules mentirait.
+    """
+    def serie(seed: int, n: int = 20) -> list:
+        world = World.charger(rng_seed=seed)
+        rng = random.Random(seed)
+        vus = []
+        for i in range(n):
+            engine.tick(world, rng, i)
+            vus.append(dict(world.stocks_mer))
+        return vus
+
+    premiere = serie(0)
+    seconde = serie(0)
+    assert any(panier for panier in premiere), (
+        "échantillon vide : le bassin n'a jamais rien porté en 20 ticks"
+    )
+    assert premiere == seconde
+
+
 # --- test_seeding.py ---
 def test_seeding_determinisme():
     """

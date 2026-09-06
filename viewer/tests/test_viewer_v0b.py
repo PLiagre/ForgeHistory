@@ -569,3 +569,48 @@ def test_snapshot_refuse_fichier_absent_illisible_ou_sans_cellules(tmp_path: Pat
     with pytest.raises(SnapshotLoadError) as cellules:
         load_snapshot(sans_cellules)
     assert "cells absentes" in str(cellules.value)
+
+
+def test_deux_zeros_mesures_restent_comparables():
+    """Un zéro photographié est une mesure : B−A = 0, pas un gris incomparable."""
+    from viewer.classify import VALEUR, numeric_or_none
+
+    assert diff_status(0, 0) == VALEUR
+    assert numeric_diff(0, 0) == 0.0
+    assert numeric_diff(0, 4) == 4.0
+    assert numeric_or_none(0) == 0.0
+    assert numeric_or_none(0.0) == 0.0
+    assert numeric_or_none(-1) is None
+
+
+def test_le_serveur_sert_le_regard_et_le_snapshot_a(tmp_path: Path):
+    """Sans B, /snapshot.json reste A ; / et /app.js s'ouvrent. La présence
+    des fichiers n'est pas la fonction : le serveur doit les servir."""
+    import threading
+    from urllib.request import urlopen
+
+    from viewer.server import serve
+
+    world = World.charger(0)
+    snap = tmp_path / "a.json"
+    export_snapshot(world, 0, 0, snap)
+    payload = snap.read_bytes()
+    server = serve("127.0.0.1", 0, payload, None)
+    fil = threading.Thread(target=server.serve_forever, daemon=True)
+    fil.start()
+    host, port = server.server_address[:2]
+    try:
+        with urlopen(f"http://{host}:{port}/") as reponse:
+            html = reponse.read()
+            assert reponse.status == 200
+            assert b'id="map"' in html
+            assert b'id="kpis"' in html
+        with urlopen(f"http://{host}:{port}/app.js") as reponse:
+            js = reponse.read()
+            assert reponse.status == 200
+            assert b"deriveLayers" in js
+        with urlopen(f"http://{host}:{port}/snapshot.json") as reponse:
+            assert reponse.read() == payload
+    finally:
+        server.shutdown()
+        server.server_close()
