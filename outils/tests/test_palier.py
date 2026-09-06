@@ -198,3 +198,21 @@ def test_un_lot_livre_a_cote_d_archives_appelle_seul_le_palier():
     assert etape is not None
     assert etape.a_couvrir == ("046",)
     assert etape.couverts == ("033",)
+
+
+def test_un_slug_bis_ou_ter_reste_un_palier():
+    """Une réparation de brief (`-bis`, `-ter`) reste un palier : le
+    reconnaître autrement, c'est redéposer la même couche à chaque fusion."""
+    assert palier.couche_stabilisee("briefs/043-bis-stabilisation-couche-1.md") == "1"
+    assert palier.couche_stabilisee("briefs/043-ter-stabilisation-couche-2.md") == "2"
+    assert palier.couche_stabilisee("briefs/043-bis-un-lot.md") is None
+
+
+def test_un_palier_bis_couvre_les_lots_qu_il_nomme():
+    fiches = [
+        FicheFactice("046", "livre", "1"),
+        stabilisation("055-bis", "1", "livre", couvre=("046",)),
+    ]
+    assert palier.couche_stabilisee(fiches[1].chemin) == "1"
+    assert palier.due(fiches) is None
+    assert palier.etapes(fiches)[0].couverts == ("046",)
