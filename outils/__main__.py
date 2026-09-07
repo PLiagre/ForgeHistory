@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
@@ -88,9 +89,10 @@ def _integration(args: argparse.Namespace) -> int:
         print("RIEN")
         print(decision.raison, file=sys.stderr)
         return 0
-    if args.sortie:
+    fichier_sortie = args.sortie or os.environ.get("SORTIE_DECISION")
+    if fichier_sortie:
         selection = next(pr for pr in prs if pr.numero == decision.pr)
-        with Path(args.sortie).open("a", encoding="utf-8") as sortie:
+        with Path(fichier_sortie).open("a", encoding="utf-8") as sortie:
             sortie.write(f"revision={selection.revision}\n")
     print(f"{decision.action} {decision.pr}")
     print(f"→ {decision.action} PR {decision.pr} : {decision.raison}", file=sys.stderr)

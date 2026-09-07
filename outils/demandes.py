@@ -24,6 +24,12 @@ def autorisee(evenement: dict) -> bool:
     )
 
 
+def interne(gh, pr):
+    """Un préfixe de branche ne suffit pas : une fourche ne réserve rien ici."""
+    depot_tete = ((pr.get("head") or {}).get("repo") or {}).get("full_name", "")
+    return bool(depot_tete) and depot_tete.casefold() == gh.depot.casefold()
+
+
 def reservations(gh, fiches, branches=None, prs=None):
     """Numéros des branches distantes et des fiches de PR feuille ouvertes.
 
@@ -38,7 +44,7 @@ def reservations(gh, fiches, branches=None, prs=None):
         if trouve:
             numeros.add(trouve.group(1))
     for pr in prs:
-        if pr.get("state", "open") != "open" or not pr["head"]["ref"].startswith("feuille/"):
+        if not interne(gh, pr) or pr.get("state", "open") != "open" or not pr["head"]["ref"].startswith("feuille/"):
             continue
         brut = gh.get("contents/ROADMAP.md", ref=pr["head"]["sha"])
         texte = base64.b64decode(brut["content"]).decode("utf-8")
@@ -59,7 +65,7 @@ def preparer(gh, evenement, fiches, briefs="briefs"):
     numero_issue = issue["number"]
     suffixe = f"-demande-{numero_issue}"
     branches = gh.liste("branches")
-    prs = gh.liste("pulls", state="all")
+    prs = [p for p in gh.liste("pulls", state="all") if interne(gh, p)]
     anciennes = [p for p in prs if p["head"]["ref"].startswith("feuille/")
                  and p["head"]["ref"].endswith(suffixe)]
     reservees = [b["name"] for b in branches

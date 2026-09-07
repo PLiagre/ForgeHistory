@@ -126,6 +126,7 @@ def test_la_fiche_produite_est_relue_par_le_lecteur_du_registre():
 
 class _DemandesGithub:
     def __init__(self):
+        self.depot = "o/r"
         self.issue = {"number": 12, "state": "open", "author_association": "OWNER",
                       "user": {"login": "proprietaire"},
                       "body": GABARIT.format(titre="Les routes", couche="2", depend="—")}
@@ -192,7 +193,7 @@ def test_la_reprise_garde_la_reservation_meme_si_master_a_avance():
     reprise = demandes.preparer(gh, _evenement_demande(), [FicheFactice("059", "idee")])
     assert reprise["branche"] == plan["branche"]
     assert reprise["reservee"] and not reprise["fiche"]
-    gh.prs = [{"number": 240, "state": "open", "head": {"ref": plan["branche"], "sha": "a" * 40}}]
+    gh.prs = [{"number": 240, "state": "open", "head": {"ref": plan["branche"], "sha": "a" * 40, "repo": {"full_name": "o/r"}}}]
     # Coupure après création de PR : ne pas en créer une autre.
     reprise = demandes.preparer(gh, _evenement_demande(), [FicheFactice("059", "idee")])
     assert reprise["pr"] == 240
@@ -216,7 +217,7 @@ def test_les_reservations_lisent_branches_pr_feuille_et_palier():
     gh = _DemandesGithub()
     gh.branches = [{"name": "feuille/058-branche-seule"},
                    {"name": "feuille/060-stabilisation-couche-1"}]
-    gh.prs = [{"state": "open", "head": {"ref": "feuille/demande", "sha": "tete"}}]
+    gh.prs = [{"state": "open", "head": {"ref": "feuille/demande", "sha": "tete", "repo": {"full_name": "o/r"}}}]
     gh.registres["tete"] = """<!-- lots:debut -->
 
 ### [062 — Réservé par une PR](briefs/062-reserve.md)
@@ -265,3 +266,17 @@ def test_232_deux_demandes_cli_ne_reutilisent_pas_une_reservation(tmp_path, monk
     second = capsys.readouterr().out.split()[1]
     assert second != premier
     assert int(second) > int(premier)
+
+
+def test_une_pr_de_fourche_ne_reserve_ni_numero_ni_demande():
+    from outils import demandes
+    from outils.tests.test_palier import FicheFactice
+    gh = _DemandesGithub()
+    gh.depot = "o/r"
+    gh.prs = [{"number": 999, "state": "open", "head": {
+        "ref": "feuille/999-injection-demande-12", "sha": "fourche",
+        "repo": {"full_name": "externe/r"}}}]
+    plan = demandes.preparer(gh, _evenement_demande(), [FicheFactice("054", "idee")])
+    assert plan["numero"] == "055"
+    assert plan["pr"] == 0
+    assert not any(chemin == "contents/ROADMAP.md" for chemin, _ in gh.appels)
