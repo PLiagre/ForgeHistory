@@ -24,9 +24,9 @@ Raccourci qui photographie puis rend :
 python3 -m visualisateur --ticks 0 --seed 0 --png /tmp/monde-3d.png --apercu /tmp/monde-mnt.png
 ```
 
-`--png` est obligatoire. Il faut `--snapshot` **ou** `--ticks`. Un refus
-(fichier manquant, GPU absent, géométrie inconnue) sort en code 2, message
-sur stderr.
+`--png` est obligatoire (argparse refuse avant le reste). Il faut ensuite
+`--snapshot` **ou** `--ticks`. Un refus (fichier manquant, GPU absent,
+géométrie inconnue) sort en code 2, message sur stderr.
 
 | option | défaut | rôle |
 |---|---|---|
