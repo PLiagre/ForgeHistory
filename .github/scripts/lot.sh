@@ -18,8 +18,8 @@ reservee=false
 reponse=false
 numero_pr=0
 
-if [ -n "${GITHUB_EVENT_PATH:-}" ]; then
-  plan=$(python3 -m outils demande --projet . --depot "$DEPOT" --evenement "$GITHUB_EVENT_PATH")
+if [ -n "${EVENEMENT_LOT:-}" ]; then
+  plan=$(python3 -m outils demande --projet . --depot "$DEPOT" --evenement "$EVENEMENT_LOT")
   if [ "$plan" = RIEN ]; then
     echo "demande ignorée ou déjà traitée ; aucune écriture"
     exit 0

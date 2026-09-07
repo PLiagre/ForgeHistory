@@ -391,7 +391,7 @@ def _evenement_lot(banc, association="NONE", action="opened"):
         "issue": {"number": 12, "state": "open", "user": {"login": "demandeur"},
                   "author_association": association, "labels": [{"name": "lot"}]},
     }))
-    return {"GITHUB_EVENT_PATH": evenement, "PYTHONPATH": str(RACINE)}
+    return {"EVENEMENT_LOT": evenement, "PYTHONPATH": str(RACINE)}
 
 
 def test_232_une_issue_externe_ne_provoque_aucune_ecriture(banc):
@@ -432,7 +432,7 @@ def test_la_reprise_apres_push_ouvre_une_seule_pr_sans_repousser(banc):
     _plan_du_lot(banc, "deposer 055 feuille/055-routes-demande-12 12 0 true false")
     banc.poser("git")
     banc.poser("gh", sortie="https://github.com/o/r/pull/240")
-    result = banc.jouer("lot.sh", DEPOT="o/r", GITHUB_EVENT_PATH="evenement.json")
+    result = banc.jouer("lot.sh", DEPOT="o/r", EVENEMENT_LOT="evenement.json")
     assert result.returncode == 0, result.stderr
     assert not banc.appel("git push")
     assert sum("gh pr create" in a for a in banc.appels) == 1
@@ -444,7 +444,7 @@ def test_la_reprise_apres_commentaire_ne_repete_aucune_ecriture_sauf_fermeture(b
     _plan_du_lot(banc, "deposer 055 feuille/055-routes-demande-12 12 240 true true")
     banc.poser("git")
     banc.poser("gh")
-    result = banc.jouer("lot.sh", DEPOT="o/r", GITHUB_EVENT_PATH="evenement.json")
+    result = banc.jouer("lot.sh", DEPOT="o/r", EVENEMENT_LOT="evenement.json")
     assert result.returncode == 0, result.stderr
     assert len(banc.appels) == 1
     assert banc.appel("gh issue close 12")

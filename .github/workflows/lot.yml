@@ -56,5 +56,6 @@ jobs:
           PYTHONPATH: .forgeatelier
           GITHUB_TOKEN: ${{ github.token }}
           DEPOT: ${{ github.repository }}
+          EVENEMENT_LOT: ${{ github.event_path }}
           BASE: master
         run: bash .github/scripts/lot.sh

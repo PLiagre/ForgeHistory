@@ -238,3 +238,30 @@ def test_une_lecture_de_reservations_refusee_n_alloue_rien():
     gh.liste = refus
     with pytest.raises(github.GithubErreur):
         demandes.reservations(gh, [])
+
+
+def test_232_deux_demandes_cli_ne_reutilisent_pas_une_reservation(tmp_path, monkeypatch, capsys):
+    from argparse import Namespace
+    from outils import github
+    from outils.__main__ import _saisie
+    gh = _DemandesGithub()
+    monkeypatch.setattr(github, "Github", lambda *_args: gh)
+    (tmp_path / "atelier.toml").write_text('[projet]\nfeuille = "ROADMAP.md"\n')
+    (tmp_path / "ROADMAP.md").write_text('''<!-- lots:debut -->
+
+### [054 — Présent dans master](briefs/054-present.md)
+état : a-briefer · couche : — · dépend de : — · PR : —
+
+<!-- lots:fin -->
+''')
+    corps = tmp_path / "demande.md"
+    corps.write_text(GABARIT.format(titre="Les routes", couche="2", depend="—"))
+    args = Namespace(projet=tmp_path, corps=corps, ecrire=False, depot="o/r")
+    assert _saisie(args) == 0
+    premier = capsys.readouterr().out.split()[1]
+    # Le premier dépôt est encore en branche, pas dans master.
+    gh.branches.append({"name": f"feuille/{premier}-premiere-demande"})
+    assert _saisie(args) == 0
+    second = capsys.readouterr().out.split()[1]
+    assert second != premier
+    assert int(second) > int(premier)
