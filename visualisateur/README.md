@@ -34,14 +34,47 @@ dérivé de l'étendue de la carte.
 
 ## Dépendances (ce paquet seulement)
 
+Les versions sont dans `requirements.txt` (`forge3d>=1.35.0`). Le jeu
+tourne sans ce paquet.
+
 ```bash
-python3 -m pip install numpy pillow forge3d
+python3 -m pip install -r visualisateur/requirements.txt
 ```
 
 `sim/` et `viewer/` restent en bibliothèque standard. Rien d'ici
 n'y entre.
 
+## Interface
+
+Il faut `--snapshot` **ou** `--ticks`. Les deux absents : refus, code 2.
+`--png` est obligatoire.
+
+| option | défaut | rôle |
+|---|---|---|
+| `--snapshot` | — | photographie JSON déjà écrite |
+| `--ticks` / `--seed` | — / `0` | photographier puis rendre (écrit `/tmp/visualisateur-monde.json`) |
+| `--png` | (requis) | image 3D écrite par forge3d |
+| `--apercu` | — | PNG vue du dessus du raster, pas un rendu 3D |
+| `--largeur` | 640 | largeur du MNT rasterisé (pas de l'image) |
+| `--largeur-px` / `--hauteur-px` | 1280 / 720 | taille de l'image forge3d |
+
+La caméra est `mesh:zup`, sans tuilage : un seul cadre pour le monde
+entier. L'exagération verticale est un facteur de **lecture**, dérivé de
+l'étendue du MNT.
+
+## Quand ça refuse (code 2)
+
+- snapshot introuvable, ou `--snapshot` et `--ticks` tous les deux absents ;
+- géométrie inconnue, snapshot sans cellule, classe de relief hors des
+  cinq de la carte (`marais`, `plaine`, `colline`, `montagne`,
+  `haute_montagne`) — jamais une altitude inventée ;
+- `forge3d` absent du venv, ou aucun adaptateur GPU (installer
+  `mesa-vulkan-drivers`, ou une carte).
+
+`WGPU_BACKENDS=vulkan` est posé **avant** l'import de forge3d : wgpu
+verrouille le backend au premier contexte.
+
 ## Hors périmètre
 
 Pas de fenêtre interactive. Pas de mer navigable. Pas de villes.
-Pas de second monde.
+Pas de second monde. Pas de bourg.

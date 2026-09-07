@@ -30,12 +30,14 @@ constantes, limites — dans [`MODELE.md`](MODELE.md).
 | `sim/__init__.py` | Paquet Python, expose `__version__` |
 | `sim/constants.py` | Constantes paramétriques nommées (voir `sim/MODELE.md`) |
 | `sim/model.py` | Dataclass `Cell` — entité géographique de base |
-| `sim/world.py` | `World` — chargement depuis les artefacts G3, sérialisation |
-| `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
-| `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
+| `sim/world.py` | `World` — chargement de `data/world-1400.json`, panier `stocks_mer` du bassin |
+| `sim/engine.py` | `tick(world, rng, numero_tick)` — extraction, production, commerce (terre + mer), consommation, faim, mortalité, natalité, migration |
+| `sim/aggregation.py` | Vues dérivées : province (centre le plus proche) et bourg (part non agricole). Ne modifie rien, n'écrit rien |
 | `sim/__main__.py` | `py -m sim` — lance le monde |
 | `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`) |
 | `sim/MODELE.md` | Comment le monde fonctionne : formules, constantes, limites |
+
+`--ticks` négatif est un refus (code 2), pas un monde rejoué à l'envers.
 
 ---
 
@@ -81,15 +83,15 @@ suite de tests (artefacts de preuve, non collectés par pytest).
 
 ## Règles architecturales importantes
 
-- **Une seule clé spatiale** : `cell_id`. `Province` est une agrégation
-  dérivée — jamais un champ stocké. `sim/aggregation.py` met cette règle en
-  œuvre : la vue dérivée `Regroupement` y est déclarée, hors de `sim.model`,
-  et le déplacement d'un centre administratif recalcule l'appartenance sans
-  réécrire aucune cellule.
-- **Commerce inter-cellules physique** : les arêtes d'adjacence (leur
-  nombre se lit dans `data/world-1400.json`, jamais recopié ici) sont lues
-  par `_apply_commerce` à chaque tick. Transfert borné par la capacité de
-  l'arête. Conservation stricte de la masse.
+- **Une seule clé spatiale** : `cell_id`. `Province` et `Bourg` sont des
+  agrégations dérivées — jamais un champ stocké. `sim/aggregation.py` met
+  cette règle en œuvre : le tick ne consulte aucune des deux vues.
+- **Commerce physique** : arêtes terrestres bornées par la longueur de
+  frontière ; côtes bornées par la façade, via un bassin commun
+  (`World.stocks_mer`). Conservation stricte de la masse, bassin compris.
+  Le minerai ne voyage pas : personne ne le consomme.
+- **Un métier** : à gisement, une part de la population cesse de cultiver
+  pour extraire (`part_miniere_de`). C'est aussi ce que le bourg compte.
 - **Population agrégée** : pas encore de familles ou de personnes individuelles.
 - **stdlib uniquement** : le moteur n'a aucune dépendance tierce (pytest est
   réservé aux tests).
