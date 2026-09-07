@@ -1,5 +1,8 @@
 """L'intégration lit des contrôles, jamais un avis — et un inconnu retient."""
 
+
+import pytest
+
 from outils import integration
 from outils.integration import Controle, PR
 
@@ -169,3 +172,207 @@ def test_la_raison_de_la_fusion_dit_qui_a_relu():
     decision = integration.examiner(pr(), REQUIS, PREFIXES)
     assert decision.action == integration.FUSIONNER
     assert "pliagre" in decision.raison
+
+
+def _atelier_integration(dossier, controles, branches):
+    """Un branchement de banc : les listes sont celles du test, pas du dépôt."""
+    lignes = [
+        "[projet]",
+        'nom = "Essai"',
+        'feuille = "ROADMAP.md"',
+        'branche_base = "master"',
+        "",
+        "[integration]",
+        "controles = [" + ", ".join(f'"{c}"' for c in controles) + "]",
+        "branches = [" + ", ".join(f'"{b}"' for b in branches) + "]",
+    ]
+    (dossier / "atelier.toml").write_text("\n".join(lignes) + "\n", encoding="utf-8")
+    return dossier
+
+
+def test_une_liste_de_branches_vide_est_un_branchement_incomplet(tmp_path):
+    """Sans préfixe, toute PR serait « hors préfixe » : on refuse à la lecture."""
+    from outils import registre
+
+    _atelier_integration(tmp_path, controles=("sim",), branches=())
+    with pytest.raises(registre.BranchementIncomplet) as refus:
+        registre.integration(tmp_path)
+    assert "branches" in str(refus.value)
+
+
+def test_un_statut_github_en_echec_n_est_pas_un_succes():
+    """`state: failure` d'un status externe se lit comme un contrôle rouge,
+    pas comme un succès déguisé. La clé `check_runs` absente n'invente rien."""
+    from outils import github
+
+    class Faux:
+        def get(self, chemin, **_):
+            if "check-runs" in chemin:
+                return {}
+            return {"statuses": [{"context": "sim", "state": "failure"}]}
+
+    trouves = github.controles(Faux(), "a" * 40)
+    assert trouves == [("sim", "completed", "failure")]
+    assert integration.etat_du_controle(*trouves[0][1:]) == integration.ROUGE
+
+
+def test_github_injoignable_se_nomme():
+    """Un réseau mort n'est pas une liste vide : la boucle doit s'arrêter à voix haute."""
+    from outils import github
+
+    gh = github.Github("O/R", jeton="x", api="http://127.0.0.1:1")
+    with pytest.raises(github.GithubErreur) as refus:
+        gh.get("pulls/1")
+    assert "injoignable" in str(refus.value)
+
+
+def test_une_pr_integrable_demande_le_detail():
+    """Le complément du brouillon : une PR dans le préfixe appelle le détail,
+    sinon la fusionnabilité reste inconnue et rien n'entre — pour toujours."""
+    from outils.__main__ import _pr_integrable
+
+    class Faux:
+        def __init__(self):
+            self.appels = []
+
+        def get(self, chemin, **_):
+            self.appels.append(chemin)
+            if chemin.startswith("pulls/"):
+                return {
+                    "head": {"sha": "a" * 40, "ref": "agent/049-x"},
+                    "mergeable": True,
+                }
+            if "check-runs" in chemin:
+                return {"check_runs": []}
+            if "status" in chemin:
+                return {"statuses": []}
+            if chemin.startswith("compare/"):
+                return {"behind_by": 0}
+            raise AssertionError(chemin)
+
+        def liste(self, chemin, **_):
+            self.appels.append(chemin)
+            if chemin.endswith("/commits"):
+                return [{"author": {"login": "auteur"}, "committer": None}]
+            if chemin.endswith("/reviews"):
+                return []
+            raise AssertionError(chemin)
+
+    faux = Faux()
+    obtenu = _pr_integrable(
+        faux,
+        {"number": 200, "head": {"ref": "agent/049-x"}, "draft": False},
+        "master",
+        ("agent/",),
+    )
+    assert obtenu.fusionnable is True
+    assert obtenu.retard == 0
+    assert any(appel.startswith("pulls/") for appel in faux.appels)
+    assert any("check-runs" in appel for appel in faux.appels)
+    assert any("compare/" in appel for appel in faux.appels)
+
+
+class _GithubDecision:
+    """GitHub de banc pour la ligne que le workflow découpe."""
+
+    def __init__(self, bruts, detail, behind_by, check_runs):
+        self.bruts = bruts
+        self.detail = detail
+        self.behind_by = behind_by
+        self.check_runs = check_runs
+
+    def liste(self, chemin, **_k):
+        if chemin == "pulls":
+            return self.bruts
+        if chemin.endswith("/commits"):
+            return [{"author": {"login": "auteur"}, "committer": None}]
+        if chemin.endswith("/reviews"):
+            return [{"user": {"login": "tiers"}, "state": "APPROVED",
+                     "commit_id": self.detail["head"]["sha"]}]
+        raise AssertionError(chemin)
+
+    def get(self, chemin, **_k):
+        if chemin.startswith("pulls/"):
+            return self.detail
+        if "check-runs" in chemin:
+            return {"check_runs": self.check_runs}
+        if "status" in chemin:
+            return {"statuses": []}
+        if chemin.startswith("compare/"):
+            return {"behind_by": self.behind_by}
+        raise AssertionError(chemin)
+
+
+def _cli_integration(tmp_path, monkeypatch, capsys, faux):
+    from outils import github
+    from outils.__main__ import main
+
+    monkeypatch.setattr(github, "Github", lambda *a, **k: faux)
+    code = main(
+        ["integration", "--depot", "O/R", "--projet", str(tmp_path), "--jeton", "x"]
+    )
+    return code, capsys.readouterr()
+
+
+def test_cli_integration_imprime_rien_quand_aucune_pr(tmp_path, monkeypatch, capsys):
+    """Le workflow lit stdout : `RIEN` tout seul, rien d'autre."""
+    _atelier_integration(tmp_path, controles=REQUIS, branches=PREFIXES)
+    code, io = _cli_integration(
+        tmp_path, monkeypatch, capsys,
+        _GithubDecision([], {}, 0, []),
+    )
+    assert code == 0
+    assert io.out == "RIEN\n"
+
+
+def test_cli_integration_imprime_fusionner_puis_le_numero(tmp_path, monkeypatch, capsys):
+    """`cut -d' ' -f1/f2` du workflow : `fusionner 200`, pas un autre format."""
+    _atelier_integration(tmp_path, controles=REQUIS, branches=PREFIXES)
+    verts = [
+        {"name": nom, "status": "completed", "conclusion": "success"} for nom in REQUIS
+    ]
+    code, io = _cli_integration(
+        tmp_path, monkeypatch, capsys,
+        _GithubDecision(
+            [{"number": 200, "head": {"ref": "agent/049-x"}, "draft": False}],
+            {"head": {"sha": "a" * 40, "ref": "agent/049-x"}, "mergeable": True},
+            0,
+            verts,
+        ),
+    )
+    assert code == 0
+    assert io.out == "fusionner 200\n"
+
+
+def test_cli_integration_imprime_rebaser_avant_la_relecture(tmp_path, monkeypatch, capsys):
+    """En retard, la ligne est `rebaser N` : le workflow rejoue, il ne fusionne pas."""
+    _atelier_integration(
+        tmp_path, controles=REQUIS, branches=PREFIXES
+    )
+    sans_relecture = [
+        {"name": nom, "status": "completed", "conclusion": "success"}
+        for nom in REQUIS
+        if nom != "relecture"
+    ]
+    code, io = _cli_integration(
+        tmp_path, monkeypatch, capsys,
+        _GithubDecision(
+            [{"number": 200, "head": {"ref": "agent/049-x"}, "draft": False}],
+            {"head": {"sha": "a" * 40, "ref": "agent/049-x"}, "mergeable": True},
+            3,
+            sans_relecture,
+        ),
+    )
+    assert code == 0
+    assert io.out == "rebaser 200\n"
+
+
+def test_la_plus_ancienne_en_retard_passe_avant_une_verte_a_jour():
+    """L'intégration est séquentielle : la plus ancienne d'abord, même si une
+    plus récente est déjà prête à entrer. Sauter le rejeu, c'est fusionner
+    deux PR qui n'ont jamais été testées l'une sur l'autre."""
+    rapport = integration.decider(
+        [pr(numero=210), pr(numero=205, retard=2)], REQUIS, PREFIXES
+    )
+    assert rapport.decision.action == integration.REBASER
+    assert rapport.decision.pr == 205
