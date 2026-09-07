@@ -66,7 +66,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          decision=$(SORTIE_DECISION="$GITHUB_OUTPUT" python -m outils integration --depot "$GITHUB_REPOSITORY" --projet .)
+          decision=$(SORTIE_DECISION="$GITHUB_OUTPUT" python3 -m outils integration --depot "$GITHUB_REPOSITORY" --projet .)
           echo "decision=$decision" >> "$GITHUB_OUTPUT"
           echo "$decision"
 
@@ -109,7 +109,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          ligne=$(python -m outils palier --projet . --depot "$GITHUB_REPOSITORY" --ecrire 2> palier.log)
+          ligne=$(python3 -m outils palier --projet . --depot "$GITHUB_REPOSITORY" --ecrire 2> palier.log)
           cat palier.log
           echo "ligne=$ligne" >> "$GITHUB_OUTPUT"
           echo "$ligne"
