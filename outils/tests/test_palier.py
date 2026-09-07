@@ -1,6 +1,8 @@
 """Le palier se déclenche sur une mesure, jamais sur une intention."""
 
 from dataclasses import dataclass, field
+import subprocess
+import sys
 
 import pytest
 
@@ -198,3 +200,108 @@ def test_un_lot_livre_a_cote_d_archives_appelle_seul_le_palier():
     assert etape is not None
     assert etape.a_couvrir == ("046",)
     assert etape.couverts == ("033",)
+
+
+class _FeuilleFactice:
+    """Ce que `registre.feuille` rend, réduit à ce que la CLI lit."""
+
+    def __init__(self, fiches, chemin):
+        self.fiches = fiches
+        self.chemin = chemin
+
+
+def _cli_palier(tmp_path, monkeypatch, capsys, fiches, ecrire=False):
+    """La ligne que le workflow découpe, sans l'atelier ni GitHub."""
+    from outils import registre
+    from outils.__main__ import main
+
+    chemin = tmp_path / "ROADMAP.md"
+    if not chemin.exists():
+        chemin.write_text("# titre\n\n<!-- lots:debut -->\n", encoding="utf-8")
+    monkeypatch.setattr(
+        registre, "branchement",
+        lambda _r: {"feuille": "ROADMAP.md", "base": "master", "briefs": "briefs"},
+    )
+    monkeypatch.setattr(
+        registre, "feuille", lambda _r: _FeuilleFactice(fiches, chemin)
+    )
+
+    class _Atelier:
+        REPERE_DEBUT = "<!-- lots:debut -->"
+
+    monkeypatch.setattr(registre, "atelier", lambda: _Atelier)
+    argv = ["palier", "--projet", str(tmp_path)]
+    if ecrire:
+        argv.append("--ecrire")
+    code = main(argv)
+    return code, capsys.readouterr(), chemin
+
+
+def test_cli_palier_imprime_rien_quand_aucune_couche_n_attend(tmp_path, monkeypatch, capsys):
+    """Le workflow compare stdout à `RIEN`. Une autre casse ouvrirait une PR."""
+    fiches = [
+        FicheFactice("046", "livre", "1"),
+        FicheFactice("050", "pret", "1"),
+    ]
+    code, io, chemin = _cli_palier(tmp_path, monkeypatch, capsys, fiches)
+    assert code == 0
+    assert io.out == "RIEN\n"
+    assert chemin.read_text(encoding="utf-8") == "# titre\n\n<!-- lots:debut -->\n"
+
+
+def test_cli_palier_imprime_le_format_que_le_workflow_decoupe(tmp_path, monkeypatch, capsys):
+    """`cut -d' ' -f2/f3/f4` : `palier N slug couche=C`, quatre champs, rien d'autre."""
+    fiches = [
+        FicheFactice("046", "livre", "1"),
+        FicheFactice("050", "livre", "1"),
+    ]
+    code, io, chemin = _cli_palier(tmp_path, monkeypatch, capsys, fiches)
+    assert code == 0
+    champs = io.out.strip().split(" ")
+    assert champs == ["palier", "051", "051-stabilisation-couche-1", "couche=1"]
+    assert champs[3].split("=", 1)[1] == "1"
+    assert chemin.read_text(encoding="utf-8") == "# titre\n\n<!-- lots:debut -->\n"
+    assert "sans --ecrire" in io.err
+
+
+def test_cli_palier_ecrire_pose_la_fiche_en_tete(tmp_path, monkeypatch, capsys):
+    """`--ecrire` est le seul geste qui touche le registre. Sans lui, rien n'est écrit ;
+    avec lui, la fiche entre en tête — c'est ce que le workflow commit ensuite."""
+    fiches = [
+        FicheFactice("046", "livre", "1"),
+        FicheFactice("050", "livre", "1"),
+    ]
+    avant = "# titre\n\n<!-- lots:debut -->\n\n### [046 — La mer](briefs/046-la-mer.md)\n"
+    chemin_avant = tmp_path / "ROADMAP.md"
+    chemin_avant.write_text(avant, encoding="utf-8")
+
+    code, io, chemin = _cli_palier(
+        tmp_path, monkeypatch, capsys, fiches, ecrire=False
+    )
+    assert code == 0
+    assert chemin.read_text(encoding="utf-8") == avant
+
+    code, io, chemin = _cli_palier(
+        tmp_path, monkeypatch, capsys, fiches, ecrire=True
+    )
+    assert code == 0
+    assert io.out == "palier 051 051-stabilisation-couche-1 couche=1\n"
+    texte = chemin.read_text(encoding="utf-8")
+    assert texte.startswith("# titre\n\n<!-- lots:debut -->\n\n### [051 —")
+    assert "stabilisation-couche-1.md" in texte
+    assert "dépend de : 046, 050" in texte
+    assert "### [046 — La mer]" in texte
+    assert texte.index("### [051 —") < texte.index("### [046 — La mer]")
+
+
+def test_cli_palier_sans_branchement_n_imprime_pas_rien(tmp_path):
+    """Un FAIL lu sur stdout comme une ligne de palier ouvrirait une PR.
+    Il va sur stderr, le code n'est pas 0, stdout reste vide — pas `RIEN`."""
+    proc = subprocess.run(
+        [sys.executable, "-m", "outils", "palier", "--projet", str(tmp_path)],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 1
+    assert "FAIL" in proc.stderr
+    assert proc.stdout == ""

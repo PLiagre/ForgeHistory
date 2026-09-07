@@ -171,3 +171,14 @@ def test_un_tardif_absent_de_la_liste_requise_ne_s_invente_pas():
     fait. Un nom qui n'est que là ne bloque rien."""
     decision = integration.examiner(pr(), REQUIS, PREFIXES, ("un-fantome",))
     assert decision.action == integration.FUSIONNER
+
+
+def test_la_plus_ancienne_en_retard_passe_avant_une_verte_a_jour():
+    """L'intégration est séquentielle : la plus ancienne d'abord, même si une
+    plus récente est déjà prête à entrer. Sauter le rejeu, c'est fusionner
+    deux PR qui n'ont jamais été testées l'une sur l'autre."""
+    rapport = integration.decider(
+        [pr(numero=210), pr(numero=205, retard=2)], REQUIS, PREFIXES
+    )
+    assert rapport.decision.action == integration.REBASER
+    assert rapport.decision.pr == 205
