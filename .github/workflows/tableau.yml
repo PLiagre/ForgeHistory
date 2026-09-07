@@ -29,15 +29,13 @@ concurrency:
 permissions:
   contents: read
   pull-requests: read
-  pages: write
-  id-token: write
+  pages: read
 
 jobs:
   ecrire:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.publier.outputs.page_url }}
+    outputs:
+      publier: ${{ steps.pages.outputs.publier }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -55,7 +53,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PYTHONPATH: .forgeatelier
-        run: python -m outils tableau --depot "$GITHUB_REPOSITORY" --projet . --sortie site/index.html
+        run: python3 -m outils tableau --depot "$GITHUB_REPOSITORY" --projet . --sortie site/index.html
 
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
@@ -66,6 +64,17 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           DEPOT: ${{ github.repository }}
         run: bash .github/scripts/pages.sh
-      - id: publier
-        if: steps.pages.outputs.publier == 'true'
+
+  publier:
+    needs: ecrire
+    if: needs.ecrire.outputs.publier == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - id: deploiement
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

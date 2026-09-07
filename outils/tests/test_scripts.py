@@ -510,3 +510,14 @@ def test_actions_ne_fusionne_pas_sans_revision_jugee(banc):
                         REVISION_ATTENDUE="", EXIGER_REVISION="true")
     assert result.returncode == 1
     assert banc.appel("gh pr merge") is None
+
+
+def test_le_tableau_absent_ne_declare_pas_un_deploiement_reussi():
+    from outils.tests.banc import RACINE
+    texte = (RACINE / ".github/workflows/tableau.yml").read_text()
+    ecriture, publication = texte.split("\n  publier:\n")
+    assert "upload-pages-artifact@" in ecriture
+    assert "environment:" not in ecriture
+    assert "if: needs.ecrire.outputs.publier == 'true'" in publication
+    assert "name: github-pages" in publication
+    assert "actions/deploy-pages@" in publication
