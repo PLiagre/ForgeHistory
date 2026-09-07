@@ -22,10 +22,10 @@ ajoute ses cas dans le fichier qui porte déjà l'invariant concerné.
 | fichier | ce qu'il protège |
 |---|---|
 | `test_survie.py` | faim, dette alimentaire, mortalité, direction du modèle de survie |
-| `test_commerce.py` | conservation de la masse, un kg ne nourrit qu'une fois, pas de sur-livraison |
-| `test_province.py` | la province est dérivée, jamais stockée |
+| `test_commerce.py` | conservation de la masse, un kg ne nourrit qu'une fois, pas de sur-livraison ; bassin maritime (quai, délai d'un tick, refus de façade) |
+| `test_province.py` | la province et le bourg sont dérivés, jamais stockés ; le tick ne consulte aucune des deux vues |
 | `test_determinisme.py` | même graine, même monde ; départage stable des égalités |
-| `test_monde.py` | chargement de la carte, ligne de commande, schéma du snapshot |
+| `test_monde.py` | chargement de la carte, ligne de commande (`--ticks` négatif refuse), schéma du snapshot, métier du mineur |
 | `test_no_hardcoded.py` | aucun nombre magique dans le moteur |
 | `test_write_coverage.py` | tout champ du modèle est écrit quelque part et lu quelque part |
 

@@ -88,7 +88,8 @@ l'intégration séquentielle.
 
 ## Jouer les décisions à la main
 
-Rien n'est écrit : ces trois commandes lisent.
+Rien n'est écrit : ces trois commandes lisent. Détail des cinq sous-commandes,
+jeton et pièges : [`outils/README.md`](../outils/README.md).
 
 ```bash
 export PYTHONPATH=/opt/ForgeAtelier            # ou le clone de la branche

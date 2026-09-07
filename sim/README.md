@@ -9,6 +9,9 @@ py -m sim --ticks 0 --json
 py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/world.json
 ```
 
+`--ticks` doit être ≥ 0. Un négatif refuse (code 2), message sur stderr, stdout
+vide. `py -m sim --ticks 0 --json` amorce sans avancer.
+
 `--snapshot-json` écrit une photographie cellulaire déterministe (schéma
 `SNAPSHOT_SCHEMA_VERSION`) : géométrie, état simulé, province dérivée,
 climat. Ce n'est pas une seconde simulation. Le snapshot déclare lui-même,
@@ -30,11 +33,11 @@ constantes, limites — dans [`MODELE.md`](MODELE.md).
 | `sim/__init__.py` | Paquet Python, expose `__version__` |
 | `sim/constants.py` | Constantes paramétriques nommées (voir `sim/MODELE.md`) |
 | `sim/model.py` | Dataclass `Cell` — entité géographique de base |
-| `sim/world.py` | `World` — chargement depuis les artefacts G3, sérialisation |
-| `sim/engine.py` | `tick(world, rng)` — avance le monde d'un pas de temps (production + consommation + commerce + faim + mortalité) |
-| `sim/aggregation.py` | Agrégation dérivée : regroupe les cellules par centre administratif le plus proche. Ne modifie rien, n'écrit rien |
+| `sim/world.py` | `World` — chargement depuis la carte figée. Porte aussi `stocks_mer`, le bassin maritime, **hors** de `to_dict()` |
+| `sim/engine.py` | `tick(world, rng, numero_tick)` — extraction, production, commerce (terre + mer), consommation, faim, mortalité, natalité, migration |
+| `sim/aggregation.py` | Vues dérivées : province (`Regroupement`) et bourg (`RepartitionBourg`). Ne modifie rien, n'écrit rien. Le tick ne les consulte pas |
 | `sim/__main__.py` | `py -m sim` — lance le monde |
-| `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`) |
+| `sim/snapshot_export.py` | Photographie cellulaire déterministe (`--snapshot-json`). Recalcule la province ; **ne porte ni le bassin ni le bourg** |
 | `sim/MODELE.md` | Comment le monde fonctionne : formules, constantes, limites |
 
 ---
@@ -81,15 +84,28 @@ suite de tests (artefacts de preuve, non collectés par pytest).
 
 ## Règles architecturales importantes
 
-- **Une seule clé spatiale** : `cell_id`. `Province` est une agrégation
-  dérivée — jamais un champ stocké. `sim/aggregation.py` met cette règle en
-  œuvre : la vue dérivée `Regroupement` y est déclarée, hors de `sim.model`,
-  et le déplacement d'un centre administratif recalcule l'appartenance sans
-  réécrire aucune cellule.
-- **Commerce inter-cellules physique** : les arêtes d'adjacence (leur
-  nombre se lit dans `data/world-1400.json`, jamais recopié ici) sont lues
-  par `_apply_commerce` à chaque tick. Transfert borné par la capacité de
-  l'arête. Conservation stricte de la masse.
+- **Une seule clé spatiale** : `cell_id`. Province et bourg sont des
+  agrégations dérivées — jamais un champ stocké. `sim/aggregation.py` met
+  cette règle en œuvre, hors de `sim.model`. Consulter le bourg :
+  `from sim.aggregation import bourg_depuis_monde`.
+- **Commerce physique** : arêtes terrestres bornées par la longueur de
+  frontière ; arêtes maritimes vers un bassin commun (`World.stocks_mer`),
+  bornées par la façade. Un kilogramme embarqué au tick `t` ne débarque
+  qu'à `t+1`. La mer ne porte que les marchandises consommées. Conservation
+  stricte de la masse, bassin compris.
+- **Division du travail** : une part des habitants d'une cellule à gisement
+  cesse de cultiver pour extraire (`part_miniere_de`). Ce qu'ils sortent
+  reste dans la cellule : rien ne consomme le minerai.
 - **Population agrégée** : pas encore de familles ou de personnes individuelles.
 - **stdlib uniquement** : le moteur n'a aucune dépendance tierce (pytest est
   réservé aux tests).
+
+## Pièges
+
+- `python` nu est interdit (règle 1). Sur Linux : `python3` ; sur Windows : `py`.
+- `tick(world, rng)` **sans** `numero_tick` ne joue pas le jour du calendrier :
+  il moyenne la saison sur l'année. C'est le piège du deuxième régime, décrit
+  dans `sim/MODELE.md`. `py -m sim` passe le numéro. `python3 -m visualisateur
+  --ticks N` ne le passe pas.
+- Le snapshot n'est pas le monde : pas de `stocks_mer`, pas de bourg. Une
+  photographie qui « n'a pas de mer » n'est pas un monde sans mer.
