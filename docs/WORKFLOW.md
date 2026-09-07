@@ -293,9 +293,12 @@ Dans **Settings → Branches → Add branch protection rule**, cibler `master` :
 - exiger `sim`, `viewer`, `visualisateur`, `outils`, `feuille`, `gitleaks` ;
 - activer **Require branches to be up to date before merging** ;
 - activer **Do not allow bypassing the above settings** (administrateurs inclus) ;
-- ne pas imposer d'approbations GitHub supplémentaires : la relecture
+- activer **Require a pull request before merging**, avec zéro
+  approbation GitHub supplémentaire : la relecture
   indépendante sur la révision courante est exigée par l'intégration ;
 - interdire les poussées forcées et la suppression de `master`.
+
+Référence : [API officielle de protection](https://docs.github.com/en/rest/branches/branch-protection#update-branch-protection).
 
 Corps équivalent pour `PUT /repos/PLiagre/ForgeHistory/branches/master/protection`
 (à appliquer avec un accès d'administration ; ne pas remplacer à l'aveugle
@@ -308,7 +311,9 @@ une protection existante plus stricte) :
     "contexts": ["sim", "viewer", "visualisateur", "outils", "feuille", "gitleaks"]
   },
   "enforce_admins": true,
-  "required_pull_request_reviews": null,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0
+  },
   "restrictions": null,
   "allow_force_pushes": false,
   "allow_deletions": false
