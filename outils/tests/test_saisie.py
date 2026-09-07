@@ -122,3 +122,119 @@ def test_la_fiche_produite_est_relue_par_le_lecteur_du_registre():
     assert fiche.couche == "2"
     assert fiche.depend_de == ("047",)
     assert fiche.chemin == "briefs/055-les-routes-relient-les-villes.md"
+
+
+class _DemandesGithub:
+    def __init__(self):
+        self.issue = {"number": 12, "state": "open", "author_association": "OWNER",
+                      "user": {"login": "proprietaire"},
+                      "body": GABARIT.format(titre="Les routes", couche="2", depend="—")}
+        self.branches = []
+        self.prs = []
+        self.commentaires = []
+        self.registres = {}
+        self.appels = []
+
+    def get(self, chemin, **params):
+        self.appels.append((chemin, params))
+        if chemin == "issues/12":
+            return self.issue
+        if chemin == "contents/ROADMAP.md":
+            import base64
+            return {"content": base64.b64encode(self.registres[params["ref"]].encode()).decode()}
+        raise AssertionError(chemin)
+
+    def liste(self, chemin, **params):
+        self.appels.append((chemin, params))
+        return {"branches": self.branches, "pulls": self.prs,
+                "issues/12/comments": self.commentaires}[chemin]
+
+
+def _evenement_demande(association="OWNER", action="opened"):
+    return {"action": action, "sender": {"login": "proprietaire"}, "issue": {
+        "number": 12, "author_association": association, "user": {"login": "proprietaire"},
+        "labels": [{"name": "lot"}]}}
+
+
+@pytest.mark.parametrize("association", ["NONE", "CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "", None])
+def test_une_association_sans_confiance_ne_lit_meme_pas_github(association):
+    from outils import demandes
+    gh = _DemandesGithub()
+    assert demandes.preparer(gh, _evenement_demande(association), [])["action"] == "RIEN"
+    assert gh.appels == []
+
+
+@pytest.mark.parametrize("association", ["OWNER", "MEMBER", "COLLABORATOR"])
+def test_les_associations_de_confiance_sont_explicites(association):
+    from outils import demandes
+    assert demandes.autorisee(_evenement_demande(association))
+
+
+def test_un_evenement_trafique_ou_sans_libelle_ne_passe_pas():
+    from outils import demandes
+    event = _evenement_demande()
+    event["sender"]["login"] = "externe"
+    assert not demandes.autorisee(event)
+    event = _evenement_demande()
+    event["issue"]["labels"] = []
+    assert not demandes.autorisee(event)
+
+
+def test_la_reprise_garde_la_reservation_meme_si_master_a_avance():
+    from outils import demandes
+    from outils.tests.test_palier import FicheFactice
+    gh = _DemandesGithub()
+    plan = demandes.preparer(gh, _evenement_demande(), [FicheFactice("054", "idee")])
+    assert plan["numero"] == "055"
+    assert plan["fiche"]
+    gh.branches = [{"name": plan["branche"]}]
+    # Coupure après push : reprendre la même branche, sans fiche nouvelle.
+    reprise = demandes.preparer(gh, _evenement_demande(), [FicheFactice("059", "idee")])
+    assert reprise["branche"] == plan["branche"]
+    assert reprise["reservee"] and not reprise["fiche"]
+    gh.prs = [{"number": 240, "state": "open", "head": {"ref": plan["branche"], "sha": "a" * 40}}]
+    # Coupure après création de PR : ne pas en créer une autre.
+    reprise = demandes.preparer(gh, _evenement_demande(), [FicheFactice("059", "idee")])
+    assert reprise["pr"] == 240
+    gh.commentaires = [{"user": {"login": demandes.BOT}, "body": "<!-- demande-lot:12:succes -->"}]
+    assert demandes.preparer(gh, _evenement_demande(), [])["reponse"]
+    gh.issue["state"] = "closed"
+    assert demandes.preparer(gh, _evenement_demande(), [])["action"] == "RIEN"
+
+
+def test_un_commentaire_externe_ne_fait_pas_croire_au_succes():
+    from outils import demandes
+    from outils.tests.test_palier import FicheFactice
+    gh = _DemandesGithub()
+    gh.commentaires = [{"user": {"login": "externe"}, "body": "<!-- demande-lot:12:succes -->"}]
+    assert not demandes.preparer(gh, _evenement_demande(), [FicheFactice("054", "idee")])["reponse"]
+
+
+def test_les_reservations_lisent_branches_pr_feuille_et_palier():
+    from outils import demandes, palier
+    from outils.tests.test_palier import FicheFactice
+    gh = _DemandesGithub()
+    gh.branches = [{"name": "feuille/058-branche-seule"},
+                   {"name": "feuille/060-stabilisation-couche-1"}]
+    gh.prs = [{"state": "open", "head": {"ref": "feuille/demande", "sha": "tete"}}]
+    gh.registres["tete"] = """<!-- lots:debut -->
+
+### [062 — Réservé par une PR](briefs/062-reserve.md)
+état : a-briefer · couche : — · dépend de : — · PR : —
+
+<!-- lots:fin -->
+"""
+    fiches = [FicheFactice("054", "idee")]
+    reserves = demandes.reservations(gh, fiches)
+    assert {"054", "058", "060", "062"} <= reserves
+    assert palier.numero_libre(fiches, reserves) == "063"
+
+
+def test_une_lecture_de_reservations_refusee_n_alloue_rien():
+    from outils import demandes, github
+    gh = _DemandesGithub()
+    def refus(*args, **kwargs):
+        raise github.GithubErreur("403")
+    gh.liste = refus
+    with pytest.raises(github.GithubErreur):
+        demandes.reservations(gh, [])

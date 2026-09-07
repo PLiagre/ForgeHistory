@@ -1,36 +1,43 @@
 name: lot
 
-# Une demande de lot devient une fiche au registre.
-#
-# C'est le maillon qui manquait pour que le propriétaire n'ait plus qu'à
-# donner des directions : il remplit un formulaire, la fiche entre par une
-# proposition relue comme les autres, et il n'édite plus `ROADMAP.md` à la
-# main — donc il ne peut plus s'y tromper.
-#
-# Le geste vit dans `.github/scripts/lot.sh` ; la lecture du formulaire
-# dans `outils/saisie.py`. Ce fichier n'appelle que l'un puis l'autre.
-
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened]
 
-# Deux demandes à la suite prendraient le même numéro libre : elles
-# passent l'une après l'autre.
-concurrency:
-  group: registre
-  cancel-in-progress: false
-
+# Le formulaire public n'accorde aucun droit. La première tâche ne peut
+# que lire ; seul son verdict ouvre la tâche qui possède un jeton d'écriture.
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  actions: write
+  contents: read
 
 jobs:
+  autoriser:
+    runs-on: ubuntu-latest
+    outputs:
+      autorise: ${{ steps.garde.outputs.autorise }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.13"
+      - id: garde
+        run: bash .github/scripts/autoriser-lot.sh
+
   deposer:
-    # Le libellé est la porte : une demande écrite à la main sans le
-    # formulaire n'entre pas au registre par accident.
-    if: contains(github.event.issue.labels.*.name, 'lot')
+    needs: autoriser
+    if: needs.autoriser.outputs.autorise == 'true'
+    # Même verrou que l'intégration, donc que son dépôt de palier.
+    concurrency:
+      group: registre
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -44,34 +51,10 @@ jobs:
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.13"
-
-      - name: Lire la demande
-        id: demande
+      - name: Lire, réserver et déposer la demande
         env:
           PYTHONPATH: .forgeatelier
-          CORPS: ${{ github.event.issue.body }}
-        run: |
-          set -euo pipefail
-          printf '%s' "$CORPS" > demande.md
-          ligne=$(python -m outils saisie --projet . --corps demande.md --ecrire)
-          echo "ligne=$ligne" >> "$GITHUB_OUTPUT"
-          echo "$ligne"
-
-      - name: Déposer la fiche
-        env:
           GITHUB_TOKEN: ${{ github.token }}
           DEPOT: ${{ github.repository }}
-          LIGNE: ${{ steps.demande.outputs.ligne }}
           BASE: master
-          ISSUE: ${{ github.event.issue.number }}
         run: bash .github/scripts/lot.sh
-
-      - name: Dire pourquoi, si ça n'a pas marché
-        if: failure()
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          ISSUE: ${{ github.event.issue.number }}
-        run: |
-          # Un refus muet laisserait la demande ouverte sans raison, et
-          # personne ne saurait qu'il faut la corriger.
-          gh issue comment "$ISSUE" --body "La demande n'a pas pu devenir une fiche. Le journal dit pourquoi : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

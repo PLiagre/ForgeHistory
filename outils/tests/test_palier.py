@@ -198,3 +198,12 @@ def test_un_lot_livre_a_cote_d_archives_appelle_seul_le_palier():
     assert etape is not None
     assert etape.a_couvrir == ("046",)
     assert etape.couverts == ("033",)
+
+
+def test_232_deux_attributions_reservent_des_numeros_distincts():
+    fiches = [FicheFactice("054", "idee")]
+    reserves = ["055", "058", "060"]  # PR ouverte, branche seule, palier en attente
+    premier = palier.numero_libre(fiches, reserves)
+    second = palier.numero_libre(fiches, [*reserves, premier])
+    assert int(premier) > max(map(int, reserves))
+    assert int(second) > int(premier)

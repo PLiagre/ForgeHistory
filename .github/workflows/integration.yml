@@ -38,8 +38,9 @@ on:
 # Sans cette clause, deux réveils simultanés fusionneraient deux PR qui
 # n'ont jamais été testées l'une sur l'autre.
 concurrency:
-  group: integration
+  group: registre
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: write
@@ -65,7 +66,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          decision=$(python -m outils integration --depot "$GITHUB_REPOSITORY" --projet .)
+          decision=$(python -m outils integration --depot "$GITHUB_REPOSITORY" --projet . --sortie "$GITHUB_OUTPUT")
           echo "decision=$decision" >> "$GITHUB_OUTPUT"
           echo "$decision"
 
@@ -75,6 +76,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           DEPOT: ${{ github.repository }}
           DECISION: ${{ steps.decision.outputs.decision }}
+          EXIGER_REVISION: "true"
+          REVISION_ATTENDUE: ${{ steps.decision.outputs.revision }}
           BASE: master
         # `$GITHUB_OUTPUT` est un chemin que le runner pose dans
         # l'environnement : il se passe au script, il ne se recompose pas.
@@ -103,9 +106,10 @@ jobs:
         id: palier
         env:
           PYTHONPATH: .forgeatelier
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          ligne=$(python -m outils palier --projet . --ecrire 2> palier.log)
+          ligne=$(python -m outils palier --projet . --depot "$GITHUB_REPOSITORY" --ecrire 2> palier.log)
           cat palier.log
           echo "ligne=$ligne" >> "$GITHUB_OUTPUT"
           echo "$ligne"

@@ -380,3 +380,133 @@ def test_sans_demande_a_refermer_le_depot_se_fait_quand_meme(banc):
     assert resultat.returncode == 0
     assert banc.appel("gh pr create") is not None
     assert banc.appel("gh issue close") is None
+
+
+def _evenement_lot(banc, association="NONE", action="opened"):
+    import json
+    from outils.tests.banc import RACINE
+    evenement = banc.dossier / "evenement.json"
+    evenement.write_text(json.dumps({
+        "action": action, "sender": {"login": "demandeur"},
+        "issue": {"number": 12, "state": "open", "user": {"login": "demandeur"},
+                  "author_association": association, "labels": [{"name": "lot"}]},
+    }))
+    return {"GITHUB_EVENT_PATH": evenement, "PYTHONPATH": str(RACINE)}
+
+
+def test_232_une_issue_externe_ne_provoque_aucune_ecriture(banc):
+    _registre(banc)
+    banc.poser("git", selon=[(["ls-remote"], "", 2)])
+    banc.poser("gh", sortie="https://github.com/o/r/pull/240")
+    resultat = banc.jouer("lot.sh", DEPOT="o/r", ISSUE="12",
+                          LIGNE="lot 055 055-les-routes", **_evenement_lot(banc))
+    assert resultat.returncode == 0, resultat.stderr
+    assert not banc.appels, banc.appels
+
+
+def test_232_l_evenement_labeled_ne_refait_pas_le_depot(banc):
+    _registre(banc)
+    banc.poser("git", selon=[(["ls-remote"], "abc\trefs/heads/feuille/055-les-routes", 0)])
+    banc.poser("gh")
+    resultat = banc.jouer("lot.sh", DEPOT="o/r", ISSUE="12",
+                          LIGNE="lot 055 055-les-routes",
+                          **_evenement_lot(banc, "OWNER", "labeled"))
+    assert resultat.returncode == 0, resultat.stderr
+    assert not banc.appels, banc.appels
+
+
+def _plan_du_lot(banc, plan):
+    import sys
+    import shlex
+    # Le banc de gh/git utilise python3 dans son shebang : il garde le vrai
+    # interpréteur. Seule la décision est injectée, les gestes restent réels.
+    executable = banc.bin / "python3"
+    executable.write_text('#!/bin/bash\nif [ "$1 $2 $3" = "-m outils demande" ]; then\n'
+                          + '  echo ' + shlex.quote(plan) + '\nelse\n  exec '
+                          + shlex.quote(sys.executable) + ' "$@"\nfi\n')
+    executable.chmod(0o755)
+
+
+def test_la_reprise_apres_push_ouvre_une_seule_pr_sans_repousser(banc):
+    _registre(banc)
+    _plan_du_lot(banc, "deposer 055 feuille/055-routes-demande-12 12 0 true false")
+    banc.poser("git")
+    banc.poser("gh", sortie="https://github.com/o/r/pull/240")
+    result = banc.jouer("lot.sh", DEPOT="o/r", GITHUB_EVENT_PATH="evenement.json")
+    assert result.returncode == 0, result.stderr
+    assert not banc.appel("git push")
+    assert sum("gh pr create" in a for a in banc.appels) == 1
+    assert sum("gh issue comment" in a for a in banc.appels) == 1
+
+
+def test_la_reprise_apres_commentaire_ne_repete_aucune_ecriture_sauf_fermeture(banc):
+    _registre(banc)
+    _plan_du_lot(banc, "deposer 055 feuille/055-routes-demande-12 12 240 true true")
+    banc.poser("git")
+    banc.poser("gh")
+    result = banc.jouer("lot.sh", DEPOT="o/r", GITHUB_EVENT_PATH="evenement.json")
+    assert result.returncode == 0, result.stderr
+    assert len(banc.appels) == 1
+    assert banc.appel("gh issue close 12")
+
+
+def test_les_deux_workflows_partagent_le_verrou_sans_ecraser_la_file():
+    from outils.tests.banc import RACINE
+    lot = (RACINE / ".github/workflows/lot.yml").read_text()
+    integration = (RACINE / ".github/workflows/integration.yml").read_text()
+    assert "types: [opened]" in lot
+    assert "needs.autoriser.outputs.autorise == 'true'" in lot
+    for texte in (lot, integration):
+        assert "group: registre" in texte
+        assert "queue: max" in texte
+        assert "cancel-in-progress: false" in texte
+    assert 'outils palier --projet . --depot "$GITHUB_REPOSITORY" --ecrire' in integration
+    assert 'ref: master' in integration
+
+
+def test_pages_absent_conserve_le_succes_sans_annoncer_de_publication(banc):
+    executable = banc.bin / "gh"
+    executable.write_text('#!/bin/bash\necho "gh: Not Found (HTTP 404)" >&2\nexit 1\n')
+    executable.chmod(0o755)
+    sortie = banc.dossier / "sortie"
+    resume = banc.dossier / "resume"
+    result = banc.jouer("pages.sh", DEPOT="o/r", GITHUB_OUTPUT=sortie, GITHUB_STEP_SUMMARY=resume)
+    assert result.returncode == 0, result.stderr
+    assert sortie.read_text() == "publier=false\n"
+    assert "aucune page publiée" in resume.read_text()
+    assert "Settings → Pages → Source → GitHub Actions" in resume.read_text()
+
+
+def test_pages_une_vraie_erreur_reste_rouge(banc):
+    executable = banc.bin / "gh"
+    executable.write_text('#!/bin/bash\necho "gh: Forbidden (HTTP 403)" >&2\nexit 1\n')
+    executable.chmod(0o755)
+    result = banc.jouer("pages.sh", DEPOT="o/r", GITHUB_OUTPUT=banc.dossier / "sortie",
+                        GITHUB_STEP_SUMMARY=banc.dossier / "resume")
+    assert result.returncode == 1
+    assert "403" in result.stderr
+
+
+def test_pages_actions_active_autorise_le_deploiement(banc):
+    banc.poser("gh", sortie='{"build_type":"workflow"}')
+    sortie = banc.dossier / "sortie"
+    result = banc.jouer("pages.sh", DEPOT="o/r", GITHUB_OUTPUT=sortie,
+                        GITHUB_STEP_SUMMARY=banc.dossier / "resume")
+    assert result.returncode == 0, result.stderr
+    assert sortie.read_text() == "publier=true\n"
+
+
+def test_la_fusion_est_epinglee_sur_la_revision_jugee(banc):
+    banc.poser("gh", sortie="brief/049-fabriquer")
+    result = banc.jouer("integrer.sh", DEPOT="o/r", DECISION="fusionner 226",
+                        REVISION_ATTENDUE=TETE, EXIGER_REVISION="true")
+    assert result.returncode == 0, result.stderr
+    assert banc.appel("gh pr merge", "--match-head-commit", TETE)
+
+
+def test_actions_ne_fusionne_pas_sans_revision_jugee(banc):
+    banc.poser("gh", sortie="brief/049-fabriquer")
+    result = banc.jouer("integrer.sh", DEPOT="o/r", DECISION="fusionner 226",
+                        REVISION_ATTENDUE="", EXIGER_REVISION="true")
+    assert result.returncode == 1
+    assert banc.appel("gh pr merge") is None
