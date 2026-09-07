@@ -319,3 +319,64 @@ def test_rien_a_deposer_ne_touche_ni_git_ni_github(banc):
 
     assert resultat.returncode == 0
     assert banc.appels == []
+
+
+# ------------------------------------------------------------- saisie
+
+
+def _registre(banc):
+    (banc.dossier / "ROADMAP.md").write_text("# registre\n", encoding="utf-8")
+
+
+def test_une_demande_devient_une_branche_une_pr_et_une_reponse(banc):
+    _registre(banc)
+    banc.poser("git", selon=[(["ls-remote"], "", 2)])
+    banc.poser("gh", sortie="https://github.com/o/r/pull/240")
+    resultat = banc.jouer(
+        "lot.sh", DEPOT="o/r", LIGNE="lot 055 055-les-routes", BASE="master", ISSUE="12",
+    )
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert banc.appel("git checkout -b feuille/055-les-routes") is not None
+    assert banc.appel("git add ROADMAP.md") is not None
+    assert banc.appel("git push -u origin feuille/055-les-routes") is not None
+    assert banc.appel("gh pr create") is not None
+    # Les contrôles sont redemandés : une PR du jeton d'Actions n'en a aucun.
+    assert banc.valeur(banc.appel("gh workflow run relecture.yml"), "pr") == "240"
+    # La demande reçoit sa réponse et se referme : personne ne se demande
+    # ce qu'elle est devenue.
+    assert banc.appel("gh issue comment 12") is not None
+    assert banc.appel("gh issue close 12") is not None
+
+
+def test_le_commit_de_la_fiche_porte_une_connexion_reliable(banc):
+    _registre(banc)
+    banc.poser("git", selon=[(["ls-remote"], "", 2)])
+    banc.poser("gh", sortie="https://github.com/o/r/pull/240")
+    banc.jouer("lot.sh", DEPOT="o/r", LIGNE="lot 055 055-les-routes", ISSUE="12")
+    assert banc.appel("git config user.email")[-1].endswith("users.noreply.github.com")
+
+
+def test_une_demande_deja_traitee_ne_repart_pas(banc):
+    """La branche existe : la fiche est déjà partie. Refaire le geste
+    ouvrirait une seconde proposition pour le même lot."""
+    _registre(banc)
+    banc.poser("git", selon=[(["ls-remote"], "abc\trefs/heads/feuille/055-les-routes", 0)])
+    banc.poser("gh")
+    resultat = banc.jouer("lot.sh", DEPOT="o/r", LIGNE="lot 055 055-les-routes", ISSUE="12")
+
+    assert resultat.returncode == 1
+    assert "déjà" in resultat.stderr
+    assert banc.appel("gh pr create") is None
+
+
+def test_sans_demande_a_refermer_le_depot_se_fait_quand_meme(banc):
+    """Le geste doit valoir aussi quand on l'appelle à la main."""
+    _registre(banc)
+    banc.poser("git", selon=[(["ls-remote"], "", 2)])
+    banc.poser("gh", sortie="https://github.com/o/r/pull/240")
+    resultat = banc.jouer("lot.sh", DEPOT="o/r", LIGNE="lot 055 055-les-routes", ISSUE="")
+
+    assert resultat.returncode == 0
+    assert banc.appel("gh pr create") is not None
+    assert banc.appel("gh issue close") is None

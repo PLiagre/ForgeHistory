@@ -26,14 +26,16 @@ s'arrête.
 
 ---
 
-## Les quatre travaux
+## Les six travaux
 
 | workflow | quand | ce qu'il dit | le geste |
 |---|---|---|---|
-| `tests` | poussée, PR, appel | `sim`, `viewer`, `outils`, `feuille` | — |
+| `tests` | poussée, PR, appel | `sim`, `viewer`, `visualisateur`, `outils`, `feuille` | — |
 | `security` | poussée, PR, appel | `gitleaks` : aucun secret committé | — |
 | `relecture` | PR, revue déposée, appel | pose l'état `relecture` sur la révision de la PR — pour l'œil, pas pour la porte | `scripts/relecture.sh` |
 | `integration` | fin des trois autres, revue, chaque heure, appel | fusionne la PR verte suivante, puis dépose le palier s'il est dû | `scripts/integrer.sh`, `scripts/palier.sh` |
+| `lot` | une demande de lot est ouverte | écrit sa fiche au registre et ouvre la PR | `scripts/lot.sh` |
+| `tableau` | fin de l'intégration, poussée, chaque heure, appel | réécrit la page « où en est le travail » | — |
 
 La liste des contrôles qui gouvernent la fusion n'est pas ici : elle est
 dans [`atelier.toml`](../atelier.toml) § `[integration]`, et c'est celle-là
@@ -152,12 +154,33 @@ Le réglage à poser une fois, dans *Settings → Branches → master* :
   qu'elle porte sur la révision courante et qu'elle ne vient pas d'un
   auteur du code. GitHub ne sait faire ni l'un ni l'autre.
 
+## Demander un lot, et voir où on en est
+
+**Demander** : ouvrir une demande avec le gabarit « Demander un lot ». Le
+travail `lot` lit le formulaire, écrit la fiche en tête du registre à
+l'état `a-briefer`, ouvre la PR et referme la demande en donnant son
+numéro. Une dépendance qui n'existe pas au registre fait refuser la
+demande, avec la raison en commentaire — on ne dépend pas d'un fantôme.
+
+`ROADMAP.md` ne s'édite plus à la main. C'est ce qui fait qu'on ne peut
+plus s'y tromper de format, de numéro ou d'état.
+
+**Voir** : la page du travail, réécrite à chaque tour de l'intégration.
+Elle sort sur GitHub Pages ; le réglage à poser une fois est
+*Settings → Pages → Source : GitHub Actions*. Tant qu'il ne l'est pas, la
+page est écrite quand même et déposée en pièce jointe du run — elle
+existe, elle n'est pas publiée.
+
+Elle ne décide rien : les états viennent du registre, et la raison qui
+retient chaque PR vient de la décision de l'intégration — la même
+fonction que celle qui fusionne, pas une paraphrase.
+
 ## Ce qui reste au propriétaire
 
 Trois gestes, et ce sont les seuls :
 
-1. **Donner une direction.** Une phrase devient des fiches, les fiches
-   deviennent des briefs.
+1. **Donner une direction.** Une demande de lot par le formulaire ; la
+   fiche entre au registre, le bon de travail s'écrit ensuite.
 2. **Reprendre ce qui est tombé.** Une carte en `echec/`, une PR fermée,
    un verrou qui traîne : [ROADMAP.md](../ROADMAP.md) § « Quand ça casse ».
 3. **Fusionner ce qui n'est pas un lot.** Une branche à lui, une
@@ -185,10 +208,11 @@ py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
 py -m viewer --snapshot /tmp/monde.json
 ```
 
-Un moteur de rendu terrain récupéré vit à part :
-[PLiagre/forge3d](https://github.com/PLiagre/forge3d). Sur **cette
-branche**, `visualisateur/` lui parle. Il n'est pas dans le jeu.
-`viewer/` reste le regard mince, en bibliothèque standard.
+Le moteur de rendu vit à part, dans son propre dépôt :
+[PLiagre/forge3d](https://github.com/PLiagre/forge3d) — du Rust, une
+interface Python. `visualisateur/` est le pont : il lit une photographie
+du monde et lui demande une image. Il ne simule rien, et le jeu tourne
+sans lui. `viewer/` reste le regard mince, en bibliothèque standard.
 
 ```bash
 python3 -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json

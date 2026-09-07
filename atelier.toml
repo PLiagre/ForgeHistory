@@ -30,7 +30,7 @@ controle = "claude"
 # par du code que la PR peut changer. L'intégration calcule ce verdict-là
 # elle-même, avec le module de `master` ; l'état reste ce qui rend la PR
 # lisible, il n'est pas ce qui l'ouvre.
-controles = ["sim", "viewer", "outils", "feuille", "gitleaks"]
+controles = ["sim", "viewer", "visualisateur", "outils", "feuille", "gitleaks"]
 # Les branches que l'intégration fusionne. Le reste attend le
 # propriétaire : une expérience qui passe au vert n'est pas un lot.
 branches = ["agent/", "brief/", "feuille/"]

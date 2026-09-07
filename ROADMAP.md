@@ -145,15 +145,29 @@ contrôles redemandés avant que le rejeu ait changé la révision, donc
 qui bloquait sa couche pour toujours et en silence. Les quatre sont
 fermées, chacune avec son cas sur le banc.
 
-**Joué sur le banc, jamais en ligne** : la fusion, le rejeu d'une PR en
-retard, le dépôt d'un palier. Chacun a ses contrôles et son rouge prouvé,
-aucun n'a encore été fait par GitHub. Le premier lot qui passera le cycle
-entier est ce qui les mesurera.
+**A été mesuré le 7 septembre 2026** : entre le 5 et le 7, l'intégration
+s'est réveillée quarante fois et a répondu `RIEN` quarante fois. Trois bons
+de travail (049, 050, 051) attendaient sans qu'aucun contrôle `relecture`
+n'existe sur leur révision — le travail mourait avant de le poser. La
+chaîne était donc arrêtée depuis sa mise en place, et elle le disait dans
+son journal sans que personne le lise. C'est ce que la page du travail
+existe pour montrer.
 
-**Reste un geste qui n'est pas du code** : la protection de `master` — les
-contrôles de `[integration].controles` déclarés obligatoires côté GitHub,
-et `enforce_admins`. Sans elle, l'intégration reste correcte, mais rien
-n'empêche une main de fusionner du rouge. C'est arrivé le 4 septembre.
+**Joué sur le banc, jamais en ligne** : la fusion, le rejeu d'une PR en
+retard, le dépôt d'un palier, le dépôt d'une fiche demandée. Chacun a ses
+contrôles et son rouge prouvé, aucun n'a encore été fait par GitHub. Le
+premier lot qui passera le cycle entier est ce qui les mesurera.
+
+**Restent deux gestes qui ne sont pas du code**, tous deux à poser une
+fois dans les options du dépôt :
+
+- la **protection de `master`** — les contrôles de
+  `[integration].controles` déclarés obligatoires, et `enforce_admins`.
+  Sans elle, l'intégration reste correcte, mais rien n'empêche une main de
+  fusionner du rouge. C'est arrivé le 4 septembre.
+- **Pages → Source : GitHub Actions**, pour que la page du travail soit
+  publiée. Sans lui, elle est écrite à chaque tour et reste en pièce
+  jointe du run.
 
 ---
 

@@ -30,7 +30,8 @@ phrase la première fois.
 Le propriétaire donne une direction. Le reste avance sans lui.
 
 1. Une fiche entre au registre de [ROADMAP.md](ROADMAP.md), état
-   `a-briefer`.
+   `a-briefer` — par le formulaire « Demander un lot », qui l'écrit et
+   ouvre sa PR. Le registre ne s'édite plus à la main.
 2. Le **briefer** écrit `briefs/NNN-slug.md` sur `brief/NNN-slug` et ouvre
    sa PR ; elle passe la fiche à `pret`.
 3. Le **coder** exécute le brief sur `agent/NNN-slug` et ouvre sa PR ; elle
@@ -44,6 +45,11 @@ Le propriétaire donne une direction. Le reste avance sans lui.
 Trois choses seulement restent au propriétaire : donner des directions,
 reprendre ce qui est tombé, et fusionner ce qui n'est pas un lot — une
 expérience, une branche à lui. Il ne fusionne pas les lots.
+
+Il n'a pas non plus à aller chercher où en est le travail : la page
+`tableau` est réécrite à chaque tour et dit, pour chaque lot son état, et
+pour chaque PR ouverte ce qui la retient — avec les mots de l'intégration
+elle-même, pas une paraphrase.
 
 ### Ce qui remplace son œil sur le bouton
 
@@ -298,12 +304,13 @@ processus : elles survivent à tout changement de workflow.
 | `briefs/` | un fichier par lot. |
 | `outils/` | ce que la CI **décide** : qui a relu, quelle PR entre dans `master`, quand une couche finie appelle son palier. Il ne parle jamais au jeu, et il n'écrit jamais sur GitHub. |
 | `.github/scripts/` | ce que la CI **fait** : poser un état, fusionner, rejouer, déposer une fiche. Du shell dans des fichiers, joués sur un banc. |
-| `.github/workflows/` | les quatre travaux : `tests`, `security`, `relecture`, `integration`. Ils appellent les deux ci-dessus ; ils ne portent pas de logique. |
+| `.github/ISSUE_TEMPLATE/` | le formulaire par lequel une demande de lot entre au registre. Ses intitulés sont lus par `outils/saisie.py` : les changer d'un côté seulement fait rougir. |
+| `.github/workflows/` | les six travaux : `tests`, `security`, `relecture`, `integration`, `lot`, `tableau`. Ils appellent les deux ci-dessus ; ils ne portent pas de logique. |
 | `ROADMAP.md` | où on en est, et le registre des lots — la seule représentation de l'état d'un lot. |
 | `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier, et la liste des contrôles requis pour entrer dans `master`. |
 | `docs/WORKFLOW.md` | rappel local : les trois postes de *ce* produit, et le lien vers l'atelier. |
 | hors arbre : [forge3d](https://github.com/PLiagre/forge3d) | moteur de rendu terrain récupéré (Rust/WebGPU, API Python). Dépôt séparé. Il photographie un relief ; il ne simule pas. Il n'entre ni dans `sim/` ni dans `viewer/`. |
-| `visualisateur/` | regard 3D, **cette branche seulement**, comme l'atelier. Lit une photographie, parle à forge3d. Ne fusionne pas dans le jeu. |
+| `visualisateur/` | le regard 3D. Lit une photographie, la donne à forge3d, rend une image. Il ne décide aucun nombre. **Le seul dossier du dépôt qui demande des bibliothèques extérieures** — elles sont déclarées dans son `requirements.txt`, et lui seul les exige. |
 
 ## Les archives
 
@@ -332,11 +339,14 @@ py -m sim --ticks 0 --json               # fumée : le monde s'amorce
 py -m pytest sim/tests/ -q               # les tests du jeu
 py -m pytest viewer/tests/ -q            # le regard mince
 py -m pytest outils/tests/ -q            # ce que la CI décide, et ce qu'elle fait
+py -m pytest visualisateur/tests/ -q     # le regard 3D (demande son requirements.txt)
 
 # ce que la CI décide, joué à la main (lecture seule, rien n'est écrit)
 py -m outils palier --projet .           # une couche finie attend-elle son palier ?
 py -m outils integration --depot PLiagre/ForgeHistory --projet .
 py -m outils relecture --depot PLiagre/ForgeHistory --pr N
+py -m outils tableau --depot PLiagre/ForgeHistory --projet . --sortie /tmp/etat.html
+py -m outils saisie --projet . --corps demande.md
 
 # la feuille de route : cohérente ? où en est chaque lot ?
 # (l'atelier sur le PYTHONPATH — voir docs/WORKFLOW.md)
@@ -348,8 +358,15 @@ py -m sim --ticks 0 --seed 0 --snapshot-json /tmp/monde.json
 py -m viewer --snapshot /tmp/monde.json
 ```
 
-Le moteur, le regard et les outils sont en bibliothèque standard seule ;
-seuls les tests demandent `pytest`, et ceux d'`outils/` demandent en plus
-l'atelier sur le `PYTHONPATH` — c'est lui qui lit le registre, et il n'y a
-qu'un lecteur. Il n'y a pas de linter : les garde-fous du dépôt sont les
-tests, la relecture et l'œil du propriétaire sur les captures.
+Le moteur, le regard mince et les outils sont en bibliothèque standard
+seule, et ça ne se négocie pas : c'est ce qui fait qu'ils tournent partout,
+sans rien installer. `visualisateur/` est l'exception, et elle est bornée —
+il parle à un moteur de rendu écrit en Rust, il ne pouvait pas ne rien
+demander. Rien d'autre ne dépend de lui, et le jeu tourne sans lui.
+
+Les tests demandent `pytest` ; ceux d'`outils/` demandent en plus l'atelier
+sur le `PYTHONPATH` — c'est lui qui lit le registre, et il n'y a qu'un
+lecteur ; ceux du `visualisateur/` demandent son `requirements.txt`.
+
+Il n'y a pas de linter : les garde-fous du dépôt sont les tests, la
+relecture et l'œil du propriétaire sur les captures.
