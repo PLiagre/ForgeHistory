@@ -1,10 +1,12 @@
 # visualisateur/
 
-Regard 3D hors du jeu. Cette branche est au visualisateur ce que
-`cursor/forgeatelier-ced6` est à l'atelier : **à part**, à détacher. Elle
-ne fusionne pas dans le produit.
+Regard 3D. Il **lit** une photographie de `sim/` et n'en décide aucun
+nombre — comme `viewer/`, un étage plus loin.
 
-Elle **lit** une photographie de `sim/`. Elle ne décide aucun nombre.
+Il est le seul dossier du dépôt à demander des bibliothèques extérieures
+(`requirements.txt`). C'est assumé : parler à un moteur de rendu écrit en
+Rust ne se fait pas en bibliothèque standard. Rien d'autre ne dépend de
+lui, et le jeu tourne sans lui — `py -m sim` n'a besoin de rien.
 Le moteur de rendu est le fork [PLiagre/forge3d](https://github.com/PLiagre/forge3d)
 (paquet PyPI `forge3d`).
 
