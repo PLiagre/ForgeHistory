@@ -18,6 +18,18 @@ import urllib.request
 
 API = "https://api.github.com"
 
+# Ce que GitHub accepte dans la description d'un état de commit. Au-delà,
+# l'API refuse tout l'appel : l'état ne serait pas posé, donc absent, donc
+# bloquant — et muet sur la raison. La borne se tient ici, en caractères :
+# couper des octets casserait un accent en deux.
+BORNE_DESCRIPTION = 140
+
+
+def borner(texte: str, borne: int = BORNE_DESCRIPTION) -> str:
+    """Une ligne assez courte pour être posée. Un « … » dit qu'elle a été coupée."""
+    ligne = texte.strip().splitlines()[0] if texte.strip() else ""
+    return ligne if len(ligne) <= borne else ligne[: borne - 1] + "…"
+
 
 class GithubErreur(RuntimeError):
     pass

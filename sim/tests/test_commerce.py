@@ -12,6 +12,7 @@ Fusion des anciens fichiers commerce, kg_transportes_est_arrives et
 tick_nourrit_une_fois.
 """
 
+
 import random
 import pytest
 from sim.engine import _apply_commerce, _apply_consumption, _apply_production, tick
@@ -2364,3 +2365,15 @@ def test_debit_maritime_via_fonction_pas_constante_dans_engine():
         and node.func.value.id == "_constantes"
     }
     assert "debit_maritime_kg_par_km" in appels
+
+
+def test_bassin_jamais_ecrit_est_sentinelle_pas_zero():
+    """Un bassin vide n'est pas un stock à zéro : la sentinelle -1 se déclare."""
+    from sim.world import ecrire_stock_mer, lire_stock_mer
+
+    world = World(cells={}, adjacency=[])
+    assert lire_stock_mer(world, MARCHANDISE_NOURRITURE) == -1.0
+    ecrire_stock_mer(world, MARCHANDISE_NOURRITURE, 0.0)
+    assert lire_stock_mer(world, MARCHANDISE_NOURRITURE) == 0.0
+    assert lire_stock_mer(world, MARCHANDISE_NOURRITURE) != -1.0
+    assert lire_stock_mer(world, "minerai-inconnu") == -1.0
