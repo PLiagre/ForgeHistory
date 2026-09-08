@@ -29,6 +29,7 @@ from pathlib import Path
 import json
 import os
 import subprocess
+import sys
 
 RACINE = Path(__file__).resolve().parent.parent.parent
 SCRIPTS = RACINE / ".github" / "scripts"
@@ -39,7 +40,13 @@ SCRIPTS = RACINE / ".github" / "scripts"
 # contrôle affirmait « FAIL » là où l'argument valait toute la phrase.
 SEPARATEUR = "\x1f"
 
-_FAUX = '''#!/usr/bin/env python3
+# Le faux nomme son interpréteur par son chemin, pas par `env`. Sinon il
+# se cherche lui-même : le banc pose ses faux en tête du `PATH`, et un
+# faux nommé `python3` deviendrait son propre interpréteur — le banc
+# tournait alors en rond sans jamais rien journaliser. C'est ce qui
+# interdisait jusqu'ici d'éprouver un script qui appelle `python3`, donc
+# tout script qui respecte la règle 1.
+_FAUX = '''#!''' + sys.executable + '''
 """Un faux exécutable du banc : il journalise, puis répond selon ses arguments."""
 import json, os, sys
 

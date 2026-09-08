@@ -85,6 +85,12 @@ class PR:
     relue: bool | None = None
     motif_relecture: str = ""
     revision: str = ""
+    # Ce que la décision ne regarde pas, et que la page montre : depuis
+    # quand cette proposition attend, et sous quel titre. Les porter ici
+    # évite une seconde lecture de la même réponse d'API — et une seconde
+    # lecture est une seconde occasion de ne pas lire la même chose.
+    ouverte: str = ""
+    titre: str = ""
 
 
 def depuis_github(brut: dict, detail: dict | None = None, controles_bruts=(),
@@ -103,6 +109,8 @@ def depuis_github(brut: dict, detail: dict | None = None, controles_bruts=(),
             brouillon=bool(brut.get("draft")),
             fusionnable=None,
             retard=0,
+            ouverte=brut.get("created_at", ""),
+            titre=brut.get("title", ""),
         )
     return PR(
         numero=brut["number"],
@@ -110,6 +118,8 @@ def depuis_github(brut: dict, detail: dict | None = None, controles_bruts=(),
         brouillon=bool(brut.get("draft")),
         fusionnable=detail.get("mergeable"),
         retard=retard,
+        ouverte=brut.get("created_at", ""),
+        titre=brut.get("title", ""),
         revision=detail["head"]["sha"],
         controles=tuple(
             Controle(nom, etat_du_controle(statut, conclusion))
@@ -133,7 +143,19 @@ class Rapport:
     lignes: list[str] = field(default_factory=list)
 
 
-def _manque(pr: PR, noms) -> str:
+def integree(branche: str, prefixes) -> bool:
+    """Cette branche est-elle de celles que l'intégration fusionne ?
+
+    Publique, et appelée partout où la question se pose — la décision,
+    la page, la ligne de commande. Le jour où le test change, il change
+    une fois : deux copies d'un même prédicat finissent par ne plus
+    répondre la même chose, et celle qui se trompe est toujours celle
+    qu'on n'a pas relue.
+    """
+    return any(branche.startswith(p) for p in prefixes)
+
+
+def manque(pr: PR, noms) -> str:
     """Ce qui empêche ces contrôles-là d'être verts, ou une chaîne vide."""
     par_nom = {c.nom: c for c in pr.controles}
     absents = [nom for nom in noms if nom not in par_nom]
@@ -152,7 +174,7 @@ def examiner(pr: PR, requis, prefixes) -> Decision:
     """Ce que cette PR appelle, et pourquoi. Jamais deux choses à la fois."""
     if pr.brouillon:
         return Decision(RIEN, pr.numero, "brouillon")
-    if not any(pr.branche.startswith(p) for p in prefixes):
+    if not integree(pr.branche, prefixes):
         return Decision(
             RIEN, pr.numero,
             f"branche « {pr.branche} » hors des préfixes intégrés "
@@ -168,9 +190,9 @@ def examiner(pr: PR, requis, prefixes) -> Decision:
     # La fusion, elle, exige toujours la liste entière sur la nouvelle tête.
     presents = {c.nom for c in pr.controles}
     a_verifier = [nom for nom in requis if nom in presents] if pr.retard > 0 else requis
-    manque = _manque(pr, a_verifier)
-    if manque:
-        return Decision(RIEN, pr.numero, manque)
+    defaut = manque(pr, a_verifier)
+    if defaut:
+        return Decision(RIEN, pr.numero, defaut)
 
     if pr.retard > 0:
         return Decision(

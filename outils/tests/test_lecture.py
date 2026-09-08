@@ -402,3 +402,292 @@ def test_cli_depot_mal_forme_sort_en_echec():
     assert proc.returncode == 1
     assert "FAIL" in proc.stderr
     assert proc.stdout == ""
+
+
+# ----------------------------------------------------------------------
+# Les seuils de la page de pilotage : ils vivent dans le branchement, pas
+# dans le code. Et la couture avec GitHub pour ce que la page lit en
+# plus — protection, publication, historique.
+# ----------------------------------------------------------------------
+
+
+def test_sans_section_tableau_on_refuse_au_lieu_de_deviner(tmp_path):
+    """Un seuil deviné serait un réglage que personne n'a posé."""
+    from outils import registre
+
+    _brancher(tmp_path, "")
+    with pytest.raises(registre.BranchementIncomplet) as refus:
+        registre.tableau(tmp_path)
+    assert "[tableau]" in str(refus.value)
+
+
+def test_un_seuil_manquant_est_un_branchement_incomplet(tmp_path):
+    from outils import registre
+
+    _brancher(tmp_path, "\n[tableau]\ntours_sans_fusion = 10\n")
+    with pytest.raises(registre.BranchementIncomplet) as refus:
+        registre.tableau(tmp_path)
+    assert "brouillon_jours" in str(refus.value)
+
+
+def test_un_seuil_nul_se_refuse_plutot_que_d_alerter_toujours(tmp_path):
+    from outils import registre
+
+    _brancher(tmp_path, "\n[tableau]\ntours_sans_fusion = 0\nbrouillon_jours = 2\n"
+                        "journal = 30\nsemaines = 8\nexecutions = 100\nhistorique = 200\n")
+    with pytest.raises(registre.BranchementIncomplet) as refus:
+        registre.tableau(tmp_path)
+    assert "positif" in str(refus.value)
+
+
+def test_les_seuils_du_depot_sont_bien_ceux_qu_atelier_toml_declare():
+    """Le branchement réel, pas un gabarit : c'est lui qui gouverne la page."""
+    from outils import registre
+    from outils.tests.banc import RACINE
+
+    seuils = registre.tableau(RACINE)
+    assert set(seuils) == set(registre.CLES_TABLEAU)
+    assert all(valeur > 0 for valeur in seuils.values())
+
+
+def test_un_404_est_un_fait_une_autre_erreur_est_un_inconnu():
+    """Distinction qui décide de ce que la page affiche : « absent » ou
+    « inconnu ». Les confondre montre une porte ouverte là où elle est
+    peut-être fermée à clé."""
+    from outils import github
+
+    routes = {
+        "repos/O/R/pages": (404, {"message": "Not Found"}, {}),
+        "repos/O/R/branches/master/protection": (403, {"message": "Forbidden"}, {}),
+    }
+    with _api(routes) as api:
+        gh = github.Github("O/R", jeton="x", api=api)
+        absent = github.pages(gh)
+        illisible = github.protection(gh, "master")
+    assert absent.connue is True and absent.valeur is None
+    assert illisible.connue is False and "403" in illisible.raison
+
+
+def test_une_erreur_de_github_porte_son_code():
+    """Le code voyage avec le message : c'est lui qui distingue les deux
+    cas ci-dessus, et une comparaison de chaînes s'userait."""
+    from outils import github
+
+    with _api({"repos/O/R/pages": (404, {"message": "Not Found"}, {})}) as api:
+        gh = github.Github("O/R", jeton="x", api=api)
+        with pytest.raises(github.GithubErreur) as refus:
+            gh.get("pages")
+    assert refus.value.code == 404
+
+
+def test_une_collection_sans_fin_se_borne_au_lieu_de_tout_lire():
+    """L'historique des exécutions se compte en milliers : les lire tous
+    pour n'en montrer dix coûterait un tour entier."""
+    from outils import github
+
+    routes = {
+        ("repos/O/R/pulls", "1"): (
+            200, [{"number": i} for i in range(100)],
+            {"Link": '<http://x?page=2>; rel="next"'},
+        ),
+        ("repos/O/R/pulls", "2"): (200, [{"number": 100}], {}),
+    }
+    with _api(routes) as api:
+        gh = github.Github("O/R", jeton="x", api=api)
+        assert len(gh.liste("pulls", limite=10)) == 10
+        assert len(gh.liste("pulls")) == 101
+
+
+def test_les_executions_d_un_travail_se_lisent_avec_leur_lien():
+    from outils import github
+
+    course = {
+        "workflow_runs": [
+            {"name": "integration", "run_started_at": "2026-09-08T08:29:03Z",
+             "conclusion": "success", "html_url": "https://github.com/O/R/actions/runs/1"},
+        ]
+    }
+    with _api({"repos/O/R/actions/workflows/integration.yml/runs": (200, course, {})}) as api:
+        gh = github.Github("O/R", jeton="x", api=api)
+        lues = github.executions(gh, "integration.yml", 10)
+    assert lues[0]["conclusion"] == "success"
+
+
+# ----------------------------------------------------------------------
+# SC9 : `outils/` ne dépend que de la bibliothèque standard.
+# ----------------------------------------------------------------------
+
+
+# Le seul module extérieur qu'`outils/` a le droit d'appeler, et le seul
+# fichier qui a le droit de l'appeler. L'atelier est le lecteur du
+# registre, et il n'y en a qu'un : deux analyseurs du même format
+# finiraient par ne pas dire la même chose du même fichier.
+LECTEUR_DU_REGISTRE = "atelier"
+SON_SEUL_APPELANT = "registre.py"
+
+
+def _imports(source: str):
+    """Les modules qu'un fichier importe, sans les imports relatifs."""
+    import ast
+
+    trouves: list[str] = []
+    for noeud in ast.walk(ast.parse(source)):
+        if isinstance(noeud, ast.Import):
+            trouves.extend(alias.name for alias in noeud.names)
+        elif isinstance(noeud, ast.ImportFrom) and not noeud.level:
+            trouves.append(noeud.module or "")
+    return [nom.split(".")[0] for nom in trouves if nom]
+
+
+def test_outils_n_importe_que_la_bibliotheque_standard_et_lui_meme():
+    """C'est ce qui fait qu'`outils/` tourne partout, sans rien installer.
+
+    La référence est dérivée : `sys.stdlib_module_names`, pas une liste
+    recopiée ici qui vieillirait sans prévenir (règle 2). La seule
+    exception est le lecteur du registre, et elle est bornée au fichier
+    qui la déclare — le contrôle suivant l'y tient.
+    """
+    import sys
+    from outils.tests.banc import RACINE
+
+    fichiers = sorted((RACINE / "outils").glob("*.py"))
+    assert fichiers, "aucun fichier à contrôler : ce contrôle ne prouverait rien"
+    etrangers = [
+        f"{fichier.name} : {nom}"
+        for fichier in fichiers
+        for nom in _imports(fichier.read_text(encoding="utf-8"))
+        if nom not in sys.stdlib_module_names
+        and nom not in ("outils", LECTEUR_DU_REGISTRE)
+    ]
+    assert etrangers == [], etrangers
+
+
+def test_le_registre_n_a_qu_un_lecteur_et_un_seul_fichier_l_appelle():
+    """« Il n'y a qu'un lecteur du registre » cesse d'être une consigne."""
+    from outils.tests.banc import RACINE
+
+    appelants = sorted(
+        fichier.name
+        for fichier in (RACINE / "outils").glob("*.py")
+        if LECTEUR_DU_REGISTRE in _imports(fichier.read_text(encoding="utf-8"))
+    )
+    assert appelants == [SON_SEUL_APPELANT]
+
+
+def test_le_controle_des_imports_rougirait_sur_une_dependance():
+    """Prouver le rouge : sans ce cas, le contrôle ci-dessus pourrait
+    passer parce qu'il ne regarde rien (règle 4)."""
+    import ast
+    import sys
+
+    arbre = ast.parse("import numpy\nfrom . import github\nimport json\n")
+    etrangers = []
+    for noeud in ast.walk(arbre):
+        if isinstance(noeud, ast.Import):
+            for alias in noeud.names:
+                racine = alias.name.split(".")[0]
+                if racine not in sys.stdlib_module_names and racine != "outils":
+                    etrangers.append(alias.name)
+    assert etrangers == ["numpy"]
+
+
+# ----------------------------------------------------------------------
+# SC11 : changer l'état d'un lot passe par le juge de l'atelier.
+# ----------------------------------------------------------------------
+
+
+def _projet_avec_registre(tmp_path):
+    """Un projet minimal : un branchement, un registre, un brief."""
+    _brancher(tmp_path, '\n[integration]\ncontroles = ["outils"]\nbranches = ["agent/"]\n'
+                        "\n[tableau]\ntours_sans_fusion = 10\nbrouillon_jours = 2\n"
+                        "journal = 30\nsemaines = 8\nexecutions = 100\nhistorique = 200\n")
+    (tmp_path / "briefs").mkdir(exist_ok=True)
+    (tmp_path / "briefs" / "049-fabriquer.md").write_text(
+        "# Brief 049 — fabriquer\n", encoding="utf-8"
+    )
+    (tmp_path / "ROADMAP.md").write_text(
+        "# ROADMAP\n\n<!-- lots:debut -->\n\n"
+        "### [049 — Fabriquer](briefs/049-fabriquer.md)\n"
+        "état : pret · couche : 2 · dépend de : — · PR : —\n\n"
+        "### [046 — La mer](briefs/046-la-mer.md)\n"
+        "état : livre · couche : 1 · dépend de : — · PR : 206\n\n"
+        "<!-- lots:fin -->\n",
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+def _etat_cli(projet, lot, etat, *extra):
+    import subprocess
+    import sys
+
+    return subprocess.run(
+        [sys.executable, "-m", "outils", "etat", "--projet", str(projet),
+         "--lot", lot, "--etat", etat, *extra],
+        capture_output=True, text=True,
+    )
+
+
+def test_une_transition_interdite_est_refusee_avec_le_message_qui_la_nomme():
+    """`livre` est un état terminal : un lot livré ne s'abandonne pas."""
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as dossier:
+        projet = _projet_avec_registre(Path(dossier))
+        proc = _etat_cli(projet, "046", "abandonne")
+    assert proc.returncode == 1
+    assert "transition interdite" in proc.stderr
+    assert "livre → abandonne" in proc.stderr
+    assert proc.stdout == ""
+
+
+def test_une_transition_permise_rend_la_souche_de_sa_branche():
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as dossier:
+        projet = _projet_avec_registre(Path(dossier))
+        proc = _etat_cli(projet, "049", "abandonne")
+        assert proc.returncode == 0, proc.stderr
+        assert proc.stdout.strip() == "etat 049 abandonne etat-049-abandonne"
+        # Sans `--ecrire`, le registre n'a pas bougé.
+        assert "état : pret" in (projet / "ROADMAP.md").read_text(encoding="utf-8")
+
+
+def test_un_lot_deja_dans_l_etat_demande_ne_refait_pas_le_geste():
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as dossier:
+        projet = _projet_avec_registre(Path(dossier))
+        proc = _etat_cli(projet, "049", "pret")
+    assert proc.returncode == 0
+    assert proc.stdout.strip() == "RIEN"
+    assert "déjà fait" in proc.stderr
+
+
+def test_un_lot_sans_fiche_ne_se_marque_pas():
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as dossier:
+        projet = _projet_avec_registre(Path(dossier))
+        proc = _etat_cli(projet, "999", "abandonne")
+    assert proc.returncode == 1
+    assert "aucune fiche" in proc.stderr
+
+
+def test_avec_ecrire_la_fiche_change_et_rien_d_autre():
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as dossier:
+        projet = _projet_avec_registre(Path(dossier))
+        avant = (projet / "ROADMAP.md").read_text(encoding="utf-8")
+        proc = _etat_cli(projet, "049", "abandonne", "--ecrire")
+        apres = (projet / "ROADMAP.md").read_text(encoding="utf-8")
+    assert proc.returncode == 0, proc.stderr
+    assert "état : abandonne" in apres
+    assert avant.count("###") == apres.count("###")
+    assert "état : livre · couche : 1" in apres
