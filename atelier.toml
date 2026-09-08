@@ -34,3 +34,32 @@ controles = ["sim", "viewer", "visualisateur", "outils", "feuille", "gitleaks"]
 # Les branches que l'intégration fusionne. Le reste attend le
 # propriétaire : une expérience qui passe au vert n'est pas un lot.
 branches = ["agent/", "brief/", "feuille/"]
+
+# La page de pilotage : ses seuils et ses fenêtres. Ils sont ici, et pas
+# dans le code, parce qu'un seuil qu'on ne peut changer qu'en committant
+# `outils/` est un seuil que personne ne change — et un seuil que
+# personne ne change finit par ne plus rien vouloir dire.
+[tableau]
+# Au-delà de ce nombre de tours d'intégration consécutifs sans aucune
+# fusion, la page alerte. Dix, parce que l'intégration se réveille à
+# chaque fin de contrôle et au moins une fois par heure : dix tours à
+# vide, c'est au plus quelques heures de chaîne arrêtée, et c'est en
+# dessous de ce qui a coûté deux jours entre le 5 et le 7 septembre 2026
+# — quarante tours, quarante `RIEN`, et rien pour le dire.
+tours_sans_fusion = 10
+# Un brouillon plus vieux que ça est du travail perdu : la chaîne ne
+# regarde pas les brouillons, et personne ne se souvient d'en avoir
+# laissé un. Deux jours, soit un week-end de moins qu'un oubli complet.
+brouillon_jours = 2
+# Combien de propositions fermées le journal montre.
+journal = 30
+# Combien de propositions fermées on lit pour dériver la vélocité et le
+# temps de traversée. Plus large que le journal : huit semaines de chaîne
+# tiennent rarement dans trente propositions, et une fenêtre trop courte
+# ferait paraître neuf un lot dont on n'a pas lu la demande.
+historique = 200
+# Sur combien de semaines la vélocité se mesure.
+semaines = 8
+# Combien d'exécutions de l'intégration on lit pour compter les tours à
+# vide. Au-delà, on ne compte plus une panne, on compte une histoire.
+executions = 100
