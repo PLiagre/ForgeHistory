@@ -169,3 +169,25 @@ def test_la_raison_de_la_fusion_dit_qui_a_relu():
     decision = integration.examiner(pr(), REQUIS, PREFIXES)
     assert decision.action == integration.FUSIONNER
     assert "pliagre" in decision.raison
+
+
+def test_232_un_nouveau_controle_absent_ne_bloque_pas_le_rejeu():
+    nouveaux = (*REQUIS, "visualisateur", "outils")
+    decision = integration.examiner(pr(numero=226, retard=2, relue=False), nouveaux, PREFIXES)
+    assert decision.action == integration.REBASER
+    # Après le rejeu, les mêmes contrôles absents interdisent la fusion.
+    assert integration.examiner(pr(retard=0), nouveaux, PREFIXES).action == integration.RIEN
+
+
+def test_chacun_des_six_controles_reste_obligatoire_apres_le_rejeu():
+    from pathlib import Path
+    from outils import registre
+    requis = registre.integration(Path(__file__).resolve().parents[2])["controles"]
+    assert set(requis) == {"sim", "viewer", "visualisateur", "outils", "feuille", "gitleaks"}
+    for nom in requis:
+        autres = verts(*[n for n in requis if n != nom])
+        for controles in (autres, autres + (Controle(nom, integration.ROUGE),),
+                          autres + (Controle(nom, integration.EN_COURS),)):
+            decision = integration.examiner(pr(controles=controles), requis, PREFIXES)
+            assert decision.action == integration.RIEN, nom
+    assert integration.examiner(pr(controles=verts(*requis)), requis, PREFIXES).action == integration.FUSIONNER

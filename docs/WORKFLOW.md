@@ -254,3 +254,75 @@ qu'est-ce qui manque ?**
 - **Une carte ne bouge pas** : ce n'est pas l'intégration, c'est
   l'atelier. `atelier feuille etat --projet .` dit par quoi le lot est
   retenu.
+
+## Demandes : confiance, réservation et reprise
+
+Le formulaire est public ; il ne donne aucun droit. Le travail `autoriser`
+reste en lecture seule. Seules les associations GitHub explicites `OWNER`,
+`MEMBER` et `COLLABORATOR` peuvent ouvrir la tâche en écriture. Une simple
+contribution (`CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`) ne suffit pas. Le
+code vérifie cette association avant tout appel distant, puis la relit
+sur l'issue courante avant de préparer la fiche.
+
+Seul `opened` est écouté. Une branche de demande porte le suffixe
+`-demande-N`, où N est le numéro de l'issue. Un rejeu retrouve cette
+réservation, la PR déjà ouverte et le commentaire de succès du robot.
+Une interruption après la poussée ou la création de PR se reprend sans
+créer de second lot ; une demande fermée ne repart pas. Le journal du run
+porte les vrais refus, sans commentaire d'échec automatique après succès.
+
+Les demandes et l'intégration, y compris son palier, partagent le verrou
+`registre`. La file conserve jusqu'à 100 attentes (`queue: max`) ; au-delà,
+GitHub annule les nouveaux travaux, qui doivent être rejoués. Sous ce
+verrou, le numéro dépasse ceux du registre, des branches distantes et des
+fiches des PR `feuille/*` ouvertes, paliers compris. Une erreur de lecture
+interdit toute attribution. Le registre est lu après acquisition du verrou.
+
+Une PR en retard peut être rejouée même si un contrôle requis manque.
+Les contrôles déjà présents doivent être verts. À jour, elle ne fusionne
+qu'après les six contrôles et l'approbation indépendante sur sa tête.
+La révision jugée accompagne la décision jusqu'à `--match-head-commit` :
+une poussée entre la décision et le geste interdit la fusion de cette
+nouvelle tête. Le code de décision et de relecture vient de `master`.
+
+## Réglages GitHub exacts
+
+Dans **Settings → Branches → Add branch protection rule**, cibler `master` :
+
+- activer **Require status checks to pass before merging** ;
+- exiger `sim`, `viewer`, `visualisateur`, `outils`, `feuille`, `gitleaks` ;
+- activer **Require branches to be up to date before merging** ;
+- activer **Do not allow bypassing the above settings** (administrateurs inclus) ;
+- activer **Require a pull request before merging**, avec zéro
+  approbation GitHub supplémentaire : la relecture
+  indépendante sur la révision courante est exigée par l'intégration ;
+- interdire les poussées forcées et la suppression de `master`.
+
+Référence : [API officielle de protection](https://docs.github.com/en/rest/branches/branch-protection#update-branch-protection).
+
+Corps équivalent pour `PUT /repos/PLiagre/ForgeHistory/branches/master/protection`
+(à appliquer avec un accès d'administration ; ne pas remplacer à l'aveugle
+une protection existante plus stricte) :
+
+```json
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["sim", "viewer", "visualisateur", "outils", "feuille", "gitleaks"]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0
+  },
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false
+}
+```
+
+Pour Pages : **Settings → Pages → Source → GitHub Actions**. Ensuite,
+**Actions → tableau → Run workflow → master**. Vérifier le succès de
+`publier`, puis ouvrir l'URL de l'environnement `github-pages`. Un artefact
+présent n'est pas une preuve de publication. Un 404 de l'API Pages laisse
+l'artefact disponible et explique l'absence dans le résumé ; un 403 ou une
+panne réelle reste un échec visible.

@@ -132,7 +132,7 @@ def due(fiches) -> Etape | None:
     return None
 
 
-def numero_libre(fiches) -> str:
+def numero_libre(fiches, reserves=()) -> str:
     """Le premier numéro au-dessus du plus grand recensé.
 
     La règle vit dans ROADMAP.md § « Ajouter un lot » ; elle est
@@ -142,6 +142,7 @@ def numero_libre(fiches) -> str:
     numeros = [int(f.numero[:3]) for f in fiches]
     if not numeros:
         raise ValueError("registre sans fiche : aucun numéro à dériver")
+    numeros.extend(int(str(n).split("-")[0]) for n in reserves)
     return f"{max(numeros) + 1:03d}"
 
 
