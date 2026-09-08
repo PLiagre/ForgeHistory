@@ -206,21 +206,30 @@ démarrage du lot, jamais contre un nombre recopié d'ici.
 
 ### SC1 — La fabrication transforme, dans les proportions déclarées
 
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
+
 Sur une cellule d'épreuve dont le panier porte une matière première à un
 stock strictement positif, un appel isolé à `_apply_fabrication` :
 
-- diminue ce stock d'exactement `stock × TAUX_FABRICATION_PAR_TICK`, lu par
-  `_constantes.TAUX_FABRICATION_PAR_TICK` dans le test (jamais recopié en
-  dur) ;
-- augmente le stock d'`objet` d'exactement cette quantité multipliée par
-  `_constantes.RENDEMENT_FABRICATION`.
+- rend le stock final égal à `stock_avant - consomme`, où
+  `consomme = stock_avant × _constantes.TAUX_FABRICATION_PAR_TICK` ;
+- rend le stock final d'`objet` égal à `objet_avant + produit`, où
+  `produit = consomme × _constantes.RENDEMENT_FABRICATION` et où un objet
+  absent vaut zéro disponible, pas la sentinelle moins un.
 
-Les deux égalités sont vérifiées au bit près, sans tolérance.
+Ces égalités comparent les **états finaux**, au bit près, avec les
+constantes lues dans le test, jamais recopiées. Ne pas calculer la quantité
+consommée par `stock_avant - stock_apres` pour exiger ensuite qu'elle soit
+exactement égale au produit flottant : cette seconde soustraction peut
+arrondir autrement sans aucune erreur du mécanisme. Les cas incluent un
+objet déjà présent et une matière première à stock nul ou non calculé.
 
 **Rouge prouvé d'abord** : sur `master`, `_apply_fabrication` n'existe pas et
 l'appel lève une erreur d'attribut.
 
 ### SC2 — Le rendement est strictement inférieur à un
+
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
 
 `RENDEMENT_FABRICATION` est strictement inférieur à 1, lu par la constante,
 jamais recopié. Pour toute matière première à stock strictement positif, la
@@ -230,6 +239,8 @@ transport conserve, la transformation perd.
 
 ### SC3 — Deux matières premières distinctes alimentent le même objet
 
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
+
 Une cellule d'épreuve porte deux marchandises différentes (par exemple deux
 ressources minières distinctes de la carte), toutes deux à stock
 strictement positif. Après `_apply_fabrication`, le stock d'`objet` est
@@ -238,6 +249,8 @@ deux contributions se sont cumulées dans la même marchandise, comme § 1 le
 déclare.
 
 ### SC4 — Le premier tick d'un monde neuf ne façonne rien de ce jour
+
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
 
 Sur `World.charger(0)` joué pour **exactement un tick**
 (`numero_tick=0`), aucune cellule ne porte `objet` dans son panier à la fin
@@ -251,6 +264,8 @@ porteuse de gisement, le contrôle échoue au lieu de conclure à vide.
 
 ### SC5 — Le deuxième tick façonne ce que le premier a extrait
 
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
+
 Sur une cellule que la carte déclare porteuse d'au moins un gisement
 complet, jouée pour deux ticks consécutifs depuis `World.charger(0)`, le
 panier porte `objet` à une valeur strictement positive à la fin du second
@@ -261,11 +276,15 @@ complet) ; un échantillon vide fait échouer le contrôle.
 
 ### SC6 — L'objet ne circule pas
 
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
+
 `_constantes.consommation_kg_par_habitant_par_tick("objet")` rend `0.0`,
 exactement comme pour toute marchandise non alimentaire inconnue. Ce lot ne
 crée aucun demandeur pour l'objet fabriqué.
 
 ### SC7 — Les deux constantes ne se lisent que par une fonction
+
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
 
 Un contrôle parcourt l'arbre syntaxique de `sim/engine.py` et échoue si le
 module référence `_constantes.TAUX_FABRICATION_PAR_TICK` ou
@@ -278,6 +297,8 @@ sinon il ne protège rien.
 
 ### SC8 — Aucun accès direct au panier hors `sim/model.py`
 
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
+
 `sim/tests/test_monde.py::test_acces_directs_au_panier_hors_modele` reste
 vert **sans modification**. Le code de ce lot n'indexe `stocks` que par
 `cellule_vers_dict(...).get("stocks")`, `lire_stock_marchandise` et
@@ -286,10 +307,21 @@ vert **sans modification**. Le code de ce lot n'indexe `stocks` que par
 
 ### SC9 — Le déterminisme tient
 
-Deux exécutions de `py -m sim --ticks 20 --seed 0 --json` sont strictement
-identiques entre elles, objet compris. Aucun aléa n'entre dans la
-fabrication : à panier et constantes égaux, elle rend toujours le même
-résultat.
+Commande : `python3 -m pytest sim/tests/test_monde.py -k fabrication -q`.
+Les nouveaux cas de ce lot portent `fabrication` dans leur nom.
+
+Comparer deux mondes chargés avec la même graine et joués pendant la même
+suite de ticks numérotés. Comparer leur `to_dict()` (qui inclut les
+paniers des cellules) et `stocks_mer`, pas seulement le résumé de la CLI :
+`--json` ne contient aucun stock d'objet. L'échantillon doit contenir au
+moins une cellule dont `MARCHANDISE_OBJET` est strictement positif, sinon
+la preuve de déterminisme de fabrication échoue à vide.
+
+Ajouter un cas où les mêmes matières premières sont insérées dans des
+ordres différents : l'objet final reste identique au bit près. Les
+marchandises sont donc parcourues dans un ordre stable, comme pour le
+commerce ; l'ordre d'insertion du panier ne choisit pas l'ordre d'addition
+des flottants. Aucun aléa n'entre dans la fabrication.
 
 ### SC10 — Les invariants existants restent intacts
 
