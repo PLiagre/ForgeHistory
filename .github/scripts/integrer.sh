@@ -23,7 +23,14 @@ pr=${DECISION#* }
 case "$action" in
   fusionner)
     branche=$(gh pr view "$pr" --json headRefName -q .headRefName)
-    gh pr merge "$pr" --merge
+    garde=()
+    if [ -n "${REVISION_ATTENDUE:-}" ]; then
+      garde+=(--match-head-commit "$REVISION_ATTENDUE")
+    elif [ "${EXIGER_REVISION:-}" = true ]; then
+      echo "révision jugée absente : fusion interdite" >&2
+      exit 1
+    fi
+    gh pr merge "$pr" --merge "${garde[@]}"
     echo "fusionnee=$pr" >> "$SORTIE"
     # Le rangement de la branche vient après, et son échec ne compte pas :
     # une branche protégée ou déjà partie n'annule pas une fusion faite.
@@ -39,7 +46,7 @@ case "$action" in
   rebaser)
     branche=$(gh pr view "$pr" --json headRefName -q .headRefName)
     avant=$(gh pr view "$pr" --json headRefOid -q .headRefOid)
-    gh api -X PUT "repos/$DEPOT/pulls/$pr/update-branch" > /dev/null
+    gh api -X PUT "repos/$DEPOT/pulls/$pr/update-branch" -f expected_head_sha="$avant" > /dev/null
 
     # `update-branch` rend 202 : GitHub accepte, et pousse plus tard. Les
     # contrôles se demandent par un nom de branche, que GitHub résout à

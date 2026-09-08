@@ -1,5 +1,7 @@
 """Viewer mince : refus, classification, SVG déterministe, sources locales."""
 
+
+
 from __future__ import annotations
 
 import hashlib
@@ -569,3 +571,193 @@ def test_snapshot_refuse_fichier_absent_illisible_ou_sans_cellules(tmp_path: Pat
     with pytest.raises(SnapshotLoadError) as cellules:
         load_snapshot(sans_cellules)
     assert "cells absentes" in str(cellules.value)
+
+
+def _ouvrir_serveur(snapshot_a: bytes, snapshot_b: bytes | None = None):
+    import threading
+
+    from viewer.server import serve
+
+    server = serve("127.0.0.1", 0, snapshot_a, snapshot_b)
+    fil = threading.Thread(target=server.serve_forever, daemon=True)
+    fil.start()
+    return server
+
+
+def _fermer_serveur(server) -> None:
+    server.shutdown()
+    server.server_close()
+
+
+def _get(host: str, port: int, chemin: str):
+    """GET brut : urllib normalise `/../x`, ce qui raterait la traversée."""
+    import http.client
+
+    conn = http.client.HTTPConnection(host, port, timeout=5)
+    try:
+        conn.request("GET", chemin)
+        reponse = conn.getresponse()
+        return reponse.status, reponse.read()
+    finally:
+        conn.close()
+
+
+def test_compare_json_absent_rend_404_et_meta_le_dit():
+    """Sans second snapshot, compare.json est absent ; meta.json le dit, il n'invente pas."""
+    payload = b'{"cells":[{"cell_id":1,"population":1}]}\n'
+    server = _ouvrir_serveur(payload, None)
+    host, port = server.server_address[:2]
+    try:
+        statut_cmp, corps_cmp = _get(host, port, "/compare.json")
+        assert statut_cmp == 404, f"sans B, compare.json doit rendre 404, pas {statut_cmp}"
+        assert corps_cmp == b"absent\n"
+
+        statut_meta, corps_meta = _get(host, port, "/meta.json")
+        assert statut_meta == 200
+        meta = json.loads(corps_meta.decode("utf-8"))
+        assert meta == {"has_compare": False}
+
+        statut_snap, corps_snap = _get(host, port, "/snapshot.json")
+        assert statut_snap == 200
+        assert corps_snap == payload
+    finally:
+        _fermer_serveur(server)
+
+
+def test_compare_json_present_et_meta_has_compare(tmp_path: Path):
+    """Avec un second snapshot, compare.json le sert tel quel ; meta.json le signale."""
+    world = World.charger(0)
+    snap_a = tmp_path / "a.json"
+    snap_b = tmp_path / "b.json"
+    export_snapshot(world, 0, 0, snap_a)
+    world_b = World.charger(0)
+    from sim.engine import tick
+    import random
+
+    rng = random.Random(0)
+    tick(world_b, rng, 0)
+    export_snapshot(world_b, 0, 1, snap_b)
+    payload_a = snap_a.read_bytes()
+    payload_b = snap_b.read_bytes()
+    assert payload_a != payload_b, "échantillon vide : A et B sont identiques"
+
+    server = _ouvrir_serveur(payload_a, payload_b)
+    host, port = server.server_address[:2]
+    try:
+        statut_cmp, corps_cmp = _get(host, port, "/compare.json")
+        assert statut_cmp == 200
+        assert corps_cmp == payload_b
+
+        statut_meta, corps_meta = _get(host, port, "/meta.json")
+        assert statut_meta == 200
+        assert json.loads(corps_meta.decode("utf-8")) == {"has_compare": True}
+
+        statut_snap, corps_snap = _get(host, port, "/snapshot.json")
+        assert statut_snap == 200
+        assert corps_snap == payload_a
+    finally:
+        _fermer_serveur(server)
+
+
+def test_serveur_refuse_la_traversee_de_chemin():
+    """Un `..` ne sort pas de static/ : le source du serveur n'est pas servi."""
+    from viewer.server import _STATIC
+
+    hors_static = (_STATIC.parent / "server.py").read_bytes()
+    assert hors_static, "échantillon vide : viewer/server.py introuvable"
+
+    server = _ouvrir_serveur(b'{"cells":[{"cell_id":1}]}\n', None)
+    host, port = server.server_address[:2]
+    try:
+        for chemin in ("/../server.py", "/static/../server.py", "/foo/../../server.py"):
+            statut, corps = _get(host, port, chemin)
+            assert statut == 404, f"{chemin} doit rendre 404, pas {statut}"
+            assert corps == b"refus\n", f"{chemin} doit dire refus, pas fuiter le source"
+            assert corps != hors_static
+        statut_ok, corps_ok = _get(host, port, "/")
+        assert statut_ok == 200
+        assert b'id="kpis"' in corps_ok
+        statut_manquant, corps_manquant = _get(host, port, "/nexiste-pas.js")
+        assert statut_manquant == 404
+        assert corps_manquant == b"absent\n"
+    finally:
+        _fermer_serveur(server)
+
+
+def test_comparaison_cellule_absente_de_b_est_incomparable():
+    """Une cellule de A qui n'est plus dans B n'est pas numérisée : gris incomparable."""
+    geom = {
+        "type": "Polygon",
+        "coordinates": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.0, 0.0]]],
+    }
+    cellule_commune = {
+        "cell_id": 1,
+        "population": 10,
+        "geometry": geom,
+    }
+    cellule_disparue = {
+        "cell_id": 2,
+        "population": 4,
+        "geometry": geom,
+    }
+    doc_a = {
+        "tick": 0,
+        "seed": 0,
+        "cells": [cellule_commune, cellule_disparue],
+    }
+    doc_b = {
+        "tick": 1,
+        "seed": 0,
+        "cells": [dict(cellule_commune, population=12)],
+    }
+    svg = render_compare_svg(doc_a, doc_b)
+    assert "incomparable" in svg
+    groupe_disparu = svg.split('id="cell-2"')[1].split("</g>")[0]
+    assert "#bdbdbd" in groupe_disparu
+    groupe_commun = svg.split('id="cell-1"')[1].split("</g>")[0]
+    assert "#bdbdbd" not in groupe_commun
+
+
+def test_deux_zeros_mesures_restent_comparables():
+    """Un zéro photographié est une mesure : B−A = 0, pas un gris incomparable."""
+    from viewer.classify import VALEUR, numeric_or_none
+
+    assert diff_status(0, 0) == VALEUR
+    assert numeric_diff(0, 0) == 0.0
+    assert numeric_diff(0, 4) == 4.0
+    assert numeric_or_none(0) == 0.0
+    assert numeric_or_none(0.0) == 0.0
+    assert numeric_or_none(-1) is None
+
+
+def test_le_serveur_sert_le_regard_et_le_snapshot_a(tmp_path: Path):
+    """Sans B, /snapshot.json reste A ; / et /app.js s'ouvrent. La présence
+    des fichiers n'est pas la fonction : le serveur doit les servir."""
+    import threading
+    from urllib.request import urlopen
+
+    from viewer.server import serve
+
+    world = World.charger(0)
+    snap = tmp_path / "a.json"
+    export_snapshot(world, 0, 0, snap)
+    payload = snap.read_bytes()
+    server = serve("127.0.0.1", 0, payload, None)
+    fil = threading.Thread(target=server.serve_forever, daemon=True)
+    fil.start()
+    host, port = server.server_address[:2]
+    try:
+        with urlopen(f"http://{host}:{port}/") as reponse:
+            html = reponse.read()
+            assert reponse.status == 200
+            assert b'id="map"' in html
+            assert b'id="kpis"' in html
+        with urlopen(f"http://{host}:{port}/app.js") as reponse:
+            js = reponse.read()
+            assert reponse.status == 200
+            assert b"deriveLayers" in js
+        with urlopen(f"http://{host}:{port}/snapshot.json") as reponse:
+            assert reponse.read() == payload
+    finally:
+        server.shutdown()
+        server.server_close()

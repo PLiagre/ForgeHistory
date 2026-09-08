@@ -84,6 +84,7 @@ class PR:
     # l'a pas demandé — et un inconnu retient, comme partout ailleurs.
     relue: bool | None = None
     motif_relecture: str = ""
+    revision: str = ""
 
 
 def depuis_github(brut: dict, detail: dict | None = None, controles_bruts=(),
@@ -109,6 +110,7 @@ def depuis_github(brut: dict, detail: dict | None = None, controles_bruts=(),
         brouillon=bool(brut.get("draft")),
         fusionnable=detail.get("mergeable"),
         retard=retard,
+        revision=detail["head"]["sha"],
         controles=tuple(
             Controle(nom, etat_du_controle(statut, conclusion))
             for nom, statut, conclusion in controles_bruts
@@ -161,7 +163,12 @@ def examiner(pr: PR, requis, prefixes) -> Decision:
     if not pr.fusionnable:
         return Decision(RIEN, pr.numero, "en conflit avec master")
 
-    manque = _manque(pr, requis)
+    # Le rejeu peut acquérir un contrôle qui n'existait pas à la création
+    # de la PR. Les contrôles déjà présents doivent toutefois être verts.
+    # La fusion, elle, exige toujours la liste entière sur la nouvelle tête.
+    presents = {c.nom for c in pr.controles}
+    a_verifier = [nom for nom in requis if nom in presents] if pr.retard > 0 else requis
+    manque = _manque(pr, a_verifier)
     if manque:
         return Decision(RIEN, pr.numero, manque)
 
