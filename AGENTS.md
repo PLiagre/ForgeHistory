@@ -302,13 +302,14 @@ processus : elles survivent à tout changement de workflow.
 | `data/` | la carte figée `data/world-1400.json` et les centres de province. La seule entrée géographique du jeu. |
 | `viewer/` | un regard mince sur une photographie. Jamais une seconde simulation. |
 | `briefs/` | un fichier par lot. |
-| `outils/` | ce que la CI **décide** : qui a relu, quelle PR entre dans `master`, quand une couche finie appelle son palier. Il ne parle jamais au jeu, et il n'écrit jamais sur GitHub. |
+| `outils/` | ce que la CI **décide** : qui a relu, quelle PR entre dans `master`, quand une couche finie appelle son palier, ce que la page de pilotage montre et ce que chacune de ses actions vérifie avant d'agir. Il ne parle jamais au jeu, et il n'écrit jamais sur GitHub. |
 | `.github/scripts/` | ce que la CI **fait** : poser un état, fusionner, rejouer, déposer une fiche. Du shell dans des fichiers, joués sur un banc. |
 | `.github/ISSUE_TEMPLATE/` | le formulaire par lequel une demande de lot entre au registre. Ses intitulés sont lus par `outils/saisie.py` : les changer d'un côté seulement fait rougir. |
-| `.github/workflows/` | les six travaux : `tests`, `security`, `relecture`, `integration`, `lot`, `tableau`. Ils appellent les deux ci-dessus ; ils ne portent pas de logique. |
+| `.github/workflows/` | les neuf travaux : `tests`, `security`, `relecture`, `integration`, `lot`, `tableau`, plus les trois que la page de pilotage déclenche — `controles`, `brouillon`, `etat-lot`. Ils appellent les deux ci-dessus ; ils ne portent pas de logique. |
 | `ROADMAP.md` | où on en est, et le registre des lots — la seule représentation de l'état d'un lot. |
-| `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier, et la liste des contrôles requis pour entrer dans `master`. |
-| `docs/WORKFLOW.md` | rappel local : les trois postes de *ce* produit, et le lien vers l'atelier. |
+| `atelier.toml` | comment ce dépôt se branche sur ForgeAtelier, la liste des contrôles requis pour entrer dans `master`, et les seuils de la page de pilotage (§ `[tableau]`) — un seuil qui ne vit que dans le code est un réglage que personne ne change. |
+| `docs/WORKFLOW.md` | rappel local : les trois postes de *ce* produit, la conduite de la chaîne, et le lien vers l'atelier. |
+| la page de pilotage | écrite par `tableau`, publiée sur GitHub Pages. Elle est **statique** : aucun jeton, aucun appel réseau, aucune bibliothèque. Ce qui s'affiche est calculé à la génération ; ce qui s'actionne est un lien vers GitHub et un travail qui fait le geste. |
 | hors arbre : [forge3d](https://github.com/PLiagre/forge3d) | moteur de rendu terrain récupéré (Rust/WebGPU, API Python). Dépôt séparé. Il photographie un relief ; il ne simule pas. Il n'entre ni dans `sim/` ni dans `viewer/`. |
 | `visualisateur/` | le regard 3D. Lit une photographie, la donne à forge3d, rend une image. Il ne décide aucun nombre. **Le seul dossier du dépôt qui demande des bibliothèques extérieures** — elles sont déclarées dans son `requirements.txt`, et lui seul les exige. |
 
