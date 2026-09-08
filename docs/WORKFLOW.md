@@ -86,9 +86,24 @@ l'intégration séquentielle.
 - **Elle n'invoque aucun agent.** Une PR qui attend sa relecture attend
   l'atelier, pas elle.
 
+## L'atelier
+
+`outils/` lit le registre par ForgeAtelier, et par lui seul. Sans
+`PYTHONPATH` pointant sur le clone, `palier`, `saisie`, `tableau` et
+`pytest outils/tests/` refusent — le message le dit, et pointe ici.
+
+```bash
+export PYTHONPATH=/opt/ForgeAtelier            # ou le clone de la branche
+```
+
+Comment brancher Hermes et les crons :
+[docs/MISE-EN-PLACE.md](https://github.com/PLiagre/ForgeHistory/blob/cursor/forgeatelier-ced6/docs/MISE-EN-PLACE.md).
+Les commandes `atelier` et `outils` à la main sont au paragraphe suivant.
+
 ## Jouer les décisions à la main
 
-Rien n'est écrit : ces trois commandes lisent.
+Rien n'est écrit : ces trois commandes lisent. Détail des cinq sous-commandes,
+jeton et pièges : [`outils/README.md`](../outils/README.md).
 
 ```bash
 export PYTHONPATH=/opt/ForgeAtelier            # ou le clone de la branche
@@ -97,10 +112,10 @@ py -m outils integration --depot PLiagre/ForgeHistory --projet .
 py -m outils relecture --depot PLiagre/ForgeHistory --pr 217
 ```
 
-`palier --ecrire` est la seule qui touche un fichier, et seulement le
-registre. Les deux autres n'écrivent jamais : le geste — fusionner,
-rejouer, poser un état — appartient au workflow, où il se voit dans un
-journal.
+`palier --ecrire` et `saisie --ecrire` touchent le registre, et seulement
+lui. `tableau` écrit le HTML `--sortie`. `relecture` et `integration`
+n'écrivent jamais : le geste — fusionner, rejouer, poser un état —
+appartient au workflow, où il se voit dans un journal.
 
 Les commandes de l'atelier, elles, vivent chez lui :
 
@@ -112,8 +127,7 @@ py -m atelier feuille etat --projet .          # chaque lot, son état
 py -m atelier piloter --projet .               # ce que le pilote déposerait
 ```
 
-Sans `--run`, rien n'est déposé. Comment brancher Hermes et les crons :
-[docs/MISE-EN-PLACE.md](https://github.com/PLiagre/ForgeHistory/blob/cursor/forgeatelier-ced6/docs/MISE-EN-PLACE.md).
+Sans `--run`, rien n'est déposé.
 
 ---
 
