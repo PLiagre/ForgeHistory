@@ -3,6 +3,8 @@
     python3 -m outils relecture   --depot O/R --pr N
     python3 -m outils integration --depot O/R --projet .
     python3 -m outils palier      --projet . [--ecrire]
+    python3 -m outils tableau     --depot O/R --projet . --sortie site/index.html
+    python3 -m outils saisie      --projet . --corps demande.md [--ecrire]
 
 Chacune imprime **une** ligne sur la sortie standard — celle que le
 workflow lit — et son compte rendu sur l'erreur standard. Aucune n'écrit
@@ -14,10 +16,13 @@ seulement celui du registre.
 from __future__ import annotations
 
 import argparse
+import json
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
-from . import github, integration, palier, registre, relecture
+from . import demandes, github, integration, palier, registre, relecture, saisie, tableau
 
 
 def _relecture(args: argparse.Namespace) -> int:
@@ -29,8 +34,24 @@ def _relecture(args: argparse.Namespace) -> int:
         github.auteurs_du_code(gh, args.pr),
         relecture.revues_depuis_github(github.revues(gh, args.pr)),
     )
-    print(f"{'PASS' if verdict.passe else 'FAIL'}  PR {args.pr} — {verdict.raison}")
+    # Bornée ici, une fois : cette ligne est reprise telle quelle dans la
+    # description de l'état de commit, et le workflow n'a rien à couper.
+    print(github.borner(f"{'PASS' if verdict.passe else 'FAIL'}  PR {args.pr} — {verdict.raison}"))
     return 0 if verdict.passe else 1
+
+
+def _verdict(gh: github.Github, numero: int, revision: str) -> relecture.Verdict:
+    """La relecture de cette révision, calculée ici — pas lue sur la PR.
+
+    Le contrôle `relecture` est posé par un travail qui tourne sur le code
+    de la PR ; s'y fier pour fusionner laisserait une PR changer le code
+    qui la juge. Même module, même règle, mais appelé depuis `master`.
+    """
+    return relecture.juger(
+        revision,
+        github.auteurs_du_code(gh, numero),
+        relecture.revues_depuis_github(github.revues(gh, numero)),
+    )
 
 
 def _pr_integrable(gh: github.Github, brut: dict, base: str, prefixes) -> integration.PR:
@@ -46,7 +67,8 @@ def _pr_integrable(gh: github.Github, brut: dict, base: str, prefixes) -> integr
     detail = gh.get(f"pulls/{brut['number']}")
     sha = detail["head"]["sha"]
     return integration.depuis_github(
-        brut, detail, github.controles(gh, sha), github.retard(gh, base, sha)
+        brut, detail, github.controles(gh, sha), github.retard(gh, base, sha),
+        _verdict(gh, brut["number"], sha),
     )
 
 
@@ -59,9 +81,7 @@ def _integration(args: argparse.Namespace) -> int:
         _pr_integrable(gh, brut, base, reglage["branches"])
         for brut in gh.liste("pulls", state="open", base=base)
     ]
-    rapport = integration.decider(
-        prs, reglage["controles"], reglage["branches"], reglage["apres_rejeu"]
-    )
+    rapport = integration.decider(prs, reglage["controles"], reglage["branches"])
     for ligne in rapport.lignes:
         print(ligne, file=sys.stderr)
     decision = rapport.decision
@@ -69,6 +89,11 @@ def _integration(args: argparse.Namespace) -> int:
         print("RIEN")
         print(decision.raison, file=sys.stderr)
         return 0
+    fichier_sortie = args.sortie or os.environ.get("SORTIE_DECISION")
+    if fichier_sortie:
+        selection = next(pr for pr in prs if pr.numero == decision.pr)
+        with Path(fichier_sortie).open("a", encoding="utf-8") as sortie:
+            sortie.write(f"revision={selection.revision}\n")
     print(f"{decision.action} {decision.pr}")
     print(f"→ {decision.action} PR {decision.pr} : {decision.raison}", file=sys.stderr)
     return 0
@@ -92,7 +117,8 @@ def _palier(args: argparse.Namespace) -> int:
         print("aucune couche finie n'attend son palier", file=sys.stderr)
         return 0
 
-    numero = palier.numero_libre(feuille.fiches)
+    reserves = demandes.reservations(github.Github(args.depot), feuille.fiches) if args.depot else ()
+    numero = palier.numero_libre(feuille.fiches, reserves)
     souche = palier.slug(etape, numero)
     texte_fiche = palier.fiche(etape, numero, branchement["briefs"])
     print(f"palier {numero} {souche} couche={etape.couche}")
@@ -113,6 +139,96 @@ def _palier(args: argparse.Namespace) -> int:
     return 0
 
 
+def _lignes_pr(gh, racine, base, reglage):
+    """Chaque PR ouverte, et ce que l'intégration en dit — la même décision."""
+    lignes = []
+    for brut in gh.liste("pulls", state="open", base=base):
+        pr = _pr_integrable(gh, brut, base, reglage["branches"])
+        decision = integration.examiner(pr, reglage["controles"], reglage["branches"])
+        lignes.append(tableau.LignePR(pr.numero, pr.branche, decision.action, decision.raison))
+    return lignes
+
+
+def _tableau(args: argparse.Namespace) -> int:
+    racine = Path(args.projet)
+    reglage = registre.integration(racine)
+    base = args.base or registre.branchement(racine)["base"]
+    feuille = registre.feuille(racine)
+    lignes = _lignes_pr(github.Github(args.depot, args.jeton), racine, base, reglage)
+    page = tableau.rendre(
+        feuille.fiches, lignes,
+        datetime.now(timezone.utc).strftime("%d/%m/%Y à %Hh%M UTC"),
+        args.depot,
+    )
+    chemin = Path(args.sortie)
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    chemin.write_text(page, encoding="utf-8")
+    print(f"{chemin}  {len(feuille.fiches)} lot(s), {len(lignes)} proposition(s)")
+    return 0
+
+
+def _saisie(args: argparse.Namespace) -> int:
+    racine = Path(args.projet)
+    branchement = registre.branchement(racine)
+    feuille = registre.feuille(racine)
+    demande = saisie.lire(Path(args.corps).read_text(encoding="utf-8"))
+
+    for dep in demande.depend_de:
+        if feuille.fiche(dep) is None:
+            print(f"FAIL  le lot {dep} n'a pas de fiche : on ne dépend pas d'un fantôme",
+                  file=sys.stderr)
+            return 1
+
+    reserves = demandes.reservations(github.Github(args.depot), feuille.fiches) if args.depot else ()
+    numero = palier.numero_libre(feuille.fiches, reserves)
+    texte = saisie.fiche(demande, numero, branchement["briefs"])
+    print(f"lot {numero} {saisie.souche(demande, numero)}")
+    print(f"→ {demande.titre} · couche {demande.couche or saisie.VIDE} · "
+          f"dépend de {', '.join(demande.depend_de) or saisie.VIDE}", file=sys.stderr)
+    if not args.ecrire:
+        print("sans --ecrire : le registre n'est pas touché.", file=sys.stderr)
+        return 0
+    chemin = feuille.chemin
+    module = registre.atelier()
+    chemin.write_text(
+        palier.inserer(chemin.read_text(encoding="utf-8"), texte, module.REPERE_DEBUT),
+        encoding="utf-8",
+    )
+    print(f"fiche {numero} écrite en tête de {chemin}", file=sys.stderr)
+    return 0
+
+
+def _autoriser_lot(args):
+    evenement = json.loads(Path(args.evenement).read_text(encoding="utf-8"))
+    print("autorise=" + str(demandes.autorisee(evenement)).lower())
+    return 0
+
+
+def _demande(args):
+    evenement = json.loads(Path(args.evenement).read_text(encoding="utf-8"))
+    # Avant même de charger un jeton ou le registre : aucune écriture,
+    # aucun appel distant pour un événement non autorisé.
+    if not demandes.autorisee(evenement):
+        print("RIEN")
+        print("demande non autorisée ou événement déjà couvert", file=sys.stderr)
+        return 0
+    racine = Path(args.projet)
+    feuille = registre.feuille(racine)
+    plan = demandes.preparer(github.Github(args.depot), evenement, feuille.fiches,
+                            registre.branchement(racine)["briefs"])
+    if plan["action"] == "RIEN":
+        print("RIEN")
+        print(plan["raison"], file=sys.stderr)
+        return 0
+    if plan["fiche"]:
+        feuille.chemin.write_text(palier.inserer(
+            feuille.chemin.read_text(encoding="utf-8"), plan["fiche"],
+            registre.atelier().REPERE_DEBUT), encoding="utf-8")
+    print(" ".join(str(plan[k]).lower() for k in
+                   ("action", "numero", "branche", "issue", "pr", "reservee", "reponse")))
+    return 0
+
+
 def construire() -> argparse.ArgumentParser:
     parseur = argparse.ArgumentParser(prog="outils", description=__doc__)
     sous = parseur.add_subparsers(dest="commande", required=True)
@@ -129,12 +245,38 @@ def construire() -> argparse.ArgumentParser:
     p.add_argument("--projet", default=".")
     p.add_argument("--base", help="la branche d'arrivée ; par défaut celle du branchement")
     p.add_argument("--jeton")
+    p.add_argument("--sortie", help="fichier de sortie Actions pour la révision jugée")
     p.set_defaults(faire=_integration)
 
     p = sous.add_parser("palier", help="une couche finie attend-elle son lot de stabilisation ?")
     p.add_argument("--projet", default=".")
     p.add_argument("--ecrire", action="store_true", help="poser la fiche dans le registre")
+    p.add_argument("--depot", help="réservations distantes, obligatoire dans le workflow")
     p.set_defaults(faire=_palier)
+
+    p = sous.add_parser("tableau", help="écrire la page « où en est le travail »")
+    p.add_argument("--depot", required=True, help="proprietaire/nom")
+    p.add_argument("--projet", default=".")
+    p.add_argument("--base")
+    p.add_argument("--sortie", default="site/index.html")
+    p.add_argument("--jeton")
+    p.set_defaults(faire=_tableau)
+
+    p = sous.add_parser("saisie", help="une demande de lot devient une fiche au registre")
+    p.add_argument("--projet", default=".")
+    p.add_argument("--corps", required=True, help="le fichier qui porte la réponse au formulaire")
+    p.add_argument("--ecrire", action="store_true", help="poser la fiche dans le registre")
+    p.add_argument("--depot", help="réservations distantes")
+    p.set_defaults(faire=_saisie)
+    p = sous.add_parser("autoriser-lot", help="vérifier la confiance avant le travail en écriture")
+    p.add_argument("--evenement", required=True)
+    p.set_defaults(faire=_autoriser_lot)
+
+    p = sous.add_parser("demande", help="préparer ou reprendre une demande autorisée")
+    p.add_argument("--evenement", required=True)
+    p.add_argument("--depot", required=True)
+    p.add_argument("--projet", default=".")
+    p.set_defaults(faire=_demande)
     return parseur
 
 
@@ -142,8 +284,12 @@ def main(argv=None) -> int:
     args = construire().parse_args(argv)
     try:
         return args.faire(args)
-    except (github.GithubErreur, registre.AtelierAbsent, registre.BranchementIncomplet) as exc:
-        print(f"FAIL  {exc}", file=sys.stderr)
+    except (github.GithubErreur, registre.AtelierAbsent, registre.BranchementIncomplet,
+            saisie.DemandeIllisible) as exc:
+        # Bornée comme le verdict : ce refus-ci peut finir dans la même
+        # description d'état, et une description trop longue n'est pas
+        # posée du tout.
+        print(f"FAIL  {github.borner(str(exc), github.BORNE_DESCRIPTION - 6)}", file=sys.stderr)
         return 1
 
 
