@@ -161,7 +161,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : pret · couche : 2 · dépend de : 047 · PR : —
 
 ### [052 — Le regard mince montre le bourg](briefs/052-le-regard-mince-montre-le-bourg.md)
-état : a-briefer · couche : 2 · dépend de : 051 · PR : —
+état : pret · couche : 2 · dépend de : 051 · PR : —
 
 ### [053 — Le monde porte sa date](briefs/053-le-monde-porte-sa-date.md)
 état : a-briefer · couche : 1 · dépend de : — · PR : —
