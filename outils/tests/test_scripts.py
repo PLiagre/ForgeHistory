@@ -6,6 +6,8 @@ les scripts avec `bash -e`, comme GitHub, avec de faux `gh`, `git` et
 `python` — et il affirme le **geste**, pas le message.
 """
 
+import re
+
 import pytest
 
 from outils.tests.banc import Banc
@@ -521,3 +523,263 @@ def test_le_tableau_absent_ne_declare_pas_un_deploiement_reussi():
     assert "if: needs.ecrire.outputs.publier == 'true'" in publication
     assert "name: github-pages" in publication
     assert "actions/deploy-pages@" in publication
+
+
+# ----------------------------------------------------------------------
+# Les actions du tableau de pilotage. Chacune a trois cas, et ce sont
+# toujours les mêmes trois : le geste nominal, le « déjà fait » qui ne
+# refait rien, et l'échec qui rougit. Le deuxième est celui qui compte :
+# une action déclenchée deux fois ne fait pas deux fois le geste, et un
+# tableau de bord se re-clique.
+# ----------------------------------------------------------------------
+
+
+def _travaux(banc) -> list[str]:
+    """Les travaux que ce tour a redemandés, dans l'ordre."""
+    return [appel for appel in banc.appels if "gh workflow run" in appel]
+
+
+# ------------------------------------------- redemander les contrôles
+
+
+def test_controles_redemande_les_trois_travaux_sur_la_bonne_reference(banc):
+    banc.poser("python3", "redemander 226 brief/049-fabriquer " + TETE)
+    banc.poser("gh")
+    resultat = banc.jouer("controles.sh", DEPOT="o/r", PR="226", BASE="master")
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert len(_travaux(banc)) == 3
+    # `tests` et `security` se jouent sur la branche de la proposition ;
+    # `relecture` depuis la base, parce qu'il ne doit pas tourner sur le
+    # code qu'il juge.
+    assert banc.appel("gh workflow run tests.yml", "--ref", "brief/049-fabriquer")
+    assert banc.appel("gh workflow run security.yml", "--ref", "brief/049-fabriquer")
+    assert banc.appel("gh workflow run relecture.yml", "--ref", "master", "pr=226")
+
+
+def test_controles_deja_poses_ne_relance_rien(banc):
+    """Le « déjà fait ». Deux clics ne lancent pas deux fois les mêmes
+    contrôles sur la même révision."""
+    banc.poser("python3", "RIEN")
+    banc.poser("gh")
+    resultat = banc.jouer("controles.sh", DEPOT="o/r", PR="226")
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert _travaux(banc) == []
+    assert "rien à redemander" in resultat.stdout
+
+
+def test_controles_une_decision_impossible_rougit_sans_rien_lancer(banc):
+    banc.poser("python3", "", code=1)
+    banc.poser("gh")
+    resultat = banc.jouer("controles.sh", DEPOT="o/r", PR="226")
+
+    assert resultat.returncode == 1
+    assert _travaux(banc) == []
+    assert "rien n'est redemandé" in resultat.stderr
+
+
+def test_controles_une_ligne_illisible_rougit_au_lieu_de_deviner(banc):
+    """Une décision qu'on ne comprend pas traitée comme « rien » serait
+    une file qui s'arrête sans le dire."""
+    banc.poser("python3", "peut-être bien que oui")
+    banc.poser("gh")
+    resultat = banc.jouer("controles.sh", DEPOT="o/r", PR="226")
+
+    assert resultat.returncode == 1
+    assert _travaux(banc) == []
+    assert "illisible" in resultat.stderr
+
+
+# ------------------------------------------------- sortir du brouillon
+
+
+def test_brouillon_sort_la_proposition_et_lui_rend_ses_controles(banc):
+    """Sortir du brouillon ne déclenche rien côté GitHub : sans ces trois
+    appels, la proposition passerait de « brouillon » à « contrôle
+    absent »."""
+    banc.poser("python3", "sortir 231 cursor/couverture-eb5f")
+    banc.poser("gh")
+    resultat = banc.jouer("brouillon.sh", DEPOT="o/r", PR="231", BASE="master")
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert banc.appel("gh pr ready 231")
+    assert len(_travaux(banc)) == 3
+
+
+def test_brouillon_deja_sortie_ne_refait_rien(banc):
+    banc.poser("python3", "RIEN")
+    banc.poser("gh")
+    resultat = banc.jouer("brouillon.sh", DEPOT="o/r", PR="231")
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert banc.appel("gh pr ready") is None
+    assert _travaux(banc) == []
+
+
+def test_brouillon_une_decision_impossible_rougit_sans_toucher_la_proposition(banc):
+    banc.poser("python3", "", code=1)
+    banc.poser("gh")
+    resultat = banc.jouer("brouillon.sh", DEPOT="o/r", PR="231")
+
+    assert resultat.returncode == 1
+    assert banc.appel("gh pr ready") is None
+    assert "rien n'est touché" in resultat.stderr
+
+
+# --------------------------------------------- changer l'état d'un lot
+
+
+def _etat_pose(banc, ligne="etat 049 abandonne etat-049-abandonne", code=0):
+    banc.poser("python3", ligne, code=code)
+
+
+def test_etat_ouvre_une_proposition_et_n_ecrit_jamais_dans_la_base(banc):
+    _etat_pose(banc)
+    banc.poser("git", selon=[(["ls-remote"], "", 1)])
+    banc.poser("gh", selon=[(["pr list"], ""), (["pr create"], "https://x/pull/240")])
+    resultat = banc.jouer("etat-lot.sh", DEPOT="o/r", LOT="049", ETAT="abandonne",
+                          BASE="master")
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert banc.appel("git checkout -b feuille/etat-049-abandonne")
+    assert banc.appel("git add ROADMAP.md")
+    assert banc.appel("git push -u origin feuille/etat-049-abandonne")
+    assert banc.appel("gh pr create", "--base", "master")
+    # La proposition ouverte par le jeton d'Actions ne déclenche rien :
+    # ses contrôles se demandent nommément.
+    assert len(_travaux(banc)) == 3
+
+
+def test_etat_le_commit_porte_une_connexion_que_github_sait_relier(banc):
+    """Une adresse que GitHub ne relie à personne rend `auteurs_du_code`
+    vide, et la relecture refuse avant de regarder les approbations."""
+    _etat_pose(banc)
+    banc.poser("git", selon=[(["ls-remote"], "", 1)])
+    banc.poser("gh", selon=[(["pr list"], ""), (["pr create"], "https://x/pull/240")])
+    banc.jouer("etat-lot.sh", DEPOT="o/r", LOT="049", ETAT="abandonne")
+
+    assert banc.appel("git config user.email",
+                      "41898282+github-actions[bot]@users.noreply.github.com")
+
+
+def test_etat_une_proposition_deja_ouverte_ne_se_redouble_pas(banc):
+    """Le « déjà fait » de cette action-là. Tant que la proposition n'est
+    pas fusionnée, la fiche n'a pas bougé dans la base et chaque réveil
+    la reproposerait."""
+    _etat_pose(banc)
+    banc.poser("git")
+    banc.poser("gh", selon=[(["pr list"], "241")])
+    resultat = banc.jouer("etat-lot.sh", DEPOT="o/r", LOT="049", ETAT="abandonne")
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert "241" in resultat.stdout
+    assert banc.appel("git checkout") is None
+    assert banc.appel("gh pr create") is None
+
+
+def test_etat_un_lot_deja_dans_l_etat_demande_ne_touche_a_rien(banc):
+    _etat_pose(banc, ligne="RIEN")
+    banc.poser("git")
+    banc.poser("gh")
+    resultat = banc.jouer("etat-lot.sh", DEPOT="o/r", LOT="049", ETAT="abandonne")
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert banc.appel("gh pr list") is None
+    assert banc.appel("git checkout") is None
+
+
+def test_etat_une_transition_interdite_rougit_sans_rien_ecrire(banc):
+    """Le refus vient du juge de l'atelier ; ce script ne fait que le
+    porter — et surtout, il ne passe pas outre."""
+    _etat_pose(banc, ligne="", code=1)
+    banc.poser("git")
+    banc.poser("gh")
+    resultat = banc.jouer("etat-lot.sh", DEPOT="o/r", LOT="046", ETAT="abandonne")
+
+    assert resultat.returncode == 1
+    assert "ne passe pas à" in resultat.stderr
+    assert banc.appel("git checkout") is None
+    assert banc.appel("gh pr create") is None
+
+
+def test_etat_une_branche_orpheline_se_retire_avant_la_poussee(banc):
+    """Une branche restée d'une proposition fermée porte une fiche qui
+    n'a jamais atterri : elle empêcherait la poussée d'aboutir."""
+    _etat_pose(banc)
+    banc.poser("git", selon=[(["ls-remote"], "abc\trefs/heads/feuille/etat-049-abandonne", 0)])
+    banc.poser("gh", selon=[(["pr list"], ""), (["pr create"], "https://x/pull/240")])
+    resultat = banc.jouer("etat-lot.sh", DEPOT="o/r", LOT="049", ETAT="abandonne")
+
+    assert resultat.returncode == 0, resultat.stderr
+    assert banc.appel("git push origin --delete feuille/etat-049-abandonne")
+
+
+# ------------------------------------------- les travaux et leurs gestes
+
+
+def test_chaque_travail_appelle_un_geste_qui_vit_dans_un_fichier():
+    """Règle 13 : un bloc de shell écrit dans un YAML ne se joue nulle
+    part. La référence est dérivée du dossier, pas recopiée ici."""
+    from outils.tests.banc import RACINE, SCRIPTS
+
+    travaux = sorted((RACINE / ".github" / "workflows").glob("*.yml"))
+    assert travaux, "aucun travail à contrôler"
+    for travail in travaux:
+        texte = travail.read_text(encoding="utf-8")
+        for appel in re.findall(r"bash (\.github/scripts/[\w.-]+)", texte):
+            assert (RACINE / appel).is_file(), f"{travail.name} appelle {appel}, absent"
+    poses = {chemin.name for chemin in SCRIPTS.glob("*.sh")}
+    appeles = {
+        appel.rsplit("/", 1)[-1]
+        for travail in travaux
+        for appel in re.findall(r"bash (\.github/scripts/[\w.-]+)", travail.read_text(encoding="utf-8"))
+    }
+    assert poses - appeles == set(), f"scripts que personne n'appelle : {poses - appeles}"
+
+
+def test_les_trois_actions_nouvelles_ont_leur_travail_et_leur_entree():
+    from outils.tests.banc import RACINE
+
+    attendus = {
+        "controles.yml": "le numéro de la proposition",
+        "brouillon.yml": "le numéro de la proposition",
+        "etat-lot.yml": "le numéro du lot",
+    }
+    for fichier, entree in attendus.items():
+        texte = (RACINE / ".github" / "workflows" / fichier).read_text(encoding="utf-8")
+        assert "workflow_dispatch:" in texte, fichier
+        assert entree in texte, fichier
+
+
+def test_le_palier_peut_se_forcer_sans_attendre_une_fusion():
+    """Si le tour qui devait le déposer est mort en route, la couche
+    reste finie et son palier n'arrive jamais."""
+    from outils.tests.banc import RACINE
+
+    texte = (RACINE / ".github" / "workflows" / "integration.yml").read_text(encoding="utf-8")
+    assert "if: needs.integrer.outputs.fusionnee != '' || inputs.palier == 'oui'" in texte
+
+
+def test_le_travail_d_etat_partage_le_verrou_du_registre():
+    """Trois travaux écrivent le registre ; deux numéros attribués en même
+    temps sont deux fiches qui se marchent dessus."""
+    from outils.tests.banc import RACINE
+
+    texte = (RACINE / ".github" / "workflows" / "etat-lot.yml").read_text(encoding="utf-8")
+    assert "group: registre" in texte
+    assert "queue: max" in texte
+    assert "cancel-in-progress: false" in texte
+
+
+def test_le_tableau_a_le_droit_de_lire_l_historique_des_executions():
+    """Sans `actions: read`, l'API répond 403 et le bloc de santé se rend
+    « non lu » — honnête, mais inutile : c'est ce bloc-là qui aurait
+    montré la panne du 7 septembre 2026."""
+    from outils.tests.banc import RACINE
+
+    texte = (RACINE / ".github" / "workflows" / "tableau.yml").read_text(encoding="utf-8")
+    permissions = texte.split("permissions:", 1)[1].split("\njobs:", 1)[0]
+    for droit in ("actions: read", "pull-requests: read", "pages: read"):
+        assert droit in permissions, droit
+    assert "write" not in permissions, "la page ne fait qu'écrire un fichier : elle ne pousse rien"

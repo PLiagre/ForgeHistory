@@ -16,6 +16,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from .mesure import Lecture
+
 API = "https://api.github.com"
 
 # Ce que GitHub accepte dans la description d'un état de commit. Au-delà,
@@ -32,7 +34,17 @@ def borner(texte: str, borne: int = BORNE_DESCRIPTION) -> str:
 
 
 class GithubErreur(RuntimeError):
-    pass
+    """Un refus de GitHub, et son code.
+
+    Le code voyage avec le message parce que 404 et 403 ne veulent pas
+    dire la même chose : le premier est un « ça n'existe pas » mesuré, le
+    second un « je ne te le dirai pas ». Les confondre afficherait une
+    protection absente là où elle est seulement illisible.
+    """
+
+    def __init__(self, message: str, code: int = 0) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class Github:
@@ -66,15 +78,22 @@ class Github:
                 return json.loads(reponse.read().decode("utf-8")), dict(reponse.headers)
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", "replace")[:400]
-            raise GithubErreur(f"{exc.code} sur {url} : {detail}") from exc
+            raise GithubErreur(f"{exc.code} sur {url} : {detail}", exc.code) from exc
         except urllib.error.URLError as exc:
             raise GithubErreur(f"GitHub injoignable ({url}) : {exc.reason}") from exc
 
     def get(self, chemin: str, **params):
         return self._get(chemin, **params)[0]
 
-    def liste(self, chemin: str, **params) -> list:
-        """Toutes les pages d'une collection. Une page oubliée ment par omission."""
+    def liste(self, chemin: str, limite: int = 0, **params) -> list:
+        """Les pages d'une collection. Une page oubliée ment par omission.
+
+        `limite` borne la lecture des collections sans fin — l'historique
+        des exécutions en compte des milliers, et les lire toutes pour
+        n'en montrer dix coûterait un tour entier. Zéro veut dire « tout »,
+        et c'est le défaut : une liste tronquée par surprise est
+        exactement le genre d'omission qu'on ne voit pas.
+        """
         resultat: list = []
         page = 1
         while True:
@@ -82,9 +101,27 @@ class Github:
             if not isinstance(lot, list):
                 raise GithubErreur(f"{chemin} ne rend pas une liste")
             resultat.extend(lot)
+            if limite and len(resultat) >= limite:
+                return resultat[:limite]
             if len(lot) < 100 or 'rel="next"' not in entetes.get("Link", ""):
                 return resultat
             page += 1
+
+    def lire(self, chemin: str, **params) -> Lecture:
+        """Une lecture qui a le droit de ne pas aboutir.
+
+        Rend une `Lecture` plutôt que de lever : ce qui se lit ici — une
+        protection de branche, l'état de Pages — n'est pas indispensable
+        à une décision. Ce qui serait grave, c'est de traduire le refus
+        en « absent ». Un 404 est un « ça n'existe pas » et devient une
+        valeur connue à `None` ; tout le reste reste inconnu.
+        """
+        try:
+            return Lecture.sue(self.get(chemin, **params))
+        except GithubErreur as exc:
+            if exc.code == 404:
+                return Lecture.sue(None)
+            return Lecture.inconnue(borner(str(exc)))
 
 
 def controles(gh: Github, sha: str) -> list[tuple[str, str, str | None]]:
@@ -128,3 +165,46 @@ def retard(gh: Github, base: str, tete: str) -> int:
     """Combien de commits de `base` manquent à `tete`."""
     comparaison = gh.get(f"compare/{urllib.parse.quote(base)}...{urllib.parse.quote(tete)}")
     return int(comparaison.get("behind_by", 0))
+
+
+def executions(gh: Github, travail: str, limite: int = 100) -> list[dict]:
+    """Les exécutions d'un travail, la plus récente d'abord."""
+    reponse = gh.get(f"actions/workflows/{travail}/runs", per_page=min(limite, 100))
+    return list(reponse.get("workflow_runs", []))[:limite]
+
+
+def executions_rouges(gh: Github, limite: int = 100) -> list[dict]:
+    """Les dernières exécutions en échec, tous travaux confondus."""
+    reponse = gh.get("actions/runs", status="failure", per_page=min(limite, 100))
+    return list(reponse.get("workflow_runs", []))[:limite]
+
+
+def protection(gh: Github, branche: str) -> Lecture:
+    """La protection de la branche de base, ou l'aveu qu'on ne peut pas la lire.
+
+    L'API la refuse à un jeton qui n'est pas administrateur, et c'est le
+    cas ordinaire du jeton d'Actions. Le refus se déclare : une
+    protection illisible n'est pas une protection absente.
+    """
+    return gh.lire(f"branches/{urllib.parse.quote(branche)}/protection")
+
+
+def pages(gh: Github) -> Lecture:
+    """L'état de la publication. Un 404 dit « Pages n'est pas activé »."""
+    return gh.lire("pages")
+
+
+def propositions_fermees(gh: Github, base: str, limite: int) -> list[dict]:
+    """Les propositions fermées, la plus récemment touchée d'abord."""
+    return gh.liste("pulls", limite=limite, state="closed", base=base,
+                    sort="updated", direction="desc")
+
+
+def commentaires(gh: Github, numero: int, limite: int = 100) -> list[dict]:
+    """Les commentaires d'une proposition — pour savoir pourquoi elle a été fermée."""
+    return gh.liste(f"issues/{numero}/comments", limite=limite)
+
+
+def branches(gh: Github, limite: int = 300) -> list[str]:
+    """Les noms des branches distantes."""
+    return [str(b.get("name", "")) for b in gh.liste("branches", limite=limite)]
