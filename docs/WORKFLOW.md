@@ -26,7 +26,10 @@ s'arrête.
 
 ---
 
-## Les six travaux
+## Les neuf travaux
+
+Six tournent seuls ; trois ne partent que sur appel, et c'est la page de
+pilotage qui donne le lien pour les appeler.
 
 | workflow | quand | ce qu'il dit | le geste |
 |---|---|---|---|
@@ -35,7 +38,18 @@ s'arrête.
 | `relecture` | PR, revue déposée, appel | pose l'état `relecture` sur la révision de la PR — pour l'œil, pas pour la porte | `scripts/relecture.sh` |
 | `integration` | fin des trois autres, revue, chaque heure, appel | fusionne la PR verte suivante, puis dépose le palier s'il est dû | `scripts/integrer.sh`, `scripts/palier.sh` |
 | `lot` | une demande de lot est ouverte | écrit sa fiche au registre et ouvre la PR | `scripts/lot.sh` |
-| `tableau` | fin de l'intégration, poussée, chaque heure, appel | réécrit la page « où en est le travail » | — |
+| `tableau` | fin de l'intégration, poussée, chaque heure, appel | réécrit la page de pilotage | — |
+| `controles` | appel, entrée : le n° d'une proposition | rejoue `tests`, `security` et `relecture` — ou dit qu'ils sont déjà là | `scripts/controles.sh` |
+| `brouillon` | appel, entrée : le n° d'une proposition | la sort du brouillon et lui rend ses contrôles | `scripts/brouillon.sh` |
+| `etat-lot` | appel, entrées : le lot et l'état visé | ouvre la proposition qui passe la fiche à `abandonne` ou `idee` | `scripts/etat-lot.sh` |
+
+Les trois derniers ont le même contrat : ils **relisent l'état avant
+d'agir**, et sortent en disant « déjà fait » plutôt que de refaire le
+geste. Un tableau de bord se re-clique ; deux clics ne doivent pas ouvrir
+deux propositions ni lancer deux fois les mêmes contrôles sur la même
+révision. La décision vit dans `outils/actions.py`, elle se joue hors
+ligne ; le geste vit dans son fichier de `.github/scripts/`, il se joue
+sur le banc.
 
 La liste des contrôles qui gouvernent la fusion n'est pas ici : elle est
 dans [`atelier.toml`](../atelier.toml) § `[integration]`, et c'est celle-là
@@ -165,15 +179,55 @@ demande, avec la raison en commentaire — on ne dépend pas d'un fantôme.
 `ROADMAP.md` ne s'édite plus à la main. C'est ce qui fait qu'on ne peut
 plus s'y tromper de format, de numéro ou d'état.
 
-**Voir** : la page du travail, réécrite à chaque tour de l'intégration.
+**Voir** : la page de pilotage, réécrite à chaque tour de l'intégration.
 Elle sort sur GitHub Pages ; le réglage à poser une fois est
 *Settings → Pages → Source : GitHub Actions*. Tant qu'il ne l'est pas, la
 page est écrite quand même et déposée en pièce jointe du run — elle
-existe, elle n'est pas publiée.
+existe, elle n'est pas publiée. La page le dit elle-même, dans son bloc
+de santé.
 
 Elle ne décide rien : les états viennent du registre, et la raison qui
 retient chaque PR vient de la décision de l'intégration — la même
 fonction que celle qui fusionne, pas une paraphrase.
+
+## La page de pilotage : cinq blocs, et l'ordre est l'information
+
+Ce qui demande une décision passe avant ce qui va bien.
+
+1. **Ce qui demande une décision maintenant** — propositions retenues avec
+   leur cause exacte, conflits, lots prêts dont une dépendance manque,
+   paliers dus, contrôles requis rouges sur la base, brouillons oubliés.
+   Chaque ligne porte depuis combien de temps. Vide, le bloc se referme
+   en une ligne.
+2. **La santé de la chaîne** — le nombre de tours d'intégration depuis la
+   dernière fusion, en gros ; le dernier réveil ; les contrôles déclarés
+   et ce que GitHub en exige vraiment ; l'état de la publication ; la
+   dernière exécution rouge de chaque travail.
+3. **L'avancement** — par couche, la vélocité en lots livrés par semaine,
+   le temps de traversée médian et sa décomposition, l'âge de chaque lot
+   dans son état.
+4. **Le journal des fusions** — les dernières propositions fermées, qui a
+   écrit, qui a relu, et si ce n'était pas la même connexion.
+5. **Le registre complet** — la référence, en dernier.
+
+Trois propriétés qui expliquent ce que la page fait et ne fait pas :
+
+- **elle est statique.** Publiée sur Pages, donc sans jeton et sans appel
+  réseau : un jeton publié est un jeton perdu. Tout ce qui s'affiche est
+  calculé à la génération, par du Python qui a le jeton d'Actions ;
+- **elle n'agit pas, elle emmène.** Chaque action est un lien vers la
+  page GitHub d'un geste, et un travail `workflow_dispatch` qui le fait.
+  Aucune n'écrit dans la base : un changement d'état de lot passe par une
+  proposition, relue comme les autres ;
+- **elle dit ce qu'elle ne sait pas.** Les cartes de l'atelier vivent sur
+  le serveur du propriétaire : la page ne voit pas si un agent travaille.
+  Ce qu'elle en infère — une branche `agent/NNN-…` sans proposition
+  ouverte — est nommé comme une déduction, pas comme une mesure. Et toute
+  lecture d'API refusée s'affiche « inconnu », jamais « absent ».
+
+Ses seuils sont dans [`atelier.toml`](../atelier.toml) § `[tableau]` : le
+nombre de tours à vide qui déclenche l'alerte, l'âge d'un brouillon
+oublié, la longueur du journal, la fenêtre de vélocité.
 
 ## Ce qui reste au propriétaire
 
@@ -245,8 +299,13 @@ qu'est-ce qui manque ?**
   changements demandés).
 - **Une PR ouverte par la machine n'a aucun contrôle** : GitHub refuse de
   déclencher un travail sur un événement qu'un jeton d'Actions a produit.
-  L'intégration les redemande nommément ; si elle ne l'a pas fait,
-  `gh workflow run tests.yml --ref <branche>` le fait à la main.
+  L'intégration les redemande nommément ; si elle ne l'a pas fait, le
+  travail `controles` le fait, et la page de pilotage en donne le lien.
+- **Une proposition dort en brouillon** : la chaîne ne les regarde pas.
+  Le travail `brouillon` l'en sort et lui rend ses contrôles.
+- **Un palier n'a pas été déposé alors que la couche est finie** : le
+  tour qui devait le faire est mort en route. `integration` s'appelle
+  avec l'entrée « palier : oui » et repose la question.
 - **Un travail meurt au milieu de son étape** : c'est `errexit`. GitHub
   joue `run:` avec `bash -e`. Le geste doit vivre dans
   `.github/scripts/`, et se rejouer sur le banc avant d'être poussé —
