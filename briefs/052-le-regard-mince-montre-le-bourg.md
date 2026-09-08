@@ -64,14 +64,22 @@ kpis["habitants_du_bourg"]    = {"etat": "mesure", "valeur": <int>, "cellules_lu
 kpis["habitants_des_champs"]  = {"etat": "mesure", "valeur": <int>, "cellules_lues": <int>}
 ```
 
-`<valeur>` est la somme, sur les cellules qui portent un champ `bourg`, de
-`cell["bourg"]["habitants_du_bourg"]` (resp. `habitants_des_champs`) ;
-`cellules_lues` est le nombre de cellules qui ont fourni cette somme —
-exactement le calque du bloc `population` déjà présent (lignes 75-89 de
-`viewer/snapshot_loader.py` avant ce lot). Si aucune cellule ne porte
-`bourg` (schéma antérieur à 051, ou document construit à la main dans un
-test), l'état est `"absent"`, jamais un zéro inventé — le même choix que
-`population` fait déjà quand aucune cellule n'a de champ `population`.
+Chaque champ s'agrège séparément. `<valeur>` est la somme des entiers
+mesurés du champ, et `cellules_lues` compte uniquement les cellules qui
+ont contribué à cette somme. Un zéro est une mesure et compte ; une clé
+absente, `bourg: null`, un sous-champ absent ou nul ne contribue pas ; la
+sentinelle `-1` ne contribue pas non plus. En présence de mesures, l'état
+est `"mesure"`. Sans mesure mais avec au moins une sentinelle pour ce
+champ, l'état est `"non_calcule"`, sans `valeur`. Sans mesure ni
+sentinelle, l'état est `"absent"`, sans `valeur`.
+
+Cette lecture réutilise `viewer.classify.classify` ; elle ne convertit
+jamais une absence en zéro. Un champ présent non entier, un booléen, un
+entier négatif autre que la sentinelle, ou un `bourg` non nul qui n'est
+pas un dictionnaire lève `ValueError` en nommant la cellule et le champ,
+au lieu d'inventer une population par conversion. Les tests de documents
+partiels appellent directement `agregats_monde` : `load_snapshot` garde
+son refus des anciennes versions de schéma, il ne gagne pas de migration.
 
 Les deux clés reprennent tels quels les champs de `RepartitionBourg`
 (`sim/aggregation.py`) que 051 a déjà recopiés dans le document : aucun
@@ -127,8 +135,8 @@ fichier qui porte déjà les invariants du bandeau
 (`test_agregats_monde_derivent_du_snapshot`, `test_absence_declaree_pas_inventee`,
 `test_zero_mesure_n_est_pas_absent_dans_les_agregats`,
 `test_dashboard_html_porte_les_kpis`). Aucun test déjà vert n'est modifié ;
-`test_dashboard_html_porte_les_kpis` s'étend avec `"kpi-bourg"` et
-`"kpi-champs"`, exactement comme elle porte déjà `"kpi-stock"`.
+un **nouveau** cas vérifie `"kpi-bourg"` et `"kpi-champs"`, sans étendre
+le test existant. Les nouveaux cas portent `bourg` dans leur nom.
 
 Tout autre chemin est interdit, nommément : tout `sim/` (y compris
 `sim/MODELE.md`, `sim/aggregation.py`, `sim/snapshot_export.py`,
@@ -146,6 +154,8 @@ d'ici.
 
 ### SC1 — Le bandeau porte le bourg, recalculé depuis le document, jamais stocké
 
+Commande : `python3 -m pytest viewer/tests/test_viewer_v0b.py -k bourg -q`.
+
 Sur le monde réel (`World.charger(0)`, `build_snapshot_document`),
 `agregats_monde(document)["habitants_du_bourg"]["valeur"]` est égal à la
 somme, sur toutes les cellules du document, de
@@ -159,6 +169,8 @@ document ; un échantillon vide (aucune cellule ne porte `bourg`) rend l'état
 `agregats_monde(document)["habitants_du_bourg"]` lève `KeyError`.
 
 ### SC2 — La conservation tient au niveau du bandeau
+
+Commande : `python3 -m pytest viewer/tests/test_viewer_v0b.py -k bourg -q`.
 
 Sur le monde réel, avec les trois agrégats à l'état `"mesure"` :
 `kpis["habitants_du_bourg"]["valeur"] + kpis["habitants_des_champs"]["valeur"]
@@ -177,11 +189,19 @@ Sur un document construit à la main dont aucune cellule ne porte `bourg`
 rend `{"etat": "absent"}` pour `habitants_du_bourg` et
 `habitants_des_champs`, sans clé `valeur`.
 
+Commande : `python3 -m pytest viewer/tests/test_viewer_v0b.py -k bourg -q`.
+Ajouter aussi les cas zéro mesuré, sentinelles seules, sous-champ absent,
+valeurs nulles et mélange de mesures, absences et sentinelles. Dériver
+chaque somme et son dénominateur des contributeurs réellement présents,
+pour chacun des deux champs. Un document sans cellules continue de lever
+`EchantillonVide`. Les valeurs invalides définies dans la règle lèvent
+`ValueError` avec la cellule et le champ, jamais une somme plausible.
+
 ### SC4 — Le tableau de bord statique porte les deux nouvelles cartes
 
-`test_dashboard_html_porte_les_kpis`, étendu avec `"kpi-bourg"` et
-`"kpi-champs"`, reste vert : les deux identifiants sont présents dans
-`viewer/static/index.html`. Un contrôle de code source vérifie en outre que
+Un nouveau test vérifie que `"kpi-bourg"` et `"kpi-champs"` sont présents
+dans `viewer/static/index.html`. `test_dashboard_html_porte_les_kpis`
+reste inchangé. Un contrôle de code source vérifie en outre que
 `viewer/static/app.js` référence `monde.habitants_du_bourg` et
 `monde.habitants_des_champs` dans `showKpis()` — la carte existe et le
 bandeau la remplit, pas seulement l'une des deux.
@@ -189,7 +209,17 @@ bandeau la remplit, pas seulement l'une des deux.
 **Rouge prouvé d'abord** : sur `master`, ni `"kpi-bourg"` ni
 `"kpi-champs"` n'apparaissent dans `index.html`.
 
+Commandes : `python3 -m pytest viewer/tests/test_viewer_v0b.py -k bourg -q`,
+puis `python3 -m viewer --snapshot /tmp/monde.json` avec un snapshot réel
+produit après 051. Inspecter soi-même les captures à largeur de bureau et
+sur mobile : libellés complets, cartes sans chevauchement, chiffres égaux
+à `/dashboard.json`, zéro visible et absence distincte. Un contrôle de
+présence dans le HTML ne remplace pas cette vérification visuelle. Le
+document d'entrée reste identique après la lecture.
+
 ### SC5 — Une seule voie de lecture de la part non agricole
+
+Commande : `python3 -m pytest viewer/tests/test_viewer_v0b.py -k bourg -q`.
 
 Un contrôle parcourt le code source de `viewer/snapshot_loader.py` et de
 `viewer/static/app.js`, et échoue si l'un des deux référence
@@ -202,6 +232,8 @@ Un contrôle parcourt le code source de `viewer/snapshot_loader.py` et de
 le contrôle doit rougir dessus, sinon il ne protège rien.
 
 ### SC6 — Rien d'autre ne change dans le bandeau
+
+Commande : `python3 -m pytest viewer/tests/test_viewer_v0b.py -k bourg -q`.
 
 `agregats_monde(document)`, calculé sur le même monde avant et après ce
 lot, rend des valeurs strictement identiques pour toutes les clés
