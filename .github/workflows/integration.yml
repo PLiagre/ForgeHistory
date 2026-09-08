@@ -28,6 +28,22 @@ on:
     # qu'un événement perdu aurait laissé dormir.
     - cron: "17 * * * *"
   workflow_dispatch:
+    inputs:
+      palier:
+        # Le palier se dépose à la fusion qui finit une couche, et c'est
+        # le seul moment où la question se pose. Si ce tour-là est mort en
+        # route, la couche reste finie et son palier n'arrive jamais : il
+        # faut pouvoir reposer la question sans attendre une fusion qui
+        # n'aura pas lieu. Le dépôt reste idempotent — une proposition de
+        # palier déjà ouverte sur la couche fait sortir le geste en le
+        # disant.
+        description: "forcer le dépôt du palier, même sans fusion ce tour-ci"
+        required: false
+        default: "non"
+        type: choice
+        options:
+          - non
+          - oui
   workflow_run:
     workflows: [tests, security, relecture]
     types: [completed]
@@ -84,10 +100,12 @@ jobs:
         run: SORTIE="$GITHUB_OUTPUT" bash .github/scripts/integrer.sh
 
   palier:
-    # Une couche ne se finit qu'à une fusion : c'est le seul moment où la
-    # question se pose, et le seul où la réponse peut changer.
+    # Une couche ne se finit qu'à une fusion : c'est le moment ordinaire
+    # où la question se pose. L'entrée « palier » de l'appel manuel est
+    # le rattrapage — quand la fusion a eu lieu et que le dépôt, lui, n'a
+    # pas eu lieu.
     needs: integrer
-    if: needs.integrer.outputs.fusionnee != ''
+    if: needs.integrer.outputs.fusionnee != '' || inputs.palier == 'oui'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
