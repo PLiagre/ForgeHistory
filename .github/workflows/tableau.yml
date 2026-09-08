@@ -11,6 +11,16 @@ name: tableau
 # Settings → Pages → Source : GitHub Actions. Tant qu'il ne l'est pas, ce
 # travail écrit la page et la dépose comme pièce jointe du run — elle
 # existe, elle n'est simplement pas publiée.
+#
+# Elle est **statique** : aucun jeton n'y entre, aucun appel réseau n'en
+# part, aucune bibliothèque n'y est chargée. Tout ce qu'elle montre est
+# lu ici, par du Python qui a le jeton d'Actions ; tout ce qu'elle
+# actionne est un lien vers la page GitHub du geste. Un jeton publié est
+# un jeton perdu, et un dépôt public n'a pas de dos.
+#
+# Ce que ce travail ne peut pas lire, il le dit : une protection de
+# branche refusée à un jeton non administrateur s'affiche « inconnu », et
+# chaque renoncement est écrit sur l'erreur standard puis dans la page.
 
 on:
   workflow_run:
@@ -30,6 +40,13 @@ permissions:
   contents: read
   pull-requests: read
   pages: read
+  # La page lit l'historique des exécutions : c'est de lui que se dérive
+  # le nombre de tours d'intégration sans fusion, et la dernière exécution
+  # rouge de chaque travail. Sans ce droit, l'API répond 403 et le bloc de
+  # santé se rend « non lu » — ce qui est honnête, mais inutile.
+  actions: read
+  checks: read
+  statuses: read
 
 jobs:
   ecrire:
