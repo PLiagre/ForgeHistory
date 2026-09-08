@@ -160,8 +160,10 @@ dérivation, jamais une version plus permissive écrite pour l'occasion.
 
 ### Où ça se raccorde
 
-`tick()` garde exactement sept maillons dans le même ordre ; seul le
-maillon 7 (`_apply_migration`) change. `_apply_commerce`, `stocks_mer`,
+`tick()` conserve l'ordre des maillons effectivement présents sur la base ;
+seul le maillon migration (`_apply_migration`) change. Un compte de sept
+oublierait l'extraction déjà livrée et vieillirait avec la fabrication.
+`_apply_commerce`, `stocks_mer`,
 `capacite_quai` et tout le reste du commerce maritime restent inchangés :
 ce lot ne les appelle jamais et ne les modifie pas.
 
@@ -172,8 +174,7 @@ En écriture :
 - `sim/engine.py`, pour étendre `_apply_migration` (et la ou les fonctions
   qu'elle appelle pour dériver l'ensemble des cellules sans voisin
   terrestre et la route maritime de repli), et pour mettre à jour le
-  docstring d'en-tête et celui du maillon 7 qui décrivent les sept
-  maillons ;
+  docstring d'en-tête et celui de la migration ;
 - `sim/tests/test_commerce.py`, **uniquement pour y ajouter** des cas —
   c'est le fichier qui porte déjà tous les tests de migration et de
   commerce maritime. Aucun test déjà présent n'est modifié, renommé ni
@@ -195,7 +196,12 @@ ce brief : on s'arrête et on le dit — on ne touche pas au test.
 Les comparaisons « avant / après » se font contre `master` rejoué au
 démarrage du lot, jamais contre un nombre recopié d'ici.
 
+Les nouveaux cas SC1 à SC8 portent `migration_mer` dans leur nom ;
+la sélection ci-dessous doit en collecter, sinon elle échoue.
+
 ### SC1 — Rouge prouvé d'abord : une cellule hermétique reste bloquée aujourd'hui
+
+Commande : `python3 -m pytest sim/tests/test_commerce.py -k migration_mer -q`.
 
 Sur un micro-monde déterministe portant une cellule sans aucune arête
 terrestre mais avec une façade maritime, forcée en pénurie sur plusieurs
@@ -206,16 +212,22 @@ population de la cellule affamée ne baisse **jamais** par migration
 
 ### SC2 — Après ce lot, elle est quittée par la mer
 
+Commande : `python3 -m pytest sim/tests/test_commerce.py -k migration_mer -q`.
+
 Sur le même micro-monde : la cellule hermétique perd des habitants, la
 cellule côtière en surplus en gagne, dans le même tick.
 
 ### SC3 — Conservation de la population, mer comprise
+
+Commande : `python3 -m pytest sim/tests/test_commerce.py -k migration_mer -q`.
 
 Sur le même micro-monde, la somme des populations de toutes les cellules
 est identique avant et après `_apply_migration`. L'écart mesuré vaut **0**,
 et ce zéro est une mesure.
 
 ### SC4 — Pondération proportionnelle au surplus entre plusieurs ports
+
+Commande : `python3 -m pytest sim/tests/test_commerce.py -k migration_mer -q`.
 
 Sur un micro-monde où une cellule hermétique fait face à **au moins deux**
 cellules côtières en surplus de valeurs différentes, aucune des deux
@@ -225,6 +237,8 @@ comme `_repartir_habitants_proportionnellement` le fait déjà pour la route
 terrestre.
 
 ### SC5 — Une cellule connectée par la terre n'utilise jamais la mer
+
+Commande : `python3 -m pytest sim/tests/test_commerce.py -k migration_mer -q`.
 
 Sur un micro-monde où une cellule affamée a **une** voisine terrestre sans
 aucun surplus ce tick **et** une façade maritime vers un port en surplus :
@@ -239,14 +253,23 @@ doit la faire échouer.
 
 ### SC6 — Atomicité : une réceptrice par la mer n'envoie pas le même tick
 
-Sur un micro-monde à trois cellules — une hermétique affamée A, un port en
-léger surplus B qui est lui-même affamé et n'a que B comme voisin terrestre
-d'un troisième C en surplus — la cellule B reçoit les migrants de A par la
-mer et n'envoie aucun migrant vers C ce même tick, exactement comme
+Commande : `python3 -m pytest sim/tests/test_commerce.py -k migration_mer -q`.
+
+Sur un micro-monde à trois cellules : A et B sont côtières, seule l'arête
+terrestre B–C existe, et C n'est pas côtière. A est en pénurie sans stock ;
+B porte un léger stock post-consommation positif et une pénurie positive
+explicitement injectée dans l'appel isolé à `_apply_migration` ; C porte
+un surplus positif. La pénurie injectée de B construit une épreuve du
+filtre d'atomicité, pas une situation prétendument produite par le tick.
+Choisir les populations d'épreuve pour que A et B aient des partants
+entiers selon la fraction lue dans les constantes. B reçoit les migrants
+de A par la mer et n'envoie aucun migrant vers C ce même tick, comme
 l'invariant terrestre déjà protégé par
 `test_receveuse_ne_renvoie_pas_meme_tick`.
 
 ### SC7 — Zéro partant si aucun port n'a de surplus
+
+Commande : `python3 -m pytest sim/tests/test_commerce.py -k migration_mer -q`.
 
 Sur un micro-monde où la cellule hermétique affamée est la **seule**
 cellule côtière du monde (ou où tous les autres ports sont eux-mêmes à
@@ -254,12 +277,17 @@ sec) : zéro partant, mesuré, pas supposé.
 
 ### SC8 — La migration hérite du refus de bassin ambigu
 
+Commande : `python3 -m pytest sim/tests/test_commerce.py -k migration_mer -q`.
+
 Sur un monde dont les arêtes maritimes portent deux nœuds mer distincts (le
 même motif que `test_refus_maritimes_compteur_mutations` construit déjà
 pour le commerce), un appel à `_apply_migration` lève
-`NoeudsMerMultiplesError` — la preuve que la migration appelle
-`_aretes_maritimes_du_monde` plutôt qu'une dérivation à elle, plus
-permissive.
+`NoeudsMerMultiplesError`. Un second cas avec un seul nœud mer mais deux
+valeurs de `kind` lève `KindsMaritimesMultiplesError`. Pour chaque refus,
+comparer avant et après tous les champs des cellules, reports de migration
+compris, et le bassin : rien n'a changé. La validation maritime précède
+donc aussi l'accumulation des fractions de partants. C'est la preuve que
+la migration consulte la même dérivation et refuse avant ses effets.
 
 ### SC9 — Le déterminisme tient
 
