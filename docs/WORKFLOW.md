@@ -88,23 +88,47 @@ l'intégration séquentielle.
 
 ## Jouer les décisions à la main
 
-Rien n'est écrit : ces trois commandes lisent.
+Rien n'est écrit sur GitHub.
 
 ```bash
 export PYTHONPATH=/opt/ForgeAtelier            # ou le clone de la branche
 py -m outils palier --projet .                 # où en est chaque couche
 py -m outils integration --depot PLiagre/ForgeHistory --projet .
 py -m outils relecture --depot PLiagre/ForgeHistory --pr 217
+py -m outils tableau --depot PLiagre/ForgeHistory --projet . --sortie /tmp/etat.html
+py -m outils saisie --projet . --corps demande.md
 ```
 
-`palier --ecrire` est la seule qui touche un fichier, et seulement le
-registre. Les deux autres n'écrivent jamais : le geste — fusionner,
-rejouer, poser un état — appartient au workflow, où il se voit dans un
+`palier --ecrire` et `saisie --ecrire` sont les seules qui touchent le
+registre. Sans `--ecrire`, elles impriment ce qu'elles feraient et
+s'arrêtent. `tableau` écrit la page à `--sortie` (défaut
+`site/index.html`) : c'est une photographie, pas une décision. Fusionner,
+rejouer, poser un état : ça appartient au workflow, où ça se voit dans un
 journal.
 
-Les commandes de l'atelier, elles, vivent chez lui :
+`saisie` lit la réponse au gabarit « Demander un lot »
+(`.github/ISSUE_TEMPLATE/nouveau-lot.yml`). Un intitulé changé d'un seul
+côté fait rougir. Une dépendance sans fiche au registre : `FAIL`, on ne
+dépend pas d'un fantôme.
+
+Chaque commande imprime **une** ligne sur la sortie standard — celle que
+le workflow lit — et son compte rendu sur l'erreur standard. Aucune
+n'écrit sur GitHub.
+
+## L'atelier
+
+`outils/` lit le registre par ForgeAtelier, et par lui seulement. Sans
+`PYTHONPATH` (clone local, ou `/opt/ForgeAtelier` sur la machine de
+travail) :
+
+```
+FAIL  ForgeAtelier n'est pas sur le PYTHONPATH
+```
+
+Les commandes de l'atelier vivent chez lui :
 
 ```bash
+export PYTHONPATH=/opt/ForgeAtelier            # ou le clone de la branche
 py -m atelier doctor --projet .
 py -m atelier portes --brief briefs/046-la-mer-est-un-port-commun.md
 py -m atelier feuille valider --projet .       # la feuille est-elle cohérente ?

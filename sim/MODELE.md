@@ -19,17 +19,20 @@ Le monde est une grille de cellules lues dans la carte figée
 `data/world-1400.json` — leur nombre est celui du fichier, il n'est écrit nulle
 part. À chaque tick, dans cet ordre :
 
-1. **Extraction** — chaque gisement de la cellule sort des kilogrammes de sa
-   ressource et les dépose dans le panier de la cellule.
+1. **Extraction** — une part des habitants d'une cellule à gisement cesse de
+   cultiver pour extraire : ce qu'ils sortent de la mine, ils ne le sortent
+   pas des champs. Les kilogrammes vont dans le panier de la cellule.
 2. **Production** — la cellule produit de la nourriture proportionnellement à
    sa surface, multipliée par un aléa de rendement du tick, par le facteur de
-   sa classe de relief — une montagne ne produit pas comme une plaine — et par
+   sa classe de relief — une montagne ne produit pas comme une plaine —, par
    le facteur de saison du jour, tiré de la durée du jour de la cellule : on ne
-   récolte pas en janvier comme en juin.
+   récolte pas en janvier comme en juin — et par la part qui reste aux champs
+   (`1 − part_minière`).
 3. **Commerce** — les cellules en surplus livrent leurs voisines en manque, sur
    les arêtes d'adjacence. Un kilogramme ne traverse qu'une arête par tick et
    ne nourrit qu'une fois. Toute marchandise du panier circule, pas seulement
-   la nourriture.
+   la nourriture. Les côtes parlent à un **bassin maritime commun** : on
+   expédie vers la mer, on puise depuis la mer — pas un réseau de routes.
 4. **Consommation** — chaque habitant mange sa ration. Ce qui manque devient
    une **dette** (`food_deficit_kg`), pas un oubli. Un surplus rembourse la
    dette, jamais plus vite que le surplus lui-même.
@@ -45,8 +48,9 @@ part. À chaque tick, dans cet ordre :
    Personne n'emporte de kilogrammes.
 
 La **province** ne se stocke pas : elle se recalcule à chaque consultation
-comme « le centre administratif le plus proche ». Le tick ne la
-consomme pas.
+comme « le centre administratif le plus proche ». Le **bourg** non plus : c'est
+la part non agricole d'une cellule, comptée, jamais un champ posé. Le tick ne
+consulte ni l'une ni l'autre.
 
 L'ordre fait foi dans `sim/engine.py`, fonction `tick()`. Ce résumé le suit ;
 en cas d'écart, c'est le code qui a raison et ce fichier qui a une dette.
@@ -79,10 +83,10 @@ Ce que le monde ne sait toujours pas faire, et qu'aucun lot n'a encore ouvert :
 
 - **fabriquer.** Le minerai extrait reste du minerai. Il n'y a ni atelier, ni
   fonte, ni artisanat, ni transformation d'une marchandise en une autre.
-- **répartir le travail.** Tout le monde fait tout : la mine tourne *en plus*
-  de l'agriculture, sans occuper de bras. Le lot 044, écrit et non exécuté,
-  est le premier à défaire cela.
-- **naviguer.** Voir « La mer : la façade que le moteur ne lit pas ».
+- **un second métier.** Le mineur occupe des bras ; personne d'autre. Un
+  artisan, un marin, un soldat n'existent pas.
+- **migrer par la mer.** Le bassin porte les marchandises. Les gens, non.
+  Une cellule sans voisin terrestre reçoit du grain mais aucun habitant.
 - **investir.** Aucune route, aucun pont, aucun port, aucun ouvrage : rien dans
   le monde ne se construit, et aucune capacité de transport ne s'améliore.
 - **tenir un prix.** Il n'y a ni monnaie, ni marché, ni salaire, ni propriété.
@@ -91,6 +95,8 @@ Ce que le monde ne sait toujours pas faire, et qu'aucun lot n'a encore ouvert :
   familles, pas de personnes, pas de bâtiments, pas de quartiers.
 - **dater le monde.** Le rang du jour se dérive du numéro de tick ; le monde ne
   porte aucune date, et aucune année ne s'écoule pour lui.
+- **photographier le bourg.** La vue existe ; le snapshot et le regard mince
+  ne la portent pas encore.
 
 ## Le mur qui sépare la couche 1 de la couche 2
 
@@ -152,9 +158,10 @@ leur apporter la différence.
 **Ce qui reste à faire pour lever le mur, dans l'ordre des données
 disponibles :**
 
-1. **La mer.** La carte porte une façade maritime pour trois cellules sur
-   quatre, et le moteur ne la lit pas du tout. Voir la section suivante. C'est
-   la plus grosse donnée de transport non lue du dépôt.
+1. **Les gens par la mer.** Le bassin porte les marchandises. La migration
+   ne connaît que les voisines terrestres : une cellule sans voisin
+   terrestre — plus d'une sur trois — reçoit du grain mais aucun habitant.
+   Voir « La mer : un bassin commun ».
 2. **Les routes.** Une route concentre un flux là où une frontière perméable le
    diffuse : c'est la forme de transport qu'une ville exige. **La carte n'en
    porte aucune**, et le moteur n'a ni investissement, ni travail, ni monnaie
@@ -162,25 +169,28 @@ disponibles :**
    une décision de modèle qui n'a pas été prise, et elle est déclarée ici comme
    absente plutôt que devinée (règle 10).
 
-## La mer : la façade que le moteur ne lit pas
+## La mer : un bassin commun
 
 L'adjacence de la carte figée porte deux sortes d'arêtes, distinguées par leur
-champ `kind` :
+champ `kind` — l'étiquette n'est qu'une contre-épreuve ; le moteur les
+identifie **par structure** :
 
-- `land-land` — deux cellules du monde qui se touchent. Ce sont les seules que
-  `sim/` lit aujourd'hui.
+- `land-land` — deux cellules du monde qui se touchent. Le commerce terrestre
+  et la migration ne connaissent qu'elles.
 - `land-sea` — une cellule du monde et **la mer**. Elles portent, comme les
   autres, la longueur de frontière partagée `shared_length_m`, c'est-à-dire la
   longueur de façade maritime de la cellule.
+
+Une arête maritime, pour le moteur, c'est une arête dont **exactement un** des
+deux bouts est une cellule du monde. Le bout hors du monde est le nœud mer.
 
 Trois faits, mesurés le 2026-08-30 et à rejouer plutôt qu'à croire :
 
 - la carte compte **plus de kilomètres de côte que de frontières terrestres** ;
 - **trois cellules sur quatre** touchent la mer ;
 - **plus d'une cellule sur trois n'a aucun voisin terrestre.** Elle ne touche
-  que la mer. Dans le moteur d'aujourd'hui, elle ne peut donc ni recevoir un
-  kilogramme, ni en donner, ni être quittée par un migrant : c'est une boîte
-  fermée, et rien ne le signale.
+  que la mer. Le commerce y parle par le bassin. La migration, non : un
+  habitant n'emprunte aucune arête dont un bout n'est pas une cellule.
 
 ```bash
 py -c "
@@ -203,15 +213,52 @@ print('noeuds_hors_monde', {x for e in adj for x in (e['a'], e['b'])} - ids)
 arêtes maritimes touchent **un seul et même nœud** — un identifiant qui n'est
 pas une cellule du monde. Il n'existe donc, dans la carte, **aucune liaison
 d'un port à un autre port**, et aucune distance en mer. La carte dit « cette
-cellule touche la mer, sur cette longueur », et rien de plus.
+cellule touche la mer, sur cette longueur », et rien de plus. Le moteur refuse
+s'il trouve plus d'un nœud mer (`NoeudsMerMultiplesError`) ou plus d'une
+valeur de `kind` sur les arêtes qu'il a identifiées comme maritimes
+(`KindsMaritimesMultiplesError`).
 
-Conséquence de modélisation, à connaître avant d'écrire un lot maritime : la
-seule topologie que la carte autorise est un **bassin commun** — on expédie
-vers la mer, on puise depuis la mer — et non un réseau de routes maritimes.
-Dans un bassin, Venise et Bruges sont à égale distance l'une de l'autre. C'est
-une limite de la donnée, déclarée ici pour que personne ne la prenne pour une
-décision de modèle ; le jour où la carte portera une adjacence
-port-à-port, elle tombera sans que le reste bouge.
+### Ce que le tick en fait
+
+Un panier `World.stocks_mer` est le bassin. Absent d'une marchandise :
+sentinelle `-1.0`, jamais un zéro inventé. Le commerce maritime ne joue que
+les marchandises **consommées** — aujourd'hui la nourriture. Le minerai
+s'accumule à terre, comme sur une arête terrestre.
+
+```
+capacité_quai(cellule) = somme sur ses façades de
+    DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK × (shared_length_m / METRES_PAR_KM)
+    × facteur_transport(relief de la cellule)
+```
+
+| Constante | Valeur | Unité | Ce que c'est |
+|---|---|---|---|
+| `DEBIT_KG_PAR_KM_DE_COTE_PAR_TICK` | 2000.0 × TICK_DURATION_DAYS | kg/km/tick | Niveau 2. Dix fois le débit terrestre au kilomètre : un navire porte sans commune mesure ce que porte un convoi. |
+
+À chaque tick, pour chaque marchandise consommée, dans cet ordre :
+
+1. **Débarquement** — les côtes en manque puisent dans le bassin du début
+   du tick, bornées par le quai, au prorata du besoin si le bassin ne
+   suffit pas.
+2. **Terre** — le commerce d'adjacence joue comme avant.
+3. **Écrêtage** — terre + mer ne dépassent jamais le besoin du receveur.
+4. **Expédition** — le surplus qui reste après la terre part au bassin,
+   borné par le quai restant. Une cellule dont la carte **déclare un
+   gisement** n'expédie pas : l'extraction reste locale (couche 1).
+
+La masse se conserve : cellules + bassin. Un kilogramme en mer n'est pas
+un kilogramme perdu.
+
+**Ce qui se refuse plutôt que se devine.** Une longueur de façade absente,
+non numérique ou `NaN` lève `LongueurFacadeMaritimeInvalideError` en
+nommant la cellule et le nœud mer. Contrairement à une arête terrestre,
+il n'y a pas de repli : une côte sans longueur n'est pas une côte.
+
+**Ce que le bassin ne fait pas.** Personne n'émigre par la mer. Rien ne se
+fabrique à bord. Venise et Bruges sont à égale distance l'une de l'autre :
+c'est une limite de la donnée, pas une décision de modèle. Le jour où la
+carte portera une adjacence port-à-port, elle tombera sans que le reste
+bouge.
 
 ## Ce qu'est une ville, à l'échelle d'une cellule
 
@@ -258,15 +305,9 @@ Trois raisons, dans l'ordre où elles pèsent :
 
 De la **part non agricole** que le moteur calcule déjà, et de rien d'autre.
 
-Aujourd'hui cette part vaut zéro partout : tout le monde cultive, et la mine
-tourne en plus. Le premier mécanisme qui la rend non nulle est le lot 044
-(`un-metier-le-mineur`), écrit et non exécuté, qui fait qu'une part des
-habitants d'une cellule à gisement **cesse de cultiver** pour extraire.
-
-Conséquence directe et voulue : **tant que 044 n'est pas fusionné, le bourg
-n'existe nulle part**, l'échantillon est vide, et un échantillon vide
-**échoue** — il ne passe pas en silence (règle 6). Un lot de bourg se déclare
-donc **bloqué** tant que 044 n'est pas là, jamais « à adapter ».
+Cette part est `part_miniere_de` : la fonction unique qui dit quelle fraction
+d'une cellule à gisement a cessé de cultiver. Le bourg l'**appelle**. Il n'en
+écrit pas une seconde version.
 
 Le nom « bourg » est délibérément plus large que le mécanisme qui le porte : le
 jour où un second métier existera, la vue le comptera sans être réécrite. Cela
@@ -304,7 +345,20 @@ c'est ici qu'il faudra revenir.
 Le bourg ne donne ni quartiers, ni bâtiments, ni familles, ni personnes, ni
 salaires, ni marchés, ni prix, ni routes, ni États. Il ne change aucun nombre du
 monde : c'est une vue, et **une vue ne décide rien** — le tick ne la consulte
-pas, exactement comme il ne consulte pas la province.
+pas, exactement comme il ne consulte pas la province. Le snapshot ne la
+photographie pas encore ; le regard mince ne l'affiche pas.
+
+Consultation, hors tick :
+
+```python
+from sim.aggregation import bourg_depuis_monde, habitants_du_bourg_de_cellule
+repartitions = bourg_depuis_monde(world)
+habitants_du_bourg_de_cellule(cell_id, repartitions)
+```
+
+`habitants_du_bourg + habitants_des_champs` vaut exactement la population.
+La troncature est délibérée ; la campagne est le reste. Un échantillon vide
+échoue — il ne rend pas zéro bourg en silence.
 
 ## Déclaration explicite
 
@@ -452,9 +506,13 @@ duree_jour   = duree_jour_h(jour, solstice_ete_h, solstice_hiver_h)  # de la cel
 food_produced = area_km2 × FOOD_PRODUCTION_KG_PER_KM2_PER_TICK × yield_factor
                 × facteur_relief(classe de relief de la cellule)
                 × facteur_saison(duree_jour)
+                × facteur_agricole
+facteur_agricole = 1 − part_miniere(gisements de la cellule)
 ```
 
-Les deux derniers facteurs sont lus dans la carte, cellule par cellule. Une
+`part_miniere` est définie plus bas, à l'extraction. Une cellule sans gisement
+a `facteur_agricole = 1` : tout le monde cultive. Les deux derniers facteurs
+géographiques (relief, saison) sont lus dans la carte, cellule par cellule. Une
 cellule dont la carte ne porte pas ces données ne se voit pas attribuer une
 valeur par défaut — le moteur refuse, par `ReliefInvalideError` ou
 `ClimatInvalideError` (règle 10 : l'absence ne s'invente pas en silence).
@@ -551,11 +609,20 @@ Ce que le moteur en tire est de **niveau 2**.
 
 ### Formule (par gisement, par tick)
 
+Une part de la population **cesse de cultiver** pour extraire. Ce n'est plus
+la population entière qui mine en plus des champs.
+
 ```
-extraction = population × EXTRACTION_KG_PAR_HABITANT_PAR_TICK × facteur_richesse(richesse)
+part_miniere = min(PART_MINIERE_MAXIMALE,
+                   somme sur les gisements valides de
+                       PART_MINIERE_PAR_GISEMENT × facteur_richesse)
+mineurs      = population × part_miniere
+extraction   = mineurs × EXTRACTION_KG_PAR_HABITANT_PAR_TICK
+               × (poids du gisement / somme des poids)
 ```
 
-Les extractions d'une même cellule se cumulent **par ressource** : deux
+Le poids d'un gisement est sa propre `part_miniere_de([gisement])`. Les
+extractions d'une même cellule se cumulent **par ressource** : deux
 gisements de fer alimentent la même entrée du panier.
 
 | Constante | Valeur | Unité | Ordre de grandeur |
@@ -564,6 +631,14 @@ gisements de fer alimentent la même entrée du panier.
 | `FACTEUR_RICHESSE_MAJEURE` | 2.0 | — | niveau 2 |
 | `FACTEUR_RICHESSE_NOTABLE` | 1.0 | — | niveau 2 |
 | `FACTEUR_RICHESSE_MINEURE` | 0.4 | — | niveau 2 |
+| `PART_MINIERE_PAR_GISEMENT` | 0.05 | — | part qu'un gisement notable occupe |
+| `PART_MINIERE_MAXIMALE` | 0.30 | — | plafond : une cellule ne devient jamais entièrement minière |
+
+**Le plafond est un invariant, pas un réglage de confort.** Sans lui, une
+cellule chargée de gisements majeurs verrait toute sa population descendre
+à la mine. `part_miniere_de` est la **seule** fonction qui calcule cette
+part : le tick, la production agricole et la vue bourg l'appellent. Une
+seconde copie serait une seconde vérité.
 
 ### Ce qui se refuse, et ce qui s'ignore
 
@@ -578,11 +653,9 @@ gisements de fer alimentent la même entrée du panier.
 
 ### La limite d'aujourd'hui
 
-L'extraction est calculée sur la **population entière** : personne n'est
-affecté à la mine, elle tourne en plus des champs. C'est exactement ce que le
-lot 044 doit défaire, et c'est pourquoi il est le premier lot de la division du
-travail. Et ce que la mine sort ne va nulle part : voir la fin de « Le commerce
-entre cellules ».
+Ce que la mine sort ne va nulle part : voir la fin de « Le commerce
+entre cellules ». Le mineur est le seul métier. Personne ne fond, personne
+n'achète, personne ne réclame le minerai.
 
 ---
 
@@ -868,9 +941,15 @@ s'accumule dans la cellule qui l'a sorti. Le commerce sait le porter — c'est c
 que le lot 039 a acheté — mais rien ne le réclame.
 
 Ce n'est pas un défaut, c'est une absence déclarée : **il n'y a pas de demande
-non alimentaire dans ce monde**, parce qu'il n'y a ni fabrication, ni métier,
-ni prix. Le jour où quelque chose consommera du fer, le transport suivra sans
-qu'on y touche.
+non alimentaire dans ce monde**, parce qu'il n'y a ni fabrication ni prix. Le
+métier du mineur occupe des bras ; il ne crée pas un acheteur. Le jour où
+quelque chose consommera du fer, le transport terrestre suivra sans qu'on y
+touche. Le bassin maritime, lui, ne porte que les marchandises consommées :
+le fer n'y entre pas.
+
+Le détail du bassin — quai, débarquement, expédition, refus — vit dans
+« La mer : un bassin commun ». Ce maillon-ci n'en change pas l'allocation
+terrestre : besoin, surplus, snapshot immuable, écrêtage côté receveur.
 
 ---
 

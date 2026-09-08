@@ -1,4 +1,4 @@
-"""Les trois décisions, en ligne de commande.
+"""Les décisions, en ligne de commande.
 
     python3 -m outils relecture   --depot O/R --pr N
     python3 -m outils integration --depot O/R --projet .
@@ -9,8 +9,8 @@
 Chacune imprime **une** ligne sur la sortie standard — celle que le
 workflow lit — et son compte rendu sur l'erreur standard. Aucune n'écrit
 sur GitHub : `relecture` et `integration` disent ce qui est, le workflow
-fait le geste. `palier --ecrire` est la seule qui touche un fichier, et
-seulement celui du registre.
+fait le geste. `palier --ecrire` et `saisie --ecrire` posent une fiche au
+registre. `tableau` écrit la page à `--sortie`.
 """
 
 from __future__ import annotations
