@@ -9,6 +9,7 @@ Ce que ce fichier protège :
     ne mute aucune entrée.
 """
 
+
 import hashlib
 import json
 import random
@@ -285,3 +286,26 @@ def test_purete_agregation_ne_mute_pas_les_entrees():
     assert fichiers_mutes == 0
     assert len(positions) == len(positions_temoin)
     assert serialisation_avant == serialisation_apres
+
+
+def test_bassin_maritime_deterministe_a_graine_fixe():
+    """
+    `World.to_dict` ne porte pas le bassin. Deux runs à graine identique
+    doivent quand même rendre le même panier mer, tick après tick — sinon
+    un déterminisme qui ne regarderait que les cellules mentirait.
+    """
+    def serie(seed: int, n: int = 20) -> list:
+        world = World.charger(rng_seed=seed)
+        rng = random.Random(seed)
+        vus = []
+        for i in range(n):
+            engine.tick(world, rng, i)
+            vus.append(dict(world.stocks_mer))
+        return vus
+
+    premiere = serie(0)
+    seconde = serie(0)
+    assert any(panier for panier in premiere), (
+        "échantillon vide : le bassin n'a jamais rien porté en 20 ticks"
+    )
+    assert premiere == seconde
