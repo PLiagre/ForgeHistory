@@ -203,13 +203,13 @@ quoi faire quand ça casse — est décrit après le registre.
 état : livre · couche : 2 · dépend de : 044 · PR : 214
 
 ### [049 — Fabriquer : le minerai devient un objet](briefs/049-fabriquer-le-minerai-devient-un-objet.md)
-état : a-briefer · couche : 2 · dépend de : 044 · PR : —
+état : pret · couche : 2 · dépend de : 044 · PR : —
 
 ### [054 — Cohérence globale : inventaire du produit face à la vision](briefs/054-coherence-globale-inventaire-produit-vision.md)
 état : pret · couche : — · dépend de : — · PR : —
 
 ### [050 — On migre aussi par la mer](briefs/050-on-migre-aussi-par-la-mer.md)
-état : a-briefer · couche : 1 · dépend de : 046 · PR : —
+état : pret · couche : 1 · dépend de : 046 · PR : —
 
 ### [051 — Le snapshot photographie le bourg](briefs/051-le-snapshot-photographie-le-bourg.md)
 état : a-briefer · couche : 2 · dépend de : 047 · PR : —
