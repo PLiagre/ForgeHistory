@@ -86,12 +86,19 @@ def filmer(
     *,
     lecture: str = "population",
     largeur: int = 1500,
-    hauteur: int = 1180,
+    hauteur: int = 1330,
     images_par_seconde: int = 8,
     chrome: str | None = None,
     ffmpeg: str | None = None,
 ) -> Path:
     """Photographie la planche a chaque instant, puis encode la bobine."""
+    from chronique.atlas import LECTURES
+
+    if lecture not in LECTURES:
+        raise BobineError(
+            f"lecture inconnue : '{lecture}' ; les lectures sont "
+            + ", ".join(LECTURES)
+        )
     binaire_chrome = trouver_chromium(chrome)
     binaire_ffmpeg = trouver_ffmpeg(ffmpeg)
     if nombre_images < 1:

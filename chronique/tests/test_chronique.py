@@ -180,6 +180,26 @@ def test_la_planche_se_suffit_a_elle_meme():
     assert "<svg" in page and 'id="lavis"' in page
 
 
+def test_la_bobine_refuse_une_lecture_qui_n_existe_pas():
+    """Une option ignoree en silence est une option qui ment (regle 10).
+
+    « disette » est l'intitule de l'onglet ; la lecture s'appelle « faim ».
+    La bobine a d'abord accepte le premier et filmé le second sans un mot.
+    Le nom refuse est verifie AVANT qu'on cherche le navigateur : une
+    machine sans Chromium doit quand meme rougir sur le bon motif.
+    """
+    from chronique.bobine import BobineError, filmer
+    from chronique.atlas import LECTURES
+    from pathlib import Path as _Path
+
+    with pytest.raises(BobineError) as refus:
+        filmer(_Path("/inexistant.html"), _Path("/tmp/inexistant.webm"), 1,
+               lecture="disette")
+    assert "disette" in str(refus.value)
+    for nom in LECTURES:
+        assert nom in str(refus.value)
+
+
 def test_les_totaux_derivent_des_colonnes():
     """Les totaux de la planche se recalculent depuis les colonnes lues.
 

@@ -738,23 +738,28 @@ _JS = r"""
   }
 
   var onglets = document.querySelectorAll(".onglets button");
+
+  function choisir(nom) {
+    lecture = nom;
+    for (var j = 0; j < onglets.length; j++) {
+      onglets[j].setAttribute(
+        "aria-pressed",
+        onglets[j].getAttribute("data-lecture") === lecture ? "true" : "false"
+      );
+    }
+    var rampes = document.querySelectorAll(".rampe");
+    for (var k = 0; k < rampes.length; k++) {
+      rampes[k].classList.toggle(
+        "active", rampes[k].getAttribute("data-lecture") === lecture
+      );
+    }
+    document.getElementById("titre-lecture").textContent = C.titres[lecture];
+    peindre(rang);
+  }
+
   for (var i = 0; i < onglets.length; i++) {
     onglets[i].addEventListener("click", function (evenement) {
-      lecture = evenement.currentTarget.getAttribute("data-lecture");
-      for (var j = 0; j < onglets.length; j++) {
-        onglets[j].setAttribute(
-          "aria-pressed",
-          onglets[j].getAttribute("data-lecture") === lecture ? "true" : "false"
-        );
-      }
-      var rampes = document.querySelectorAll(".rampe");
-      for (var k = 0; k < rampes.length; k++) {
-        rampes[k].classList.toggle(
-          "active", rampes[k].getAttribute("data-lecture") === lecture
-        );
-      }
-      document.getElementById("titre-lecture").textContent = C.titres[lecture];
-      peindre(rang);
+      choisir(evenement.currentTarget.getAttribute("data-lecture"));
     });
   }
 
@@ -792,8 +797,8 @@ _JS = r"""
   var depart = demande === null ? 0 : parseInt(demande, 10);
   if (isNaN(depart)) { depart = 0; }
   var lu = new URLSearchParams(window.location.search).get("lecture");
-  if (lu !== null && C.lavis[lu] !== undefined) { lecture = lu; }
   aller(depart);
+  if (lu !== null && C.lavis[lu] !== undefined) { choisir(lu); }
   if (!doux && demande === null) { basculer(); }
 })();
 """
