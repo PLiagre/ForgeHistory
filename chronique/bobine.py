@@ -136,7 +136,10 @@ def filmer(
                 "-f", "image2pipe",
                 "-vcodec", "mjpeg",
                 "-framerate", str(images_par_seconde),
-                "-i", "-",
+                # `pipe:0`, et pas `-` : le ffmpeg joint a Chromium est
+                # compile avec les seuls protocoles `pipe` et `file`, et il
+                # ne reconnait pas le tiret comme une entree standard.
+                "-i", "pipe:0",
                 "-c:v", "libvpx",
                 "-b:v", "3M",
                 "-pix_fmt", "yuv420p",
