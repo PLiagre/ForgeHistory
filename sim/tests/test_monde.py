@@ -1761,3 +1761,93 @@ def test_cli_snapshot_refuse_si_export_impossible(tmp_path: Path, monkeypatch, c
     assert "refus" in sortie.err
     assert "geometrie absente" in sortie.err
     assert sortie.out == ""
+
+
+# Fabrication : le stock d'hier change de nature, sans transport ni bras.
+@pytest.mark.parametrize('objet_avant', [None, -1.0, 0.0, 3.7])
+def test_fabrication_proportions_et_pertes(objet_avant):
+    from sim import constants as c, engine
+    panier = {c.MARCHANDISE_NOURRITURE: 42.0, 'fer': 13.7, 'argent': 9.3,
+              'vide': 0.0, 'inconnu': -1.0}
+    if objet_avant is not None:
+        panier['objet'] = objet_avant
+    cell = Cell(1, 1.0, 17, stocks=panier)
+    attendu = max(0.0, objet_avant or 0.0)
+    for nom in sorted(('fer', 'argent')):
+        consomme = panier[nom] * c.TAUX_FABRICATION_PAR_TICK
+        produit = consomme * c.RENDEMENT_FABRICATION
+        assert 0 < produit < consomme
+        attendu += produit
+    engine._apply_fabrication(cell)
+    assert 0 < c.RENDEMENT_FABRICATION < 1
+    assert cell.stocks['objet'] == attendu
+    for nom in ('fer', 'argent'):
+        assert cell.stocks[nom] == panier[nom] - panier[nom] * c.TAUX_FABRICATION_PAR_TICK
+    for nom in (c.MARCHANDISE_NOURRITURE, 'vide', 'inconnu'):
+        assert cell.stocks[nom] == panier[nom]
+    assert cell.population == 17
+    assert c.consommation_kg_par_habitant_par_tick(c.MARCHANDISE_OBJET) == 0
+
+
+def test_fabrication_sans_matiere_ne_cree_pas_objet():
+    from sim import engine
+    cell = Cell(1, 1.0, 17, stocks={'nourriture': 3.0, 'fer': 0.0, 'argent': -1.0})
+    avant = dict(cell.stocks)
+    engine._apply_fabrication(cell)
+    assert cell.stocks == avant
+
+
+def test_fabrication_constantes_relues_et_ordre_stable(monkeypatch):
+    from sim import constants as c, engine
+    monkeypatch.setattr(c, 'TAUX_FABRICATION_PAR_TICK', 0.25)
+    monkeypatch.setattr(c, 'RENDEMENT_FABRICATION', 0.5)
+    assert c.fabrication_kg(8.0) == (2.0, 1.0)
+    panier = {'zinc': 1e16, 'argent': 3.1, 'fer': 0.7, 'objet': 1.1}
+    a = Cell(1, 1.0, 10, stocks=panier)
+    b = Cell(1, 1.0, 10, stocks=dict(reversed(list(panier.items()))))
+    engine._apply_fabrication(a)
+    engine._apply_fabrication(b)
+    assert a.stocks == b.stocks
+    assert a.stocks['argent'] == panier['argent'] * 0.75
+
+
+def test_fabrication_tick_sans_carte():
+    import random
+    from sim.engine import tick
+    cell = Cell(1, 0.0, 0, stocks={'fer': 8.0})
+    tick(World({1: cell}, []), random.Random(0))
+    assert cell.stocks['objet'] > 0
+
+
+def test_fabrication_stock_hier_et_determinisme():
+    import random
+    from sim.engine import tick
+    a, b = World.charger(0), World.charger(0)
+    rngs = [random.Random(0), random.Random(0)]
+    echantillon = [cid for cid, raw in a.carte.items()
+                   if any(g.get('ressource') and g.get('richesse') for g in raw.get('gisements', []))]
+    assert echantillon
+    for numero in range(20):
+        for world, rng in zip((a, b), rngs):
+            tick(world, rng, numero_tick=numero)
+        if numero == 0:
+            assert all('objet' not in cell.stocks for cell in a.cells.values())
+        if numero == 1:
+            assert all(a.cells[cid].stocks.get('objet', 0) > 0 for cid in echantillon)
+    assert a.to_dict() == b.to_dict()
+    assert a.stocks_mer == b.stocks_mer
+    assert any(cell.stocks.get('objet', 0) > 0 for cell in a.cells.values())
+
+
+def test_fabrication_indirection_et_garde_rouge():
+    import ast
+    import inspect
+    from sim import engine
+    def lectures_directes(source):
+        return [n.attr for n in ast.walk(ast.parse(source)) if isinstance(n, ast.Attribute)
+                and isinstance(n.value, ast.Name) and n.value.id == '_constantes'
+                and n.attr in {'TAUX_FABRICATION_PAR_TICK', 'RENDEMENT_FABRICATION'}]
+    source = inspect.getsource(engine)
+    assert not lectures_directes(source)
+    for constante in ('TAUX_FABRICATION_PAR_TICK', 'RENDEMENT_FABRICATION'):
+        assert lectures_directes(source + '\nsonde = _constantes.' + constante)

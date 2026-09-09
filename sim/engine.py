@@ -1,9 +1,10 @@
 """
 Moteur de simulation : boucle de tick.
 
-`tick(world, rng)` avance le monde d'un pas de temps. Sept maillons, dans
+`tick(world, rng)` avance le monde d'un pas de temps. Les maillons se jouent dans
 cet ordre — l'ordre est la mécanique, pas une convention :
 
+    _apply_fabrication → le stock brut d’hier devient un objet
     _apply_extraction  → les gisements rendent des kg dans le panier
     _apply_production  → la nourriture pousse, avec variabilité rng
     _apply_commerce    → les marchandises circulent entre cellules voisines
@@ -1112,11 +1113,26 @@ def _apply_migration(world, penuries: dict[int, float]) -> None:
         cell.population = pop_snapshot + delta
 
 
+def _apply_fabrication(cell) -> None:
+    """Façonne le panier initial, sans toucher aux vivres ni aux habitants."""
+    for marchandise in sorted(cellule_vers_dict(cell).get("stocks") or {}):
+        if marchandise in (_constantes.MARCHANDISE_NOURRITURE, _constantes.MARCHANDISE_OBJET):
+            continue
+        stock = lire_stock_marchandise(cell, marchandise)
+        if stock <= 0:
+            continue
+        consomme, produit = _constantes.fabrication_kg(stock)
+        ecrire_stock_marchandise(cell, marchandise, stock - consomme)
+        objets = max(0, lire_stock_marchandise(cell, _constantes.MARCHANDISE_OBJET))
+        ecrire_stock_marchandise(cell, _constantes.MARCHANDISE_OBJET, objets + produit)
+
+
 def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
     """
     Avance le monde d'un pas de temps.
 
-    Ordre du tick :
+    Fabrication puis extraction précèdent les maillons alimentaires.
+    Ordre du tick après ces deux opérations :
         1. Production  (_apply_production)   — pour chaque cellule
         2. Commerce    (_apply_commerce)     — sur le monde entier (snapshot)
         3. Consommation (_apply_consumption) — pour chaque cellule
@@ -1132,6 +1148,8 @@ def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
     pendant ce tick (kg).
     """
     total_transported = [0.0]
+    for cell in world.cells.values():
+        _apply_fabrication(cell)
     carte = world.carte if getattr(world, "carte", None) else None
     if carte is not None:
         for cell in world.cells.values():

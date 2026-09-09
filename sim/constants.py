@@ -432,3 +432,13 @@ DEFAULT_CLI_SEED = 0
 SNAPSHOT_SCHEMA_VERSION = "v0a-3"
 # Plus fin serait du bruit, plus gros écraserait des centroïdes voisins.
 SNAPSHOT_FLOAT_DECIMALS = 6
+MARCHANDISE_OBJET = "objet"
+# Niveau 2 : façonnage local et pertes plausibles, sans recette ni métier.
+TAUX_FABRICATION_PAR_TICK = 0.05
+RENDEMENT_FABRICATION = 0.6
+
+
+def fabrication_kg(stock_brut_kg: float) -> tuple[float, float]:
+    """Relit le taux et le rendement pour transformer le stock d'hier."""
+    consomme = stock_brut_kg * TAUX_FABRICATION_PAR_TICK
+    return consomme, consomme * RENDEMENT_FABRICATION
