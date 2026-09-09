@@ -1,4 +1,4 @@
-"""Photographie déterministe du monde déjà simulé (schéma v0a-3).
+"""Photographie déterministe du monde déjà simulé (schéma v0a-4).
 
 Ce module ne recalcule aucune mécanique. Il joint ce que porte la carte
 figée (géométrie, relief, climat, gisements) à la province dérivée et à
@@ -23,6 +23,7 @@ from typing import Any, Optional
 from sim.aggregation import (
     PositionCelluleInconnue,
     agregat_depuis_monde,
+    bourg_depuis_monde,
     identifiant_de_province_de_cellule,
     nom_de_province_de_cellule,
 )
@@ -169,6 +170,7 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
     except PositionCelluleInconnue as exc:
         raise SnapshotExportError(str(exc)) from exc
 
+    repartitions = {r.cell_id: r for r in bourg_depuis_monde(world)}
     cells_out = []
     for cell_id, cell in sorted(world.cells.items(), key=lambda item: int(item[0])):
         cid = int(cell_id)
@@ -195,6 +197,10 @@ def build_snapshot_document(world: World, seed: int, tick: int) -> dict:
             {
                 "area_km2": cell.area_km2,
                 "cell_id": cid,
+                "bourg": {
+                    "habitants_du_bourg": repartitions[cid].habitants_du_bourg,
+                    "habitants_des_champs": repartitions[cid].habitants_des_champs,
+                },
                 "centroid": centroid,
                 "climat": raw.get("climat"),
                 "food_deficit_kg": cell.food_deficit_kg,
