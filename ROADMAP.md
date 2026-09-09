@@ -212,7 +212,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : pret · couche : 1 · dépend de : 046 · PR : —
 
 ### [051 — Le snapshot photographie le bourg](briefs/051-le-snapshot-photographie-le-bourg.md)
-état : pret · couche : 2 · dépend de : 047 · PR : —
+état : livre · couche : 2 · dépend de : 047 · PR : 241
 
 ### [052 — Le regard mince montre le bourg](briefs/052-le-regard-mince-montre-le-bourg.md)
 état : pret · couche : 2 · dépend de : 051 · PR : —
