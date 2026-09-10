@@ -16,11 +16,11 @@ python3 -m chronique --chronique /tmp/chronique.json --html /tmp/p.html --sans-r
 
 # en faire une vidéo (demande un Chromium et un ffmpeg)
 python3 -m chronique --chronique /tmp/chronique.json --html /tmp/p.html \
-        --bobine /tmp/monde.webm --bobine-lecture disette
+        --bobine /tmp/monde.webm --bobine-lecture faim
 ```
 
 Un instant précis se demande par l'adresse :
-`planche.html?image=12&lecture=disette`. C'est ce qui permet de filmer la
+`planche.html?image=12&lecture=faim`. C'est ce qui permet de filmer la
 planche sans la piloter — et de pointer un lien sur un instant.
 
 Bibliothèque standard seule, comme `sim/`, `viewer/` et `outils/`.

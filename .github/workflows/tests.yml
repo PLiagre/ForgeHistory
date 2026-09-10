@@ -55,8 +55,8 @@ jobs:
         with:
           python-version: "3.13"
       - run: python -m pip install --upgrade pip pytest
-      - name: Le regard mince sur le snapshot
-        run: python -m pytest viewer/tests/ -q
+      - name: Les regards sur le snapshot et la chronique
+        run: python -m pytest viewer/tests/ chronique/tests/ -q
 
   outils:
     # Ce que la CI décide (`outils/`) et ce qu'elle fait
