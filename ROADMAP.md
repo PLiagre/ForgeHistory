@@ -189,6 +189,9 @@ quoi faire quand ça casse — est décrit après le registre.
 
 <!-- lots:debut -->
 
+### [055 — Le monde nourrit ceux qu'il amorce](briefs/055-le-monde-nourrit-ceux-qu-il-amorce.md)
+état : pret · couche : 1 · dépend de : — · PR : —
+
 ## Présentation
 
 ### [048 — Tableau de bord : stats mêlées à la carte](briefs/048-dashboard-stats-carte.md)
