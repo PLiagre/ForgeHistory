@@ -206,7 +206,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : pret · couche : 2 · dépend de : 044 · PR : —
 
 ### [054 — Cohérence globale : inventaire du produit face à la vision](briefs/054-coherence-globale-inventaire-produit-vision.md)
-état : pret · couche : — · dépend de : — · PR : —
+état : livre · couche : — · dépend de : — · PR : 246
 
 ### [050 — On migre aussi par la mer](briefs/050-on-migre-aussi-par-la-mer.md)
 état : pret · couche : 1 · dépend de : 046 · PR : —
