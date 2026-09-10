@@ -2377,3 +2377,93 @@ def test_bassin_jamais_ecrit_est_sentinelle_pas_zero():
     assert lire_stock_mer(world, MARCHANDISE_NOURRITURE) == 0.0
     assert lire_stock_mer(world, MARCHANDISE_NOURRITURE) != -1.0
     assert lire_stock_mer(world, "minerai-inconnu") == -1.0
+
+
+# Migration maritime : les îles sans route terrestre peuvent être quittées.
+def _monde_migration_mer(stocks, aretes):
+    import math
+    from sim import constants as c
+    population = math.ceil(12 / c.FRACTION_MIGRANTE_PAR_TICK)
+    return World({cid: Cell(cid, 1.0, population, food_stock_kg=stock,
+                           migration_remainder=0.0) for cid, stock in stocks.items()}, aretes)
+
+
+def test_migration_mer_proportions_conservation_et_ordre():
+    import copy
+    from sim.engine import _apply_migration
+    from sim import constants as c
+    aretes = [{'a': cid, 'b': -100, 'kind': 'bassin'} for cid in (1, 2, 3)]
+    a = _monde_migration_mer({1: 0, 2: 10, 3: 30}, aretes)
+    b = copy.deepcopy(a)
+    b.cells = dict(reversed(list(b.cells.items())))
+    b.adjacency.reverse()
+    avant = copy.deepcopy(a.to_dict())
+    a.stocks_mer = {'nourriture': 29.0}
+    b.stocks_mer = dict(a.stocks_mer)
+    population = a.cells[1].population
+    partants = int(population * c.FRACTION_MIGRANTE_PAR_TICK)
+    for world in (a, b):
+        _apply_migration(world, {1: 1.0})
+    assert a.cells[1].population == population - partants
+    assert a.cells[2].population == population + partants // 4
+    assert a.cells[3].population == population + partants - partants // 4
+    assert sum(cell.population for cell in a.cells.values()) == population * len(a.cells)
+    assert a.to_dict() == b.to_dict()
+    assert a.stocks_mer == b.stocks_mer == {'nourriture': 29.0}
+    for cid, cell in a.to_dict()['cells'].items():
+        for champ, valeur in cell.items():
+            if champ not in ('population', 'migration_remainder'):
+                assert valeur == avant['cells'][cid][champ]
+
+
+def test_migration_mer_terre_presente_interdit_repli():
+    from sim.engine import _apply_migration
+    world = _monde_migration_mer({1: 0, 2: 0, 3: 30}, [
+        {'a': 1, 'b': 2}, {'a': 1, 'b': -100}, {'a': 3, 'b': -100}])
+    avant = [c.population for c in world.cells.values()]
+    for _ in range(5):
+        _apply_migration(world, {1: 1.0})
+    assert [c.population for c in world.cells.values()] == avant
+
+
+def test_migration_mer_atomicite_arrivee_bloque_depart_terrestre():
+    from sim.engine import _apply_migration
+    world = _monde_migration_mer({1: 0, 2: 1, 3: 30}, [
+        {'a': 1, 'b': -100}, {'a': 2, 'b': -100}, {'a': 2, 'b': 3}])
+    population = world.cells[1].population
+    _apply_migration(world, {1: 1.0, 2: 1.0})
+    assert world.cells[1].population < population
+    assert world.cells[2].population > population
+    assert world.cells[3].population == population
+    assert sum(c.population for c in world.cells.values()) == population * len(world.cells)
+
+
+@pytest.mark.parametrize('aretes,stocks', [([], {1: 0}),
+    ([{'a': 1, 'b': -100}], {1: 1}),
+    ([{'a': 1, 'b': -100}, {'a': 2, 'b': -100}], {1: 0, 2: 0})])
+def test_migration_mer_sans_autre_port_en_surplus(aretes, stocks):
+    from sim.engine import _apply_migration
+    world = _monde_migration_mer(stocks, aretes)
+    avant = [c.population for c in world.cells.values()]
+    _apply_migration(world, {1: 1.0})
+    assert [c.population for c in world.cells.values()] == avant
+
+
+@pytest.mark.parametrize('second,erreur', [
+    ({'a': 2, 'b': -101, 'kind': 'mer'}, 'NoeudsMerMultiplesError'),
+    ({'a': 2, 'b': -100, 'kind': 'autre'}, 'KindsMaritimesMultiplesError')])
+def test_migration_mer_refus_avant_toute_mutation(second, erreur):
+    import copy
+    from sim import engine
+    world = _monde_migration_mer({1: 0, 2: 30}, [{'a': 1, 'b': -100, 'kind': 'mer'}, second])
+    world.stocks_mer = {'nourriture': 42.0}
+    avant = copy.deepcopy(vars(world))
+    with pytest.raises(getattr(engine, erreur)):
+        engine._apply_migration(world, {1: 1.0})
+    assert vars(world) == avant
+
+
+def test_migration_mer_determinisme_trente_ticks():
+    import json
+    from sim.__main__ import run
+    assert json.dumps(run(30, 0), sort_keys=True) == json.dumps(run(30, 0), sort_keys=True)
