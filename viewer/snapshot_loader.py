@@ -68,33 +68,6 @@ def _mesures(valeurs: list[Any]) -> list[float]:
     return nombres
 
 
-def _somme_bourg(cellules: list[dict[str, Any]], champ: str) -> dict[str, Any]:
-    """Additionne les mesures du document, en distinguant zéro et absence."""
-    somme = 0
-    compte = 0
-    non_calcule = False
-    for cell in cellules:
-        bourg = cell.get("bourg")
-        if bourg is None:
-            continue
-        if not isinstance(bourg, dict):
-            raise ValueError(f"cellule {cell.get('cell_id')!r}, champ bourg : dictionnaire attendu")
-        valeur = bourg.get(champ)
-        if valeur is not None and (
-            isinstance(valeur, bool) or not isinstance(valeur, int) or valeur < -1
-        ):
-            raise ValueError(f"cellule {cell.get('cell_id')!r}, champ {champ} : entier non négatif ou -1 attendu")
-        etat = classify(valeur)
-        if etat == NON_CALCULE:
-            non_calcule = True
-        elif etat != ABSENT:
-            somme += valeur
-            compte += 1
-    if compte:
-        return {"etat": "mesure", "valeur": somme, "cellules_lues": compte}
-    return {"etat": "non_calcule" if non_calcule else "absent"}
-
-
 def agregats_monde(document: dict[str, Any]) -> dict[str, Any]:
     """Totaux du bandeau : sommes des cellules déjà photographiées."""
     cellules = _cellules(document)
@@ -155,8 +128,6 @@ def agregats_monde(document: dict[str, Any]) -> dict[str, Any]:
         "jour_de_tick": _champ_document(document, "jour_de_tick"),
         "kg_transportes": _champ_document(document, "kg_transportes"),
         "population": population,
-        "habitants_du_bourg": _somme_bourg(cellules, "habitants_du_bourg"),
-        "habitants_des_champs": _somme_bourg(cellules, "habitants_des_champs"),
         "seed": _champ_document(document, "seed"),
         "stock_nourriture_kg": stock,
         "tick": _champ_document(document, "tick"),

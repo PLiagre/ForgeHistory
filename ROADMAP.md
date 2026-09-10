@@ -189,6 +189,9 @@ quoi faire quand ça casse — est décrit après le registre.
 
 <!-- lots:debut -->
 
+### [055 — Le monde nourrit ceux qu'il amorce](briefs/055-le-monde-nourrit-ceux-qu-il-amorce.md)
+état : pret · couche : 1 · dépend de : — · PR : —
+
 ## Présentation
 
 ### [048 — Tableau de bord : stats mêlées à la carte](briefs/048-dashboard-stats-carte.md)
@@ -209,13 +212,13 @@ quoi faire quand ça casse — est décrit après le registre.
 état : pret · couche : — · dépend de : — · PR : —
 
 ### [050 — On migre aussi par la mer](briefs/050-on-migre-aussi-par-la-mer.md)
-état : pret · couche : 1 · dépend de : 046 · PR : —
+état : livre · couche : 1 · dépend de : 046 · PR : 243
 
 ### [051 — Le snapshot photographie le bourg](briefs/051-le-snapshot-photographie-le-bourg.md)
 état : livre · couche : 2 · dépend de : 047 · PR : 241
 
 ### [052 — Le regard mince montre le bourg](briefs/052-le-regard-mince-montre-le-bourg.md)
-état : livre · couche : 2 · dépend de : 051 · PR : 244
+état : pret · couche : 2 · dépend de : 051 · PR : —
 
 ### [053 — Le monde porte sa date](briefs/053-le-monde-porte-sa-date.md)
 état : pret · couche : 1 · dépend de : — · PR : —

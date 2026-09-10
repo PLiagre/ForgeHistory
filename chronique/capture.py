@@ -31,6 +31,7 @@ import random
 from typing import Any, Callable, Iterable
 
 from sim import constants as _constantes
+from sim.aggregation import bourg_depuis_monde
 from sim.engine import tick as _tick
 # `_round_tree` est l'arrondi de la photographie. La chronique l'emprunte
 # au lieu d'en écrire un second : deux règles d'arrondi qui s'ignorent
@@ -45,6 +46,7 @@ from sim.world import World
 # n'est pas la fonction). Un champ qui se mettrait à bouger sans être ici
 # fait rougir ; un champ inerte listé ici aussi.
 CHAMPS_MOBILES: tuple[str, ...] = (
+    "bourg",
     "food_deficit_kg",
     "hunger_ticks",
     "mortality_remainder",
@@ -146,10 +148,16 @@ def _image_du_monde(world: World, numero_tick: int) -> dict:
     from sim.model import cellule_vers_dict
 
     colonnes: dict[str, list] = {champ: [] for champ in CHAMPS_MOBILES}
+    repartitions = {r.cell_id: r for r in bourg_depuis_monde(world)}
     for _identifiant, cellule in sorted(
         world.cells.items(), key=lambda item: int(item[0])
     ):
         canonique = cellule_vers_dict(cellule)
+        repartition = repartitions[int(_identifiant)]
+        canonique["bourg"] = {
+            "habitants_du_bourg": repartition.habitants_du_bourg,
+            "habitants_des_champs": repartition.habitants_des_champs,
+        }
         for champ in CHAMPS_MOBILES:
             valeur = canonique[champ] if champ in canonique else getattr(cellule, champ)
             colonnes[champ].append(_round_tree(valeur))
