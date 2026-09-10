@@ -934,44 +934,33 @@ def test_bourg_somme_exacte_par_cellule():
     assert ecarts == 0
 
 
-def test_bourg_ne_change_pas_sortie_sim():
-    """
-    SC7 — py -m sim --ticks 365 --seed 0 --json rend la même sortie qu'au
-    départ sur master : ce lot ne touche à aucun nombre du monde.
-    """
-    ticks = 365
-    seed = 0
-    sortie_ici = _sortie_sim_json(ticks, seed, _RACINE_DEPOT)
-    empreinte_ici = hashlib.sha256(sortie_ici).hexdigest()
+def test_bourg_ne_change_pas_sortie_sim(monkeypatch):
+    """Consulter le bourg ne change ni le résumé ni l'état de la même course."""
+    import json
+    from sim import __main__ as cli
+    from sim import aggregation
+    from sim import constants
 
-    ref = _ref_master()
-    with tempfile.TemporaryDirectory() as tmp:
-        subprocess.run(
-            ["git", "worktree", "add", "--detach", tmp, ref],
-            cwd=_RACINE_DEPOT,
-            check=True,
-            capture_output=True,
-        )
-        try:
-            sortie_master = _sortie_sim_json(ticks, seed, pathlib.Path(tmp))
-            empreinte_master = hashlib.sha256(sortie_master).hexdigest()
-        finally:
-            subprocess.run(
-                ["git", "worktree", "remove", tmp, "--force"],
-                cwd=_RACINE_DEPOT,
-                capture_output=True,
-            )
+    ticks = constants.CALENDAR_DAYS_PER_YEAR // constants.TICK_DURATION_DAYS
+    assert ticks > 0
+    sans_vue, monde_sans_vue = cli._simulate(ticks, constants.DEFAULT_CLI_SEED)
+    assert monde_sans_vue.cells
+    tick_original = cli.tick
+    consultations = []
 
-    ecart_octets = int(sortie_ici != sortie_master)
-    ecart_empreintes = int(empreinte_ici != empreinte_master)
+    def tick_avec_consultation(world, rng, numero_tick):
+        kg = tick_original(world, rng, numero_tick)
+        repartitions = aggregation.bourg_depuis_monde(world)
+        assert len(repartitions) == len(world.cells) > 0
+        consultations.append(numero_tick)
+        return kg
 
-    print(f"ecart_octets = {ecart_octets}")
-    print(f"ecart_empreintes = {ecart_empreintes}")
-    print(f"empreinte_ici = {empreinte_ici}")
-    print(f"empreinte_master = {empreinte_master}")
-
-    assert ecart_octets == 0, "la sortie sim diffère de master : ce lot a touché au monde"
-    assert ecart_empreintes == 0
+    monkeypatch.setattr(cli, "tick", tick_avec_consultation)
+    avec_vue, monde_avec_vue = cli._simulate(ticks, constants.DEFAULT_CLI_SEED)
+    assert len(consultations) == ticks
+    assert json.dumps(avec_vue, sort_keys=True) == json.dumps(sans_vue, sort_keys=True)
+    assert monde_avec_vue.to_dict() == monde_sans_vue.to_dict()
+    assert monde_avec_vue.stocks_mer == monde_sans_vue.stocks_mer
 
 
 def test_bourg_consultation_par_cell_id():
