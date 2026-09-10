@@ -37,8 +37,8 @@ def _simulate(ticks: int, seed: int) -> tuple[dict, World]:
     )
     rng = random.Random(seed)
     kg_transportes = 0.0
-    for numero_tick in range(ticks):
-        kg_transportes += tick(world, rng, numero_tick)
+    for _ in range(ticks):
+        kg_transportes += tick(world, rng, world.ticks_ecoules)
     population_arrivee = sum(cell.population for cell in world.cells.values())
     stock_arrivee = sum(
         lire_stock_marchandise(cell, MARCHANDISE_NOURRITURE)
@@ -58,6 +58,7 @@ def _simulate(ticks: int, seed: int) -> tuple[dict, World]:
         "kg_transportes": kg_transportes,
         "cellules_affamees": cellules_affamees,
         "sans_unity": True,
+        "date_simulation": world.date_simulation,
     }
     return resume, world
 
@@ -97,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     print("ForgeHistory — simulation sans Unity")
     print(f"  ticks              : {resume['ticks']}")
+    date = resume["date_simulation"]
+    print(f"  date               : {date['annee']}, jour {date['jour_de_l_annee']}")
     print(f"  graine             : {resume['seed']}")
     print(f"  cellules           : {resume['cellules']}")
     print(f"  population départ  : {resume['population_depart']}")

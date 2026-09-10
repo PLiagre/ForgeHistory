@@ -10,6 +10,8 @@ import json
 import pathlib
 import random
 
+from sim import constants as _constantes
+
 from sim.constants import (
     FOOD_CONSUMPTION_KG_PER_PERSON_PER_TICK,
     INITIAL_FOOD_RESERVE_TICKS,
@@ -81,6 +83,12 @@ class World:
         self.carte = carte or {}
         self.carte_meta = carte_meta or {}
         self.stocks_mer: dict[str, float] = {}
+        self.ticks_ecoules = 0
+
+    @property
+    def date_simulation(self) -> dict[str, int]:
+        """Une consultation nouvelle, jamais une seconde horloge stockée."""
+        return _constantes.date_de_tick(self.ticks_ecoules)
 
     @classmethod
     def lire_carte(cls) -> dict:
@@ -149,6 +157,7 @@ class World:
         Les clés sont triées pour garantir le déterminisme.
         """
         return {
+            "ticks_ecoules": self.ticks_ecoules,
             "cells": {
                 str(cid): cellule_vers_dict(c)
                 for cid, c in sorted(self.cells.items())
