@@ -218,7 +218,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : pret · couche : 2 · dépend de : 051 · PR : —
 
 ### [053 — Le monde porte sa date](briefs/053-le-monde-porte-sa-date.md)
-état : pret · couche : 1 · dépend de : — · PR : —
+état : livre · couche : 1 · dépend de : — · PR : 245
 
 ## Livrés depuis le dégraissage V1
 
