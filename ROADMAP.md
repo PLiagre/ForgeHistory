@@ -203,7 +203,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : livre · couche : 2 · dépend de : 044 · PR : 214
 
 ### [049 — Fabriquer : le minerai devient un objet](briefs/049-fabriquer-le-minerai-devient-un-objet.md)
-état : pret · couche : 2 · dépend de : 044 · PR : —
+état : livre · couche : 2 · dépend de : 044 · PR : 242
 
 ### [054 — Cohérence globale : inventaire du produit face à la vision](briefs/054-coherence-globale-inventaire-produit-vision.md)
 état : pret · couche : — · dépend de : — · PR : —
