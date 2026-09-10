@@ -11,7 +11,7 @@ cet ordre — l'ordre est la mécanique, pas une convention :
     _update_hunger     → la faim suit la pénurie du tick, pas le stock restant
     _apply_mortality   → on meurt de la dette, proportionnellement
     _apply_natalite    → on naît là où on est rassasié et sans dette
-    _apply_migration   → les affamés partent vers les voisines en surplus
+    _apply_migration   → les affamés rejoignent un surplus par terre ou par mer
 
 Le commerce vient avant la consommation : on mange ce qui vient d'arriver.
 Il est calculé sur un instantané immuable, pour qu'un transfert ne dépende
@@ -1057,11 +1057,20 @@ def _apply_migration(world, penuries: dict[int, float]) -> None:
     Une cellule ne part que si la pénurie du tick (retour de _apply_consumption)
     est strictement positive. Les partants se répartissent entre les voisines
     dont le surplus alimentaire du tick est positif, sur un instantané pris
-    avant tout mouvement. Report de fraction via migration_remainder.
+    avant tout mouvement. Sans aucune voisine terrestre, une cellule côtière
+    peut rejoindre un autre port en surplus du bassin commun.
+    Report de fraction via migration_remainder.
 
     Atomique : une personne ne traverse qu'une arête ; une cellule qui reçoit
     des arrivants n'en envoie pas le même tick. Aucun kilogramme ne bouge.
     """
+    # Valider le bassin avant même de modifier un report de fraction.
+    cotieres = {cid for cid, _, _ in _aretes_maritimes_du_monde(world)}
+    reliees_par_terre = set()
+    for edge in world.adjacency:
+        if edge["a"] in world.cells and edge["b"] in world.cells:
+            reliees_par_terre.update((edge["a"], edge["b"]))
+
     snapshot_pop = {cid: cell.population for cid, cell in world.cells.items()}
     snapshot_stock = {
         cid: lire_stock_marchandise(cell, _constantes.MARCHANDISE_NOURRITURE)
@@ -1089,6 +1098,12 @@ def _apply_migration(world, penuries: dict[int, float]) -> None:
             continue
 
         destinations = _voisins_avec_surplus(world, cid, surplus_par_cellule)
+        if cid not in reliees_par_terre and cid in cotieres:
+            destinations = {
+                voisin: surplus_par_cellule[voisin]
+                for voisin in sorted(cotieres)
+                if voisin != cid and surplus_par_cellule[voisin] > 0
+            }
         if not destinations:
             continue
 
