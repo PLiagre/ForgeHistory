@@ -218,7 +218,7 @@ quoi faire quand ça casse — est décrit après le registre.
 état : livre · couche : 2 · dépend de : 047 · PR : 241
 
 ### [052 — Le regard mince montre le bourg](briefs/052-le-regard-mince-montre-le-bourg.md)
-état : livre · couche : 2 · dépend de : 051 · PR : 244
+état : livre · couche : 2 · dépend de : 051 · PR : 244, 249
 
 ### [053 — Le monde porte sa date](briefs/053-le-monde-porte-sa-date.md)
 état : pret · couche : 1 · dépend de : — · PR : —
