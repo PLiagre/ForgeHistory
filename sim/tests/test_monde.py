@@ -1761,3 +1761,112 @@ def test_cli_snapshot_refuse_si_export_impossible(tmp_path: Path, monkeypatch, c
     assert "refus" in sortie.err
     assert "geometrie absente" in sortie.err
     assert sortie.out == ""
+
+
+def test_date_initiale_consultation_pure():
+    from sim import constants as c
+    world = World.charger(0)
+    assert world.cells
+    assert world.ticks_ecoules == 0
+    assert world.date_simulation == {'annee': c.ANNEE_INITIALE, 'jour_de_l_annee': 1}
+    date = world.date_simulation
+    date['annee'] = -1
+    assert world.date_simulation['annee'] == c.ANNEE_INITIALE
+    assert world.to_dict()['ticks_ecoules'] == 0
+    assert 'date_simulation' not in world.to_dict()
+    for objet in [world, *world.cells.values()]:
+        assert not {'annee', 'jour_de_l_annee', 'date_simulation'} & vars(objet).keys()
+
+
+@pytest.mark.parametrize('mode', ['nominal', 'moyen', 'saisonnier'])
+def test_date_ticks_trois_regimes(mode):
+    import random
+    from sim import constants as c, engine
+    world = World.charger(0)
+    if mode == 'nominal':
+        world.carte = {}
+    rng = random.Random(0)
+    for termine in range(1, 4):
+        numero = world.ticks_ecoules if mode == 'saisonnier' else None
+        engine.tick(world, rng, numero)
+        assert world.ticks_ecoules == termine
+        assert world.date_simulation == c.date_de_tick(termine)
+    engine._apply_consumption(next(iter(world.cells.values())))
+    assert world.ticks_ecoules == termine
+
+
+def test_date_ticks_sans_compteur_ne_greffe_pas_horloge():
+    import random
+    from types import SimpleNamespace
+    from sim.engine import tick
+    world = SimpleNamespace(cells={}, adjacency=[])
+    avant = set(vars(world))
+    tick(world, random.Random(0))
+    assert set(vars(world)) == avant
+
+
+@pytest.mark.parametrize('remplacements', [{}, {'TICK_DURATION_DAYS': 3},
+    {'CALENDAR_DAYS_PER_YEAR': 11}, {'ANNEE_INITIALE': 1700, 'TICK_DURATION_DAYS': 2, 'CALENDAR_DAYS_PER_YEAR': 9}])
+def test_date_calendrier_limites_et_constantes_relues(monkeypatch, remplacements):
+    from sim import constants as c
+    for nom, valeur in remplacements.items():
+        monkeypatch.setattr(c, nom, valeur)
+    seuil = c.CALENDAR_DAYS_PER_YEAR // c.TICK_DURATION_DAYS
+    for compteur in (0, seuil - 1, seuil, seuil + 1, seuil * 3):
+        annees, jour = divmod(compteur * c.TICK_DURATION_DAYS, c.CALENDAR_DAYS_PER_YEAR)
+        assert c.date_de_tick(compteur) == {'annee': c.ANNEE_INITIALE + annees, 'jour_de_l_annee': jour + 1}
+
+
+@pytest.mark.parametrize('invalide', [-1, True, False, 1.5, '1', None])
+def test_date_calendrier_refuse_compteur_invalide(invalide):
+    from sim import constants as c
+    with pytest.raises(ValueError):
+        c.date_de_tick(invalide)
+
+
+@pytest.mark.parametrize('numero,compteur', [(-1, 0), (1, 0), (0, 1), (True, 0), (0.5, 0), ('0', 0),
+    (None, -1), (None, True), (None, 1.5), (None, '0'), (None, None)])
+def test_date_refus_avant_mutation_et_alea(numero, compteur):
+    import copy
+    import random
+    from sim.engine import tick
+    world = World.charger(0)
+    assert any(raw.get('gisements') for raw in world.carte.values())
+    world.ticks_ecoules = compteur
+    world.stocks_mer = {'nourriture': 17.0}
+    avant = copy.deepcopy(vars(world))
+    rng = random.Random(0)
+    alea = rng.getstate()
+    with pytest.raises(ValueError, match='reçu.*attendu'):
+        tick(world, rng, numero)
+    assert vars(world) == avant
+    assert rng.getstate() == alea
+
+
+def test_date_refus_maillon_echoue_sans_annoncer_tick(monkeypatch):
+    import random
+    from sim import engine
+    world = World.charger(0)
+    avant = world.ticks_ecoules
+    def echoue(*args):
+        raise RuntimeError('épreuve du maillon')
+    monkeypatch.setattr(engine, '_apply_migration', echoue)
+    with pytest.raises(RuntimeError, match='épreuve'):
+        engine.tick(world, random.Random(0), avant)
+    assert world.ticks_ecoules == avant
+
+
+@pytest.mark.parametrize('nombre', [0, 5])
+def test_date_cli_json_texte_et_monde_final(nombre, monkeypatch, capsys):
+    from sim import constants as c
+    from sim import __main__ as cli
+    # Une année courte franchit la limite sans une course coûteuse par assertion.
+    monkeypatch.setattr(c, 'CALENDAR_DAYS_PER_YEAR', 4)
+    resume, world = cli._simulate(nombre, 0)
+    assert resume['date_simulation'] == world.date_simulation == c.date_de_tick(nombre)
+    assert cli.main(['--ticks', str(nombre), '--json']) == 0
+    assert json.loads(capsys.readouterr().out)['date_simulation'] == world.date_simulation
+    assert cli.main(['--ticks', str(nombre)]) == 0
+    texte = capsys.readouterr().out
+    assert str(world.date_simulation['annee']) in texte
+    assert f"jour {world.date_simulation['jour_de_l_annee']}" in texte

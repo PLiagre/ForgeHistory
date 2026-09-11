@@ -426,6 +426,17 @@ CALENDAR_DAYS_PER_YEAR = 365
 DEFAULT_CLI_TICKS = CALENDAR_DAYS_PER_YEAR * TICK_DURATION_DAYS
 DEFAULT_CLI_SEED = 0
 
+# Calendrier simplifié : l'année et le jour se déduisent des ticks terminés.
+ANNEE_INITIALE = 1400
+
+
+def date_de_tick(ticks_ecoules: int) -> dict[str, int]:
+    """Consulte le temps écoulé en relisant les paramètres du calendrier."""
+    if isinstance(ticks_ecoules, bool) or not isinstance(ticks_ecoules, int) or ticks_ecoules < 0:
+        raise ValueError(f"compteur reçu={ticks_ecoules!r}, attendu : entier non négatif")
+    annees, jour = divmod(ticks_ecoules * TICK_DURATION_DAYS, CALENDAR_DAYS_PER_YEAR)
+    return {"annee": ANNEE_INITIALE + annees, "jour_de_l_annee": jour + 1}
+
 # --- Snapshot cellulaire ---
 # Photographie cellulaire déterministe ; le suffixe numéroté permet une
 # révision du contrat sans réutiliser le même nom.

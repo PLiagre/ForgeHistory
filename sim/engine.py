@@ -1146,6 +1146,17 @@ def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
     Retourne la quantité totale de nourriture transportée par le commerce
     pendant ce tick (kg).
     """
+    porte_compteur = hasattr(world, "ticks_ecoules")
+    if porte_compteur:
+        compteur = world.ticks_ecoules
+        if isinstance(compteur, bool) or not isinstance(compteur, int) or compteur < 0:
+            raise ValueError(f"compteur reçu={compteur!r}, attendu : entier non négatif")
+        if numero_tick is not None and (
+            isinstance(numero_tick, bool) or not isinstance(numero_tick, int)
+            or numero_tick != compteur
+        ):
+            raise ValueError(f"numéro reçu={numero_tick!r}, attendu={compteur}")
+
     total_transported = [0.0]
     carte = world.carte if getattr(world, "carte", None) else None
     if carte is not None:
@@ -1174,4 +1185,6 @@ def tick(world, rng: random.Random, numero_tick: int | None = None) -> float:
 
     _apply_migration(world, penuries)
 
+    if porte_compteur:
+        world.ticks_ecoules += 1
     return total_transported[0]

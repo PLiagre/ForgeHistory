@@ -309,3 +309,29 @@ def test_bassin_maritime_deterministe_a_graine_fixe():
         "échantillon vide : le bassin n'a jamais rien porté en 20 ticks"
     )
     assert premiere == seconde
+
+
+def test_date_determinisme_et_empreinte_du_temps():
+    import copy
+    import hashlib
+    import json
+    import random
+    from sim.world import World
+    from sim.engine import tick
+    a, b = World.charger(0), World.charger(0)
+    rngs = [random.Random(0), random.Random(0)]
+    course = list(range(7))
+    assert course
+    for numero in course:
+        for world, rng in zip((a, b), rngs):
+            tick(world, rng, numero)
+    assert a.ticks_ecoules == b.ticks_ecoules == len(course)
+    assert a.date_simulation == b.date_simulation
+    assert a.to_dict() == b.to_dict()
+    assert a.stocks_mer == b.stocks_mer
+    b = copy.deepcopy(a)
+    b.ticks_ecoules += 1
+    assert a.cells == b.cells and a.stocks_mer == b.stocks_mer
+    def empreinte(world):
+        return hashlib.sha256(json.dumps(world.to_dict(), sort_keys=True).encode()).digest()
+    assert empreinte(a) != empreinte(b)
