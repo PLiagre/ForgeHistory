@@ -46,6 +46,7 @@ _ROOT_KEYS = {
     "jour_de_tick",
 }
 _CELL_KEYS = {
+    "bourg",
     "cell_id",
     "area_km2",
     "geometry",
@@ -1761,3 +1762,45 @@ def test_cli_snapshot_refuse_si_export_impossible(tmp_path: Path, monkeypatch, c
     assert "refus" in sortie.err
     assert "geometrie absente" in sortie.err
     assert sortie.out == ""
+
+
+def test_snapshot_bourg_jointure_exacte_pure_et_complete():
+    import copy
+    from sim.aggregation import bourg_depuis_monde, repartitions_avec_bourg
+    world = World.charger(0)
+    avant = copy.deepcopy(vars(world))
+    repartitions = bourg_depuis_monde(world)
+    attendu = {r.cell_id: r for r in repartitions}
+    doc = build_snapshot_document(world, seed=0, tick=0)
+    assert len(doc['cells']) == len(attendu) > 0
+    positifs = 0
+    zeros = 0
+    for cell in doc['cells']:
+        r = attendu[cell['cell_id']]
+        bourg = cell['bourg']
+        assert bourg == {'habitants_du_bourg': r.habitants_du_bourg,
+                         'habitants_des_champs': r.habitants_des_champs}
+        assert all(type(v) is int and v >= 0 for v in bourg.values())
+        assert sum(bourg.values()) == cell['population']
+        positifs += bourg['habitants_du_bourg'] > 0
+        zeros += bourg['habitants_du_bourg'] == 0
+    assert positifs == len(repartitions_avec_bourg(repartitions)) > 0
+    assert zeros > 0
+    assert vars(world) == avant
+    assert serialize_snapshot(doc) == serialize_snapshot(build_snapshot_document(world, 0, 0))
+
+
+def test_snapshot_bourg_reste_une_lecture_et_garde_rouge():
+    import ast
+    import inspect
+    import sim.snapshot_export as export
+    def doublons(source):
+        arbre = ast.parse(source)
+        return [n for n in ast.walk(arbre) if
+                (isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and 'bourg' in n.name.lower())
+                or (isinstance(n, ast.Name) and n.id in {'part_miniere_de', 'facteurs_richesse_extraction'})
+                or (isinstance(n, ast.Attribute) and n.attr in {'part_miniere_de', 'facteurs_richesse_extraction'})]
+    source = inspect.getsource(export)
+    assert not doublons(source)
+    assert doublons(source + '\npart_miniere_de([])')
+    assert doublons(source + '\ndef recalcul_bourg(): pass')
